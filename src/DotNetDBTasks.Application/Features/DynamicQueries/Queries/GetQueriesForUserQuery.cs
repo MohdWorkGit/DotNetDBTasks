@@ -42,7 +42,8 @@ public class GetQueriesForUserQueryHandler
         var queryIds = queryRoles.Select(qr => qr.DynamicQueryId).Distinct().ToHashSet();
 
         var queries = await _unitOfWork.DynamicQueries.FindAsync(
-            q => queryIds.Contains(q.Id) && q.IsEnabled, cancellationToken);
+            q => queryIds.Contains(q.Id) && q.IsEnabled, cancellationToken,
+            "DynamicQueryRoles.Role", "Parameters");
 
         return _mapper.Map<IReadOnlyList<DynamicQueryDto>>(queries);
     }

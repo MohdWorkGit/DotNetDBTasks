@@ -36,6 +36,38 @@ public class Repository<T> : IRepository<T> where T : class
         return await _dbSet.Where(predicate).ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<T>> FindAsync(
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken,
+        params string[] includes)
+    {
+        IQueryable<T> query = _dbSet;
+        foreach (var include in includes)
+            query = query.Include(include);
+        return await query.Where(predicate).ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<T>> GetAllAsync(
+        CancellationToken cancellationToken,
+        params string[] includes)
+    {
+        IQueryable<T> query = _dbSet;
+        foreach (var include in includes)
+            query = query.Include(include);
+        return await query.ToListAsync(cancellationToken);
+    }
+
+    public async Task<T?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken,
+        params string[] includes)
+    {
+        IQueryable<T> query = _dbSet;
+        foreach (var include in includes)
+            query = query.Include(include);
+        return await query.FirstOrDefaultAsync(e => EF.Property<Guid>(e, "Id") == id, cancellationToken);
+    }
+
     public async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
     {
         await _dbSet.AddAsync(entity, cancellationToken);

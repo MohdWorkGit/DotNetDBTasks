@@ -32,7 +32,8 @@ public class GetMyExecutionHistoryQueryHandler
         CancellationToken cancellationToken)
     {
         var logs = await _unitOfWork.QueryExecutionLogs.FindAsync(
-            l => l.UserId == _currentUser.UserId, cancellationToken);
+            l => l.UserId == _currentUser.UserId, cancellationToken,
+            "DynamicQuery", "User");
 
         return _mapper.Map<IReadOnlyList<ExecutionLogDto>>(
             logs.OrderByDescending(l => l.ExecutedAt).ToList());

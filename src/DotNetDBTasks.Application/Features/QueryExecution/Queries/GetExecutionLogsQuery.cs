@@ -29,7 +29,8 @@ public class GetExecutionLogsQueryHandler
         GetExecutionLogsQuery request,
         CancellationToken cancellationToken)
     {
-        var logs = await _unitOfWork.QueryExecutionLogs.GetAllAsync(cancellationToken);
+        var logs = await _unitOfWork.QueryExecutionLogs.GetAllAsync(cancellationToken,
+            "DynamicQuery", "User");
 
         var filtered = logs.AsEnumerable();
 
