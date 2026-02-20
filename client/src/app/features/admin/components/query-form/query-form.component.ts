@@ -29,8 +29,8 @@ import { ParameterType } from '@core/models/dynamic-query.model';
             <mat-form-field class="full-width" appearance="outline">
               <mat-label>SQL Query (parameterized)</mat-label>
               <textarea matInput formControlName="sqlQuery" rows="5"
-                        placeholder="SELECT * FROM Users WHERE CreatedAt >= @StartDate"></textarea>
-              <mat-hint>Use @paramName syntax for parameters. Only SELECT queries allowed.</mat-hint>
+                        placeholder="SELECT * FROM Users WHERE CreatedAt >= &#64;StartDate"></textarea>
+              <mat-hint>Use &#64;paramName syntax for parameters. Only SELECT queries allowed.</mat-hint>
               <mat-error *ngIf="form.get('sqlQuery')?.hasError('required')">SQL query is required</mat-error>
             </mat-form-field>
 
