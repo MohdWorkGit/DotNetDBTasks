@@ -1,0 +1,48 @@
+using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Interfaces;
+using DotNetDBTasks.Infrastructure.Data;
+
+namespace DotNetDBTasks.Infrastructure.Repositories;
+
+/// <summary>
+/// Unit of Work implementation coordinating changes across multiple repositories.
+/// </summary>
+public class UnitOfWork : IUnitOfWork
+{
+    private readonly ApplicationDbContext _context;
+    private bool _disposed;
+
+    public IRepository<User> Users { get; }
+    public IRepository<Role> Roles { get; }
+    public IRepository<DynamicQuery> DynamicQueries { get; }
+    public IRepository<QueryParameter> QueryParameters { get; }
+    public IRepository<QueryExecutionLog> QueryExecutionLogs { get; }
+    public IRepository<UserRole> UserRoles { get; }
+    public IRepository<DynamicQueryRole> DynamicQueryRoles { get; }
+
+    public UnitOfWork(ApplicationDbContext context)
+    {
+        _context = context;
+        Users = new Repository<User>(context);
+        Roles = new Repository<Role>(context);
+        DynamicQueries = new Repository<DynamicQuery>(context);
+        QueryParameters = new Repository<QueryParameter>(context);
+        QueryExecutionLogs = new Repository<QueryExecutionLog>(context);
+        UserRoles = new Repository<UserRole>(context);
+        DynamicQueryRoles = new Repository<DynamicQueryRole>(context);
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _context.Dispose();
+            _disposed = true;
+        }
+    }
+}

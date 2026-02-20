@@ -1,0 +1,77 @@
+export enum ParameterType {
+  String = 0,
+  Number = 1,
+  Date = 2,
+  Boolean = 3
+}
+
+export interface QueryParameter {
+  id?: string;
+  name: string;
+  displayName: string;
+  parameterType: ParameterType;
+  isRequired: boolean;
+  defaultValue?: string;
+  sortOrder: number;
+}
+
+export interface RoleAssignment {
+  roleId: string;
+  roleName: string;
+}
+
+export interface DynamicQuery {
+  id: string;
+  name: string;
+  description: string;
+  sqlQuery: string;
+  isEnabled: boolean;
+  timeoutSeconds: number;
+  createdAt: string;
+  parameters: QueryParameter[];
+  assignedRoles: RoleAssignment[];
+}
+
+export interface CreateDynamicQueryRequest {
+  name: string;
+  description: string;
+  sqlQuery: string;
+  timeoutSeconds: number;
+  parameters: QueryParameter[];
+}
+
+export interface UpdateDynamicQueryRequest extends CreateDynamicQueryRequest {
+  id: string;
+  isEnabled: boolean;
+}
+
+export interface AssignRolesRequest {
+  roleIds: string[];
+}
+
+export interface QueryExecutionResult {
+  columns: string[];
+  rows: Record<string, any>[];
+  totalRows: number;
+  executionDurationMs: number;
+}
+
+export interface ExecutionLog {
+  id: string;
+  dynamicQueryId: string;
+  queryName: string;
+  userId: string;
+  username: string;
+  parametersJson: string;
+  executedAt: string;
+  executionDurationMs: number;
+  rowsReturned: number;
+  isSuccess: boolean;
+  errorMessage?: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description: string;
+}

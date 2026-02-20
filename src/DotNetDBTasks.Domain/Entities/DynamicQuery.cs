@@ -1,0 +1,30 @@
+namespace DotNetDBTasks.Domain.Entities;
+
+/// <summary>
+/// Represents a reusable, parameterized SQL query that can be assigned to roles
+/// and executed by authorized users through dynamically generated forms.
+/// </summary>
+public class DynamicQuery : BaseEntity
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The parameterized SQL query text. Must use @parameter syntax only.
+    /// Raw string concatenation is strictly prohibited.
+    /// </summary>
+    public string SqlQuery { get; set; } = string.Empty;
+
+    public bool IsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Maximum execution time in seconds to prevent long-running queries.
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 30;
+
+    public Guid CreatedByUserId { get; set; }
+
+    public ICollection<QueryParameter> Parameters { get; set; } = new List<QueryParameter>();
+    public ICollection<DynamicQueryRole> DynamicQueryRoles { get; set; } = new List<DynamicQueryRole>();
+    public ICollection<QueryExecutionLog> ExecutionLogs { get; set; } = new List<QueryExecutionLog>();
+}
