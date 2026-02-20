@@ -1,7 +1,6 @@
 using AutoMapper;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 
