@@ -29,13 +29,16 @@ public static class DatabaseSeeder
             {
                 logger.LogWarning("Database objects already exist (ORA-00955). Dropping all tables and recreating schema...");
 
-                // Drop all user tables via PL/SQL (EnsureDeletedAsync doesn't work reliably with Oracle)
-                await context.Database.ExecuteSqlRawAsync(@"
-                    BEGIN
-                        FOR c IN (SELECT table_name FROM user_tables) LOOP
-                            EXECUTE IMMEDIATE 'DROP TABLE ""' || c.table_name || '"" CASCADE CONSTRAINTS PURGE';
-                        END LOOP;
-                    END;");
+                // Drop application tables explicitly (user_tables includes Oracle system tables like LogMiner that can't be dropped)
+                var tablesToDrop = new[] { "DynamicQueryRoles", "QueryExecutionLogs", "QueryParameters", "UserRoles", "DynamicQueries", "Users", "Roles", "__EFMigrationsHistory" };
+                foreach (var table in tablesToDrop)
+                {
+                    try
+                    {
+                        await context.Database.ExecuteSqlRawAsync($@"BEGIN EXECUTE IMMEDIATE 'DROP TABLE ""{table}"" CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;");
+                    }
+                    catch { /* table may not exist */ }
+                }
 
                 await context.Database.MigrateAsync();
             }
