@@ -43,7 +43,7 @@ public static class DatabaseSeeder
                 await context.Database.MigrateAsync();
             }
 
-            if (await context.Roles.AnyAsync())
+            if (await context.Roles.CountAsync() > 0)
                 return;
 
             logger.LogInformation("Seeding database...");
