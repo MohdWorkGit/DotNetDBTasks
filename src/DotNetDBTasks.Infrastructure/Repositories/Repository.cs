@@ -88,7 +88,7 @@ public class Repository<T> : IRepository<T> where T : class
         Expression<Func<T, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
-        return await _dbSet.AnyAsync(predicate, cancellationToken);
+        return await _dbSet.CountAsync(predicate, cancellationToken) > 0;
     }
 
     public async Task<int> CountAsync(
