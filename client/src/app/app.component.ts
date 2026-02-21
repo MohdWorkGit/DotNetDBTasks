@@ -8,10 +8,10 @@ import { AuthService } from './core/services/auth.service';
       <span>DotNetDBTasks</span>
       <span class="spacer"></span>
 
-      <button mat-button routerLink="/user/queries" *ngIf="!authService.isAdmin()">
+      <button mat-button routerLink="/user/queries">
         <mat-icon>list</mat-icon> My Queries
       </button>
-      <button mat-button routerLink="/user/history" *ngIf="!authService.isAdmin()">
+      <button mat-button routerLink="/user/history">
         <mat-icon>history</mat-icon> History
       </button>
 
