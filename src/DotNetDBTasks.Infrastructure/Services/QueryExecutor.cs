@@ -1,14 +1,15 @@
 using System.Diagnostics;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Common.Models;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using Oracle.ManagedDataAccess.Client;
 
 namespace DotNetDBTasks.Infrastructure.Services;
 
 /// <summary>
-/// Executes parameterized SQL queries securely against SQL Server.
-/// All parameters are passed through SqlParameter — no string concatenation.
+/// Executes parameterized SQL queries securely against Oracle.
+/// All parameters are passed through OracleParameter — no string concatenation.
+/// Translates @param syntax (used in stored queries) to Oracle's :param syntax.
 /// </summary>
 public class QueryExecutor : IQueryExecutor
 {
@@ -29,17 +30,25 @@ public class QueryExecutor : IQueryExecutor
         var result = new QueryExecutionResult();
         var sw = Stopwatch.StartNew();
 
-        await using var connection = new SqlConnection(_connectionString);
+        // Translate @paramName to :paramName for Oracle bind variable syntax
+        var oracleSql = sqlQuery;
+        foreach (var param in parameters)
+        {
+            oracleSql = oracleSql.Replace($"@{param.Key}", $":{param.Key}");
+        }
+
+        await using var connection = new OracleConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
 
         await using var command = connection.CreateCommand();
-        command.CommandText = sqlQuery;
+        command.CommandText = oracleSql;
         command.CommandTimeout = timeoutSeconds;
+        command.BindByName = true;
 
-        // All parameters are added via SqlParameter — strict parameterization
+        // All parameters are added via OracleParameter — strict parameterization
         foreach (var param in parameters)
         {
-            command.Parameters.Add(new SqlParameter($"@{param.Key}", param.Value ?? DBNull.Value));
+            command.Parameters.Add(new OracleParameter($":{param.Key}", param.Value ?? DBNull.Value));
         }
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);

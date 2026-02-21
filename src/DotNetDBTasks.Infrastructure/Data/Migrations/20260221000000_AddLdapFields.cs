@@ -13,14 +13,14 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
             migrationBuilder.AddColumn<int>(
                 name: "AuthSource",
                 table: "Users",
-                type: "int",
+                type: "NUMBER(10)",
                 nullable: false,
                 defaultValue: 0);
 
             migrationBuilder.AddColumn<string>(
                 name: "Department",
                 table: "Users",
-                type: "nvarchar(200)",
+                type: "NVARCHAR2(200)",
                 maxLength: 200,
                 nullable: true);
 

@@ -1,23 +1,21 @@
 version: '3.8'
 
 services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: dotnetdbtasks-sql
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: dotnetdbtasks-oracle
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "${DB_PASSWORD:-YourStrong@Passw0rd}"
-      MSSQL_PID: "Express"
+      ORACLE_PASSWORD: "${DB_PASSWORD:-YourStrong@Passw0rd}"
     ports:
-      - "${DB_PORT:-1433}:1433"
+      - "${DB_PORT:-1521}:1521"
     volumes:
-      - sqlserver_data:/var/opt/mssql
+      - oracle_data:/opt/oracle/oradata
     healthcheck:
-      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" -b -o /dev/null
-      interval: 15s
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 30s
+      start_period: 90s
     networks:
       - dotnetdbtasks-network
     restart: unless-stopped
@@ -28,7 +26,7 @@ services:
       dockerfile: docker/api.Dockerfile
     container_name: dotnetdbtasks-api
     environment:
-      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=DotNetDBTasks;User Id=sa;Password=${DB_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      ConnectionStrings__DefaultConnection: "User Id=system;Password=${DB_PASSWORD:-YourStrong@Passw0rd};Data Source=oracle:1521/XEPDB1"
       Jwt__Secret: "${JWT_SECRET:-CHANGE_THIS_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS_LONG_12345}"
       Jwt__Issuer: "${JWT_ISSUER:-DotNetDBTasks}"
       Jwt__Audience: "${JWT_AUDIENCE:-DotNetDBTasks}"
@@ -38,13 +36,16 @@ services:
       Ldap__UsersDn: "ou=users,dc=dotnetdbtasks,dc=local"
       Ldap__AdminDn: "cn=admin,dc=dotnetdbtasks,dc=local"
       Ldap__AdminPassword: "${LDAP_ADMIN_PASSWORD:-LdapAdmin@123}"
+      Ldap__UsernameAttribute: "uid"
+      Ldap__DepartmentAttribute: "departmentNumber"
+      Ldap__UserObjectFilter: "(objectClass=inetOrgPerson)"
       Cors__AllowedOrigins__0: "http://localhost"
       Cors__AllowedOrigins__1: "http://localhost:80"
       ASPNETCORE_ENVIRONMENT: "Production"
     ports:
       - "${API_PORT:-5000}:8080"
     depends_on:
-      sqlserver:
+      oracle:
         condition: service_healthy
       ldap:
         condition: service_started
@@ -98,7 +99,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  sqlserver_data:
+  oracle_data:
     driver: local
   ldap_data:
     driver: local

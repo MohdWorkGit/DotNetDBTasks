@@ -6,30 +6,44 @@ using Novell.Directory.Ldap;
 namespace DotNetDBTasks.Infrastructure.Services;
 
 /// <summary>
-/// LDAP/Active Directory service for user authentication and directory queries.
+/// LDAP / Microsoft Active Directory service for user authentication and directory queries.
+/// Attribute names are configurable to support both real AD (production) and OpenLDAP (dev).
+///
+/// Production AD defaults: sAMAccountName, department, (&amp;(objectClass=user)(objectCategory=person))
+/// Dev OpenLDAP overrides via env: uid, department, (objectClass=inetOrgPerson)
 /// </summary>
 public class LdapService : ILdapService
 {
-    private readonly IConfiguration _configuration;
     private readonly ILogger<LdapService> _logger;
     private readonly string _host;
     private readonly int _port;
-    private readonly string _baseDn;
     private readonly string _usersDn;
     private readonly string _adminDn;
     private readonly string _adminPassword;
+    private readonly string _usernameAttr;
+    private readonly string _deptAttr;
+    private readonly string _userObjectFilter;
 
     public LdapService(IConfiguration configuration, ILogger<LdapService> logger)
     {
-        _configuration = configuration;
         _logger = logger;
         _host = configuration["Ldap:Host"] ?? "localhost";
         _port = int.Parse(configuration["Ldap:Port"] ?? "389");
-        _baseDn = configuration["Ldap:BaseDn"] ?? "dc=dotnetdbtasks,dc=local";
         _usersDn = configuration["Ldap:UsersDn"] ?? "ou=users,dc=dotnetdbtasks,dc=local";
         _adminDn = configuration["Ldap:AdminDn"] ?? "cn=admin,dc=dotnetdbtasks,dc=local";
         _adminPassword = configuration["Ldap:AdminPassword"] ?? "";
+
+        // Configurable attribute names — defaults target Microsoft Active Directory
+        _usernameAttr = configuration["Ldap:UsernameAttribute"] ?? "sAMAccountName";
+        _deptAttr = configuration["Ldap:DepartmentAttribute"] ?? "department";
+        _userObjectFilter = configuration["Ldap:UserObjectFilter"]
+            ?? "(&(objectClass=user)(objectCategory=person))";
     }
+
+    private string[] UserAttributes => new[]
+    {
+        "dn", _usernameAttr, "cn", "sn", "givenName", "mail", _deptAttr
+    };
 
     public Task<LdapUserInfo?> AuthenticateAsync(string username, string password)
     {
@@ -41,12 +55,9 @@ public class LdapService : ILdapService
             // First find the user DN using admin bind
             connection.Bind(_adminDn, _adminPassword);
 
+            var filter = $"(&{_userObjectFilter}({_usernameAttr}={EscapeLdapFilter(username)}))";
             var searchResults = connection.Search(
-                _usersDn,
-                LdapConnection.ScopeSub,
-                $"(uid={EscapeLdapFilter(username)})",
-                new[] { "dn", "uid", "cn", "sn", "givenName", "mail", "departmentNumber" },
-                false);
+                _usersDn, LdapConnection.ScopeSub, filter, UserAttributes, false);
 
             if (!searchResults.HasMore())
                 return Task.FromResult<LdapUserInfo?>(null);
@@ -79,14 +90,10 @@ public class LdapService : ILdapService
             connection.Bind(_adminDn, _adminPassword);
 
             var escaped = EscapeLdapFilter(searchTerm);
-            var filter = $"(|(uid=*{escaped}*)(cn=*{escaped}*)(mail=*{escaped}*)(givenName=*{escaped}*)(sn=*{escaped}*))";
+            var filter = $"(&{_userObjectFilter}(|({_usernameAttr}=*{escaped}*)(cn=*{escaped}*)(mail=*{escaped}*)(givenName=*{escaped}*)(sn=*{escaped}*)))";
 
             var searchResults = connection.Search(
-                _usersDn,
-                LdapConnection.ScopeSub,
-                filter,
-                new[] { "uid", "cn", "sn", "givenName", "mail", "departmentNumber" },
-                false);
+                _usersDn, LdapConnection.ScopeSub, filter, UserAttributes, false);
 
             while (searchResults.HasMore())
             {
@@ -97,10 +104,7 @@ public class LdapService : ILdapService
                     if (user != null)
                         results.Add(user);
                 }
-                catch (LdapReferralException)
-                {
-                    // Skip referrals
-                }
+                catch (LdapReferralException) { }
             }
         }
         catch (LdapException ex)
@@ -121,26 +125,20 @@ public class LdapService : ILdapService
             connection.Connect(_host, _port);
             connection.Bind(_adminDn, _adminPassword);
 
+            var filter = $"(&{_userObjectFilter}({_deptAttr}=*))";
             var searchResults = connection.Search(
-                _usersDn,
-                LdapConnection.ScopeSub,
-                "(departmentNumber=*)",
-                new[] { "departmentNumber" },
-                false);
+                _usersDn, LdapConnection.ScopeSub, filter, new[] { _deptAttr }, false);
 
             while (searchResults.HasMore())
             {
                 try
                 {
                     var entry = searchResults.Next();
-                    var dept = GetAttribute(entry, "departmentNumber");
+                    var dept = GetAttribute(entry, _deptAttr);
                     if (!string.IsNullOrWhiteSpace(dept))
                         departments.Add(dept);
                 }
-                catch (LdapReferralException)
-                {
-                    // Skip referrals
-                }
+                catch (LdapReferralException) { }
             }
         }
         catch (LdapException ex)
@@ -161,14 +159,9 @@ public class LdapService : ILdapService
             connection.Connect(_host, _port);
             connection.Bind(_adminDn, _adminPassword);
 
-            var filter = $"(departmentNumber={EscapeLdapFilter(department)})";
-
+            var filter = $"(&{_userObjectFilter}({_deptAttr}={EscapeLdapFilter(department)}))";
             var searchResults = connection.Search(
-                _usersDn,
-                LdapConnection.ScopeSub,
-                filter,
-                new[] { "uid", "cn", "sn", "givenName", "mail", "departmentNumber" },
-                false);
+                _usersDn, LdapConnection.ScopeSub, filter, UserAttributes, false);
 
             while (searchResults.HasMore())
             {
@@ -179,10 +172,7 @@ public class LdapService : ILdapService
                     if (user != null)
                         results.Add(user);
                 }
-                catch (LdapReferralException)
-                {
-                    // Skip referrals
-                }
+                catch (LdapReferralException) { }
             }
         }
         catch (LdapException ex)
@@ -193,19 +183,19 @@ public class LdapService : ILdapService
         return Task.FromResult<IReadOnlyList<LdapUserInfo>>(results);
     }
 
-    private static LdapUserInfo? MapEntry(LdapEntry entry)
+    private LdapUserInfo? MapEntry(LdapEntry entry)
     {
-        var uid = GetAttribute(entry, "uid");
-        if (string.IsNullOrWhiteSpace(uid))
+        var username = GetAttribute(entry, _usernameAttr);
+        if (string.IsNullOrWhiteSpace(username))
             return null;
 
         return new LdapUserInfo
         {
-            Username = uid,
-            Email = GetAttribute(entry, "mail") ?? $"{uid}@dotnetdbtasks.local",
+            Username = username,
+            Email = GetAttribute(entry, "mail") ?? $"{username}@dotnetdbtasks.local",
             FirstName = GetAttribute(entry, "givenName") ?? "",
             LastName = GetAttribute(entry, "sn") ?? "",
-            Department = GetAttribute(entry, "departmentNumber")
+            Department = GetAttribute(entry, _deptAttr)
         };
     }
 

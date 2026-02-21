@@ -15,11 +15,11 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 name: "Roles",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    Name = table.Column<string>(type: "NVARCHAR2(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -30,17 +30,17 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Username = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    RefreshToken = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: true),
-                    RefreshTokenExpiryTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    Username = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "NVARCHAR2(256)", maxLength: 256, nullable: false),
+                    PasswordHash = table.Column<string>(type: "NVARCHAR2(512)", maxLength: 512, nullable: false),
+                    FirstName = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
+                    LastName = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "NUMBER(1)", nullable: false),
+                    RefreshToken = table.Column<string>(type: "NVARCHAR2(512)", maxLength: 512, nullable: true),
+                    RefreshTokenExpiryTime = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -51,15 +51,15 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 name: "DynamicQueries",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    SqlQuery = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
-                    IsEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    TimeoutSeconds = table.Column<int>(type: "int", nullable: false, defaultValue: 30),
-                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    Name = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "NVARCHAR2(1000)", maxLength: 1000, nullable: false),
+                    SqlQuery = table.Column<string>(type: "NVARCHAR2(4000)", maxLength: 4000, nullable: false),
+                    IsEnabled = table.Column<bool>(type: "NUMBER(1)", nullable: false),
+                    TimeoutSeconds = table.Column<int>(type: "NUMBER(10)", nullable: false, defaultValue: 30),
+                    CreatedByUserId = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -70,8 +70,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 name: "UserRoles",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    UserId = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    RoleId = table.Column<Guid>(type: "RAW(16)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -94,8 +94,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 name: "DynamicQueryRoles",
                 columns: table => new
                 {
-                    DynamicQueryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    DynamicQueryId = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    RoleId = table.Column<Guid>(type: "RAW(16)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -118,16 +118,16 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 name: "QueryParameters",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DynamicQueryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    DisplayName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    ParameterType = table.Column<int>(type: "int", nullable: false),
-                    IsRequired = table.Column<bool>(type: "bit", nullable: false),
-                    DefaultValue = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    DynamicQueryId = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    Name = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
+                    DisplayName = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
+                    ParameterType = table.Column<int>(type: "NUMBER(10)", nullable: false),
+                    IsRequired = table.Column<bool>(type: "NUMBER(1)", nullable: false),
+                    DefaultValue = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: true),
+                    SortOrder = table.Column<int>(type: "NUMBER(10)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -144,17 +144,17 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 name: "QueryExecutionLogs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DynamicQueryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ParametersJson = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
-                    ExecutedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ExecutionDurationMs = table.Column<long>(type: "bigint", nullable: false),
-                    RowsReturned = table.Column<int>(type: "int", nullable: false),
-                    IsSuccess = table.Column<bool>(type: "bit", nullable: false),
-                    ErrorMessage = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    DynamicQueryId = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    UserId = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    ParametersJson = table.Column<string>(type: "NVARCHAR2(4000)", maxLength: 4000, nullable: false),
+                    ExecutedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
+                    ExecutionDurationMs = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    RowsReturned = table.Column<int>(type: "NUMBER(10)", nullable: false),
+                    IsSuccess = table.Column<bool>(type: "NUMBER(1)", nullable: false),
+                    ErrorMessage = table.Column<string>(type: "NVARCHAR2(2000)", maxLength: 2000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true)
                 },
                 constraints: table =>
                 {
