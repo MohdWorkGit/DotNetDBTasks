@@ -21,7 +21,16 @@ public static class DatabaseSeeder
 
         try
         {
-            await context.Database.MigrateAsync();
+            try
+            {
+                await context.Database.MigrateAsync();
+            }
+            catch (Exception ex) when (ex.Message.Contains("ORA-00955") || ex.InnerException?.Message?.Contains("ORA-00955") == true)
+            {
+                logger.LogWarning("Database objects already exist (ORA-00955). Dropping and recreating schema...");
+                await context.Database.EnsureDeletedAsync();
+                await context.Database.MigrateAsync();
+            }
 
             if (await context.Roles.AnyAsync())
                 return;

@@ -210,8 +210,15 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("RAW(16)");
 
+                    b.Property<int>("AuthSource")
+                        .HasColumnType("NUMBER(10)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("Department")
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -252,6 +259,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .HasColumnType("NVARCHAR2(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Department");
 
                     b.HasIndex("Email")
                         .IsUnique();

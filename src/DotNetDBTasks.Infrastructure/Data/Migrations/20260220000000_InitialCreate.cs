@@ -37,6 +37,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     FirstName = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
                     LastName = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
                     IsActive = table.Column<bool>(type: "NUMBER(1)", nullable: false),
+                    AuthSource = table.Column<int>(type: "NUMBER(10)", nullable: false, defaultValue: 0),
+                    Department = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: true),
                     RefreshToken = table.Column<string>(type: "NVARCHAR2(512)", maxLength: 512, nullable: true),
                     RefreshTokenExpiryTime = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
@@ -207,6 +209,11 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 name: "IX_UserRoles_RoleId",
                 table: "UserRoles",
                 column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Department",
+                table: "Users",
+                column: "Department");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
