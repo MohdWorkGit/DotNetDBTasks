@@ -27,8 +27,16 @@ public static class DatabaseSeeder
             }
             catch (Exception ex) when (ex.Message.Contains("ORA-00955") || ex.InnerException?.Message?.Contains("ORA-00955") == true)
             {
-                logger.LogWarning("Database objects already exist (ORA-00955). Dropping and recreating schema...");
-                await context.Database.EnsureDeletedAsync();
+                logger.LogWarning("Database objects already exist (ORA-00955). Dropping all tables and recreating schema...");
+
+                // Drop all user tables via PL/SQL (EnsureDeletedAsync doesn't work reliably with Oracle)
+                await context.Database.ExecuteSqlRawAsync(@"
+                    BEGIN
+                        FOR c IN (SELECT table_name FROM user_tables) LOOP
+                            EXECUTE IMMEDIATE 'DROP TABLE ""' || c.table_name || '"" CASCADE CONSTRAINTS PURGE';
+                        END LOOP;
+                    END;");
+
                 await context.Database.MigrateAsync();
             }
 
