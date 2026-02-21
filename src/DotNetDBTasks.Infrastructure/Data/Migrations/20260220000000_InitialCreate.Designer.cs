@@ -49,8 +49,7 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
 
                     b.Property<string>("SqlQuery")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("NVARCHAR2(4000)");
+                        .HasColumnType("CLOB");
 
                     b.Property<int>("TimeoutSeconds")
                         .ValueGeneratedOnAdd()
@@ -93,8 +92,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .HasColumnType("RAW(16)");
 
                     b.Property<string>("ErrorMessage")
-                        .HasMaxLength(2000)
-                        .HasColumnType("NVARCHAR2(2000)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("NVARCHAR2(1000)");
 
                     b.Property<DateTime>("ExecutedAt")
                         .HasColumnType("TIMESTAMP(7)");
@@ -107,8 +106,7 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
 
                     b.Property<string>("ParametersJson")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("NVARCHAR2(4000)");
+                        .HasColumnType("CLOB");
 
                     b.Property<int>("RowsReturned")
                         .HasColumnType("NUMBER(10)");
