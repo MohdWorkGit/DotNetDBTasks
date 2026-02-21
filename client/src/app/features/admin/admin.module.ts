@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
@@ -17,21 +17,26 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { QueryListComponent } from './components/query-list/query-list.component';
 import { QueryFormComponent } from './components/query-form/query-form.component';
 import { RoleAssignmentComponent } from './components/role-assignment/role-assignment.component';
 import { ExecutionLogsComponent } from './components/execution-logs/execution-logs.component';
+import { AdUsersComponent } from './components/ad-users/ad-users.component';
 
 @NgModule({
   declarations: [
     QueryListComponent,
     QueryFormComponent,
     RoleAssignmentComponent,
-    ExecutionLogsComponent
+    ExecutionLogsComponent,
+    AdUsersComponent
   ],
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     MatTableModule,
     MatPaginatorModule,
@@ -48,12 +53,15 @@ import { ExecutionLogsComponent } from './components/execution-logs/execution-lo
     MatTooltipModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatTabsModule,
+    MatCheckboxModule,
     RouterModule.forChild([
       { path: 'queries', component: QueryListComponent },
       { path: 'queries/create', component: QueryFormComponent },
       { path: 'queries/edit/:id', component: QueryFormComponent },
       { path: 'queries/:id/roles', component: RoleAssignmentComponent },
       { path: 'logs', component: ExecutionLogsComponent },
+      { path: 'ad-users', component: AdUsersComponent },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])
   ]

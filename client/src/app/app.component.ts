@@ -18,6 +18,9 @@ import { AuthService } from './core/services/auth.service';
       <button mat-button routerLink="/admin/queries" *ngIf="authService.isAdmin()">
         <mat-icon>dashboard</mat-icon> Manage Queries
       </button>
+      <button mat-button routerLink="/admin/ad-users" *ngIf="authService.isAdmin()">
+        <mat-icon>group</mat-icon> AD Users
+      </button>
       <button mat-button routerLink="/admin/logs" *ngIf="authService.isAdmin()">
         <mat-icon>receipt_long</mat-icon> Logs
       </button>

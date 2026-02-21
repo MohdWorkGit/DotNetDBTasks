@@ -1,3 +1,5 @@
+using DotNetDBTasks.Domain.Enums;
+
 namespace DotNetDBTasks.Domain.Entities;
 
 /// <summary>
@@ -13,6 +15,8 @@ public class User : BaseEntity
     public bool IsActive { get; set; } = true;
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }
+    public AuthSource AuthSource { get; set; } = AuthSource.Local;
+    public string? Department { get; set; }
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<QueryExecutionLog> QueryExecutionLogs { get; set; } = new List<QueryExecutionLog>();

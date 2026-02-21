@@ -32,6 +32,12 @@ services:
       Jwt__Secret: "${JWT_SECRET:-CHANGE_THIS_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS_LONG_12345}"
       Jwt__Issuer: "${JWT_ISSUER:-DotNetDBTasks}"
       Jwt__Audience: "${JWT_AUDIENCE:-DotNetDBTasks}"
+      Ldap__Host: "ldap"
+      Ldap__Port: "389"
+      Ldap__BaseDn: "dc=dotnetdbtasks,dc=local"
+      Ldap__UsersDn: "ou=users,dc=dotnetdbtasks,dc=local"
+      Ldap__AdminDn: "cn=admin,dc=dotnetdbtasks,dc=local"
+      Ldap__AdminPassword: "${LDAP_ADMIN_PASSWORD:-LdapAdmin@123}"
       Cors__AllowedOrigins__0: "http://localhost"
       Cors__AllowedOrigins__1: "http://localhost:80"
       ASPNETCORE_ENVIRONMENT: "Production"
@@ -40,6 +46,40 @@ services:
     depends_on:
       sqlserver:
         condition: service_healthy
+      ldap:
+        condition: service_started
+    networks:
+      - dotnetdbtasks-network
+    restart: unless-stopped
+
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: dotnetdbtasks-ldap
+    environment:
+      LDAP_ORGANISATION: "DotNetDBTasks"
+      LDAP_DOMAIN: "dotnetdbtasks.local"
+      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-LdapAdmin@123}"
+    ports:
+      - "${LDAP_PORT:-389}:389"
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+      - ./docker/ldap/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/50-bootstrap.ldif
+    command: --copy-service
+    networks:
+      - dotnetdbtasks-network
+    restart: unless-stopped
+
+  ldapadmin:
+    image: osixia/phpldapadmin:0.9.0
+    container_name: dotnetdbtasks-ldapadmin
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "ldap"
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - "${LDAPADMIN_PORT:-8081}:80"
+    depends_on:
+      - ldap
     networks:
       - dotnetdbtasks-network
     restart: unless-stopped
@@ -59,6 +99,10 @@ services:
 
 volumes:
   sqlserver_data:
+    driver: local
+  ldap_data:
+    driver: local
+  ldap_config:
     driver: local
 
 networks:

@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IQueryExecutor, QueryExecutor>();
+        services.AddScoped<ILdapService, LdapService>();
 
         // JWT Authentication
         var jwtSecret = configuration["Jwt:Secret"]

@@ -75,3 +75,23 @@ export interface Role {
   name: string;
   description: string;
 }
+
+export interface LdapUser {
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  department?: string;
+  isImported: boolean;
+}
+
+export interface ImportedLdapUser {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  department?: string;
+  isActive: boolean;
+  createdAt: string;
+}

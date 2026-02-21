@@ -7,6 +7,8 @@ import {
   CreateDynamicQueryRequest,
   DynamicQuery,
   ExecutionLog,
+  ImportedLdapUser,
+  LdapUser,
   QueryExecutionResult,
   Role,
   UpdateDynamicQueryRequest
@@ -19,6 +21,7 @@ export class QueryService {
   private adminUrl = `${environment.apiUrl}/admin/dynamicqueries`;
   private userUrl = `${environment.apiUrl}/user/queries`;
   private rolesUrl = `${environment.apiUrl}/admin/roles`;
+  private ldapUrl = `${environment.apiUrl}/admin/ldap`;
 
   constructor(private http: HttpClient) {}
 
@@ -69,5 +72,34 @@ export class QueryService {
 
   getMyHistory(): Observable<ExecutionLog[]> {
     return this.http.get<ExecutionLog[]>(`${this.userUrl}/history`);
+  }
+
+  // LDAP / Active Directory operations
+  searchLdapUsers(term: string): Observable<LdapUser[]> {
+    return this.http.get<LdapUser[]>(`${this.ldapUrl}/search`, { params: { term } });
+  }
+
+  getLdapDepartments(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.ldapUrl}/departments`);
+  }
+
+  getLdapDepartmentUsers(department: string): Observable<LdapUser[]> {
+    return this.http.get<LdapUser[]>(`${this.ldapUrl}/departments/${encodeURIComponent(department)}/users`);
+  }
+
+  importLdapUsers(usernames: string[]): Observable<{ imported: number }> {
+    return this.http.post<{ imported: number }>(`${this.ldapUrl}/import/users`, { usernames });
+  }
+
+  importLdapDepartment(department: string): Observable<{ imported: number }> {
+    return this.http.post<{ imported: number }>(`${this.ldapUrl}/import/department`, { department });
+  }
+
+  getImportedLdapUsers(): Observable<ImportedLdapUser[]> {
+    return this.http.get<ImportedLdapUser[]>(`${this.ldapUrl}/imported`);
+  }
+
+  revokeLdapUser(username: string): Observable<void> {
+    return this.http.post<void>(`${this.ldapUrl}/revoke/${encodeURIComponent(username)}`, {});
   }
 }
