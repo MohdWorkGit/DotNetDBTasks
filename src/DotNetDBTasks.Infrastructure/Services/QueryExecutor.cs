@@ -31,9 +31,11 @@ public class QueryExecutor : IQueryExecutor
         var result = new QueryExecutionResult();
         var sw = Stopwatch.StartNew();
 
-        // Translate @paramName to :paramName for Oracle bind variable syntax.
-        // Use word-boundary regex to avoid partial replacements (e.g. @Start matching @StartDate).
-        var oracleSql = Regex.Replace(sqlQuery, @"@(\w+)", ":$1");
+        // Translate SQL Server syntax to Oracle syntax:
+        // 1. Convert [bracket] quoting to "double-quote" quoting (ORA-00903 fix)
+        // 2. Convert @paramName to :paramName bind variable syntax
+        var oracleSql = Regex.Replace(sqlQuery, @"\[([^\]]+)\]", "\"$1\"");
+        oracleSql = Regex.Replace(oracleSql, @"@(\w+)", ":$1");
 
         await using var connection = new OracleConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
