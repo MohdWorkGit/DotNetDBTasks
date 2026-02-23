@@ -15,7 +15,8 @@ public partial class CreateDynamicQueryValidator : AbstractValidator<CreateDynam
     {
         "INSERT ", "UPDATE ", "DELETE ", "DROP ", "ALTER ", "CREATE ",
         "TRUNCATE ", "EXEC ", "EXECUTE ", "xp_", "sp_", "--", ";",
-        "GRANT ", "REVOKE ", "DENY "
+        "GRANT ", "REVOKE ", "DENY ",
+        "DECLARE ", "BEGIN ", "CALL ", "DBMS_", "UTL_"
     };
 
     public CreateDynamicQueryValidator()
