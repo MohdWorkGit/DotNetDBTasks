@@ -41,6 +41,6 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/swagger/index.html || exit 1
+    CMD wget -qO- http://localhost:8080/swagger/index.html || exit 1
 
 ENTRYPOINT ["dotnet", "DotNetDBTasks.API.dll"]
