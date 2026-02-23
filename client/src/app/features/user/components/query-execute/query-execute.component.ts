@@ -66,7 +66,7 @@ import { DynamicQuery, ParameterType, QueryExecutionResult } from '@core/models/
                 <mat-icon>play_arrow</mat-icon>
                 {{ executing ? 'Executing...' : 'Execute Query' }}
               </button>
-              <button mat-stroked-button type="button" *ngIf="result"
+              <button mat-stroked-button type="button" *ngIf="result && result.columns.length > 0"
                       (click)="exportCsv()">
                 <mat-icon>download</mat-icon> Export CSV
               </button>
@@ -79,11 +79,16 @@ import { DynamicQuery, ParameterType, QueryExecutionResult } from '@core/models/
         <mat-card-header>
           <mat-card-title>Results</mat-card-title>
           <mat-card-subtitle>
-            {{ result.totalRows }} rows returned in {{ result.executionDurationMs }}ms
+            <span *ngIf="result.columns.length > 0">
+              {{ result.totalRows }} rows returned in {{ result.executionDurationMs }}ms
+            </span>
+            <span *ngIf="result.columns.length === 0">
+              {{ result.affectedRows }} rows affected in {{ result.executionDurationMs }}ms
+            </span>
           </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
-          <div class="table-wrapper">
+          <div *ngIf="result.columns.length > 0" class="table-wrapper">
             <table mat-table [dataSource]="dataSource">
               <ng-container *ngFor="let col of result.columns" [matColumnDef]="col">
                 <th mat-header-cell *matHeaderCellDef>{{ col }}</th>
@@ -95,7 +100,12 @@ import { DynamicQuery, ParameterType, QueryExecutionResult } from '@core/models/
             </table>
           </div>
 
-          <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons>
+          <div *ngIf="result.columns.length === 0" class="non-query-result">
+            <mat-icon>check_circle</mat-icon>
+            <p>Query executed successfully. {{ result.affectedRows }} rows affected.</p>
+          </div>
+
+          <mat-paginator *ngIf="result.columns.length > 0" [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons>
           </mat-paginator>
         </mat-card-content>
       </mat-card>
@@ -113,6 +123,9 @@ import { DynamicQuery, ParameterType, QueryExecutionResult } from '@core/models/
     .results-card { margin-top: 24px; }
     .table-wrapper { overflow-x: auto; }
     table { width: 100%; }
+    .non-query-result { display: flex; align-items: center; gap: 8px; padding: 24px 0; color: #4caf50; }
+    .non-query-result mat-icon { font-size: 32px; width: 32px; height: 32px; }
+    .non-query-result p { font-size: 16px; margin: 0; }
   `]
 })
 export class QueryExecuteComponent implements OnInit {

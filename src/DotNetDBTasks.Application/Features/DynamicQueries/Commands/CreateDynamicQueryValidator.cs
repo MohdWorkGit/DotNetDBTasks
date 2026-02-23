@@ -9,14 +9,12 @@ namespace DotNetDBTasks.Application.Features.DynamicQueries.Commands;
 public partial class CreateDynamicQueryValidator : AbstractValidator<CreateDynamicQueryCommand>
 {
     /// <summary>
-    /// Dangerous SQL patterns that indicate non-parameterized or destructive queries.
+    /// Dangerous SQL patterns that could indicate injection attacks or unsafe operations.
+    /// These are kept for security even though all query types are allowed.
     /// </summary>
     private static readonly string[] ForbiddenPatterns = new[]
     {
-        "INSERT ", "UPDATE ", "DELETE ", "DROP ", "ALTER ", "CREATE ",
-        "TRUNCATE ", "EXEC ", "EXECUTE ", "xp_", "sp_", "--", ";",
-        "GRANT ", "REVOKE ", "DENY ",
-        "DECLARE ", "BEGIN ", "CALL ", "DBMS_", "UTL_"
+        "xp_", "sp_", "--", ";", "DBMS_", "UTL_"
     };
 
     public CreateDynamicQueryValidator()
@@ -32,7 +30,6 @@ public partial class CreateDynamicQueryValidator : AbstractValidator<CreateDynam
         RuleFor(x => x.SqlQuery)
             .NotEmpty().WithMessage("SQL query is required.")
             .MaximumLength(4000).WithMessage("SQL query must not exceed 4000 characters.")
-            .Must(BeSelectOnly).WithMessage("Only SELECT queries are allowed.")
             .Must(NotContainDangerousPatterns).WithMessage("Query contains forbidden SQL patterns.");
 
         RuleFor(x => x.TimeoutSeconds)
@@ -50,12 +47,6 @@ public partial class CreateDynamicQueryValidator : AbstractValidator<CreateDynam
                 .NotEmpty().WithMessage("Display name is required.")
                 .MaximumLength(200);
         });
-    }
-
-    private static bool BeSelectOnly(string sql)
-    {
-        var trimmed = sql.Trim();
-        return trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool NotContainDangerousPatterns(string sql)
