@@ -4,6 +4,7 @@ using DotNetDBTasks.Application;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Infrastructure;
 using DotNetDBTasks.Infrastructure.Data;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -80,7 +81,17 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Forward headers from reverse proxy (Cloudflare / nginx)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Global exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -89,7 +100,6 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "DotNetDBTasks API v1"));
 
-app.UseHttpsRedirection();
 app.UseCors("AllowAngular");
 app.UseAuthentication();
 app.UseAuthorization();

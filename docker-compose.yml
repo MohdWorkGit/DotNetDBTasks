@@ -6,8 +6,6 @@ services:
     container_name: dotnetdbtasks-oracle
     environment:
       ORACLE_PASSWORD: "${DB_PASSWORD:-YourStrong@Passw0rd}"
-    ports:
-      - "${DB_PORT:-1521}:1521"
     volumes:
       - oracle_data:/opt/oracle/oradata
     healthcheck:
@@ -39,11 +37,9 @@ services:
       Ldap__UsernameAttribute: "uid"
       Ldap__DepartmentAttribute: "departmentNumber"
       Ldap__UserObjectFilter: "(objectClass=inetOrgPerson)"
-      Cors__AllowedOrigins__0: "http://localhost"
-      Cors__AllowedOrigins__1: "http://localhost:80"
+      Cors__AllowedOrigins__0: "${APP_DOMAIN:-http://localhost}"
+      Cors__AllowedOrigins__1: "http://client"
       ASPNETCORE_ENVIRONMENT: "Production"
-    ports:
-      - "${API_PORT:-5000}:8080"
     depends_on:
       oracle:
         condition: service_healthy
@@ -60,27 +56,11 @@ services:
       LDAP_ORGANISATION: "DotNetDBTasks"
       LDAP_DOMAIN: "dotnetdbtasks.local"
       LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-LdapAdmin@123}"
-    ports:
-      - "${LDAP_PORT:-389}:389"
     volumes:
       - ldap_data:/var/lib/ldap
       - ldap_config:/etc/ldap/slapd.d
       - ./docker/ldap/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/50-bootstrap.ldif
     command: --copy-service
-    networks:
-      - dotnetdbtasks-network
-    restart: unless-stopped
-
-  ldapadmin:
-    image: osixia/phpldapadmin:0.9.0
-    container_name: dotnetdbtasks-ldapadmin
-    environment:
-      PHPLDAPADMIN_LDAP_HOSTS: "ldap"
-      PHPLDAPADMIN_HTTPS: "false"
-    ports:
-      - "${LDAPADMIN_PORT:-8081}:80"
-    depends_on:
-      - ldap
     networks:
       - dotnetdbtasks-network
     restart: unless-stopped
