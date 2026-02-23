@@ -9,10 +9,7 @@ public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryC
 {
     private static readonly string[] ForbiddenPatterns = new[]
     {
-        "INSERT ", "UPDATE ", "DELETE ", "DROP ", "ALTER ", "CREATE ",
-        "TRUNCATE ", "EXEC ", "EXECUTE ", "xp_", "sp_", "--", ";",
-        "GRANT ", "REVOKE ", "DENY ",
-        "DECLARE ", "BEGIN ", "CALL ", "DBMS_", "UTL_"
+        "xp_", "sp_", "--", ";", "DBMS_", "UTL_"
     };
 
     public UpdateDynamicQueryValidator()
@@ -28,7 +25,6 @@ public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryC
         RuleFor(x => x.SqlQuery)
             .NotEmpty()
             .MaximumLength(4000)
-            .Must(BeSelectOnly).WithMessage("Only SELECT queries are allowed.")
             .Must(NotContainDangerousPatterns).WithMessage("Query contains forbidden SQL patterns.");
 
         RuleFor(x => x.TimeoutSeconds)
@@ -45,9 +41,6 @@ public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryC
                 .NotEmpty().MaximumLength(200);
         });
     }
-
-    private static bool BeSelectOnly(string sql) =>
-        sql.Trim().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase);
 
     private static bool NotContainDangerousPatterns(string sql) =>
         !ForbiddenPatterns.Any(p => sql.ToUpperInvariant().Contains(p));

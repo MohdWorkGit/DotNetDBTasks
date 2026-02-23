@@ -53,6 +53,7 @@ export interface QueryExecutionResult {
   columns: string[];
   rows: Record<string, any>[];
   totalRows: number;
+  affectedRows: number;
   executionDurationMs: number;
 }
 

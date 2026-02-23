@@ -93,7 +93,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
 
             sw.Stop();
             log.ExecutionDurationMs = sw.ElapsedMilliseconds;
-            log.RowsReturned = result.TotalRows;
+            log.RowsReturned = result.TotalRows > 0 ? result.TotalRows : result.AffectedRows;
             log.IsSuccess = true;
 
             await _unitOfWork.QueryExecutionLogs.AddAsync(log, cancellationToken);
