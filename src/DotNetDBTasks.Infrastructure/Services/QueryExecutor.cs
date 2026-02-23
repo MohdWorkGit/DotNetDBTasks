@@ -51,30 +51,53 @@ public class QueryExecutor : IQueryExecutor
             command.Parameters.Add(new OracleParameter($":{param.Key}", param.Value ?? DBNull.Value));
         }
 
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-        // Read column names
-        for (int i = 0; i < reader.FieldCount; i++)
+        if (IsSelectQuery(sqlQuery))
         {
-            result.Columns.Add(reader.GetName(i));
-        }
+            // SELECT queries return result sets
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        // Read rows
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            var row = new Dictionary<string, object?>();
+            // Read column names
             for (int i = 0; i < reader.FieldCount; i++)
             {
-                var value = reader.GetValue(i);
-                row[result.Columns[i]] = value == DBNull.Value ? null : value;
+                result.Columns.Add(reader.GetName(i));
             }
-            result.Rows.Add(row);
+
+            // Read rows
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var row = new Dictionary<string, object?>();
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    var value = reader.GetValue(i);
+                    row[result.Columns[i]] = value == DBNull.Value ? null : value;
+                }
+                result.Rows.Add(row);
+            }
+
+            result.TotalRows = result.Rows.Count;
+        }
+        else
+        {
+            // Non-SELECT queries (INSERT, UPDATE, DELETE, MERGE, etc.) return affected row count
+            var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
+            result.AffectedRows = affectedRows;
+            result.TotalRows = affectedRows;
         }
 
         sw.Stop();
-        result.TotalRows = result.Rows.Count;
         result.ExecutionDurationMs = sw.ElapsedMilliseconds;
 
         return result;
+    }
+
+    /// <summary>
+    /// Determines whether the SQL query is a SELECT statement that returns a result set.
+    /// </summary>
+    private static bool IsSelectQuery(string sql)
+    {
+        var trimmed = sql.TrimStart();
+        // Handle common SELECT patterns including WITH (CTE) ... SELECT
+        return trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("WITH", StringComparison.OrdinalIgnoreCase);
     }
 }

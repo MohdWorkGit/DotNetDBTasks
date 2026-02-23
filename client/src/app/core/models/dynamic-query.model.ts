@@ -54,6 +54,7 @@ export interface QueryExecutionResult {
   rows: Record<string, any>[];
   totalRows: number;
   executionDurationMs: number;
+  affectedRows?: number;
 }
 
 export interface ExecutionLog {
