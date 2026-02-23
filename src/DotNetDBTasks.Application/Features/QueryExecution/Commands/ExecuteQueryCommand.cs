@@ -127,7 +127,8 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
                 : throw new DomainException($"Invalid number value: {rawValue}"),
             ParameterType.Date => DateTime.TryParse(rawValue, out var date) ? date
                 : throw new DomainException($"Invalid date value: {rawValue}"),
-            ParameterType.Boolean => bool.TryParse(rawValue, out var flag) ? flag
+            // Oracle NUMBER(1) columns require 0/1 integers, not .NET bool values
+            ParameterType.Boolean => bool.TryParse(rawValue, out var flag) ? (flag ? 1 : 0)
                 : throw new DomainException($"Invalid boolean value: {rawValue}"),
             _ => rawValue
         };
