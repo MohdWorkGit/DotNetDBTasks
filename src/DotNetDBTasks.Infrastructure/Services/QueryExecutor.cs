@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Common.Models;
 using Microsoft.Extensions.Configuration;
@@ -30,12 +31,9 @@ public class QueryExecutor : IQueryExecutor
         var result = new QueryExecutionResult();
         var sw = Stopwatch.StartNew();
 
-        // Translate @paramName to :paramName for Oracle bind variable syntax
-        var oracleSql = sqlQuery;
-        foreach (var param in parameters)
-        {
-            oracleSql = oracleSql.Replace($"@{param.Key}", $":{param.Key}");
-        }
+        // Translate @paramName to :paramName for Oracle bind variable syntax.
+        // Use word-boundary regex to avoid partial replacements (e.g. @Start matching @StartDate).
+        var oracleSql = Regex.Replace(sqlQuery, @"@(\w+)", ":$1");
 
         await using var connection = new OracleConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
