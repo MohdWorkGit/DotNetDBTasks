@@ -107,7 +107,16 @@ public static class DatabaseSeeder
                 Id = Guid.NewGuid(),
                 Name = "Users by Registration Date",
                 Description = "Retrieves users who registered between the specified date range.",
-                SqlQuery = "SELECT \"Username\", \"Email\", \"FirstName\", \"LastName\", \"CreatedAt\" FROM \"Users\" WHERE \"CreatedAt\" >= :StartDate AND \"CreatedAt\" <= :EndDate AND \"IsActive\" = :IsActive ORDER BY \"CreatedAt\" DESC",
+                SqlQuery = @"SELECT ""Username"",
+       ""Email"",
+       ""FirstName"",
+       ""LastName"",
+       ""CreatedAt""
+  FROM ""Users""
+ WHERE ""CreatedAt"" >= :StartDate
+   AND ""CreatedAt"" <= :EndDate
+   AND ""IsActive"" = :IsActive
+ ORDER BY ""CreatedAt"" DESC",
                 IsEnabled = true,
                 TimeoutSeconds = 30,
                 CreatedByUserId = adminUser.Id,
