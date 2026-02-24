@@ -32,6 +32,11 @@ public class TokenService : ITokenService
             new("LastName", user.LastName)
         };
 
+        if (!string.IsNullOrEmpty(user.Department))
+        {
+            claims.Add(new Claim("Department", user.Department));
+        }
+
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));

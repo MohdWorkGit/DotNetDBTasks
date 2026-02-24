@@ -7,6 +7,7 @@ public interface ICurrentUserService
 {
     Guid UserId { get; }
     string Username { get; }
+    string? Department { get; }
     IReadOnlyList<string> Roles { get; }
     bool IsAuthenticated { get; }
 }

@@ -6,7 +6,8 @@ using MediatR;
 namespace DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 
 /// <summary>
-/// Retrieves all enabled dynamic queries assigned to the current user's roles.
+/// Retrieves all enabled dynamic queries accessible to the current user
+/// via role assignments, department assignments, or direct user assignments.
 /// </summary>
 public record GetQueriesForUserQuery : IRequest<IReadOnlyList<DynamicQueryDto>>;
 
@@ -31,19 +32,38 @@ public class GetQueriesForUserQueryHandler
         GetQueriesForUserQuery request,
         CancellationToken cancellationToken)
     {
-        // Get user's role IDs
+        var queryIds = new HashSet<Guid>();
+
+        // 1. Queries accessible via role assignments
         var userRoles = await _unitOfWork.UserRoles.FindAsync(
             ur => ur.UserId == _currentUser.UserId, cancellationToken);
         var roleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
 
-        // Get queries assigned to those roles that are enabled
         var queryRoles = await _unitOfWork.DynamicQueryRoles.FindAsync(
             qr => roleIds.Contains(qr.RoleId), cancellationToken);
-        var queryIds = queryRoles.Select(qr => qr.DynamicQueryId).Distinct().ToHashSet();
+        foreach (var qr in queryRoles)
+            queryIds.Add(qr.DynamicQueryId);
 
+        // 2. Queries accessible via department assignments
+        var department = _currentUser.Department;
+        if (!string.IsNullOrEmpty(department))
+        {
+            var queryDepartments = await _unitOfWork.DynamicQueryDepartments.FindAsync(
+                qd => qd.Department == department, cancellationToken);
+            foreach (var qd in queryDepartments)
+                queryIds.Add(qd.DynamicQueryId);
+        }
+
+        // 3. Queries assigned directly to this user
+        var queryUsers = await _unitOfWork.DynamicQueryUsers.FindAsync(
+            qu => qu.UserId == _currentUser.UserId, cancellationToken);
+        foreach (var qu in queryUsers)
+            queryIds.Add(qu.DynamicQueryId);
+
+        // Fetch the matching enabled queries with related data
         var queries = await _unitOfWork.DynamicQueries.FindAsync(
             q => queryIds.Contains(q.Id) && q.IsEnabled, cancellationToken,
-            "DynamicQueryRoles.Role", "Parameters");
+            "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User", "Parameters");
 
         return _mapper.Map<IReadOnlyList<DynamicQueryDto>>(queries);
     }

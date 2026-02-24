@@ -73,6 +73,24 @@ CREATE TABLE "DynamicQueryRoles" (
     CONSTRAINT "FK_DynamicQueryRoles_Roles"          FOREIGN KEY ("RoleId")         REFERENCES "Roles"("Id")          ON DELETE CASCADE
 );
 
+CREATE TABLE "DynamicQueryDepartments" (
+    "DynamicQueryId" RAW(16)        NOT NULL,
+    "Department"     NVARCHAR2(200) NOT NULL,
+    CONSTRAINT "PK_DynamicQueryDepartments" PRIMARY KEY ("DynamicQueryId", "Department"),
+    CONSTRAINT "FK_DynamicQueryDepartments_DynamicQueries" FOREIGN KEY ("DynamicQueryId") REFERENCES "DynamicQueries"("Id") ON DELETE CASCADE
+);
+
+CREATE TABLE "DynamicQueryUsers" (
+    "DynamicQueryId" RAW(16) NOT NULL,
+    "UserId"         RAW(16) NOT NULL,
+    CONSTRAINT "PK_DynamicQueryUsers" PRIMARY KEY ("DynamicQueryId", "UserId"),
+    CONSTRAINT "FK_DynamicQueryUsers_DynamicQueries" FOREIGN KEY ("DynamicQueryId") REFERENCES "DynamicQueries"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_DynamicQueryUsers_Users"          FOREIGN KEY ("UserId")         REFERENCES "Users"("Id")          ON DELETE CASCADE
+);
+
+CREATE INDEX "IX_DynamicQueryDepartments_Department" ON "DynamicQueryDepartments"("Department");
+CREATE INDEX "IX_DynamicQueryUsers_UserId"           ON "DynamicQueryUsers"("UserId");
+
 CREATE TABLE "QueryExecutionLogs" (
     "Id"                  RAW(16)         NOT NULL,
     "DynamicQueryId"      RAW(16)         NOT NULL,

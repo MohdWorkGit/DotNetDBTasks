@@ -56,9 +56,9 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
                         [routerLink]="['/admin/queries/edit', q.id]">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Assign Roles"
+                <button mat-icon-button matTooltip="Manage Access"
                         [routerLink]="['/admin/queries', q.id, 'roles']">
-                  <mat-icon>group</mat-icon>
+                  <mat-icon>security</mat-icon>
                 </button>
                 <button mat-icon-button matTooltip="Delete" color="warn"
                         (click)="deleteQuery(q.id, q.name)">

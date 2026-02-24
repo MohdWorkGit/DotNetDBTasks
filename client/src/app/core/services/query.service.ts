@@ -3,7 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
 import {
+  AssignDepartmentsRequest,
   AssignRolesRequest,
+  AssignUsersRequest,
   CreateDynamicQueryRequest,
   DynamicQuery,
   ExecutionLog,
@@ -48,6 +50,14 @@ export class QueryService {
 
   assignRoles(queryId: string, request: AssignRolesRequest): Observable<void> {
     return this.http.post<void>(`${this.adminUrl}/${queryId}/roles`, request);
+  }
+
+  assignDepartments(queryId: string, request: AssignDepartmentsRequest): Observable<void> {
+    return this.http.post<void>(`${this.adminUrl}/${queryId}/departments`, request);
+  }
+
+  assignUsers(queryId: string, request: AssignUsersRequest): Observable<void> {
+    return this.http.post<void>(`${this.adminUrl}/${queryId}/users`, request);
   }
 
   getExecutionLogs(queryId?: string, userId?: string): Observable<ExecutionLog[]> {

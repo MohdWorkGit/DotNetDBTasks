@@ -26,7 +26,7 @@ public class GetAllDynamicQueriesQueryHandler
         CancellationToken cancellationToken)
     {
         var queries = await _unitOfWork.DynamicQueries.GetAllAsync(cancellationToken,
-            "DynamicQueryRoles.Role", "Parameters");
+            "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User", "Parameters");
         return _mapper.Map<IReadOnlyList<DynamicQueryDto>>(queries);
     }
 }

@@ -28,6 +28,9 @@ public class CurrentUserService : ICurrentUserService
     public string Username =>
         _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
 
+    public string? Department =>
+        _httpContextAccessor.HttpContext?.User.FindFirst("Department")?.Value;
+
     public IReadOnlyList<string> Roles =>
         _httpContextAccessor.HttpContext?.User
             .FindAll(ClaimTypes.Role)

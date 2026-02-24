@@ -20,6 +20,19 @@ public class MappingProfile : Profile
                 {
                     RoleId = qr.RoleId,
                     RoleName = qr.Role != null ? qr.Role.Name : string.Empty
+                }).ToList()))
+            .ForMember(d => d.AssignedDepartments, opt => opt.MapFrom(s =>
+                s.DynamicQueryDepartments == null ? new List<DepartmentAssignmentDto>() :
+                s.DynamicQueryDepartments.Select(qd => new DepartmentAssignmentDto
+                {
+                    Department = qd.Department
+                }).ToList()))
+            .ForMember(d => d.AssignedUsers, opt => opt.MapFrom(s =>
+                s.DynamicQueryUsers == null ? new List<UserAssignmentDto>() :
+                s.DynamicQueryUsers.Select(qu => new UserAssignmentDto
+                {
+                    UserId = qu.UserId,
+                    Username = qu.User != null ? qu.User.Username : string.Empty
                 }).ToList()));
 
         CreateMap<QueryParameter, QueryParameterDto>();
@@ -27,7 +40,9 @@ public class MappingProfile : Profile
 
         CreateMap<CreateDynamicQueryCommand, DynamicQuery>()
             .ForMember(d => d.Parameters, opt => opt.Ignore())
-            .ForMember(d => d.DynamicQueryRoles, opt => opt.Ignore());
+            .ForMember(d => d.DynamicQueryRoles, opt => opt.Ignore())
+            .ForMember(d => d.DynamicQueryDepartments, opt => opt.Ignore())
+            .ForMember(d => d.DynamicQueryUsers, opt => opt.Ignore());
 
         CreateMap<QueryExecutionLog, ExecutionLogDto>()
             .ForMember(d => d.QueryName, opt => opt.MapFrom(s => s.DynamicQuery != null ? s.DynamicQuery.Name : string.Empty))
