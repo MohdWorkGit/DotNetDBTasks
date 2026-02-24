@@ -47,14 +47,33 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         if (!query.IsEnabled)
             throw new DomainException("This query is currently disabled.");
 
-        // Verify user has access via roles
+        // Verify user has access via roles, department, or direct user assignment
+        var hasAccess = false;
+
+        // Check role-based access
         var userRoles = await _unitOfWork.UserRoles.FindAsync(
             ur => ur.UserId == _currentUser.UserId, cancellationToken);
         var userRoleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
 
         var queryRoles = await _unitOfWork.DynamicQueryRoles.FindAsync(
             qr => qr.DynamicQueryId == request.QueryId, cancellationToken);
-        var hasAccess = queryRoles.Any(qr => userRoleIds.Contains(qr.RoleId));
+        hasAccess = queryRoles.Any(qr => userRoleIds.Contains(qr.RoleId));
+
+        // Check department-based access
+        if (!hasAccess && !string.IsNullOrEmpty(_currentUser.Department))
+        {
+            hasAccess = await _unitOfWork.DynamicQueryDepartments.ExistsAsync(
+                qd => qd.DynamicQueryId == request.QueryId && qd.Department == _currentUser.Department,
+                cancellationToken);
+        }
+
+        // Check direct user assignment
+        if (!hasAccess)
+        {
+            hasAccess = await _unitOfWork.DynamicQueryUsers.ExistsAsync(
+                qu => qu.DynamicQueryId == request.QueryId && qu.UserId == _currentUser.UserId,
+                cancellationToken);
+        }
 
         // Admins always have access
         if (!hasAccess && !_currentUser.Roles.Contains("Admin"))

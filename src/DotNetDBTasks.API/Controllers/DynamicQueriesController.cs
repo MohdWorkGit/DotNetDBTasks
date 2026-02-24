@@ -93,6 +93,35 @@ public class DynamicQueriesController : ControllerBase
     }
 
     /// <summary>
+    /// Assigns a query to one or more departments.
+    /// All users in those departments will gain access.
+    /// </summary>
+    [HttpPost("{id:guid}/departments")]
+    public async Task<IActionResult> AssignToDepartments(
+        Guid id,
+        [FromBody] AssignQueryToDepartmentsCommand command,
+        CancellationToken cancellationToken)
+    {
+        command.QueryId = id;
+        await _mediator.Send(command, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Assigns a query to specific individual users.
+    /// </summary>
+    [HttpPost("{id:guid}/users")]
+    public async Task<IActionResult> AssignToUsers(
+        Guid id,
+        [FromBody] AssignQueryToUsersCommand command,
+        CancellationToken cancellationToken)
+    {
+        command.QueryId = id;
+        await _mediator.Send(command, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
     /// Retrieves execution logs with optional filters.
     /// </summary>
     [HttpGet("logs")]

@@ -20,6 +20,15 @@ export interface RoleAssignment {
   roleName: string;
 }
 
+export interface DepartmentAssignment {
+  department: string;
+}
+
+export interface UserAssignment {
+  userId: string;
+  username: string;
+}
+
 export interface DynamicQuery {
   id: string;
   name: string;
@@ -30,6 +39,8 @@ export interface DynamicQuery {
   createdAt: string;
   parameters: QueryParameter[];
   assignedRoles: RoleAssignment[];
+  assignedDepartments: DepartmentAssignment[];
+  assignedUsers: UserAssignment[];
 }
 
 export interface CreateDynamicQueryRequest {
@@ -47,6 +58,14 @@ export interface UpdateDynamicQueryRequest extends CreateDynamicQueryRequest {
 
 export interface AssignRolesRequest {
   roleIds: string[];
+}
+
+export interface AssignDepartmentsRequest {
+  departments: string[];
+}
+
+export interface AssignUsersRequest {
+  userIds: string[];
 }
 
 export interface QueryExecutionResult {

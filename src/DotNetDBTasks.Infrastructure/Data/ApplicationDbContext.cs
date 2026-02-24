@@ -16,6 +16,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<DynamicQuery> DynamicQueries => Set<DynamicQuery>();
     public DbSet<QueryParameter> QueryParameters => Set<QueryParameter>();
     public DbSet<DynamicQueryRole> DynamicQueryRoles => Set<DynamicQueryRole>();
+    public DbSet<DynamicQueryDepartment> DynamicQueryDepartments => Set<DynamicQueryDepartment>();
+    public DbSet<DynamicQueryUser> DynamicQueryUsers => Set<DynamicQueryUser>();
     public DbSet<QueryExecutionLog> QueryExecutionLogs => Set<QueryExecutionLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -27,7 +27,7 @@ public class GetDynamicQueryByIdQueryHandler
         CancellationToken cancellationToken)
     {
         var query = await _unitOfWork.DynamicQueries.GetByIdAsync(request.Id, cancellationToken,
-            "DynamicQueryRoles.Role", "Parameters");
+            "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User", "Parameters");
         if (query is null)
             throw new NotFoundException(nameof(Domain.Entities.DynamicQuery), request.Id);
 
