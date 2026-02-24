@@ -9,7 +9,7 @@ public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryC
 {
     private static readonly string[] ForbiddenPatterns = new[]
     {
-        "xp_", "sp_", "--", ";", "DBMS_", "UTL_"
+        "XP_", "SP_", "--", ";", "DBMS_", "UTL_"
     };
 
     public UpdateDynamicQueryValidator()
