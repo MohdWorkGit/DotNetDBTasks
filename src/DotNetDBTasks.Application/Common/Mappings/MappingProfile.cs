@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AutoMapper;
 using DotNetDBTasks.Application.Features.DynamicQueries.Commands;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
@@ -46,6 +47,10 @@ public class MappingProfile : Profile
 
         CreateMap<QueryExecutionLog, ExecutionLogDto>()
             .ForMember(d => d.QueryName, opt => opt.MapFrom(s => s.DynamicQuery != null ? s.DynamicQuery.Name : string.Empty))
-            .ForMember(d => d.Username, opt => opt.MapFrom(s => s.User != null ? s.User.Username : string.Empty));
+            .ForMember(d => d.Username, opt => opt.MapFrom(s => s.User != null ? s.User.Username : string.Empty))
+            .ForMember(d => d.Parameters, opt => opt.MapFrom(s =>
+                string.IsNullOrEmpty(s.ParametersJson)
+                    ? new Dictionary<string, string>()
+                    : JsonSerializer.Deserialize<Dictionary<string, string>>(s.ParametersJson) ?? new Dictionary<string, string>()));
     }
 }
