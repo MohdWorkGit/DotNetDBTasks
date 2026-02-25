@@ -6,6 +6,7 @@ using DotNetDBTasks.Infrastructure.Identity;
 using DotNetDBTasks.Infrastructure.Repositories;
 using DotNetDBTasks.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,7 +61,8 @@ public static class DependencyInjection
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
-        });
+        })
+        .AddNegotiate();
 
         services.AddAuthorization();
 

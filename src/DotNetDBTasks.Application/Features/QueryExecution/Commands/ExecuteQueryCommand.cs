@@ -111,6 +111,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
                 query.SqlQuery, typedParameters, query.TimeoutSeconds, cancellationToken);
 
             sw.Stop();
+            result.Parameters = typedParameters;
             log.ExecutionDurationMs = sw.ElapsedMilliseconds;
             log.RowsReturned = result.TotalRows > 0 ? result.TotalRows : result.AffectedRows;
             log.IsSuccess = true;

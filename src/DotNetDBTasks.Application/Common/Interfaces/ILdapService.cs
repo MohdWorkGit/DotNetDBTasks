@@ -12,6 +12,12 @@ public interface ILdapService
     Task<LdapUserInfo?> AuthenticateAsync(string username, string password);
 
     /// <summary>
+    /// Looks up a single user in LDAP by exact username match.
+    /// Returns the user info if found, null otherwise.
+    /// </summary>
+    Task<LdapUserInfo?> GetUserByUsernameAsync(string username);
+
+    /// <summary>
     /// Searches for users in LDAP by partial username, name, or email.
     /// </summary>
     Task<IReadOnlyList<LdapUserInfo>> SearchUsersAsync(string searchTerm);

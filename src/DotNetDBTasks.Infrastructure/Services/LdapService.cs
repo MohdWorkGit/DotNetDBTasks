@@ -79,6 +79,30 @@ public class LdapService : ILdapService
         }
     }
 
+    public Task<LdapUserInfo?> GetUserByUsernameAsync(string username)
+    {
+        try
+        {
+            using var connection = new LdapConnection();
+            connection.Connect(_host, _port);
+            connection.Bind(_adminDn, _adminPassword);
+
+            var filter = $"(&{_userObjectFilter}({_usernameAttr}={EscapeLdapFilter(username)}))";
+            var searchResults = connection.Search(
+                _usersDn, LdapConnection.ScopeSub, filter, UserAttributes, false);
+
+            if (!searchResults.HasMore())
+                return Task.FromResult<LdapUserInfo?>(null);
+
+            return Task.FromResult(MapEntry(searchResults.Next()));
+        }
+        catch (LdapException ex)
+        {
+            _logger.LogDebug(ex, "LDAP lookup failed for user {Username}", username);
+            return Task.FromResult<LdapUserInfo?>(null);
+        }
+    }
+
     public Task<IReadOnlyList<LdapUserInfo>> SearchUsersAsync(string searchTerm)
     {
         var results = new List<LdapUserInfo>();
