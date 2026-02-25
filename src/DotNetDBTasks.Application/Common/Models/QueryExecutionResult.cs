@@ -12,4 +12,5 @@ public class QueryExecutionResult
     public int TotalRows { get; set; }
     public int AffectedRows { get; set; }
     public long ExecutionDurationMs { get; set; }
+    public Dictionary<string, object?> Parameters { get; set; } = new();
 }
