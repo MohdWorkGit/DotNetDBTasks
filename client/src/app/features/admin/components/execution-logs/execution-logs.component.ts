@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { QueryService } from '@core/services/query.service';
 import { ExecutionLog } from '@core/models/dynamic-query.model';
 
@@ -26,6 +27,15 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
             <ng-container matColumnDef="username">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>User</th>
               <td mat-cell *matCellDef="let log">{{ log.username }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="parameters">
+              <th mat-header-cell *matHeaderCellDef>Parameters</th>
+              <td mat-cell *matCellDef="let log">
+                <span class="parameters-cell" [matTooltip]="formatParametersTooltip(log.parameters)">
+                  {{ formatParameters(log.parameters) }}
+                </span>
+              </td>
             </ng-container>
 
             <ng-container matColumnDef="executedAt">
@@ -67,10 +77,20 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
     .success { color: #4caf50; }
     .error { color: #f44336; }
     table { width: 100%; }
+    .parameters-cell {
+      max-width: 250px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+      font-size: 12px;
+      color: #555;
+      cursor: default;
+    }
   `]
 })
 export class ExecutionLogsComponent implements OnInit {
-  displayedColumns = ['queryName', 'username', 'executedAt', 'executionDurationMs', 'rowsReturned', 'isSuccess'];
+  displayedColumns = ['queryName', 'username', 'parameters', 'executedAt', 'executionDurationMs', 'rowsReturned', 'isSuccess'];
   dataSource = new MatTableDataSource<ExecutionLog>();
   loading = true;
 
@@ -89,5 +109,15 @@ export class ExecutionLogsComponent implements OnInit {
       },
       error: () => this.loading = false
     });
+  }
+
+  formatParameters(params: Record<string, string>): string {
+    if (!params || Object.keys(params).length === 0) return '-';
+    return Object.entries(params).map(([k, v]) => `${k}: ${v}`).join(', ');
+  }
+
+  formatParametersTooltip(params: Record<string, string>): string {
+    if (!params || Object.keys(params).length === 0) return 'No parameters';
+    return Object.entries(params).map(([k, v]) => `${k}: ${v}`).join('\n');
   }
 }

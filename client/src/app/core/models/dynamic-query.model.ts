@@ -82,7 +82,7 @@ export interface ExecutionLog {
   queryName: string;
   userId: string;
   username: string;
-  parametersJson: string;
+  parameters: Record<string, string>;
   executedAt: string;
   executionDurationMs: number;
   rowsReturned: number;
