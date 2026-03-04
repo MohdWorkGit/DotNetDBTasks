@@ -19,6 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatRadioModule } from '@angular/material/radio';
 
 import { QueryListComponent } from './components/query-list/query-list.component';
 import { QueryFormComponent } from './components/query-form/query-form.component';
@@ -55,6 +56,7 @@ import { AdUsersComponent } from './components/ad-users/ad-users.component';
     MatSnackBarModule,
     MatTabsModule,
     MatCheckboxModule,
+    MatRadioModule,
     RouterModule.forChild([
       { path: 'queries', component: QueryListComponent },
       { path: 'queries/create', component: QueryFormComponent },

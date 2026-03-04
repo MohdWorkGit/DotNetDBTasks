@@ -194,9 +194,29 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TIMESTAMP(7)");
 
+                    // Dropdown-specific columns
+                    b.Property<int?>("DropdownSourceType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("DropdownStaticValues")
+                        .HasColumnType("CLOB");
+
+                    b.Property<Guid?>("DropdownQueryId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("DropdownQueryValueColumn")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<string>("DropdownQueryLabelColumn")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DynamicQueryId");
+
+                    b.HasIndex("DropdownQueryId");
 
                     b.ToTable("QueryParameters");
                 });
@@ -388,7 +408,15 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DropdownQuery")
+                        .WithMany()
+                        .HasForeignKey("DropdownQueryId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired(false);
+
                     b.Navigation("DynamicQuery");
+
+                    b.Navigation("DropdownQuery");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserRole", b =>

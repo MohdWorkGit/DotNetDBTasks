@@ -67,6 +67,11 @@ public class UpdateDynamicQueryCommandHandler
                 IsRequired = paramDto.IsRequired,
                 DefaultValue = paramDto.DefaultValue,
                 SortOrder = paramDto.SortOrder,
+                DropdownSourceType = paramDto.DropdownSourceType,
+                DropdownStaticValues = paramDto.DropdownStaticValues,
+                DropdownQueryId = paramDto.DropdownQueryId,
+                DropdownQueryValueColumn = paramDto.DropdownQueryValueColumn,
+                DropdownQueryLabelColumn = paramDto.DropdownQueryLabelColumn,
                 CreatedAt = DateTime.UtcNow
             }, cancellationToken);
         }

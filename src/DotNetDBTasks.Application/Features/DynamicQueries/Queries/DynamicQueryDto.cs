@@ -26,6 +26,19 @@ public class QueryParameterDto
     public bool IsRequired { get; set; }
     public string? DefaultValue { get; set; }
     public int SortOrder { get; set; }
+
+    // Dropdown-specific fields
+    public DropdownSourceType? DropdownSourceType { get; set; }
+    public string? DropdownStaticValues { get; set; }
+    public Guid? DropdownQueryId { get; set; }
+    public string? DropdownQueryValueColumn { get; set; }
+    public string? DropdownQueryLabelColumn { get; set; }
+}
+
+public class DropdownOptionDto
+{
+    public string Label { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
 }
 
 public class RoleAssignmentDto
