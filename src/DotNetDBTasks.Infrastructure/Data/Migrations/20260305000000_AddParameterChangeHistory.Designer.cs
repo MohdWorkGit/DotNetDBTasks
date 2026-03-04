@@ -3,6 +3,7 @@ using System;
 using DotNetDBTasks.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DotNetDBTasks.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260305000000_AddParameterChangeHistory")]
+    partial class AddParameterChangeHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -227,6 +230,23 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("NVARCHAR2(200)");
 
+                    b.Property<Guid?>("DropdownQueryId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("DropdownQueryLabelColumn")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<string>("DropdownQueryValueColumn")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<int?>("DropdownSourceType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("DropdownStaticValues")
+                        .HasColumnType("CLOB");
+
                     b.Property<Guid>("DynamicQueryId")
                         .HasColumnType("RAW(16)");
 
@@ -247,29 +267,11 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TIMESTAMP(7)");
 
-                    // Dropdown-specific columns
-                    b.Property<int?>("DropdownSourceType")
-                        .HasColumnType("NUMBER(10)");
-
-                    b.Property<string>("DropdownStaticValues")
-                        .HasColumnType("CLOB");
-
-                    b.Property<Guid?>("DropdownQueryId")
-                        .HasColumnType("RAW(16)");
-
-                    b.Property<string>("DropdownQueryValueColumn")
-                        .HasMaxLength(100)
-                        .HasColumnType("NVARCHAR2(100)");
-
-                    b.Property<string>("DropdownQueryLabelColumn")
-                        .HasMaxLength(100)
-                        .HasColumnType("NVARCHAR2(100)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("DynamicQueryId");
-
                     b.HasIndex("DropdownQueryId");
+
+                    b.HasIndex("DynamicQueryId");
 
                     b.ToTable("QueryParameters");
                 });

@@ -135,4 +135,19 @@ public class DynamicQueriesController : ControllerBase
             cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Retrieves parameter change history for a specific query or all queries.
+    /// Shows old and new values for each changed parameter field.
+    /// </summary>
+    [HttpGet("parameter-history")]
+    public async Task<IActionResult> GetParameterChangeHistory(
+        [FromQuery] Guid? queryId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new GetParameterChangeHistoryQuery { QueryId = queryId },
+            cancellationToken);
+        return Ok(result);
+    }
 }

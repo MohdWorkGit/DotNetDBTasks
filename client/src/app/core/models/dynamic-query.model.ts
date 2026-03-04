@@ -107,6 +107,19 @@ export interface ExecutionLog {
   errorMessage?: string;
 }
 
+export interface ParameterChangeHistory {
+  id: string;
+  dynamicQueryId: string;
+  queryName: string;
+  parameterName: string;
+  changeType: string;
+  fieldName: string;
+  oldValue?: string;
+  newValue?: string;
+  changedAt: string;
+  changedByUserId?: string;
+}
+
 export interface Role {
   id: string;
   name: string;
