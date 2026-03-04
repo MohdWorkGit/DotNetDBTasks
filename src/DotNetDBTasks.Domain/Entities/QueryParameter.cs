@@ -34,14 +34,10 @@ public class QueryParameter : BaseEntity
 
     /// <summary>
     /// ID of the DynamicQuery whose results populate the dropdown options.
+    /// No FK constraint — the lookup query is resolved at runtime by the application.
     /// Used when DropdownSourceType == Query.
     /// </summary>
     public Guid? DropdownQueryId { get; set; }
-
-    /// <summary>
-    /// Navigation property to the lookup query.
-    /// </summary>
-    public DynamicQuery? DropdownQuery { get; set; }
 
     /// <summary>
     /// Column name in the lookup query result set to use as the option value.

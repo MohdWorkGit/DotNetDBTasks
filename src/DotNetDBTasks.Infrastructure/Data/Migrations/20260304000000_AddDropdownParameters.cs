@@ -11,7 +11,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Add dropdown-specific columns to QueryParameters
+            // Add dropdown-specific columns to QueryParameters.
+            // All columns are nullable so existing rows are unaffected.
             migrationBuilder.AddColumn<int>(
                 name: "DropdownSourceType",
                 table: "QueryParameters",
@@ -44,15 +45,9 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 maxLength: 100,
                 nullable: true);
 
-            // FK from QueryParameters.DropdownQueryId -> DynamicQueries.Id (SET NULL on delete)
-            migrationBuilder.AddForeignKey(
-                name: "FK_QueryParameters_DynamicQueries_DropdownQueryId",
-                table: "QueryParameters",
-                column: "DropdownQueryId",
-                principalTable: "DynamicQueries",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
-
+            // Index to speed up lookups by lookup-query reference.
+            // No FK constraint: Oracle EF Core does not reliably support ON DELETE SET NULL.
+            // Referential integrity for DropdownQueryId is enforced at the application layer.
             migrationBuilder.CreateIndex(
                 name: "IX_QueryParameters_DropdownQueryId",
                 table: "QueryParameters",
@@ -62,10 +57,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_QueryParameters_DynamicQueries_DropdownQueryId",
-                table: "QueryParameters");
-
             migrationBuilder.DropIndex(
                 name: "IX_QueryParameters_DropdownQueryId",
                 table: "QueryParameters");

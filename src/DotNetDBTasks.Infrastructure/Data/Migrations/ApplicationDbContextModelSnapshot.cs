@@ -408,15 +408,7 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DropdownQuery")
-                        .WithMany()
-                        .HasForeignKey("DropdownQueryId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .IsRequired(false);
-
                     b.Navigation("DynamicQuery");
-
-                    b.Navigation("DropdownQuery");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserRole", b =>
