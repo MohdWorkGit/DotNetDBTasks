@@ -24,6 +24,9 @@ import { AuthService } from './core/services/auth.service';
       <button mat-button routerLink="/admin/logs" *ngIf="authService.isAdmin()">
         <mat-icon>receipt_long</mat-icon> Logs
       </button>
+      <button mat-button routerLink="/admin/parameter-history" *ngIf="authService.isAdmin()">
+        <mat-icon>track_changes</mat-icon> Param History
+      </button>
 
       <button mat-icon-button [matMenuTriggerFor]="userMenu">
         <mat-icon>account_circle</mat-icon>

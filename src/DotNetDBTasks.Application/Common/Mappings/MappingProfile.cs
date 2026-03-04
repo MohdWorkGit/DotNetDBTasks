@@ -45,6 +45,10 @@ public class MappingProfile : Profile
             .ForMember(d => d.DynamicQueryDepartments, opt => opt.Ignore())
             .ForMember(d => d.DynamicQueryUsers, opt => opt.Ignore());
 
+        CreateMap<ParameterChangeHistory, ParameterChangeHistoryDto>()
+            .ForMember(d => d.QueryName, opt => opt.MapFrom(s =>
+                s.DynamicQuery != null ? s.DynamicQuery.Name : string.Empty));
+
         CreateMap<QueryExecutionLog, ExecutionLogDto>()
             .ForMember(d => d.QueryName, opt => opt.MapFrom(s => s.DynamicQuery != null ? s.DynamicQuery.Name : string.Empty))
             .ForMember(d => d.Username, opt => opt.MapFrom(s => s.User != null ? s.User.Username : string.Empty))
