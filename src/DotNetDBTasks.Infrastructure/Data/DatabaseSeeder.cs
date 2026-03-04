@@ -30,7 +30,12 @@ public static class DatabaseSeeder
                 logger.LogWarning("Database objects already exist (ORA-00955). Dropping all tables and recreating schema...");
 
                 // Drop application tables explicitly (user_tables includes Oracle system tables like LogMiner that can't be dropped)
-                var tablesToDrop = new[] { "DynamicQueryRoles", "QueryExecutionLogs", "QueryParameters", "UserRoles", "DynamicQueries", "Users", "Roles", "__EFMigrationsHistory" };
+                var tablesToDrop = new[]
+                {
+                    "DynamicQueryRoles", "DynamicQueryDepartments", "DynamicQueryUsers",
+                    "QueryExecutionLogs", "QueryParameters", "UserRoles",
+                    "DynamicQueries", "Users", "Roles", "__EFMigrationsHistory"
+                };
                 foreach (var table in tablesToDrop)
                 {
                     try
