@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { QueryService } from '@core/services/query.service';
-import { ParameterType } from '@core/models/dynamic-query.model';
+import { DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from '@core/models/dynamic-query.model';
 
 @Component({
   selector: 'app-query-form',
@@ -65,12 +65,14 @@ import { ParameterType } from '@core/models/dynamic-query.model';
                       <mat-option [value]="1">Number</mat-option>
                       <mat-option [value]="2">Date</mat-option>
                       <mat-option [value]="3">Boolean</mat-option>
+                      <mat-option [value]="4">Dropdown</mat-option>
                     </mat-select>
                   </mat-form-field>
 
                   <mat-slide-toggle formControlName="isRequired">Required</mat-slide-toggle>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field appearance="outline"
+                                  *ngIf="getParamType(i) !== ParameterType.Dropdown">
                     <mat-label>Default Value</mat-label>
                     <input matInput formControlName="defaultValue">
                   </mat-form-field>
@@ -78,6 +80,76 @@ import { ParameterType } from '@core/models/dynamic-query.model';
                   <button mat-icon-button color="warn" type="button" (click)="removeParameter(i)">
                     <mat-icon>delete</mat-icon>
                   </button>
+                </div>
+
+                <!-- Dropdown configuration section -->
+                <div *ngIf="getParamType(i) === ParameterType.Dropdown" class="dropdown-config">
+                  <h4>Dropdown Configuration</h4>
+
+                  <mat-radio-group formControlName="dropdownSourceType" class="source-radio-group">
+                    <mat-radio-button [value]="DropdownSourceType.Static">
+                      Static list (defined manually)
+                    </mat-radio-button>
+                    <mat-radio-button [value]="DropdownSourceType.Query">
+                      From database query
+                    </mat-radio-button>
+                  </mat-radio-group>
+
+                  <!-- Static values editor -->
+                  <div *ngIf="getDropdownSourceType(i) === DropdownSourceType.Static"
+                       class="static-values-editor">
+                    <p class="hint">Add label/value pairs. The "value" is what gets passed to the SQL query.</p>
+                    <div *ngFor="let opt of getStaticOptions(i); let j = index"
+                         class="static-option-row">
+                      <mat-form-field appearance="outline" class="option-field">
+                        <mat-label>Label</mat-label>
+                        <input matInput [value]="opt.label"
+                               (input)="updateStaticOption(i, j, 'label', $event)">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" class="option-field">
+                        <mat-label>Value</mat-label>
+                        <input matInput [value]="opt.value"
+                               (input)="updateStaticOption(i, j, 'value', $event)">
+                      </mat-form-field>
+                      <button mat-icon-button color="warn" type="button"
+                              (click)="removeStaticOption(i, j)">
+                        <mat-icon>remove_circle_outline</mat-icon>
+                      </button>
+                    </div>
+                    <button mat-stroked-button type="button" (click)="addStaticOption(i)">
+                      <mat-icon>add</mat-icon> Add Option
+                    </button>
+                  </div>
+
+                  <!-- Query-based values configuration -->
+                  <div *ngIf="getDropdownSourceType(i) === DropdownSourceType.Query"
+                       class="query-config">
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Lookup Query</mat-label>
+                      <mat-select formControlName="dropdownQueryId">
+                        <mat-option *ngFor="let q of availableQueries" [value]="q.id">
+                          {{ q.name }}
+                        </mat-option>
+                      </mat-select>
+                      <mat-hint>Select the query that returns the dropdown options</mat-hint>
+                    </mat-form-field>
+
+                    <div class="column-row">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Value Column</mat-label>
+                        <input matInput formControlName="dropdownQueryValueColumn"
+                               placeholder="e.g. ID">
+                        <mat-hint>Column used as the stored value</mat-hint>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline">
+                        <mat-label>Label Column</mat-label>
+                        <input matInput formControlName="dropdownQueryLabelColumn"
+                               placeholder="e.g. NAME">
+                        <mat-hint>Column displayed to the user</mat-hint>
+                      </mat-form-field>
+                    </div>
+                  </div>
                 </div>
               </mat-card>
             </div>
@@ -105,6 +177,25 @@ import { ParameterType } from '@core/models/dynamic-query.model';
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
     .add-btn { margin: 16px 0; }
     .toggle { margin: 16px 0; display: block; }
+
+    .dropdown-config {
+      margin-top: 12px;
+      padding: 12px;
+      border-top: 1px solid #e0e0e0;
+      background: #fafafa;
+      border-radius: 4px;
+    }
+    .dropdown-config h4 { margin: 0 0 8px; font-size: 14px; color: #555; }
+    .source-radio-group { display: flex; gap: 24px; margin-bottom: 16px; }
+    .hint { font-size: 12px; color: #666; margin-bottom: 8px; }
+
+    .static-values-editor { margin-top: 8px; }
+    .static-option-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .option-field { flex: 1; }
+
+    .query-config { margin-top: 8px; }
+    .column-row { display: flex; gap: 16px; }
+    .full-width { width: 100%; }
   `]
 })
 export class QueryFormComponent implements OnInit {
@@ -112,6 +203,10 @@ export class QueryFormComponent implements OnInit {
   isEdit = false;
   queryId?: string;
   saving = false;
+  availableQueries: DynamicQuery[] = [];
+
+  readonly ParameterType = ParameterType;
+  readonly DropdownSourceType = DropdownSourceType;
 
   constructor(
     private fb: FormBuilder,
@@ -131,6 +226,12 @@ export class QueryFormComponent implements OnInit {
       parameters: this.fb.array([])
     });
 
+    // Load all queries so admin can pick a lookup query
+    this.queryService.getAllQueries().subscribe({
+      next: (queries) => { this.availableQueries = queries; },
+      error: () => { /* non-critical, user can still type manually */ }
+    });
+
     this.queryId = this.route.snapshot.params['id'];
     if (this.queryId) {
       this.isEdit = true;
@@ -142,6 +243,42 @@ export class QueryFormComponent implements OnInit {
     return this.form.get('parameters') as FormArray;
   }
 
+  getParamType(index: number): ParameterType {
+    return this.parameters.at(index).get('parameterType')?.value;
+  }
+
+  getDropdownSourceType(index: number): DropdownSourceType | null {
+    return this.parameters.at(index).get('dropdownSourceType')?.value ?? null;
+  }
+
+  // ---- Static options helpers ----
+
+  getStaticOptions(index: number): DropdownOption[] {
+    const raw = this.parameters.at(index).get('dropdownStaticValues')?.value as string;
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+  }
+
+  addStaticOption(index: number): void {
+    const opts = this.getStaticOptions(index);
+    opts.push({ label: '', value: '' });
+    this.parameters.at(index).get('dropdownStaticValues')?.setValue(JSON.stringify(opts));
+  }
+
+  removeStaticOption(paramIndex: number, optIndex: number): void {
+    const opts = this.getStaticOptions(paramIndex);
+    opts.splice(optIndex, 1);
+    this.parameters.at(paramIndex).get('dropdownStaticValues')?.setValue(JSON.stringify(opts));
+  }
+
+  updateStaticOption(paramIndex: number, optIndex: number, field: 'label' | 'value', event: Event): void {
+    const opts = this.getStaticOptions(paramIndex);
+    opts[optIndex][field] = (event.target as HTMLInputElement).value;
+    this.parameters.at(paramIndex).get('dropdownStaticValues')?.setValue(JSON.stringify(opts));
+  }
+
+  // ---- Parameter management ----
+
   addParameter(): void {
     this.parameters.push(this.fb.group({
       name: ['', Validators.required],
@@ -149,7 +286,12 @@ export class QueryFormComponent implements OnInit {
       parameterType: [ParameterType.String],
       isRequired: [true],
       defaultValue: [''],
-      sortOrder: [this.parameters.length]
+      sortOrder: [this.parameters.length],
+      dropdownSourceType: [DropdownSourceType.Static],
+      dropdownStaticValues: ['[]'],
+      dropdownQueryId: [null],
+      dropdownQueryValueColumn: [''],
+      dropdownQueryLabelColumn: ['']
     }));
   }
 
@@ -175,7 +317,12 @@ export class QueryFormComponent implements OnInit {
             parameterType: [p.parameterType],
             isRequired: [p.isRequired],
             defaultValue: [p.defaultValue || ''],
-            sortOrder: [p.sortOrder]
+            sortOrder: [p.sortOrder],
+            dropdownSourceType: [p.dropdownSourceType ?? DropdownSourceType.Static],
+            dropdownStaticValues: [p.dropdownStaticValues || '[]'],
+            dropdownQueryId: [p.dropdownQueryId || null],
+            dropdownQueryValueColumn: [p.dropdownQueryValueColumn || ''],
+            dropdownQueryLabelColumn: [p.dropdownQueryLabelColumn || '']
           }));
         });
       },
@@ -191,9 +338,26 @@ export class QueryFormComponent implements OnInit {
     this.saving = true;
     const value = this.form.value;
 
+    // For non-dropdown parameters, clear dropdown fields before sending
+    const cleanedParams = value.parameters.map((p: any) => {
+      if (p.parameterType !== ParameterType.Dropdown) {
+        return {
+          ...p,
+          dropdownSourceType: null,
+          dropdownStaticValues: null,
+          dropdownQueryId: null,
+          dropdownQueryValueColumn: null,
+          dropdownQueryLabelColumn: null
+        };
+      }
+      return p;
+    });
+
+    const payload = { ...value, parameters: cleanedParams };
+
     const request$ = this.isEdit
-      ? this.queryService.updateQuery(this.queryId!, { ...value, id: this.queryId })
-      : this.queryService.createQuery(value);
+      ? this.queryService.updateQuery(this.queryId!, { ...payload, id: this.queryId })
+      : this.queryService.createQuery(payload);
 
     request$.subscribe({
       next: () => {

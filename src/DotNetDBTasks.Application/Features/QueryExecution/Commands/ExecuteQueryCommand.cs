@@ -150,6 +150,8 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             // Oracle NUMBER(1) columns require 0/1 integers, not .NET bool values
             ParameterType.Boolean => bool.TryParse(rawValue, out var flag) ? (flag ? 1 : 0)
                 : throw new DomainException($"Invalid boolean value: {rawValue}"),
+            // Dropdown value is passed as a plain string (the selected option's value)
+            ParameterType.Dropdown => rawValue,
             _ => rawValue
         };
     }

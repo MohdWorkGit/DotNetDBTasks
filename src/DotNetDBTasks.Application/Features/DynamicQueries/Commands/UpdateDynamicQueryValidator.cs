@@ -1,3 +1,4 @@
+using DotNetDBTasks.Domain.Enums;
 using FluentValidation;
 
 namespace DotNetDBTasks.Application.Features.DynamicQueries.Commands;
@@ -39,6 +40,33 @@ public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryC
 
             param.RuleFor(p => p.DisplayName)
                 .NotEmpty().MaximumLength(200);
+
+            // Dropdown-specific validation
+            param.When(p => p.ParameterType == ParameterType.Dropdown, () =>
+            {
+                param.RuleFor(p => p.DropdownSourceType)
+                    .NotNull().WithMessage("Dropdown source type is required for dropdown parameters.");
+
+                param.When(p => p.DropdownSourceType == DropdownSourceType.Static, () =>
+                {
+                    param.RuleFor(p => p.DropdownStaticValues)
+                        .NotEmpty().WithMessage("Static values are required when source type is Static.");
+                });
+
+                param.When(p => p.DropdownSourceType == DropdownSourceType.Query, () =>
+                {
+                    param.RuleFor(p => p.DropdownQueryId)
+                        .NotNull().WithMessage("A lookup query must be selected when source type is Query.");
+
+                    param.RuleFor(p => p.DropdownQueryValueColumn)
+                        .NotEmpty().WithMessage("Value column name is required when source type is Query.")
+                        .MaximumLength(100);
+
+                    param.RuleFor(p => p.DropdownQueryLabelColumn)
+                        .NotEmpty().WithMessage("Label column name is required when source type is Query.")
+                        .MaximumLength(100);
+                });
+            });
         });
     }
 

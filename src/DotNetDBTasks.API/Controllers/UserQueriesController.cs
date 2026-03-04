@@ -51,6 +51,22 @@ public class UserQueriesController : ControllerBase
     }
 
     /// <summary>
+    /// Returns the selectable options for a dropdown parameter.
+    /// Options are either the static list defined by the admin or the result of a lookup query.
+    /// </summary>
+    [HttpGet("{queryId:guid}/parameters/{parameterId:guid}/dropdown-options")]
+    public async Task<IActionResult> GetDropdownOptions(
+        Guid queryId,
+        Guid parameterId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new GetParameterDropdownOptionsQuery { QueryId = queryId, ParameterId = parameterId },
+            cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Retrieves the current user's query execution history.
     /// </summary>
     [HttpGet("history")]

@@ -4,8 +4,15 @@ import { ActivatedRoute } from '@angular/router';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
-import { DynamicQuery, ParameterType, QueryExecutionResult } from '@core/models/dynamic-query.model';
+import {
+  DropdownOption,
+  DynamicQuery,
+  ParameterType,
+  QueryExecutionResult
+} from '@core/models/dynamic-query.model';
 
 @Component({
   selector: 'app-query-execute',
@@ -19,6 +26,11 @@ import { DynamicQuery, ParameterType, QueryExecutionResult } from '@core/models/
           <mat-card-title>Parameters</mat-card-title>
         </mat-card-header>
         <mat-card-content>
+          <div *ngIf="loadingDropdowns" class="loading-hint">
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            <p>Loading dropdown options...</p>
+          </div>
+
           <form [formGroup]="form" (ngSubmit)="execute()">
             <div class="form-grid">
               <ng-container *ngFor="let param of query.parameters">
@@ -57,12 +69,30 @@ import { DynamicQuery, ParameterType, QueryExecutionResult } from '@core/models/
                     {{ param.displayName }}
                   </mat-slide-toggle>
                 </div>
+
+                <!-- Dropdown -->
+                <mat-form-field *ngIf="param.parameterType === 4" appearance="outline">
+                  <mat-label>{{ param.displayName }}</mat-label>
+                  <mat-select [formControlName]="param.name">
+                    <mat-option
+                      *ngFor="let opt of dropdownOptions[param.name]"
+                      [value]="opt.value">
+                      {{ opt.label }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-hint *ngIf="!dropdownOptions[param.name]?.length && !loadingDropdowns">
+                    No options available
+                  </mat-hint>
+                  <mat-error *ngIf="form.get(param.name)?.hasError('required')">
+                    {{ param.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
               </ng-container>
             </div>
 
             <div class="actions">
               <button mat-raised-button color="primary" type="submit"
-                      [disabled]="form.invalid || executing">
+                      [disabled]="form.invalid || executing || loadingDropdowns">
                 <mat-icon>play_arrow</mat-icon>
                 {{ executing ? 'Executing...' : 'Execute Query' }}
               </button>
@@ -126,6 +156,8 @@ import { DynamicQuery, ParameterType, QueryExecutionResult } from '@core/models/
     .non-query-result { display: flex; align-items: center; gap: 8px; padding: 24px 0; color: #4caf50; }
     .non-query-result mat-icon { font-size: 32px; width: 32px; height: 32px; }
     .non-query-result p { font-size: 16px; margin: 0; }
+    .loading-hint { margin-bottom: 16px; }
+    .loading-hint p { margin-top: 8px; font-size: 13px; color: #666; }
   `]
 })
 export class QueryExecuteComponent implements OnInit {
@@ -134,6 +166,10 @@ export class QueryExecuteComponent implements OnInit {
   result?: QueryExecutionResult;
   dataSource = new MatTableDataSource<Record<string, any>>();
   executing = false;
+  loadingDropdowns = false;
+
+  /** Maps param.name -> list of dropdown options */
+  dropdownOptions: Record<string, DropdownOption[]> = {};
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
@@ -163,6 +199,24 @@ export class QueryExecuteComponent implements OnInit {
         }
 
         this.form.addControl(param.name, this.fb.control(defaultValue, validators));
+      }
+
+      // Load options for all dropdown parameters in parallel
+      const dropdownParams = sorted.filter(p => p.parameterType === ParameterType.Dropdown && p.id);
+      if (dropdownParams.length > 0) {
+        this.loadingDropdowns = true;
+        const requests = dropdownParams.map(p =>
+          this.queryService.getDropdownOptions(queryId, p.id!).pipe(
+            catchError(() => of([] as DropdownOption[]))
+          )
+        );
+
+        forkJoin(requests).subscribe(results => {
+          dropdownParams.forEach((p, idx) => {
+            this.dropdownOptions[p.name] = results[idx];
+          });
+          this.loadingDropdowns = false;
+        });
       }
     });
   }

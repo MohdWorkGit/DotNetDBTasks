@@ -7,6 +7,7 @@ import {
   AssignRolesRequest,
   AssignUsersRequest,
   CreateDynamicQueryRequest,
+  DropdownOption,
   DynamicQuery,
   ExecutionLog,
   ImportedLdapUser,
@@ -78,6 +79,12 @@ export class QueryService {
 
   executeQuery(queryId: string, parameters: Record<string, string>): Observable<QueryExecutionResult> {
     return this.http.post<QueryExecutionResult>(`${this.userUrl}/${queryId}/execute`, parameters);
+  }
+
+  getDropdownOptions(queryId: string, parameterId: string): Observable<DropdownOption[]> {
+    return this.http.get<DropdownOption[]>(
+      `${this.userUrl}/${queryId}/parameters/${parameterId}/dropdown-options`
+    );
   }
 
   getMyHistory(): Observable<ExecutionLog[]> {

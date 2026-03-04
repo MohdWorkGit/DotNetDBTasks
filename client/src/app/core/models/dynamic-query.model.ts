@@ -2,7 +2,18 @@ export enum ParameterType {
   String = 0,
   Number = 1,
   Date = 2,
-  Boolean = 3
+  Boolean = 3,
+  Dropdown = 4
+}
+
+export enum DropdownSourceType {
+  Static = 0,
+  Query = 1
+}
+
+export interface DropdownOption {
+  label: string;
+  value: string;
 }
 
 export interface QueryParameter {
@@ -13,6 +24,12 @@ export interface QueryParameter {
   isRequired: boolean;
   defaultValue?: string;
   sortOrder: number;
+  // Dropdown-specific fields
+  dropdownSourceType?: DropdownSourceType;
+  dropdownStaticValues?: string;
+  dropdownQueryId?: string;
+  dropdownQueryValueColumn?: string;
+  dropdownQueryLabelColumn?: string;
 }
 
 export interface RoleAssignment {
