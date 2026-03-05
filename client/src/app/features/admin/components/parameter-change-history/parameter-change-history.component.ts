@@ -42,6 +42,15 @@ import { ParameterChangeHistory } from '@core/models/dynamic-query.model';
               <td mat-cell *matCellDef="let row">{{ row.fieldName }}</td>
             </ng-container>
 
+            <ng-container matColumnDef="oldValue">
+              <th mat-header-cell *matHeaderCellDef>Old Value</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="value-cell old-value" [matTooltip]="row.oldValue || '(empty)'">
+                  {{ row.oldValue || '(empty)' }}
+                </span>
+              </td>
+            </ng-container>
+
             <ng-container matColumnDef="newValue">
               <th mat-header-cell *matHeaderCellDef>New Value</th>
               <td mat-cell *matCellDef="let row">
@@ -92,6 +101,7 @@ import { ParameterChangeHistory } from '@core/models/dynamic-query.model';
       font-size: 12px;
       cursor: default;
     }
+    .old-value { color: #c62828; }
     .new-value { color: #2e7d32; }
     .no-data {
       text-align: center;
@@ -102,7 +112,7 @@ import { ParameterChangeHistory } from '@core/models/dynamic-query.model';
   `]
 })
 export class ParameterChangeHistoryComponent implements OnInit {
-  displayedColumns = ['queryName', 'parameterName', 'changeType', 'fieldName', 'newValue', 'changedAt'];
+  displayedColumns = ['queryName', 'parameterName', 'changeType', 'fieldName', 'oldValue', 'newValue', 'changedAt'];
   dataSource = new MatTableDataSource<ParameterChangeHistory>();
   loading = true;
 

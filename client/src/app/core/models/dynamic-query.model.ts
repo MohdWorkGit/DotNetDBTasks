@@ -99,6 +99,7 @@ export interface ExecutionLog {
   queryName: string;
   userId: string;
   username: string;
+  parameters: Record<string, string>;
   executedAt: string;
   executionDurationMs: number;
   rowsReturned: number;
@@ -113,6 +114,7 @@ export interface ParameterChangeHistory {
   parameterName: string;
   changeType: string;
   fieldName: string;
+  oldValue?: string;
   newValue?: string;
   changedAt: string;
   changedByUserId?: string;
