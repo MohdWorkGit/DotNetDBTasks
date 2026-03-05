@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Common.Models;
 using DotNetDBTasks.Domain.Entities;
@@ -98,6 +99,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             Id = Guid.NewGuid(),
             DynamicQueryId = request.QueryId,
             UserId = _currentUser.UserId,
+            ParametersJson = JsonSerializer.Serialize(request.Parameters),
             ExecutedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };

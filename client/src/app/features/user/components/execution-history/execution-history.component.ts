@@ -26,6 +26,15 @@ import { ExecutionLog, ParameterChangeHistory } from '@core/models/dynamic-query
                   <td mat-cell *matCellDef="let log">{{ log.queryName }}</td>
                 </ng-container>
 
+                <ng-container matColumnDef="parameters">
+                  <th mat-header-cell *matHeaderCellDef>Parameters</th>
+                  <td mat-cell *matCellDef="let log">
+                    <span class="parameters-cell" [matTooltip]="formatParametersTooltip(log.parameters)">
+                      {{ formatParameters(log.parameters) }}
+                    </span>
+                  </td>
+                </ng-container>
+
                 <ng-container matColumnDef="executedAt">
                   <th mat-header-cell *matHeaderCellDef mat-sort-header>Executed At</th>
                   <td mat-cell *matCellDef="let log">{{ log.executedAt | date:'medium' }}</td>
@@ -92,6 +101,15 @@ import { ExecutionLog, ParameterChangeHistory } from '@core/models/dynamic-query
                   <td mat-cell *matCellDef="let row">{{ row.fieldName }}</td>
                 </ng-container>
 
+                <ng-container matColumnDef="oldValue">
+                  <th mat-header-cell *matHeaderCellDef>Old Value</th>
+                  <td mat-cell *matCellDef="let row">
+                    <span class="value-cell old-value" [matTooltip]="row.oldValue || '(empty)'">
+                      {{ row.oldValue || '(empty)' }}
+                    </span>
+                  </td>
+                </ng-container>
+
                 <ng-container matColumnDef="newValue">
                   <th mat-header-cell *matHeaderCellDef>New Value</th>
                   <td mat-cell *matCellDef="let row">
@@ -127,6 +145,16 @@ import { ExecutionLog, ParameterChangeHistory } from '@core/models/dynamic-query
     .success { color: #4caf50; }
     .error { color: #f44336; }
     table { width: 100%; }
+    .parameters-cell {
+      max-width: 250px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+      font-size: 12px;
+      color: #555;
+      cursor: default;
+    }
     .change-badge {
       display: inline-block;
       padding: 2px 8px;
@@ -146,6 +174,7 @@ import { ExecutionLog, ParameterChangeHistory } from '@core/models/dynamic-query
       font-size: 12px;
       cursor: default;
     }
+    .old-value { color: #c62828; }
     .new-value { color: #2e7d32; }
     .no-data {
       text-align: center;
@@ -157,8 +186,8 @@ import { ExecutionLog, ParameterChangeHistory } from '@core/models/dynamic-query
   `]
 })
 export class ExecutionHistoryComponent implements OnInit {
-  displayedColumns = ['queryName', 'executedAt', 'executionDurationMs', 'rowsReturned', 'isSuccess'];
-  historyColumns = ['queryName', 'parameterName', 'changeType', 'fieldName', 'newValue', 'changedAt'];
+  displayedColumns = ['queryName', 'parameters', 'executedAt', 'executionDurationMs', 'rowsReturned', 'isSuccess'];
+  historyColumns = ['queryName', 'parameterName', 'changeType', 'fieldName', 'oldValue', 'newValue', 'changedAt'];
   dataSource = new MatTableDataSource<ExecutionLog>();
   historyDataSource = new MatTableDataSource<ParameterChangeHistory>();
   loading = true;
@@ -196,5 +225,13 @@ export class ExecutionHistoryComponent implements OnInit {
     });
   }
 
-}
+  formatParameters(params: Record<string, string>): string {
+    if (!params || Object.keys(params).length === 0) return '-';
+    return Object.entries(params).map(([k, v]) => `${k}: ${v}`).join(', ');
+  }
 
+  formatParametersTooltip(params: Record<string, string>): string {
+    if (!params || Object.keys(params).length === 0) return 'No parameters';
+    return Object.entries(params).map(([k, v]) => `${k}: ${v}`).join('\n');
+  }
+}
