@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Common.Models;
 using DotNetDBTasks.Domain.Entities;
@@ -94,12 +95,21 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             typedParameters[paramDef.Name] = ConvertParameter(rawValue, paramDef.ParameterType);
         }
 
+        // For UPDATE queries, fetch the current (old) values from the database before applying the update.
+        string? oldValuesJson = null;
+        if (IsUpdateQuery(query.SqlQuery))
+        {
+            oldValuesJson = await FetchOldValuesJsonAsync(
+                query.SqlQuery, typedParameters, query.TimeoutSeconds, cancellationToken);
+        }
+
         var log = new QueryExecutionLog
         {
             Id = Guid.NewGuid(),
             DynamicQueryId = request.QueryId,
             UserId = _currentUser.UserId,
             ParametersJson = JsonSerializer.Serialize(request.Parameters),
+            OldValuesJson = oldValuesJson,
             ExecutedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
@@ -154,5 +164,75 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             ParameterType.Dropdown => rawValue,
             _ => rawValue
         };
+    }
+
+    private static bool IsUpdateQuery(string sql) =>
+        sql.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Attempts to build a SELECT from the UPDATE statement to read current column values
+    /// before the update is applied. Returns serialized JSON of the first matching row,
+    /// or null if the SQL cannot be parsed or the pre-SELECT fails.
+    ///
+    /// Supports the standard single-table UPDATE pattern:
+    ///   UPDATE table SET col1 = @p1 [, col2 = @p2 ...] WHERE condition
+    /// </summary>
+    private async Task<string?> FetchOldValuesJsonAsync(
+        string sql,
+        Dictionary<string, object?> typedParameters,
+        int timeoutSeconds,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Parse: UPDATE <table> SET <setClause> WHERE <whereClause>
+            var match = Regex.Match(
+                sql.Trim(),
+                @"UPDATE\s+(\w+)\s+SET\s+(.*?)\s+WHERE\s+(.*)",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            if (!match.Success) return null;
+
+            var tableName = match.Groups[1].Value;
+            var setPart   = match.Groups[2].Value;
+            var wherePart = match.Groups[3].Value;
+
+            // Extract column names from the SET clause: col = @param  →  col
+            var setColumns = Regex.Matches(setPart, @"(\w+)\s*=\s*@\w+")
+                .Select(m => m.Groups[1].Value)
+                .ToList();
+
+            // Extract parameter names referenced in the WHERE clause: @param  →  param
+            var whereParamNames = Regex.Matches(wherePart, @"@(\w+)")
+                .Select(m => m.Groups[1].Value)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (setColumns.Count == 0 || whereParamNames.Count == 0) return null;
+
+            // Build the lookup SELECT using the same WHERE clause
+            var selectSql = $"SELECT {string.Join(", ", setColumns)} FROM {tableName} WHERE {wherePart}";
+
+            // Only pass parameters that appear in the WHERE clause
+            var whereParams = typedParameters
+                .Where(p => whereParamNames.Contains(p.Key))
+                .ToDictionary(p => p.Key, p => p.Value);
+
+            var result = await _queryExecutor.ExecuteAsync(selectSql, whereParams, timeoutSeconds, cancellationToken);
+
+            if (result.Rows.Count == 0) return null;
+
+            var oldValues = new Dictionary<string, string>();
+            foreach (var col in result.Columns)
+            {
+                oldValues[col] = result.Rows[0][col]?.ToString() ?? "NULL";
+            }
+
+            return JsonSerializer.Serialize(oldValues);
+        }
+        catch
+        {
+            // Never let a pre-fetch failure block the actual query execution
+            return null;
+        }
     }
 }

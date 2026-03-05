@@ -17,6 +17,13 @@ public class QueryExecutionLog : BaseEntity
     /// </summary>
     public string ParametersJson { get; set; } = string.Empty;
 
+    /// <summary>
+    /// For UPDATE queries: JSON-serialized dictionary of column values fetched from the database
+    /// before the update was applied, keyed by column name.
+    /// Null for non-UPDATE queries or when the pre-fetch could not be performed.
+    /// </summary>
+    public string? OldValuesJson { get; set; }
+
     public DateTime ExecutedAt { get; set; }
     public long ExecutionDurationMs { get; set; }
     public int RowsReturned { get; set; }

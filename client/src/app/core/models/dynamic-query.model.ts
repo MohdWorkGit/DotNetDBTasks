@@ -100,6 +100,10 @@ export interface ExecutionLog {
   userId: string;
   username: string;
   parameters: Record<string, string>;
+  /** For UPDATE queries: column values that existed before the update was applied. */
+  oldValues?: Record<string, string> | null;
+  /** True when the SQL query is a DML UPDATE statement. */
+  isUpdateQuery: boolean;
   executedAt: string;
   executionDurationMs: number;
   rowsReturned: number;
