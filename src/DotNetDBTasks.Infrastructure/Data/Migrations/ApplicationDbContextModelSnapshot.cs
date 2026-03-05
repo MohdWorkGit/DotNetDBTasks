@@ -107,59 +107,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.ToTable("DynamicQueryUsers");
                 });
 
-            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ParameterChangeHistory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("RAW(16)");
-
-                    b.Property<DateTime>("ChangedAt")
-                        .HasColumnType("TIMESTAMP(7)");
-
-                    b.Property<Guid?>("ChangedByUserId")
-                        .HasColumnType("RAW(16)");
-
-                    b.Property<string>("ChangeType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("NVARCHAR2(20)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TIMESTAMP(7)");
-
-                    b.Property<Guid>("DynamicQueryId")
-                        .HasColumnType("RAW(16)");
-
-                    b.Property<string>("FieldName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("NVARCHAR2(100)");
-
-                    b.Property<string>("NewValue")
-                        .HasColumnType("CLOB");
-
-                    b.Property<string>("OldValue")
-                        .HasColumnType("CLOB");
-
-                    b.Property<string>("ParameterName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("NVARCHAR2(100)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TIMESTAMP(7)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChangedAt")
-                        .HasDatabaseName("IX_ParameterChangeHistories_ChangedAt");
-
-                    b.HasIndex("DynamicQueryId")
-                        .HasDatabaseName("IX_ParameterChangeHistories_DynamicQueryId");
-
-                    b.ToTable("ParameterChangeHistories");
-                });
-
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryExecutionLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -434,17 +381,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ParameterChangeHistory", b =>
-                {
-                    b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DynamicQuery")
-                        .WithMany("ParameterChangeHistories")
-                        .HasForeignKey("DynamicQueryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DynamicQuery");
-                });
-
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryExecutionLog", b =>
                 {
                     b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DynamicQuery")
@@ -503,8 +439,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("DynamicQueryUsers");
 
                     b.Navigation("ExecutionLogs");
-
-                    b.Navigation("ParameterChangeHistories");
 
                     b.Navigation("Parameters");
                 });

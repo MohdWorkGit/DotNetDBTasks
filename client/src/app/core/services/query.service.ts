@@ -12,7 +12,6 @@ import {
   ExecutionLog,
   ImportedLdapUser,
   LdapUser,
-  ParameterChangeHistory,
   QueryExecutionResult,
   Role,
   UpdateDynamicQueryRequest
@@ -67,12 +66,6 @@ export class QueryService {
     if (queryId) params.queryId = queryId;
     if (userId) params.userId = userId;
     return this.http.get<ExecutionLog[]>(`${this.adminUrl}/logs`, { params });
-  }
-
-  getParameterChangeHistory(queryId?: string): Observable<ParameterChangeHistory[]> {
-    let params: any = {};
-    if (queryId) params.queryId = queryId;
-    return this.http.get<ParameterChangeHistory[]>(`${this.adminUrl}/parameter-history`, { params });
   }
 
   getRoles(): Observable<Role[]> {

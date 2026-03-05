@@ -26,7 +26,6 @@ import { QueryFormComponent } from './components/query-form/query-form.component
 import { RoleAssignmentComponent } from './components/role-assignment/role-assignment.component';
 import { ExecutionLogsComponent } from './components/execution-logs/execution-logs.component';
 import { AdUsersComponent } from './components/ad-users/ad-users.component';
-import { ParameterChangeHistoryComponent } from './components/parameter-change-history/parameter-change-history.component';
 
 @NgModule({
   declarations: [
@@ -34,8 +33,7 @@ import { ParameterChangeHistoryComponent } from './components/parameter-change-h
     QueryFormComponent,
     RoleAssignmentComponent,
     ExecutionLogsComponent,
-    AdUsersComponent,
-    ParameterChangeHistoryComponent
+    AdUsersComponent
   ],
   imports: [
     CommonModule,
@@ -65,7 +63,6 @@ import { ParameterChangeHistoryComponent } from './components/parameter-change-h
       { path: 'queries/edit/:id', component: QueryFormComponent },
       { path: 'queries/:id/roles', component: RoleAssignmentComponent },
       { path: 'logs', component: ExecutionLogsComponent },
-      { path: 'parameter-history', component: ParameterChangeHistoryComponent },
       { path: 'ad-users', component: AdUsersComponent },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])

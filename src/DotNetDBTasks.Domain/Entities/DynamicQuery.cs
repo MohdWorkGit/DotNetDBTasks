@@ -29,5 +29,4 @@ public class DynamicQuery : BaseEntity
     public ICollection<DynamicQueryDepartment> DynamicQueryDepartments { get; set; } = new List<DynamicQueryDepartment>();
     public ICollection<DynamicQueryUser> DynamicQueryUsers { get; set; } = new List<DynamicQueryUser>();
     public ICollection<QueryExecutionLog> ExecutionLogs { get; set; } = new List<QueryExecutionLog>();
-    public ICollection<ParameterChangeHistory> ParameterChangeHistories { get; set; } = new List<ParameterChangeHistory>();
 }
