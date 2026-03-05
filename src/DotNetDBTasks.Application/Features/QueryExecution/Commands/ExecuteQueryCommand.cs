@@ -186,9 +186,10 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         try
         {
             // Parse: UPDATE <table> SET <setClause> WHERE <whereClause>
+            // Table name may be bare (Users) or double-quoted ("Users")
             var match = Regex.Match(
                 sql.Trim(),
-                @"UPDATE\s+(\w+)\s+SET\s+(.*?)\s+WHERE\s+(.*)",
+                @"UPDATE\s+(""?\w+""?)\s+SET\s+(.*?)\s+WHERE\s+(.*)",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
             if (!match.Success) return null;
@@ -197,13 +198,13 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             var setPart   = match.Groups[2].Value;
             var wherePart = match.Groups[3].Value;
 
-            // Extract column names from the SET clause: col = @param  →  col
-            var setColumns = Regex.Matches(setPart, @"(\w+)\s*=\s*@\w+")
+            // Extract column names from the SET clause: col = @param or col = :param  →  col
+            var setColumns = Regex.Matches(setPart, @"(\w+)\s*=\s*[@:]\w+")
                 .Select(m => m.Groups[1].Value)
                 .ToList();
 
-            // Extract parameter names referenced in the WHERE clause: @param  →  param
-            var whereParamNames = Regex.Matches(wherePart, @"@(\w+)")
+            // Extract parameter names referenced in the WHERE clause: @param or :param  →  param
+            var whereParamNames = Regex.Matches(wherePart, @"[@:](\w+)")
                 .Select(m => m.Groups[1].Value)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
