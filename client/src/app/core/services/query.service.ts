@@ -98,6 +98,12 @@ export class QueryService {
     return this.http.get<ExecutionLog[]>(`${this.userUrl}/history`);
   }
 
+  getMyParameterChangeHistory(queryId?: string): Observable<ParameterChangeHistory[]> {
+    let params: any = {};
+    if (queryId) params.queryId = queryId;
+    return this.http.get<ParameterChangeHistory[]>(`${this.userUrl}/parameter-history`, { params });
+  }
+
   // LDAP / Active Directory operations
   searchLdapUsers(term: string): Observable<LdapUser[]> {
     return this.http.get<LdapUser[]>(`${this.ldapUrl}/search`, { params: { term } });
