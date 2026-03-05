@@ -27,9 +27,23 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
             <ng-container matColumnDef="parameters">
               <th mat-header-cell *matHeaderCellDef>Parameters</th>
               <td mat-cell *matCellDef="let log">
-                <span class="parameters-cell" [matTooltip]="formatParametersTooltip(log.parameters)">
-                  {{ formatParameters(log.parameters) }}
-                </span>
+                <ng-container *ngIf="log.isUpdateQuery && log.oldValues; else plainParams">
+                  <div class="update-params">
+                    <span class="update-label old-label">Before:</span>
+                    <span class="parameters-cell old-values" [matTooltip]="formatParametersTooltip(log.oldValues)">
+                      {{ formatParameters(log.oldValues) }}
+                    </span>
+                    <span class="update-label new-label">After:</span>
+                    <span class="parameters-cell new-values" [matTooltip]="formatParametersTooltip(log.parameters)">
+                      {{ formatParameters(log.parameters) }}
+                    </span>
+                  </div>
+                </ng-container>
+                <ng-template #plainParams>
+                  <span class="parameters-cell" [matTooltip]="formatParametersTooltip(log.parameters)">
+                    {{ formatParameters(log.parameters) }}
+                  </span>
+                </ng-template>
               </td>
             </ng-container>
 
@@ -82,6 +96,21 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
       color: #555;
       cursor: default;
     }
+    .update-params {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .update-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .old-label { color: #e57373; }
+    .new-label { color: #66bb6a; }
+    .old-values { color: #e57373; }
+    .new-values { color: #388e3c; }
   `]
 })
 export class ExecutionHistoryComponent implements OnInit {

@@ -10,6 +10,7 @@ public class QueryExecutionLogConfiguration : IEntityTypeConfiguration<QueryExec
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.ParametersJson).HasColumnType("CLOB");
+        builder.Property(e => e.OldValuesJson).HasColumnType("CLOB");
         builder.Property(e => e.ErrorMessage).HasMaxLength(1000);
 
         builder.HasOne(e => e.User)

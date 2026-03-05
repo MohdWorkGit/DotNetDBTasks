@@ -48,7 +48,11 @@ public class MappingProfile : Profile
         CreateMap<QueryExecutionLog, ExecutionLogDto>()
             .ForMember(d => d.QueryName, opt => opt.MapFrom(s => s.DynamicQuery != null ? s.DynamicQuery.Name : string.Empty))
             .ForMember(d => d.Username, opt => opt.MapFrom(s => s.User != null ? s.User.Username : string.Empty))
-            .ForMember(d => d.Parameters, opt => opt.MapFrom<ParametersJsonResolver>());
+            .ForMember(d => d.Parameters, opt => opt.MapFrom<ParametersJsonResolver>())
+            .ForMember(d => d.OldValues, opt => opt.MapFrom<OldValuesJsonResolver>())
+            .ForMember(d => d.IsUpdateQuery, opt => opt.MapFrom(s =>
+                s.DynamicQuery != null &&
+                s.DynamicQuery.SqlQuery.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)));
     }
 }
 
@@ -70,5 +74,23 @@ public class ParametersJsonResolver : IValueResolver<QueryExecutionLog, Executio
 
         return JsonSerializer.Deserialize<Dictionary<string, string>>(source.ParametersJson)
             ?? new Dictionary<string, string>();
+    }
+}
+
+/// <summary>
+/// Deserializes OldValuesJson (stored as JSON string) into a nullable Dictionary for the DTO.
+/// </summary>
+public class OldValuesJsonResolver : IValueResolver<QueryExecutionLog, ExecutionLogDto, Dictionary<string, string>?>
+{
+    public Dictionary<string, string>? Resolve(
+        QueryExecutionLog source,
+        ExecutionLogDto destination,
+        Dictionary<string, string>? destMember,
+        ResolutionContext context)
+    {
+        if (string.IsNullOrEmpty(source.OldValuesJson))
+            return null;
+
+        return JsonSerializer.Deserialize<Dictionary<string, string>>(source.OldValuesJson);
     }
 }
