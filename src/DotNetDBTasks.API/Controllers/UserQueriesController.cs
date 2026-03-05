@@ -75,18 +75,4 @@ public class UserQueriesController : ControllerBase
         var result = await _mediator.Send(new GetMyExecutionHistoryQuery(), cancellationToken);
         return Ok(result);
     }
-
-    /// <summary>
-    /// Retrieves parameter change history for queries available to the user.
-    /// </summary>
-    [HttpGet("parameter-history")]
-    public async Task<IActionResult> GetParameterChangeHistory(
-        [FromQuery] Guid? queryId,
-        CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(
-            new GetParameterChangeHistoryQuery { QueryId = queryId },
-            cancellationToken);
-        return Ok(result);
-    }
 }

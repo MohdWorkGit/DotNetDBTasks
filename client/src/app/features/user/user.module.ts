@@ -19,7 +19,6 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatTabsModule } from '@angular/material/tabs';
 
 import { MyQueriesComponent } from './components/my-queries/my-queries.component';
 import { QueryExecuteComponent } from './components/query-execute/query-execute.component';
@@ -51,7 +50,6 @@ import { ExecutionHistoryComponent } from './components/execution-history/execut
     MatChipsModule,
     MatTooltipModule,
     MatProgressBarModule,
-    MatTabsModule,
     RouterModule.forChild([
       { path: 'queries', component: MyQueriesComponent },
       { path: 'queries/:id/execute', component: QueryExecuteComponent },
