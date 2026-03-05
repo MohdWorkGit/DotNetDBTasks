@@ -7,7 +7,6 @@ public class ExecutionLogDto
     public string QueryName { get; set; } = string.Empty;
     public Guid UserId { get; set; }
     public string Username { get; set; } = string.Empty;
-    public Dictionary<string, string> Parameters { get; set; } = new();
     public DateTime ExecutedAt { get; set; }
     public long ExecutionDurationMs { get; set; }
     public int RowsReturned { get; set; }

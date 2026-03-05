@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AutoMapper;
 using DotNetDBTasks.Application.Features.DynamicQueries.Commands;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
@@ -51,28 +50,6 @@ public class MappingProfile : Profile
 
         CreateMap<QueryExecutionLog, ExecutionLogDto>()
             .ForMember(d => d.QueryName, opt => opt.MapFrom(s => s.DynamicQuery != null ? s.DynamicQuery.Name : string.Empty))
-            .ForMember(d => d.Username, opt => opt.MapFrom(s => s.User != null ? s.User.Username : string.Empty))
-            .ForMember(d => d.Parameters, opt => opt.MapFrom<ParametersJsonResolver>());
-    }
-}
-
-/// <summary>
-/// Deserializes ParametersJson (stored as JSON string) into a Dictionary for the DTO.
-/// Extracted to a resolver because JsonSerializer.Deserialize has optional parameters
-/// which cannot be used inside expression trees (CS0854).
-/// </summary>
-public class ParametersJsonResolver : IValueResolver<QueryExecutionLog, ExecutionLogDto, Dictionary<string, string>>
-{
-    public Dictionary<string, string> Resolve(
-        QueryExecutionLog source,
-        ExecutionLogDto destination,
-        Dictionary<string, string> destMember,
-        ResolutionContext context)
-    {
-        if (string.IsNullOrEmpty(source.ParametersJson))
-            return new Dictionary<string, string>();
-
-        return JsonSerializer.Deserialize<Dictionary<string, string>>(source.ParametersJson)
-            ?? new Dictionary<string, string>();
+            .ForMember(d => d.Username, opt => opt.MapFrom(s => s.User != null ? s.User.Username : string.Empty));
     }
 }

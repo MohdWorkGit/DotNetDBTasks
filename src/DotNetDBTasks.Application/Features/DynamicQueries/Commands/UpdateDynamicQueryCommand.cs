@@ -111,7 +111,6 @@ public class UpdateDynamicQueryCommandHandler
                     ParameterName = name,
                     ChangeType = "Removed",
                     FieldName = "Parameter",
-                    OldValue = oldParam.DisplayName,
                     NewValue = null,
                     ChangedAt = now,
                     CreatedAt = now
@@ -132,7 +131,6 @@ public class UpdateDynamicQueryCommandHandler
                     ParameterName = name,
                     ChangeType = "Added",
                     FieldName = "Parameter",
-                    OldValue = null,
                     NewValue = newParam.DisplayName,
                     ChangedAt = now,
                     CreatedAt = now
@@ -189,7 +187,6 @@ public class UpdateDynamicQueryCommandHandler
             ParameterName = parameterName,
             ChangeType = "Modified",
             FieldName = fieldName,
-            OldValue = oldValue,
             NewValue = newValue,
             ChangedAt = now,
             CreatedAt = now
