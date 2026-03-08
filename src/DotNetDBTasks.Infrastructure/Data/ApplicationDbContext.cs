@@ -24,23 +24,5 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
-
-        // Oracle PL/SQL cannot bind DbType.Boolean parameters to NUMBER(1) columns
-        // inside DECLARE/BEGIN...END blocks. Convert all bool properties to int (0/1)
-        // so EF Core sends DbType.Int32 instead of DbType.Boolean.
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            foreach (var property in entityType.GetProperties())
-            {
-                if (property.ClrType == typeof(bool))
-                {
-                    property.SetValueConverter(
-                        new Microsoft.EntityFrameworkCore.Storage.ValueConversion.BoolToZeroOneConverter<int>());
-                    // Keep the column type as NUMBER(1) to match the existing schema/snapshot.
-                    // Without this, EF Core infers NUMBER(10) from the int store type.
-                    property.SetColumnType("NUMBER(1)");
-                }
-            }
-        }
     }
 }
