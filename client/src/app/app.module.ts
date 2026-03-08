@@ -15,7 +15,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { NoAuthGuard } from './core/guards/no-auth.guard';
 
 const routes = [
-  { path: '', redirectTo: '/login', pathMatch: 'full' as const },
+  { path: '', canActivate: [NoAuthGuard], redirectTo: '/login', pathMatch: 'full' as const },
   {
     path: 'login',
     loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule),
