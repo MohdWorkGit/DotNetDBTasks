@@ -17,8 +17,8 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
     <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
-    <PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.70" />
-    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.7.0" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.26000" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
   </ItemGroup>
 
