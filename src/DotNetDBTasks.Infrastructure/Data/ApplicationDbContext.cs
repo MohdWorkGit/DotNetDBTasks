@@ -36,6 +36,9 @@ public class ApplicationDbContext : DbContext
                 {
                     property.SetValueConverter(
                         new Microsoft.EntityFrameworkCore.Storage.ValueConversion.BoolToZeroOneConverter<int>());
+                    // Keep the column type as NUMBER(1) to match the existing schema/snapshot.
+                    // Without this, EF Core infers NUMBER(10) from the int store type.
+                    property.SetColumnType("NUMBER(1)");
                 }
             }
         }
