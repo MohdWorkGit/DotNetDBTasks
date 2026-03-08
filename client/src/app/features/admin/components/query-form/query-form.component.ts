@@ -6,6 +6,7 @@ import { QueryService } from '@core/services/query.service';
 import { DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from '@core/models/dynamic-query.model';
 
 @Component({
+  standalone: false,
   selector: 'app-query-form',
   template: `
     <div class="container">

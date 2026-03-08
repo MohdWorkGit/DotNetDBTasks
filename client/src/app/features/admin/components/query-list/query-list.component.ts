@@ -8,6 +8,7 @@ import { QueryService } from '@core/services/query.service';
 import { DynamicQuery } from '@core/models/dynamic-query.model';
 
 @Component({
+  standalone: false,
   selector: 'app-query-list',
   template: `
     <div class="container">

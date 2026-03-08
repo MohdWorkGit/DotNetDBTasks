@@ -7,6 +7,7 @@ import { QueryService } from '@core/services/query.service';
 import { ExecutionLog } from '@core/models/dynamic-query.model';
 
 @Component({
+  standalone: false,
   selector: 'app-execution-history',
   template: `
     <div class="container">
