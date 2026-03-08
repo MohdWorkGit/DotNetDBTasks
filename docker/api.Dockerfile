@@ -26,7 +26,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Create non-root user
-RUN adduser --disabled-password --gecos "" appuser
+RUN useradd --no-create-home --shell /bin/false appuser
 
 # Copy published output
 COPY --from=build /app/publish .
