@@ -1,19 +1,15 @@
-import { Injectable } from '@angular/core';
-import { CanActivate, Router } from '@angular/router';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-@Injectable({
-  providedIn: 'root'
-})
-export class NoAuthGuard implements CanActivate {
-  constructor(private authService: AuthService, private router: Router) {}
+export const noAuthGuard: CanActivateFn = (): boolean => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
 
-  canActivate(): boolean {
-    if (this.authService.getAccessToken()) {
-      const destination = this.authService.isAdmin() ? '/admin/queries' : '/user/queries';
-      this.router.navigate([destination]);
-      return false;
-    }
-    return true;
+  if (authService.getAccessToken()) {
+    const destination = authService.isAdmin() ? '/admin/queries' : '/user/queries';
+    router.navigate([destination]);
+    return false;
   }
-}
+  return true;
+};

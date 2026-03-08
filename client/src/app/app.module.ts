@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,27 +10,27 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { AppComponent } from './app.component';
-import { JwtInterceptor } from './core/interceptors/jwt.interceptor';
-import { AuthGuard } from './core/guards/auth.guard';
-import { NoAuthGuard } from './core/guards/no-auth.guard';
+import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
+import { authGuard } from './core/guards/auth.guard';
+import { noAuthGuard } from './core/guards/no-auth.guard';
 
 const routes = [
-  { path: '', canActivate: [NoAuthGuard], redirectTo: '/login', pathMatch: 'full' as const },
+  { path: '', canActivate: [noAuthGuard], redirectTo: '/login', pathMatch: 'full' as const },
   {
     path: 'login',
     loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule),
-    canActivate: [NoAuthGuard]
+    canActivate: [noAuthGuard]
   },
   {
     path: 'admin',
     loadChildren: () => import('./features/admin/admin.module').then(m => m.AdminModule),
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
     data: { roles: ['Admin'] }
   },
   {
     path: 'user',
     loadChildren: () => import('./features/user/user.module').then(m => m.UserModule),
-    canActivate: [AuthGuard]
+    canActivate: [authGuard]
   },
   { path: '**', redirectTo: '/login' }
 ];
@@ -40,7 +40,6 @@ const routes = [
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
-    HttpClientModule,
     RouterModule.forRoot(routes),
     MatToolbarModule,
     MatButtonModule,
@@ -49,7 +48,7 @@ const routes = [
     MatSnackBarModule
   ],
   providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true }
+    provideHttpClient(withInterceptors([jwtInterceptor]))
   ],
   bootstrap: [AppComponent]
 })
