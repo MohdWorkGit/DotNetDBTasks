@@ -15,6 +15,7 @@ import {
 } from '@core/models/dynamic-query.model';
 
 @Component({
+  standalone: false,
   selector: 'app-query-execute',
   template: `
     <div class="container">

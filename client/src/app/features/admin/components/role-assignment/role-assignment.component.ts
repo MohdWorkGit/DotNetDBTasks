@@ -7,6 +7,7 @@ import { QueryService } from '@core/services/query.service';
 import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query.model';
 
 @Component({
+  standalone: false,
   selector: 'app-role-assignment',
   template: `
     <div class="container">

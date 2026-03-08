@@ -4,6 +4,7 @@ import { QueryService } from '@core/services/query.service';
 import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
 
 @Component({
+  standalone: false,
   selector: 'app-ad-users',
   template: `
     <div class="container">

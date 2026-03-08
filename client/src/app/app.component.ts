@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { AuthService } from './core/services/auth.service';
 
 @Component({
+  standalone: false,
   selector: 'app-root',
   template: `
     <mat-toolbar color="primary" *ngIf="authService.isAuthenticated$ | async">
