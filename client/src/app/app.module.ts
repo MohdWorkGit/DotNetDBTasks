@@ -12,12 +12,14 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { AppComponent } from './app.component';
 import { JwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { AuthGuard } from './core/guards/auth.guard';
+import { NoAuthGuard } from './core/guards/no-auth.guard';
 
 const routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' as const },
   {
     path: 'login',
-    loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule)
+    loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule),
+    canActivate: [NoAuthGuard]
   },
   {
     path: 'admin',
