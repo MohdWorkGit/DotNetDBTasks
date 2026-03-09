@@ -1,14 +1,13 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, ActivatedRouteSnapshot, Router } from '@angular/router';
+import { CanActivateFn, ActivatedRouteSnapshot, Router, UrlTree } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot): boolean => {
+export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot): boolean | UrlTree => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
   if (!authService.getAccessToken()) {
-    router.navigate(['/login']);
-    return false;
+    return router.createUrlTree(['/login']);
   }
 
   const requiredRoles = route.data['roles'] as string[];
@@ -16,8 +15,7 @@ export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot): boolean
     const userRoles = authService.getUserRoles();
     const hasRole = requiredRoles.some(role => userRoles.includes(role));
     if (!hasRole) {
-      router.navigate(['/user/queries']);
-      return false;
+      return router.createUrlTree(['/user/queries']);
     }
   }
 

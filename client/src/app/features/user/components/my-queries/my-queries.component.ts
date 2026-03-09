@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { timeout, catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { DynamicQuery } from '@core/models/dynamic-query.model';
 
@@ -68,7 +70,10 @@ export class MyQueriesComponent implements OnInit {
   loading = true;
   errorMessage = '';
 
-  constructor(private queryService: QueryService) {}
+  constructor(
+    private queryService: QueryService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadQueries();
@@ -77,11 +82,24 @@ export class MyQueriesComponent implements OnInit {
   loadQueries(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.queryService.getMyQueries().subscribe({
-      next: (q) => { this.queries = q; this.loading = false; },
+    this.queryService.getMyQueries().pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Request timed out. Please try again.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
+      next: (q) => {
+        this.queries = q;
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
       error: (err) => {
         this.loading = false;
         this.errorMessage = err.error?.message || 'Failed to load queries. Please try again.';
+        this.cdr.detectChanges();
       }
     });
   }
