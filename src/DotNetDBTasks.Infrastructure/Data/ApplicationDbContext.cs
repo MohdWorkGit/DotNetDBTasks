@@ -24,5 +24,19 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Oracle does not support boolean literals (TRUE/FALSE).
+        // Convert all bool properties to NUMBER(1) with 1/0 values.
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(bool) || property.ClrType == typeof(bool?))
+                {
+                    property.SetValueConverter(
+                        new Microsoft.EntityFrameworkCore.Storage.ValueConversion.BoolToZeroOneConverter<short>());
+                }
+            }
+        }
     }
 }
