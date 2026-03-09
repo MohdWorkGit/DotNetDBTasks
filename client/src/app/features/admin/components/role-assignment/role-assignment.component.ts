@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { forkJoin } from 'rxjs';
+import { forkJoin, throwError } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
 import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query.model';
 
@@ -13,7 +14,18 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
     <div class="container">
       <h2>Manage Query Access</h2>
 
-      <mat-card *ngIf="query">
+      <div *ngIf="loading" class="loading">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <div *ngIf="!loading && errorMessage" class="error-block">
+        <p class="error-text">{{ errorMessage }}</p>
+        <button mat-raised-button color="primary" (click)="loadData()">
+          <mat-icon>refresh</mat-icon> Retry
+        </button>
+      </div>
+
+      <mat-card *ngIf="!loading && query">
         <mat-card-header>
           <mat-card-title>{{ query.name }}</mat-card-title>
           <mat-card-subtitle>{{ query.description }}</mat-card-subtitle>
@@ -91,6 +103,9 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
   styles: [`
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
     .tab-content { padding-top: 24px; }
+    .loading { display: flex; justify-content: center; padding: 40px; }
+    .error-block { text-align: center; padding: 24px; }
+    .error-text { color: #f44336; margin-bottom: 16px; }
   `]
 })
 export class RoleAssignmentComponent implements OnInit {
@@ -102,13 +117,18 @@ export class RoleAssignmentComponent implements OnInit {
   departments: string[] = [];
   users: ImportedLdapUser[] = [];
   saving = false;
+  loading = true;
+  errorMessage = '';
+
+  private queryId = '';
 
   constructor(
     private fb: FormBuilder,
     private queryService: QueryService,
     private route: ActivatedRoute,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {
     this.rolesForm = this.fb.group({ roleIds: [[]] });
     this.departmentsForm = this.fb.group({ departments: [[]] });
@@ -116,23 +136,51 @@ export class RoleAssignmentComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const queryId = this.route.snapshot.params['id'];
-    this.queryService.getQueryById(queryId).subscribe(q => {
-      this.query = q;
-      this.rolesForm.patchValue({
-        roleIds: q.assignedRoles.map(r => r.roleId)
-      });
-      this.departmentsForm.patchValue({
-        departments: q.assignedDepartments.map(d => d.department)
-      });
-      this.usersForm.patchValue({
-        userIds: q.assignedUsers.map(u => u.userId)
-      });
-    });
+    this.queryId = this.route.snapshot.params['id'];
+    this.loadData();
+  }
 
-    this.queryService.getRoles().subscribe(r => this.roles = r);
-    this.queryService.getLdapDepartments().subscribe(d => this.departments = d);
-    this.queryService.getImportedLdapUsers().subscribe(u => this.users = u);
+  loadData(): void {
+    this.loading = true;
+    this.errorMessage = '';
+
+    forkJoin({
+      query: this.queryService.getQueryById(this.queryId),
+      roles: this.queryService.getRoles(),
+      departments: this.queryService.getLdapDepartments().pipe(catchError(() => [])),
+      users: this.queryService.getImportedLdapUsers().pipe(catchError(() => []))
+    }).pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Request timed out. Please try again.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
+      next: (result) => {
+        this.query = result.query;
+        this.roles = result.roles;
+        this.departments = result.departments as string[];
+        this.users = result.users as ImportedLdapUser[];
+        this.rolesForm.patchValue({
+          roleIds: result.query.assignedRoles.map(r => r.roleId)
+        });
+        this.departmentsForm.patchValue({
+          departments: result.query.assignedDepartments.map(d => d.department)
+        });
+        this.usersForm.patchValue({
+          userIds: result.query.assignedUsers.map(u => u.userId)
+        });
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err.error?.message || 'Failed to load data. Please try again.';
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   onSaveRoles(): void {

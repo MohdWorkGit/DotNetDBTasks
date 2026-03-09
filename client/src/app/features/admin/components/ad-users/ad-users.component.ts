@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { timeout, catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
 
@@ -239,7 +241,8 @@ export class AdUsersComponent implements OnInit {
 
   constructor(
     private queryService: QueryService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -251,14 +254,24 @@ export class AdUsersComponent implements OnInit {
     if (!this.searchTerm || this.searchTerm.length < 2) return;
     this.searching = true;
     this.selectedUsers = {};
-    this.queryService.searchLdapUsers(this.searchTerm).subscribe({
+    this.queryService.searchLdapUsers(this.searchTerm).pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Search timed out.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
       next: (users) => {
         this.searchResults = users;
         this.searching = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.snackBar.open('Failed to search AD users', 'Close', { duration: 5000 });
         this.searching = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -311,14 +324,24 @@ export class AdUsersComponent implements OnInit {
 
   loadDepartments(): void {
     this.loadingDepts = true;
-    this.queryService.getLdapDepartments().subscribe({
+    this.queryService.getLdapDepartments().pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Request timed out.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
       next: (depts) => {
         this.departments = depts;
         this.loadingDepts = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.snackBar.open('Failed to load departments', 'Close', { duration: 5000 });
         this.loadingDepts = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -351,13 +374,23 @@ export class AdUsersComponent implements OnInit {
 
   loadImportedUsers(): void {
     this.loadingImported = true;
-    this.queryService.getImportedLdapUsers().subscribe({
+    this.queryService.getImportedLdapUsers().pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Request timed out.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
       next: (users) => {
         this.importedUsers = users;
         this.loadingImported = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loadingImported = false;
+        this.cdr.detectChanges();
       }
     });
   }

@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { timeout, catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from '@core/models/dynamic-query.model';
 
@@ -214,7 +216,8 @@ export class QueryFormComponent implements OnInit {
     private queryService: QueryService,
     private route: ActivatedRoute,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -301,7 +304,15 @@ export class QueryFormComponent implements OnInit {
   }
 
   loadQuery(id: string): void {
-    this.queryService.getQueryById(id).subscribe({
+    this.queryService.getQueryById(id).pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Request timed out.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
       next: (query) => {
         this.form.patchValue({
           name: query.name,
@@ -326,9 +337,10 @@ export class QueryFormComponent implements OnInit {
             dropdownQueryLabelColumn: [p.dropdownQueryLabelColumn || '']
           }));
         });
+        this.cdr.detectChanges();
       },
-      error: () => {
-        this.snackBar.open('Failed to load query', 'Close', { duration: 5000 });
+      error: (err) => {
+        this.snackBar.open(err.error?.message || 'Failed to load query', 'Close', { duration: 5000 });
       }
     });
   }
@@ -360,7 +372,15 @@ export class QueryFormComponent implements OnInit {
       ? this.queryService.updateQuery(this.queryId!, { ...payload, id: this.queryId })
       : this.queryService.createQuery(payload);
 
-    request$.subscribe({
+    request$.pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Request timed out.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
       next: () => {
         this.saving = false;
         this.snackBar.open(

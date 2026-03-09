@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { timeout, catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 import { AuthService } from '@core/services/auth.service';
 
 @Component({
@@ -78,7 +80,8 @@ export class LoginComponent {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {
     this.loginForm = this.fb.group({
       username: ['', Validators.required],
@@ -90,9 +93,18 @@ export class LoginComponent {
     if (this.loginForm.invalid) return;
 
     this.loading = true;
-    this.authService.login(this.loginForm.value).subscribe({
+    this.authService.login(this.loginForm.value).pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Login request timed out. Please try again.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
       next: () => {
         this.loading = false;
+        this.cdr.detectChanges();
         if (this.authService.isAdmin()) {
           this.router.navigate(['/admin/queries']);
         } else {
@@ -106,6 +118,7 @@ export class LoginComponent {
           'Close',
           { duration: 5000, panelClass: ['error-snackbar'] }
         );
+        this.cdr.detectChanges();
       }
     });
   }
