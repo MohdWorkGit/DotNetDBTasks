@@ -1,9 +1,11 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { timeout, catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { DynamicQuery } from '@core/models/dynamic-query.model';
 
@@ -102,7 +104,8 @@ export class QueryListComponent implements OnInit {
   constructor(
     private queryService: QueryService,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -111,16 +114,26 @@ export class QueryListComponent implements OnInit {
 
   loadQueries(): void {
     this.loading = true;
-    this.queryService.getAllQueries().subscribe({
+    this.queryService.getAllQueries().pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Request timed out.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
       next: (queries) => {
         this.dataSource.data = queries;
         this.dataSource.paginator = this.paginator;
         this.dataSource.sort = this.sort;
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading = false;
         this.snackBar.open('Failed to load queries', 'Close', { duration: 5000 });
+        this.cdr.detectChanges();
       }
     });
   }

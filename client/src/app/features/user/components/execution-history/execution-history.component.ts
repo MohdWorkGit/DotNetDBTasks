@@ -1,8 +1,10 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { timeout, catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { ExecutionLog } from '@core/models/dynamic-query.model';
 
@@ -19,7 +21,14 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
             <mat-spinner diameter="40"></mat-spinner>
           </div>
 
-          <table mat-table [dataSource]="dataSource" matSort *ngIf="!loading">
+          <div *ngIf="!loading && errorMessage" class="error-block">
+            <p class="error-text">{{ errorMessage }}</p>
+            <button mat-raised-button color="primary" (click)="loadHistory()">
+              <mat-icon>refresh</mat-icon> Retry
+            </button>
+          </div>
+
+          <table mat-table [dataSource]="dataSource" matSort *ngIf="!loading && !errorMessage">
             <ng-container matColumnDef="queryName">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Query</th>
               <td mat-cell *matCellDef="let log">{{ log.queryName }}</td>
@@ -84,6 +93,8 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
   `,
   styles: [`
     .loading { display: flex; justify-content: center; padding: 40px; }
+    .error-block { text-align: center; padding: 24px; }
+    .error-text { color: #f44336; margin-bottom: 16px; }
     .success { color: #4caf50; }
     .error { color: #f44336; }
     table { width: 100%; }
@@ -118,21 +129,44 @@ export class ExecutionHistoryComponent implements OnInit {
   displayedColumns = ['queryName', 'parameters', 'executedAt', 'executionDurationMs', 'rowsReturned', 'isSuccess'];
   dataSource = new MatTableDataSource<ExecutionLog>();
   loading = true;
+  errorMessage = '';
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private queryService: QueryService) {}
+  constructor(
+    private queryService: QueryService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
-    this.queryService.getMyHistory().subscribe({
+    this.loadHistory();
+  }
+
+  loadHistory(): void {
+    this.loading = true;
+    this.errorMessage = '';
+    this.queryService.getMyHistory().pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Request timed out. Please try again.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
       next: (logs) => {
         this.dataSource.data = logs;
         this.dataSource.paginator = this.paginator;
         this.dataSource.sort = this.sort;
         this.loading = false;
+        this.cdr.detectChanges();
       },
-      error: () => this.loading = false
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err.error?.message || 'Failed to load history. Please try again.';
+        this.cdr.detectChanges();
+      }
     });
   }
 
