@@ -19,6 +19,19 @@ import {
   selector: 'app-query-execute',
   template: `
     <div class="container">
+      <div *ngIf="loadingQuery" class="loading">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <mat-card *ngIf="!loadingQuery && queryError" class="error-card">
+        <mat-card-content>
+          <p>{{ queryError }}</p>
+          <button mat-raised-button color="primary" (click)="loadQuery()">
+            <mat-icon>refresh</mat-icon> Retry
+          </button>
+        </mat-card-content>
+      </mat-card>
+
       <h2 *ngIf="query">{{ query.name }}</h2>
       <p *ngIf="query" class="description">{{ query.description }}</p>
 
@@ -143,6 +156,9 @@ import {
     </div>
   `,
   styles: [`
+    .loading { display: flex; justify-content: center; padding: 40px; }
+    .error-card { margin-bottom: 16px; }
+    .error-card p { color: #f44336; margin-bottom: 16px; }
     .description { color: #666; margin-bottom: 16px; }
     .form-grid {
       display: grid;
@@ -167,12 +183,16 @@ export class QueryExecuteComponent implements OnInit {
   result?: QueryExecutionResult;
   dataSource = new MatTableDataSource<Record<string, any>>();
   executing = false;
+  loadingQuery = true;
   loadingDropdowns = false;
+  queryError = '';
 
   /** Maps param.name -> list of dropdown options */
   dropdownOptions: Record<string, DropdownOption[]> = {};
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+
+  private queryId = '';
 
   constructor(
     private fb: FormBuilder,
@@ -183,41 +203,53 @@ export class QueryExecuteComponent implements OnInit {
 
   ngOnInit(): void {
     this.form = this.fb.group({});
-    const queryId = this.route.snapshot.params['id'];
+    this.queryId = this.route.snapshot.params['id'];
+    this.loadQuery();
+  }
 
-    this.queryService.getMyQueries().subscribe(queries => {
-      this.query = queries.find(q => q.id === queryId);
-      if (!this.query) return;
+  loadQuery(): void {
+    this.loadingQuery = true;
+    this.queryError = '';
 
-      // Build dynamic form from parameter metadata
-      const sorted = [...this.query.parameters].sort((a, b) => a.sortOrder - b.sortOrder);
-      for (const param of sorted) {
-        const validators = param.isRequired ? [Validators.required] : [];
-        let defaultValue: any = param.defaultValue || '';
+    this.queryService.getMyQueryById(this.queryId).subscribe({
+      next: (query) => {
+        this.query = query;
+        this.loadingQuery = false;
 
-        if (param.parameterType === ParameterType.Boolean) {
-          defaultValue = param.defaultValue === 'true';
+        // Build dynamic form from parameter metadata
+        const sorted = [...this.query.parameters].sort((a, b) => a.sortOrder - b.sortOrder);
+        for (const param of sorted) {
+          const validators = param.isRequired ? [Validators.required] : [];
+          let defaultValue: any = param.defaultValue || '';
+
+          if (param.parameterType === ParameterType.Boolean) {
+            defaultValue = param.defaultValue === 'true';
+          }
+
+          this.form.addControl(param.name, this.fb.control(defaultValue, validators));
         }
 
-        this.form.addControl(param.name, this.fb.control(defaultValue, validators));
-      }
+        // Load options for all dropdown parameters in parallel
+        const dropdownParams = sorted.filter(p => p.parameterType === ParameterType.Dropdown && p.id);
+        if (dropdownParams.length > 0) {
+          this.loadingDropdowns = true;
+          const requests = dropdownParams.map(p =>
+            this.queryService.getDropdownOptions(this.queryId, p.id!).pipe(
+              catchError(() => of([] as DropdownOption[]))
+            )
+          );
 
-      // Load options for all dropdown parameters in parallel
-      const dropdownParams = sorted.filter(p => p.parameterType === ParameterType.Dropdown && p.id);
-      if (dropdownParams.length > 0) {
-        this.loadingDropdowns = true;
-        const requests = dropdownParams.map(p =>
-          this.queryService.getDropdownOptions(queryId, p.id!).pipe(
-            catchError(() => of([] as DropdownOption[]))
-          )
-        );
-
-        forkJoin(requests).subscribe(results => {
-          dropdownParams.forEach((p, idx) => {
-            this.dropdownOptions[p.name] = results[idx];
+          forkJoin(requests).subscribe(results => {
+            dropdownParams.forEach((p, idx) => {
+              this.dropdownOptions[p.name] = results[idx];
+            });
+            this.loadingDropdowns = false;
           });
-          this.loadingDropdowns = false;
-        });
+        }
+      },
+      error: (err) => {
+        this.loadingQuery = false;
+        this.queryError = err.error?.message || 'Failed to load query. Please try again.';
       }
     });
   }

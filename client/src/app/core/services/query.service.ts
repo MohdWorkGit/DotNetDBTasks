@@ -77,6 +77,10 @@ export class QueryService {
     return this.http.get<DynamicQuery[]>(this.userUrl);
   }
 
+  getMyQueryById(id: string): Observable<DynamicQuery> {
+    return this.http.get<DynamicQuery>(`${this.userUrl}/${id}`);
+  }
+
   executeQuery(queryId: string, parameters: Record<string, string>): Observable<QueryExecutionResult> {
     return this.http.post<QueryExecutionResult>(`${this.userUrl}/${queryId}/execute`, parameters);
   }

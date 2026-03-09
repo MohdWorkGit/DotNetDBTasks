@@ -33,6 +33,16 @@ public class UserQueriesController : ControllerBase
     }
 
     /// <summary>
+    /// Retrieves a single query by its identifier, verifying the current user has access.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetMyQueryById(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetQueryForUserByIdQuery(id), cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Executes a dynamic query with provided parameters.
     /// </summary>
     [HttpPost("{id:guid}/execute")]
