@@ -297,6 +297,7 @@ export class QueryExecuteComponent implements OnInit {
           }
         });
         this.executing = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.executing = false;
@@ -304,6 +305,7 @@ export class QueryExecuteComponent implements OnInit {
           err.error?.message || 'Query execution failed',
           'Close', { duration: 5000 }
         );
+        this.cdr.detectChanges();
       }
     });
   }
