@@ -158,8 +158,8 @@ import {
   styles: [`
     .loading { display: flex; justify-content: center; padding: 40px; }
     .error-card { margin-bottom: 16px; }
-    .error-card p { color: #f44336; margin-bottom: 16px; }
-    .description { color: #666; margin-bottom: 16px; }
+    .error-card p { color: var(--status-error); margin-bottom: 16px; }
+    .description { color: var(--text-secondary); margin-bottom: 16px; }
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -170,11 +170,11 @@ import {
     .results-card { margin-top: 24px; }
     .table-wrapper { overflow-x: auto; }
     table { width: 100%; }
-    .non-query-result { display: flex; align-items: center; gap: 8px; padding: 24px 0; color: #4caf50; }
+    .non-query-result { display: flex; align-items: center; gap: 8px; padding: 24px 0; color: var(--status-success); }
     .non-query-result mat-icon { font-size: 32px; width: 32px; height: 32px; }
     .non-query-result p { font-size: 16px; margin: 0; }
     .loading-hint { margin-bottom: 16px; }
-    .loading-hint p { margin-top: 8px; font-size: 13px; color: #666; }
+    .loading-hint p { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
   `]
 })
 export class QueryExecuteComponent implements OnInit {

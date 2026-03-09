@@ -88,8 +88,8 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
       margin-bottom: 16px;
     }
     .loading { display: flex; justify-content: center; padding: 40px; }
-    .status-active { color: #4caf50; font-weight: 500; }
-    .status-inactive { color: #f44336; font-weight: 500; }
+    .status-active { color: var(--status-active); font-weight: 500; }
+    .status-inactive { color: var(--status-inactive); font-weight: 500; }
     table { width: 100%; }
   `]
 })

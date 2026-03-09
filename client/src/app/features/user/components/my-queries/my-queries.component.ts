@@ -56,7 +56,7 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
   styles: [`
     .loading { display: flex; justify-content: center; padding: 40px; }
     .error-card { margin-bottom: 16px; }
-    .error-text { color: #f44336; margin-bottom: 16px; }
+    .error-text { color: var(--status-error); margin-bottom: 16px; }
     .query-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));

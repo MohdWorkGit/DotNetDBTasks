@@ -105,7 +105,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
     .tab-content { padding-top: 24px; }
     .loading { display: flex; justify-content: center; padding: 40px; }
     .error-block { text-align: center; padding: 24px; }
-    .error-text { color: #f44336; margin-bottom: 16px; }
+    .error-text { color: var(--status-error); margin-bottom: 16px; }
   `]
 })
 export class RoleAssignmentComponent implements OnInit {

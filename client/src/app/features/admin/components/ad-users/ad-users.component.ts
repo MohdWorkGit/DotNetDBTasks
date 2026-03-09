@@ -214,10 +214,10 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
     .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
     .dept-card { cursor: pointer; }
     .dept-users { margin-top: 24px; }
-    .no-data { text-align: center; color: #666; padding: 40px; }
-    .imported { background-color: #c8e6c9 !important; }
-    .active { background-color: #c8e6c9 !important; }
-    .inactive { background-color: #ffcdd2 !important; }
+    .no-data { text-align: center; color: var(--text-secondary); padding: 40px; }
+    .imported { background-color: var(--chip-imported) !important; }
+    .active { background-color: var(--chip-active) !important; }
+    .inactive { background-color: var(--chip-inactive) !important; }
     table { margin-top: 16px; }
   `]
 })

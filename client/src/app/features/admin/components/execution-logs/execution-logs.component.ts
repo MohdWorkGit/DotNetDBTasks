@@ -101,9 +101,9 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
   styles: [`
     .loading { display: flex; justify-content: center; padding: 40px; }
     .error-block { text-align: center; padding: 24px; }
-    .error-text { color: #f44336; margin-bottom: 16px; }
-    .success { color: #4caf50; cursor: default; }
-    .error { color: #f44336; cursor: help; }
+    .error-text { color: var(--status-error); margin-bottom: 16px; }
+    .success { color: var(--status-success); cursor: default; }
+    .error { color: var(--status-error); cursor: help; }
     table { width: 100%; }
     .parameters-cell {
       max-width: 250px;
@@ -112,7 +112,7 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
       white-space: nowrap;
       display: block;
       font-size: 12px;
-      color: #555;
+      color: var(--param-cell-color);
       cursor: default;
     }
     .update-params {
@@ -126,10 +126,10 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    .old-label { color: #e57373; }
-    .new-label { color: #66bb6a; }
-    .old-values { color: #e57373; }
-    .new-values { color: #388e3c; }
+    .old-label { color: var(--old-label-color); }
+    .new-label { color: var(--new-label-color); }
+    .old-values { color: var(--old-values-color); }
+    .new-values { color: var(--new-values-color); }
   `]
 })
 export class ExecutionLogsComponent implements OnInit {
