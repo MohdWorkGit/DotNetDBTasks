@@ -13,7 +13,16 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
         <mat-spinner diameter="40"></mat-spinner>
       </div>
 
-      <div class="query-grid" *ngIf="!loading">
+      <mat-card *ngIf="!loading && errorMessage" class="error-card">
+        <mat-card-content>
+          <p class="error-text">{{ errorMessage }}</p>
+          <button mat-raised-button color="primary" (click)="loadQueries()">
+            <mat-icon>refresh</mat-icon> Retry
+          </button>
+        </mat-card-content>
+      </mat-card>
+
+      <div class="query-grid" *ngIf="!loading && !errorMessage">
         <mat-card *ngFor="let query of queries" class="query-card">
           <mat-card-header>
             <mat-card-title>{{ query.name }}</mat-card-title>
@@ -35,7 +44,7 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
         </mat-card>
       </div>
 
-      <mat-card *ngIf="!loading && queries.length === 0">
+      <mat-card *ngIf="!loading && !errorMessage && queries.length === 0">
         <mat-card-content>
           <p>No queries assigned to you yet.</p>
         </mat-card-content>
@@ -44,6 +53,8 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
   `,
   styles: [`
     .loading { display: flex; justify-content: center; padding: 40px; }
+    .error-card { margin-bottom: 16px; }
+    .error-text { color: #f44336; margin-bottom: 16px; }
     .query-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -55,13 +66,23 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
 export class MyQueriesComponent implements OnInit {
   queries: DynamicQuery[] = [];
   loading = true;
+  errorMessage = '';
 
   constructor(private queryService: QueryService) {}
 
   ngOnInit(): void {
+    this.loadQueries();
+  }
+
+  loadQueries(): void {
+    this.loading = true;
+    this.errorMessage = '';
     this.queryService.getMyQueries().subscribe({
       next: (q) => { this.queries = q; this.loading = false; },
-      error: () => this.loading = false
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err.error?.message || 'Failed to load queries. Please try again.';
+      }
     });
   }
 }

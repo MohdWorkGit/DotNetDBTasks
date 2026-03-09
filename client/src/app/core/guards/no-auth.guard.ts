@@ -1,15 +1,14 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-export const noAuthGuard: CanActivateFn = (): boolean => {
+export const noAuthGuard: CanActivateFn = (): boolean | UrlTree => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
   if (authService.getAccessToken()) {
     const destination = authService.isAdmin() ? '/admin/queries' : '/user/queries';
-    router.navigate([destination]);
-    return false;
+    return router.createUrlTree([destination]);
   }
   return true;
 };
