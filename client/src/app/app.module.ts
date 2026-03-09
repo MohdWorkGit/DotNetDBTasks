@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -12,10 +12,15 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { AppComponent } from './app.component';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { authGuard } from './core/guards/auth.guard';
-import { noAuthGuard } from './core/guards/no-auth.guard';
+import { noAuthGuard, rootRedirectGuard } from './core/guards/no-auth.guard';
 
 const routes = [
-  { path: '', canActivate: [noAuthGuard], redirectTo: '/login', pathMatch: 'full' as const },
+  {
+    path: '',
+    pathMatch: 'full' as const,
+    canActivate: [rootRedirectGuard],
+    children: []
+  },
   {
     path: 'login',
     loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule),
@@ -47,7 +52,7 @@ const routes = [
     MatSnackBarModule
   ],
   providers: [
-    provideAnimationsAsync(),
+    provideAnimations(),
     provideHttpClient(withInterceptors([jwtInterceptor]))
   ],
   bootstrap: [AppComponent]

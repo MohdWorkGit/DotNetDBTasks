@@ -1,11 +1,11 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { forkJoin, of, throwError } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
 import {
   DropdownOption,
@@ -198,7 +198,8 @@ export class QueryExecuteComponent implements OnInit {
     private fb: FormBuilder,
     private queryService: QueryService,
     private route: ActivatedRoute,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -211,7 +212,15 @@ export class QueryExecuteComponent implements OnInit {
     this.loadingQuery = true;
     this.queryError = '';
 
-    this.queryService.getMyQueryById(this.queryId).subscribe({
+    this.queryService.getMyQueryById(this.queryId).pipe(
+      timeout(30000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => ({ error: { message: 'Request timed out. Please try again.' } }));
+        }
+        return throwError(() => err);
+      })
+    ).subscribe({
       next: (query) => {
         this.query = query;
         this.loadingQuery = false;
@@ -244,12 +253,16 @@ export class QueryExecuteComponent implements OnInit {
               this.dropdownOptions[p.name] = results[idx];
             });
             this.loadingDropdowns = false;
+            this.cdr.detectChanges();
           });
         }
+
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.loadingQuery = false;
         this.queryError = err.error?.message || 'Failed to load query. Please try again.';
+        this.cdr.detectChanges();
       }
     });
   }
