@@ -75,7 +75,9 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
             <ng-container matColumnDef="isSuccess">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
               <td mat-cell *matCellDef="let log">
-                <mat-icon [class]="log.isSuccess ? 'success' : 'error'">
+                <mat-icon [class]="log.isSuccess ? 'success' : 'error'"
+                          [matTooltip]="log.isSuccess ? 'Success' : (log.errorMessage || 'Unknown error')"
+                          matTooltipClass="error-tooltip">
                   {{ log.isSuccess ? 'check_circle' : 'error' }}
                 </mat-icon>
               </td>
@@ -95,8 +97,8 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
     .loading { display: flex; justify-content: center; padding: 40px; }
     .error-block { text-align: center; padding: 24px; }
     .error-text { color: #f44336; margin-bottom: 16px; }
-    .success { color: #4caf50; }
-    .error { color: #f44336; }
+    .success { color: #4caf50; cursor: default; }
+    .error { color: #f44336; cursor: help; }
     table { width: 100%; }
     .parameters-cell {
       max-width: 250px;
