@@ -215,9 +215,9 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
     .dept-card { cursor: pointer; }
     .dept-users { margin-top: 24px; }
     .no-data { text-align: center; color: var(--text-secondary); padding: 40px; }
-    .imported { background-color: var(--chip-imported) !important; }
-    .active { background-color: var(--chip-active) !important; }
-    .inactive { background-color: var(--chip-inactive) !important; }
+    .imported { background-color: var(--chip-imported) !important; color: var(--chip-text) !important; }
+    .active { background-color: var(--chip-active) !important; color: var(--chip-text) !important; }
+    .inactive { background-color: var(--chip-inactive) !important; color: var(--chip-text) !important; }
     table { margin-top: 16px; }
   `]
 })
