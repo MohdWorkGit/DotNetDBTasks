@@ -1,63 +1,71 @@
 // ── CSS Custom Properties (Light Theme - default) ──
+// Professional Slate & Indigo palette
 :root {
   --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-surface: #fafafa;
+  --bg-secondary: #f8fafc;
+  --bg-surface: #f1f5f9;
   --bg-card: #ffffff;
 
-  --text-primary: rgba(0, 0, 0, 0.87);
-  --text-secondary: #666666;
-  --text-hint: #555555;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-hint: #64748b;
 
-  --border-color: #e0e0e0;
-  --divider-color: rgba(0, 0, 0, 0.12);
+  --border-color: #e2e8f0;
+  --divider-color: #cbd5e1;
 
-  --status-active: #4caf50;
-  --status-inactive: #f44336;
-  --status-success: #4caf50;
-  --status-error: #f44336;
+  --status-active: #059669;
+  --status-inactive: #dc2626;
+  --status-success: #059669;
+  --status-error: #dc2626;
 
-  --chip-imported: #c8e6c9;
-  --chip-active: #c8e6c9;
-  --chip-inactive: #ffcdd2;
+  --chip-imported: #d1fae5;
+  --chip-active: #d1fae5;
+  --chip-inactive: #fee2e2;
 
-  --old-label-color: #e57373;
-  --new-label-color: #66bb6a;
-  --old-values-color: #e57373;
-  --new-values-color: #388e3c;
+  --old-label-color: #dc2626;
+  --new-label-color: #059669;
+  --old-values-color: #b91c1c;
+  --new-values-color: #047857;
 
-  --param-cell-color: #555555;
+  --param-cell-color: #64748b;
+
+  --accent-primary: #4f46e5;
+  --accent-hover: #4338ca;
 }
 
 // ── Dark Theme Overrides ──
+// Deep slate navy with indigo accents
 body.dark-theme {
-  --bg-primary: #121212;
-  --bg-secondary: #1e1e1e;
-  --bg-surface: #2c2c2c;
-  --bg-card: #1e1e1e;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-surface: #334155;
+  --bg-card: #1e293b;
 
-  --text-primary: rgba(255, 255, 255, 0.87);
-  --text-secondary: #b0b0b0;
-  --text-hint: #a0a0a0;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-hint: #64748b;
 
-  --border-color: #444444;
-  --divider-color: rgba(255, 255, 255, 0.12);
+  --border-color: #334155;
+  --divider-color: #475569;
 
-  --status-active: #66bb6a;
-  --status-inactive: #ef5350;
-  --status-success: #66bb6a;
-  --status-error: #ef5350;
+  --status-active: #34d399;
+  --status-inactive: #f87171;
+  --status-success: #34d399;
+  --status-error: #f87171;
 
-  --chip-imported: #1b5e20;
-  --chip-active: #1b5e20;
-  --chip-inactive: #b71c1c;
+  --chip-imported: #064e3b;
+  --chip-active: #064e3b;
+  --chip-inactive: #7f1d1d;
 
-  --old-label-color: #ef9a9a;
-  --new-label-color: #81c784;
-  --old-values-color: #ef9a9a;
-  --new-values-color: #66bb6a;
+  --old-label-color: #fca5a5;
+  --new-label-color: #6ee7b7;
+  --old-values-color: #fca5a5;
+  --new-values-color: #34d399;
 
-  --param-cell-color: #b0b0b0;
+  --param-cell-color: #94a3b8;
+
+  --accent-primary: #818cf8;
+  --accent-hover: #6366f1;
 
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -70,8 +78,8 @@ body.dark-theme {
   }
 
   .mat-toolbar {
-    --mat-toolbar-container-background-color: #1a237e;
-    --mat-toolbar-container-text-color: #ffffff;
+    --mat-toolbar-container-background-color: #1e293b;
+    --mat-toolbar-container-text-color: #f1f5f9;
   }
 
   .mat-mdc-table {
@@ -91,6 +99,8 @@ body.dark-theme {
     --mdc-outlined-text-field-label-text-color: var(--text-secondary);
     --mdc-outlined-text-field-input-text-color: var(--text-primary);
     --mdc-outlined-text-field-hover-outline-color: var(--text-hint);
+    --mdc-outlined-text-field-focus-outline-color: var(--accent-primary);
+    --mdc-outlined-text-field-focus-label-text-color: var(--accent-primary);
   }
 
   .mat-mdc-select {
@@ -100,8 +110,8 @@ body.dark-theme {
 
   .mat-mdc-option {
     --mat-option-label-text-color: var(--text-primary);
-    --mat-option-hover-state-layer-color: rgba(255, 255, 255, 0.08);
-    --mat-option-selected-state-layer-color: rgba(255, 255, 255, 0.12);
+    --mat-option-hover-state-layer-color: rgba(255, 255, 255, 0.06);
+    --mat-option-selected-state-layer-color: rgba(129, 140, 248, 0.12);
   }
 
   .mat-mdc-dialog-container {
@@ -115,14 +125,14 @@ body.dark-theme {
 
   .mat-mdc-tab-group,
   .mat-mdc-tab-header {
-    --mdc-tab-indicator-active-indicator-color: #90caf9;
-    --mat-tab-header-active-label-text-color: #90caf9;
+    --mdc-tab-indicator-active-indicator-color: var(--accent-primary);
+    --mat-tab-header-active-label-text-color: var(--accent-primary);
     --mat-tab-header-inactive-label-text-color: var(--text-secondary);
   }
 
   .mat-mdc-slide-toggle {
-    --mdc-switch-selected-track-color: #5c6bc0;
-    --mdc-switch-selected-handle-color: #7986cb;
+    --mdc-switch-selected-track-color: #6366f1;
+    --mdc-switch-selected-handle-color: #818cf8;
   }
 
   .mat-mdc-chip {
@@ -131,11 +141,11 @@ body.dark-theme {
   }
 
   .mat-mdc-progress-spinner {
-    --mdc-circular-progress-active-indicator-color: #90caf9;
+    --mdc-circular-progress-active-indicator-color: var(--accent-primary);
   }
 
   .mat-mdc-progress-bar {
-    --mdc-linear-progress-active-indicator-color: #90caf9;
+    --mdc-linear-progress-active-indicator-color: var(--accent-primary);
   }
 
   .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__leading,
@@ -145,12 +155,12 @@ body.dark-theme {
   }
 
   .mat-mdc-icon-button {
-    --mat-icon-button-state-layer-color: rgba(255, 255, 255, 0.08);
+    --mat-icon-button-state-layer-color: rgba(255, 255, 255, 0.06);
     color: var(--text-secondary);
   }
 
   .mat-mdc-raised-button.mat-primary {
-    --mdc-protected-button-container-color: #3f51b5;
+    --mdc-protected-button-container-color: #4f46e5;
     --mdc-protected-button-label-text-color: #ffffff;
   }
 
@@ -169,21 +179,24 @@ body.dark-theme {
   }
 
   .mat-mdc-tooltip {
-    --mdc-plain-tooltip-container-color: #424242;
-    --mdc-plain-tooltip-supporting-text-color: #ffffff;
+    --mdc-plain-tooltip-container-color: #334155;
+    --mdc-plain-tooltip-supporting-text-color: #f1f5f9;
   }
 
   .mat-mdc-snack-bar-container .mdc-snackbar__surface {
-    background-color: #333333;
-    color: #ffffff;
+    background-color: #1e293b;
+    color: #f1f5f9;
   }
 
   .mat-mdc-checkbox {
     --mdc-checkbox-unselected-icon-color: var(--text-secondary);
+    --mdc-checkbox-selected-icon-color: var(--accent-primary);
+    --mdc-checkbox-selected-container-color: var(--accent-primary);
   }
 
   .mat-mdc-radio-button {
     --mdc-radio-unselected-icon-color: var(--text-secondary);
+    --mdc-radio-selected-icon-color: var(--accent-primary);
   }
 }
 
@@ -191,10 +204,16 @@ body.dark-theme {
 html, body {
   height: 100%;
   margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-family: Inter, Roboto, "Helvetica Neue", sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// ── Light Theme Toolbar ──
+.mat-toolbar.mat-primary {
+  --mat-toolbar-container-background-color: #4f46e5;
+  --mat-toolbar-container-text-color: #ffffff;
 }
 
 .container {
@@ -225,9 +244,13 @@ html, body {
 
 // ── Error Tooltip ──
 .error-tooltip .mdc-tooltip__surface {
-  background-color: #d32f2f;
+  background-color: #dc2626;
   color: #fff;
   font-size: 13px;
   max-width: 400px;
   white-space: pre-wrap;
+}
+
+body.dark-theme .error-tooltip .mdc-tooltip__surface {
+  background-color: #991b1b;
 }
