@@ -77,7 +77,20 @@ body.dark-theme {
   .mat-mdc-card {
     --mdc-elevated-card-container-color: var(--bg-card);
     --mdc-outlined-card-container-color: var(--bg-card);
+    --mat-card-title-text-color: var(--text-primary);
     --mat-card-subtitle-text-color: var(--text-secondary);
+    color: var(--text-primary);
+
+    .mat-mdc-card-content,
+    .mat-mdc-card-content p {
+      color: var(--text-primary);
+    }
+
+    .mat-mdc-card-actions {
+      button {
+        color: var(--text-primary);
+      }
+    }
   }
 
   .mat-toolbar {
@@ -90,6 +103,31 @@ body.dark-theme {
     --mat-table-header-headline-color: var(--text-primary);
     --mat-table-row-item-label-text-color: var(--text-primary);
     --mat-table-row-item-outline-color: var(--border-color);
+    --mat-table-row-item-outline-width: 1px;
+
+    .mat-mdc-header-row {
+      border-bottom-color: var(--border-color);
+    }
+
+    .mat-mdc-row {
+      border-bottom-color: var(--border-color);
+    }
+
+    th.mat-mdc-header-cell,
+    td.mat-mdc-cell,
+    td.mat-mdc-footer-cell {
+      border-bottom-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    th.mat-mdc-header-cell {
+      color: var(--text-primary);
+      background-color: var(--bg-surface);
+    }
+
+    .mat-sort-header-arrow {
+      color: var(--text-secondary);
+    }
   }
 
   .mat-mdc-paginator {
@@ -149,6 +187,11 @@ body.dark-theme {
     --mdc-chip-label-text-color: var(--text-primary);
   }
 
+  .mat-datepicker-content {
+    --mat-datepicker-calendar-container-background-color: var(--bg-card);
+    --mat-datepicker-calendar-container-text-color: var(--text-primary);
+  }
+
   .mat-mdc-progress-spinner {
     --mdc-circular-progress-active-indicator-color: var(--accent-primary);
   }
@@ -176,6 +219,8 @@ body.dark-theme {
   .mat-mdc-outlined-button,
   .mat-mdc-button {
     --mdc-text-button-label-text-color: var(--text-secondary);
+    --mdc-outlined-button-label-text-color: var(--text-secondary);
+    --mdc-outlined-button-outline-color: var(--border-color);
   }
 
   input:-webkit-autofill {
