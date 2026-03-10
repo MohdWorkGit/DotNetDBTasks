@@ -57,10 +57,11 @@ import { AuthService } from '@core/services/auth.service';
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background: #f5f5f5;
+      background: var(--bg-secondary);
     }
     .login-card {
       width: 400px;
+      max-width: calc(100vw - 32px);
       padding: 24px;
     }
     mat-form-field {

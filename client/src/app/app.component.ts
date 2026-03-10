@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { AuthService } from './core/services/auth.service';
+import { ThemeService } from './core/services/theme.service';
 
 @Component({
   standalone: false,
@@ -26,6 +27,11 @@ import { AuthService } from './core/services/auth.service';
         <mat-icon>receipt_long</mat-icon> Logs
       </button>
 
+      <button mat-icon-button (click)="themeService.toggle()"
+              [matTooltip]="(themeService.isDarkMode$ | async) ? 'Switch to light mode' : 'Switch to dark mode'">
+        <mat-icon>{{ (themeService.isDarkMode$ | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+
       <button mat-icon-button [matMenuTriggerFor]="userMenu">
         <mat-icon>account_circle</mat-icon>
       </button>
@@ -37,13 +43,31 @@ import { AuthService } from './core/services/auth.service';
       </mat-menu>
     </mat-toolbar>
 
+    <!-- Theme toggle for login page (when not authenticated) -->
+    <button *ngIf="!(authService.isAuthenticated$ | async)"
+            mat-icon-button class="login-theme-toggle"
+            (click)="themeService.toggle()"
+            [matTooltip]="(themeService.isDarkMode$ | async) ? 'Switch to light mode' : 'Switch to dark mode'">
+      <mat-icon>{{ (themeService.isDarkMode$ | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
+    </button>
+
     <router-outlet></router-outlet>
   `,
   styles: [`
     .spacer { flex: 1 1 auto; }
     mat-toolbar button { margin: 0 4px; }
+    .login-theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 100;
+      color: var(--text-secondary);
+    }
   `]
 })
 export class AppComponent {
-  constructor(public authService: AuthService) {}
+  constructor(
+    public authService: AuthService,
+    public themeService: ThemeService
+  ) {}
 }

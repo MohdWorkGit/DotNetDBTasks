@@ -184,13 +184,13 @@ import { DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from 
     .dropdown-config {
       margin-top: 12px;
       padding: 12px;
-      border-top: 1px solid #e0e0e0;
-      background: #fafafa;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-surface);
       border-radius: 4px;
     }
-    .dropdown-config h4 { margin: 0 0 8px; font-size: 14px; color: #555; }
+    .dropdown-config h4 { margin: 0 0 8px; font-size: 14px; color: var(--text-hint); }
     .source-radio-group { display: flex; gap: 24px; margin-bottom: 16px; }
-    .hint { font-size: 12px; color: #666; margin-bottom: 8px; }
+    .hint { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
 
     .static-values-editor { margin-top: 8px; }
     .static-option-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
