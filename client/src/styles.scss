@@ -29,6 +29,8 @@
 
   --param-cell-color: #64748b;
 
+  --chip-text: #1e293b;
+
   --accent-primary: #4f46e5;
   --accent-hover: #4338ca;
 }
@@ -56,6 +58,7 @@ body.dark-theme {
   --chip-imported: #064e3b;
   --chip-active: #064e3b;
   --chip-inactive: #7f1d1d;
+  --chip-text: #f1f5f9;
 
   --old-label-color: #fca5a5;
   --new-label-color: #6ee7b7;
@@ -78,8 +81,8 @@ body.dark-theme {
   }
 
   .mat-toolbar {
-    --mat-toolbar-container-background-color: #1e293b;
-    --mat-toolbar-container-text-color: #f1f5f9;
+    --mat-toolbar-container-background-color: var(--bg-secondary);
+    --mat-toolbar-container-text-color: var(--text-primary);
   }
 
   .mat-mdc-table {
@@ -92,6 +95,8 @@ body.dark-theme {
   .mat-mdc-paginator {
     --mat-paginator-container-background-color: var(--bg-card);
     --mat-paginator-container-text-color: var(--text-secondary);
+    --mat-paginator-enabled-icon-color: var(--text-secondary);
+    --mat-paginator-disabled-icon-color: var(--text-hint);
   }
 
   .mat-mdc-form-field {
@@ -106,6 +111,7 @@ body.dark-theme {
   .mat-mdc-select {
     --mat-select-trigger-text-color: var(--text-primary);
     --mat-select-panel-background-color: var(--bg-surface);
+    --mat-select-enabled-arrow-color: var(--text-secondary);
   }
 
   .mat-mdc-option {
@@ -116,11 +122,14 @@ body.dark-theme {
 
   .mat-mdc-dialog-container {
     --mdc-dialog-container-color: var(--bg-card);
+    --mdc-dialog-subhead-color: var(--text-primary);
+    --mdc-dialog-supporting-text-color: var(--text-secondary);
   }
 
   .mat-mdc-menu-panel {
     --mat-menu-container-color: var(--bg-surface);
     --mat-menu-item-label-text-color: var(--text-primary);
+    --mat-menu-item-icon-color: var(--text-secondary);
   }
 
   .mat-mdc-tab-group,
@@ -131,8 +140,8 @@ body.dark-theme {
   }
 
   .mat-mdc-slide-toggle {
-    --mdc-switch-selected-track-color: #6366f1;
-    --mdc-switch-selected-handle-color: #818cf8;
+    --mdc-switch-selected-track-color: var(--accent-hover);
+    --mdc-switch-selected-handle-color: var(--accent-primary);
   }
 
   .mat-mdc-chip {
@@ -160,7 +169,7 @@ body.dark-theme {
   }
 
   .mat-mdc-raised-button.mat-primary {
-    --mdc-protected-button-container-color: #4f46e5;
+    --mdc-protected-button-container-color: var(--accent-primary);
     --mdc-protected-button-label-text-color: #ffffff;
   }
 
@@ -174,18 +183,22 @@ body.dark-theme {
     -webkit-text-fill-color: var(--text-primary) !important;
   }
 
-  h2, h3, h4 {
+  h1, h2, h3, h4, h5, h6 {
     color: var(--text-primary);
   }
 
+  p, span, label, a {
+    color: inherit;
+  }
+
   .mat-mdc-tooltip {
-    --mdc-plain-tooltip-container-color: #334155;
-    --mdc-plain-tooltip-supporting-text-color: #f1f5f9;
+    --mdc-plain-tooltip-container-color: var(--bg-surface);
+    --mdc-plain-tooltip-supporting-text-color: var(--text-primary);
   }
 
   .mat-mdc-snack-bar-container .mdc-snackbar__surface {
-    background-color: #1e293b;
-    color: #f1f5f9;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
   .mat-mdc-checkbox {
@@ -198,11 +211,22 @@ body.dark-theme {
     --mdc-radio-unselected-icon-color: var(--text-secondary);
     --mdc-radio-selected-icon-color: var(--accent-primary);
   }
+
+  // Ensure toolbar buttons get correct text color
+  .mat-toolbar {
+    button, a {
+      color: var(--text-primary);
+    }
+    .mat-mdc-icon-button {
+      color: var(--text-primary);
+    }
+  }
 }
 
 // ── Base Styles ──
 html, body {
   height: 100%;
+  min-height: 100%;
   margin: 0;
   font-family: Inter, Roboto, "Helvetica Neue", sans-serif;
   background-color: var(--bg-primary);
@@ -210,9 +234,17 @@ html, body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+// Ensure html element also gets dark background to prevent scroll bounce
+// showing the light theme color behind the body
+html.dark-theme {
+  --bg-primary: #0f172a;
+  background-color: var(--bg-primary);
+  color-scheme: dark;
+}
+
 // ── Light Theme Toolbar ──
 .mat-toolbar.mat-primary {
-  --mat-toolbar-container-background-color: #4f46e5;
+  --mat-toolbar-container-background-color: var(--accent-primary);
   --mat-toolbar-container-text-color: #ffffff;
 }
 
@@ -244,13 +276,9 @@ html, body {
 
 // ── Error Tooltip ──
 .error-tooltip .mdc-tooltip__surface {
-  background-color: #dc2626;
+  background-color: var(--status-error);
   color: #fff;
   font-size: 13px;
   max-width: 400px;
   white-space: pre-wrap;
-}
-
-body.dark-theme .error-tooltip .mdc-tooltip__surface {
-  background-color: #991b1b;
 }

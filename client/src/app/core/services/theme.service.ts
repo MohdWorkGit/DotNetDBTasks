@@ -33,5 +33,6 @@ export class ThemeService {
 
   private applyTheme(dark: boolean): void {
     document.body.classList.toggle('dark-theme', dark);
+    document.documentElement.classList.toggle('dark-theme', dark);
   }
 }
