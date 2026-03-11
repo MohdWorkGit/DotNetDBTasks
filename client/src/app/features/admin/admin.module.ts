@@ -26,6 +26,8 @@ import { QueryFormComponent } from './components/query-form/query-form.component
 import { RoleAssignmentComponent } from './components/role-assignment/role-assignment.component';
 import { ExecutionLogsComponent } from './components/execution-logs/execution-logs.component';
 import { AdUsersComponent } from './components/ad-users/ad-users.component';
+import { UserManagementComponent } from './components/user-management/user-management.component';
+import { MatMenuModule } from '@angular/material/menu';
 
 @NgModule({
   declarations: [
@@ -33,7 +35,8 @@ import { AdUsersComponent } from './components/ad-users/ad-users.component';
     QueryFormComponent,
     RoleAssignmentComponent,
     ExecutionLogsComponent,
-    AdUsersComponent
+    AdUsersComponent,
+    UserManagementComponent
   ],
   imports: [
     CommonModule,
@@ -57,6 +60,7 @@ import { AdUsersComponent } from './components/ad-users/ad-users.component';
     MatTabsModule,
     MatCheckboxModule,
     MatRadioModule,
+    MatMenuModule,
     RouterModule.forChild([
       { path: 'queries', component: QueryListComponent },
       { path: 'queries/create', component: QueryFormComponent },
@@ -64,6 +68,7 @@ import { AdUsersComponent } from './components/ad-users/ad-users.component';
       { path: 'queries/:id/roles', component: RoleAssignmentComponent },
       { path: 'logs', component: ExecutionLogsComponent },
       { path: 'ad-users', component: AdUsersComponent },
+      { path: 'users', component: UserManagementComponent },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])
   ]

@@ -136,3 +136,47 @@ export interface ImportedLdapUser {
   isActive: boolean;
   createdAt: string;
 }
+
+export interface SystemUser {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+  authSource: string;
+  department?: string;
+  createdAt: string;
+  updatedAt?: string;
+  roles: string[];
+}
+
+export interface CreateUserRequest {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  department?: string;
+  roleIds: string[];
+}
+
+export interface ChangeUsernameRequest {
+  newUsername: string;
+}
+
+export interface ChangePasswordRequest {
+  newPassword: string;
+}
+
+export interface ChangeUserRolesRequest {
+  roleIds: string[];
+}
+
+export interface ToggleUserActiveRequest {
+  isActive: boolean;
+}
+
+export interface ResetPasswordResult {
+  temporaryPassword: string;
+}

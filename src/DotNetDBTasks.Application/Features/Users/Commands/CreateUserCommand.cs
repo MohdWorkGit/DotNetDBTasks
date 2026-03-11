@@ -1,0 +1,108 @@
+using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Features.Users.Queries;
+using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Enums;
+using DotNetDBTasks.Domain.Interfaces;
+using FluentValidation;
+using MediatR;
+
+namespace DotNetDBTasks.Application.Features.Users.Commands;
+
+public class CreateUserCommand : IRequest<UserDto>
+{
+    public string Username { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? Department { get; set; }
+    public List<Guid> RoleIds { get; set; } = new();
+}
+
+public class CreateUserValidator : AbstractValidator<CreateUserCommand>
+{
+    public CreateUserValidator()
+    {
+        RuleFor(x => x.Username).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(200);
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(6).MaximumLength(100);
+        RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.RoleIds).NotEmpty().WithMessage("At least one role is required.");
+    }
+}
+
+public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserDto>
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IPasswordHasher _passwordHasher;
+
+    public CreateUserCommandHandler(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
+    {
+        _unitOfWork = unitOfWork;
+        _passwordHasher = passwordHasher;
+    }
+
+    public async Task<UserDto> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    {
+        var exists = await _unitOfWork.Users.ExistsAsync(
+            u => u.Username == request.Username, cancellationToken);
+        if (exists)
+            throw new InvalidOperationException($"Username '{request.Username}' is already taken.");
+
+        var emailExists = await _unitOfWork.Users.ExistsAsync(
+            u => u.Email == request.Email, cancellationToken);
+        if (emailExists)
+            throw new InvalidOperationException($"Email '{request.Email}' is already in use.");
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = request.Username,
+            Email = request.Email,
+            PasswordHash = _passwordHasher.HashPassword(request.Password),
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Department = request.Department,
+            AuthSource = AuthSource.Local,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _unitOfWork.Users.AddAsync(user, cancellationToken);
+
+        var allRoles = await _unitOfWork.Roles.GetAllAsync(cancellationToken);
+        var roleMap = allRoles.ToDictionary(r => r.Id, r => r.Name);
+        var roleNames = new List<string>();
+
+        foreach (var roleId in request.RoleIds)
+        {
+            if (!roleMap.ContainsKey(roleId))
+                throw new InvalidOperationException($"Role with ID '{roleId}' does not exist.");
+
+            await _unitOfWork.UserRoles.AddAsync(new UserRole
+            {
+                UserId = user.Id,
+                RoleId = roleId
+            }, cancellationToken);
+
+            roleNames.Add(roleMap[roleId]);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new UserDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            IsActive = user.IsActive,
+            AuthSource = user.AuthSource.ToString(),
+            Department = user.Department,
+            CreatedAt = user.CreatedAt,
+            Roles = roleNames
+        };
+    }
+}
