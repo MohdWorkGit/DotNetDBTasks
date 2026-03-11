@@ -74,6 +74,14 @@ export class AuthService {
     return this.getUserRoles().includes('Admin');
   }
 
+  isAuditor(): boolean {
+    return this.getUserRoles().includes('Auditor');
+  }
+
+  isAdminOrAuditor(): boolean {
+    return this.isAdmin() || this.isAuditor();
+  }
+
   private storeTokens(result: AuthResult): void {
     localStorage.setItem(this.TOKEN_KEY, result.accessToken);
     localStorage.setItem(this.REFRESH_KEY, result.refreshToken);
