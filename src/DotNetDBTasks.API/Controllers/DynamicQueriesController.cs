@@ -9,10 +9,11 @@ namespace DotNetDBTasks.API.Controllers;
 
 /// <summary>
 /// Admin endpoints for managing dynamic queries.
+/// Auditors have read access and can manage query accessibility (roles/departments/users assignments and logs).
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Auditor")]
 public class DynamicQueriesController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -43,9 +44,10 @@ public class DynamicQueriesController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new dynamic query with parameters.
+    /// Creates a new dynamic query with parameters. Requires Admin role.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(
         [FromBody] CreateDynamicQueryCommand command,
         CancellationToken cancellationToken)
@@ -55,9 +57,10 @@ public class DynamicQueriesController : ControllerBase
     }
 
     /// <summary>
-    /// Updates an existing dynamic query.
+    /// Updates an existing dynamic query. Requires Admin role.
     /// </summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateDynamicQueryCommand command,
@@ -69,9 +72,10 @@ public class DynamicQueriesController : ControllerBase
     }
 
     /// <summary>
-    /// Deletes a dynamic query.
+    /// Deletes a dynamic query. Requires Admin role.
     /// </summary>
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteDynamicQueryCommand(id), cancellationToken);
