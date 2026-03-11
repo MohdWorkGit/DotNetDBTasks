@@ -77,8 +77,8 @@ services:
     restart: unless-stopped
     labels:
       - homepage.group=Manage
-      - homepage.name=immich
-      - homepage.icon=immich.png
+      - homepage.name=DBtasks
+      - homepage.icon=oracle.png
       - homepage.href=https://dbtasks.alharthy.uk/
       - homepage.description=Manage DB queries
 
