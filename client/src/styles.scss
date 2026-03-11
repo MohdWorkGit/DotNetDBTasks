@@ -270,6 +270,121 @@ body.dark-theme {
       color: var(--text-primary);
     }
   }
+
+  // ── Padded layout elements dark theme alignment ──
+
+  // Main page container
+  .container {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  // Loading spinner areas
+  .loading {
+    background-color: transparent;
+    color: var(--text-secondary);
+  }
+
+  // Error blocks
+  .error-block {
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+
+  // Tab content areas
+  .tab-content {
+    background-color: transparent;
+    color: var(--text-primary);
+  }
+
+  // Nested parameter cards (query-form)
+  .param-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+
+  // Dropdown config sections
+  .dropdown-config {
+    background-color: var(--bg-surface);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+  }
+
+  // Login container
+  .login-container {
+    background-color: var(--bg-secondary);
+  }
+
+  // Query grid cards
+  .query-grid .query-card {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+  }
+
+  // Form actions areas
+  .actions {
+    color: var(--text-primary);
+  }
+
+  // Table wrappers with overflow
+  .table-wrapper {
+    background-color: var(--bg-card);
+  }
+
+  // Results cards
+  .results-card {
+    background-color: var(--bg-card);
+  }
+
+  // No data messages
+  .no-data {
+    color: var(--text-secondary);
+  }
+
+  // Non-query result success message
+  .non-query-result {
+    color: var(--status-success);
+  }
+
+  // Department grid cards
+  .dept-grid .dept-card {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+  }
+
+  // Department users section
+  .dept-users {
+    color: var(--text-primary);
+  }
+
+  // Form grid areas
+  .form-grid {
+    color: var(--text-primary);
+  }
+
+  // Toggle fields
+  .toggle-field {
+    color: var(--text-primary);
+  }
+
+  // Error card padding areas
+  .error-card {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+  }
+
+  // Description text
+  .description {
+    color: var(--text-secondary);
+  }
+
+  // Loading hint areas
+  .loading-hint {
+    color: var(--text-secondary);
+  }
 }
 
 // ── Base Styles ──
