@@ -79,16 +79,16 @@ body.dark-theme {
     --mdc-outlined-card-container-color: var(--bg-card);
     --mat-card-title-text-color: var(--text-primary);
     --mat-card-subtitle-text-color: var(--text-secondary);
-    color: var(--text-primary);
+    color: #000000;
 
     .mat-mdc-card-content,
     .mat-mdc-card-content p {
-      color: var(--text-primary);
+      color: #000000;
     }
 
     .mat-mdc-card-actions {
       button {
-        color: var(--text-primary);
+        color: #000000;
       }
     }
   }
