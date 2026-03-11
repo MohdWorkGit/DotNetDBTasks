@@ -6,14 +6,21 @@ import {
   AssignDepartmentsRequest,
   AssignRolesRequest,
   AssignUsersRequest,
+  ChangePasswordRequest,
+  ChangeUsernameRequest,
+  ChangeUserRolesRequest,
   CreateDynamicQueryRequest,
+  CreateUserRequest,
   DropdownOption,
   DynamicQuery,
   ExecutionLog,
   ImportedLdapUser,
   LdapUser,
   QueryExecutionResult,
+  ResetPasswordResult,
   Role,
+  SystemUser,
+  ToggleUserActiveRequest,
   UpdateDynamicQueryRequest
 } from '../models/dynamic-query.model';
 
@@ -122,5 +129,40 @@ export class QueryService {
 
   revokeLdapUser(username: string): Observable<void> {
     return this.http.post<void>(`${this.ldapUrl}/revoke/${encodeURIComponent(username)}`, {});
+  }
+
+  // User management operations (Admin)
+  private usersUrl = `${environment.apiUrl}/admin/users`;
+
+  getAllUsers(): Observable<SystemUser[]> {
+    return this.http.get<SystemUser[]>(this.usersUrl);
+  }
+
+  getUserById(id: string): Observable<SystemUser> {
+    return this.http.get<SystemUser>(`${this.usersUrl}/${id}`);
+  }
+
+  createUser(request: CreateUserRequest): Observable<SystemUser> {
+    return this.http.post<SystemUser>(this.usersUrl, request);
+  }
+
+  changeUsername(userId: string, request: ChangeUsernameRequest): Observable<void> {
+    return this.http.put<void>(`${this.usersUrl}/${userId}/username`, request);
+  }
+
+  changePassword(userId: string, request: ChangePasswordRequest): Observable<void> {
+    return this.http.put<void>(`${this.usersUrl}/${userId}/password`, request);
+  }
+
+  resetPassword(userId: string): Observable<ResetPasswordResult> {
+    return this.http.post<ResetPasswordResult>(`${this.usersUrl}/${userId}/reset-password`, {});
+  }
+
+  changeUserRoles(userId: string, request: ChangeUserRolesRequest): Observable<void> {
+    return this.http.put<void>(`${this.usersUrl}/${userId}/roles`, request);
+  }
+
+  toggleUserActive(userId: string, request: ToggleUserActiveRequest): Observable<void> {
+    return this.http.put<void>(`${this.usersUrl}/${userId}/active`, request);
   }
 }
