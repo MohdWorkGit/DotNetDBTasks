@@ -70,7 +70,15 @@ public static class DatabaseSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
-            context.Roles.AddRange(adminRole, userRole);
+            var auditorRole = new Role
+            {
+                Id = Guid.NewGuid(),
+                Name = "Auditor",
+                Description = "Auditor with access to execution logs and query accessibility management",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            context.Roles.AddRange(adminRole, userRole, auditorRole);
 
             // Seed Admin User (password: Admin@123)
             var adminUser = new User
@@ -98,12 +106,26 @@ public static class DatabaseSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
-            context.Users.AddRange(adminUser, regularUser);
+            // Seed Auditor User (password: Auditor@123)
+            var auditorUser = new User
+            {
+                Id = Guid.NewGuid(),
+                Username = "auditor",
+                Email = "auditor@dotnetdbtasks.com",
+                PasswordHash = passwordHasher.HashPassword("Auditor@123"),
+                FirstName = "System",
+                LastName = "Auditor",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            context.Users.AddRange(adminUser, regularUser, auditorUser);
 
             // Assign Roles
             context.UserRoles.AddRange(
                 new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id },
-                new UserRole { UserId = regularUser.Id, RoleId = userRole.Id }
+                new UserRole { UserId = regularUser.Id, RoleId = userRole.Id },
+                new UserRole { UserId = auditorUser.Id, RoleId = auditorRole.Id }
             );
 
             // Seed Example Dynamic Query
