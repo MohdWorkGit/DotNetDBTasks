@@ -9,7 +9,7 @@ namespace DotNetDBTasks.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Auditor")]
 public class RolesController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;

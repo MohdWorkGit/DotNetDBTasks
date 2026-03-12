@@ -20,7 +20,7 @@ import { ThemeService } from './core/services/theme.service';
       <button mat-button routerLink="/admin/queries" *ngIf="authService.isAdminOrAuditor()">
         <mat-icon>dashboard</mat-icon> Manage Queries
       </button>
-      <button mat-button routerLink="/admin/users" *ngIf="authService.isAdmin()">
+      <button mat-button routerLink="/admin/users" *ngIf="authService.isAdminOrAuditor()">
         <mat-icon>people</mat-icon> Users
       </button>
       <button mat-button routerLink="/admin/ad-users" *ngIf="authService.isAdmin()">
