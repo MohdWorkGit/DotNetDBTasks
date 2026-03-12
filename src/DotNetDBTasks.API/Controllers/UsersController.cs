@@ -8,10 +8,11 @@ namespace DotNetDBTasks.API.Controllers;
 
 /// <summary>
 /// Admin endpoints for managing system users.
+/// Auditors have full user management access.
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Auditor")]
 public class UsersController : ControllerBase
 {
     private readonly IMediator _mediator;
