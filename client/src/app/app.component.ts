@@ -17,7 +17,7 @@ import { ThemeService } from './core/services/theme.service';
         <mat-icon>history</mat-icon> History
       </button>
 
-      <button mat-button routerLink="/admin/queries" *ngIf="authService.isAdmin()">
+      <button mat-button routerLink="/admin/queries" *ngIf="authService.isAdminOrAuditor()">
         <mat-icon>dashboard</mat-icon> Manage Queries
       </button>
       <button mat-button routerLink="/admin/users" *ngIf="authService.isAdmin()">
@@ -26,7 +26,7 @@ import { ThemeService } from './core/services/theme.service';
       <button mat-button routerLink="/admin/ad-users" *ngIf="authService.isAdmin()">
         <mat-icon>group</mat-icon> AD Users
       </button>
-      <button mat-button routerLink="/admin/logs" *ngIf="authService.isAdmin()">
+      <button mat-button routerLink="/admin/logs" *ngIf="authService.isAdminOrAuditor()">
         <mat-icon>receipt_long</mat-icon> Logs
       </button>
 

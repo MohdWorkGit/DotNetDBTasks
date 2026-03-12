@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
+import { AuthService } from '@core/services/auth.service';
 import { DynamicQuery } from '@core/models/dynamic-query.model';
 
 @Component({
@@ -16,7 +17,8 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
     <div class="container">
       <div class="header">
         <h2>Dynamic Queries</h2>
-        <button mat-raised-button color="primary" routerLink="/admin/queries/create">
+        <button mat-raised-button color="primary" routerLink="/admin/queries/create"
+                *ngIf="authService.isAdmin()">
           <mat-icon>add</mat-icon> Create Query
         </button>
       </div>
@@ -56,7 +58,8 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let q">
                 <button mat-icon-button matTooltip="Edit"
-                        [routerLink]="['/admin/queries/edit', q.id]">
+                        [routerLink]="['/admin/queries/edit', q.id]"
+                        *ngIf="authService.isAdmin()">
                   <mat-icon>edit</mat-icon>
                 </button>
                 <button mat-icon-button matTooltip="Manage Access"
@@ -64,7 +67,8 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
                   <mat-icon>security</mat-icon>
                 </button>
                 <button mat-icon-button matTooltip="Delete" color="warn"
-                        (click)="deleteQuery(q.id, q.name)">
+                        (click)="deleteQuery(q.id, q.name)"
+                        *ngIf="authService.isAdmin()">
                   <mat-icon>delete</mat-icon>
                 </button>
               </td>
@@ -103,6 +107,7 @@ export class QueryListComponent implements OnInit {
 
   constructor(
     private queryService: QueryService,
+    public authService: AuthService,
     private snackBar: MatSnackBar,
     private router: Router,
     private cdr: ChangeDetectorRef
