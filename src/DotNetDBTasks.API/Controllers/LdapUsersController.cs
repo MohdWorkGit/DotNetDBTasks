@@ -13,7 +13,7 @@ namespace DotNetDBTasks.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/ldap")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Auditor")]
 public class LdapUsersController : ControllerBase
 {
     private readonly ILdapService _ldapService;
@@ -29,6 +29,7 @@ public class LdapUsersController : ControllerBase
     /// Searches LDAP directory for users matching the given term.
     /// </summary>
     [HttpGet("search")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> SearchUsers([FromQuery] string term)
     {
         if (string.IsNullOrWhiteSpace(term) || term.Length < 2)
@@ -69,6 +70,7 @@ public class LdapUsersController : ControllerBase
     /// Returns all LDAP users in a given department, with import status.
     /// </summary>
     [HttpGet("departments/{department}/users")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetDepartmentUsers(string department)
     {
         var ldapUsers = await _ldapService.GetUsersByDepartmentAsync(department);
@@ -96,6 +98,7 @@ public class LdapUsersController : ControllerBase
     /// Creates local user records with AuthSource=Ldap and assigns the User role.
     /// </summary>
     [HttpPost("import/users")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ImportUsers([FromBody] ImportUsersRequest request)
     {
         if (request.Usernames == null || request.Usernames.Count == 0)
@@ -152,6 +155,7 @@ public class LdapUsersController : ControllerBase
     /// Imports all LDAP users from a specific department.
     /// </summary>
     [HttpPost("import/department")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ImportDepartment([FromBody] ImportDepartmentRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Department))
@@ -208,6 +212,7 @@ public class LdapUsersController : ControllerBase
     /// Revokes access for an LDAP user by deactivating their local account.
     /// </summary>
     [HttpPost("revoke/{username}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> RevokeAccess(string username)
     {
         var users = await _unitOfWork.Users.FindAsync(
