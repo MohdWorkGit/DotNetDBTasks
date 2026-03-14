@@ -28,7 +28,6 @@ import { ExecutionLogsComponent } from './components/execution-logs/execution-lo
 import { AdUsersComponent } from './components/ad-users/ad-users.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
 import { MatMenuModule } from '@angular/material/menu';
-import { authGuard } from '@core/guards/auth.guard';
 
 @NgModule({
   declarations: [
@@ -64,11 +63,11 @@ import { authGuard } from '@core/guards/auth.guard';
     MatMenuModule,
     RouterModule.forChild([
       { path: 'queries', component: QueryListComponent },
-      { path: 'queries/create', component: QueryFormComponent, canActivate: [authGuard], data: { roles: ['Admin'] } },
-      { path: 'queries/edit/:id', component: QueryFormComponent, canActivate: [authGuard], data: { roles: ['Admin'] } },
+      { path: 'queries/create', component: QueryFormComponent },
+      { path: 'queries/edit/:id', component: QueryFormComponent },
       { path: 'queries/:id/roles', component: RoleAssignmentComponent },
       { path: 'logs', component: ExecutionLogsComponent },
-      { path: 'ad-users', component: AdUsersComponent, canActivate: [authGuard], data: { roles: ['Admin'] } },
+      { path: 'ad-users', component: AdUsersComponent },
       { path: 'users', component: UserManagementComponent },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])

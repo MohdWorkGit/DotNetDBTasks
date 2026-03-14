@@ -7,7 +7,6 @@ import { MatSort } from '@angular/material/sort';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
-import { AuthService } from '@core/services/auth.service';
 import { SystemUser, Role } from '@core/models/dynamic-query.model';
 
 @Component({
@@ -17,8 +16,7 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
     <div class="container">
       <div class="header">
         <h2>User Management</h2>
-        <button mat-raised-button color="primary" (click)="showCreateForm = true"
-                *ngIf="!showCreateForm && authService.isAdmin()">
+        <button mat-raised-button color="primary" (click)="showCreateForm = true" *ngIf="!showCreateForm">
           <mat-icon>person_add</mat-icon> Create User
         </button>
       </div>
@@ -150,8 +148,7 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Actions</th>
             <td mat-cell *matCellDef="let user">
-              <button mat-icon-button [matMenuTriggerFor]="actionMenu" matTooltip="Actions"
-                      *ngIf="authService.isAdmin()">
+              <button mat-icon-button [matMenuTriggerFor]="actionMenu" matTooltip="Actions">
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #actionMenu="matMenu">
@@ -324,7 +321,6 @@ export class UserManagementComponent implements OnInit {
 
   constructor(
     private queryService: QueryService,
-    public authService: AuthService,
     private snackBar: MatSnackBar,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef
