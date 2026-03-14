@@ -8,7 +8,7 @@ namespace DotNetDBTasks.API.Controllers;
 
 /// <summary>
 /// Admin endpoints for managing system users.
-/// Auditors have full user management access.
+/// Auditors have read-only access; write operations require Admin role.
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
@@ -43,9 +43,10 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new local user.
+    /// Creates a new local user. Requires Admin role.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(
         [FromBody] CreateUserCommand command,
         CancellationToken cancellationToken)
@@ -55,9 +56,10 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Changes a user's username.
+    /// Changes a user's username. Requires Admin role.
     /// </summary>
     [HttpPut("{id:guid}/username")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ChangeUsername(
         Guid id,
         [FromBody] ChangeUsernameCommand command,
@@ -69,9 +71,10 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Changes a user's password (admin sets new password).
+    /// Changes a user's password (admin sets new password). Requires Admin role.
     /// </summary>
     [HttpPut("{id:guid}/password")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ChangePassword(
         Guid id,
         [FromBody] ChangePasswordCommand command,
@@ -83,9 +86,10 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Resets a user's password to a temporary generated password.
+    /// Resets a user's password to a temporary generated password. Requires Admin role.
     /// </summary>
     [HttpPost("{id:guid}/reset-password")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ResetPassword(
         Guid id,
         CancellationToken cancellationToken)
@@ -95,9 +99,10 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Updates a user's role assignments.
+    /// Updates a user's role assignments. Requires Admin role.
     /// </summary>
     [HttpPut("{id:guid}/roles")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ChangeRoles(
         Guid id,
         [FromBody] ChangeUserRoleCommand command,
@@ -109,9 +114,10 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Activates or deactivates a user.
+    /// Activates or deactivates a user. Requires Admin role.
     /// </summary>
     [HttpPut("{id:guid}/active")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ToggleActive(
         Guid id,
         [FromBody] ToggleUserActiveCommand command,
