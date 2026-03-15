@@ -19,6 +19,64 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DatabaseUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("DbUsername")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("NVARCHAR2(1000)");
+
+                    b.Property<string>("EncryptedPassword")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("NVARCHAR2(1000)");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("NVARCHAR2(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("NUMBER(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<int>("Port")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(1521);
+
+                    b.Property<string>("ServiceName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("DatabaseUsers");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQuery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -29,6 +87,9 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .HasColumnType("TIMESTAMP(7)");
 
                     b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid?>("DatabaseUserId")
                         .HasColumnType("RAW(16)");
 
                     b.Property<string>("Description")
@@ -58,7 +119,24 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DatabaseUserId");
+
                     b.ToTable("DynamicQueries");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserDatabaseUserAccess", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("DatabaseUserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("UserId", "DatabaseUserId");
+
+                    b.HasIndex("DatabaseUserId");
+
+                    b.ToTable("UserDatabaseUserAccess");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQueryDepartment", b =>
@@ -335,6 +413,16 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.ToTable("UserRoles");
                 });
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQuery", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.DatabaseUser", "DatabaseUser")
+                        .WithMany("DynamicQueries")
+                        .HasForeignKey("DatabaseUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DatabaseUser");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQueryDepartment", b =>
                 {
                     b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DynamicQuery")
@@ -414,6 +502,25 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("DynamicQuery");
                 });
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserDatabaseUserAccess", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.User", "User")
+                        .WithMany("DatabaseUserAccess")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DotNetDBTasks.Domain.Entities.DatabaseUser", "DatabaseUser")
+                        .WithMany("UserAccess")
+                        .HasForeignKey("DatabaseUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("DatabaseUser");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserRole", b =>
                 {
                     b.HasOne("DotNetDBTasks.Domain.Entities.Role", "Role")
@@ -431,6 +538,13 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DatabaseUser", b =>
+                {
+                    b.Navigation("DynamicQueries");
+
+                    b.Navigation("UserAccess");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQuery", b =>
@@ -455,6 +569,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.User", b =>
                 {
+                    b.Navigation("DatabaseUserAccess");
+
                     b.Navigation("QueryExecutionLogs");
 
                     b.Navigation("UserRoles");

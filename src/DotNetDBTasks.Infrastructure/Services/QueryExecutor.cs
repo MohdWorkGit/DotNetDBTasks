@@ -14,19 +14,39 @@ namespace DotNetDBTasks.Infrastructure.Services;
 /// </summary>
 public class QueryExecutor : IQueryExecutor
 {
-    private readonly string _connectionString;
+    private readonly string _defaultConnectionString;
 
     public QueryExecutor(IConfiguration configuration)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")
+        _defaultConnectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not configured.");
     }
 
-    public async Task<QueryExecutionResult> ExecuteAsync(
+    public Task<QueryExecutionResult> ExecuteAsync(
         string sqlQuery,
         Dictionary<string, object?> parameters,
         int timeoutSeconds,
         CancellationToken cancellationToken = default)
+    {
+        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, _defaultConnectionString, cancellationToken);
+    }
+
+    public Task<QueryExecutionResult> ExecuteAsync(
+        string sqlQuery,
+        Dictionary<string, object?> parameters,
+        int timeoutSeconds,
+        string connectionString,
+        CancellationToken cancellationToken = default)
+    {
+        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, connectionString, cancellationToken);
+    }
+
+    private static async Task<QueryExecutionResult> ExecuteInternalAsync(
+        string sqlQuery,
+        Dictionary<string, object?> parameters,
+        int timeoutSeconds,
+        string connectionString,
+        CancellationToken cancellationToken)
     {
         var result = new QueryExecutionResult();
         var sw = Stopwatch.StartNew();
@@ -37,7 +57,7 @@ public class QueryExecutor : IQueryExecutor
         var oracleSql = Regex.Replace(sqlQuery, @"\[([^\]]+)\]", "\"$1\"");
         oracleSql = Regex.Replace(oracleSql, @"@(\w+)", ":$1");
 
-        await using var connection = new OracleConnection(_connectionString);
+        await using var connection = new OracleConnection(connectionString);
         await connection.OpenAsync(cancellationToken);
 
         await using var command = connection.CreateCommand();

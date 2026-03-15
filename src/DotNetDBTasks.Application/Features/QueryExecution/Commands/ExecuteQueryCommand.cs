@@ -14,11 +14,18 @@ namespace DotNetDBTasks.Application.Features.QueryExecution.Commands;
 /// <summary>
 /// Executes a dynamic query with user-provided parameters.
 /// Enforces strict parameterization — no string concatenation.
+/// Supports dynamic database user selection with access control.
 /// </summary>
 public class ExecuteQueryCommand : IRequest<QueryExecutionResult>
 {
     public Guid QueryId { get; set; }
     public Dictionary<string, string> Parameters { get; set; } = new();
+
+    /// <summary>
+    /// Optional: override the query's default database user at execution time.
+    /// The user must have access to this database user.
+    /// </summary>
+    public Guid? DatabaseUserId { get; set; }
 }
 
 public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, QueryExecutionResult>
@@ -26,15 +33,18 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQueryExecutor _queryExecutor;
     private readonly ICurrentUserService _currentUser;
+    private readonly IEncryptionService _encryption;
 
     public ExecuteQueryCommandHandler(
         IUnitOfWork unitOfWork,
         IQueryExecutor queryExecutor,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IEncryptionService encryption)
     {
         _unitOfWork = unitOfWork;
         _queryExecutor = queryExecutor;
         _currentUser = currentUser;
+        _encryption = encryption;
     }
 
     public async Task<QueryExecutionResult> Handle(
@@ -80,6 +90,15 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         if (!hasAccess && !_currentUser.Roles.Contains("Admin"))
             throw new ForbiddenAccessException("You do not have access to this query.");
 
+        // Resolve which database user to use
+        var effectiveDbUserId = request.DatabaseUserId ?? query.DatabaseUserId;
+        string? connectionString = null;
+
+        if (effectiveDbUserId.HasValue)
+        {
+            connectionString = await ResolveConnectionStringAsync(effectiveDbUserId.Value, cancellationToken);
+        }
+
         // Build typed parameters from metadata
         var queryParams = await _unitOfWork.QueryParameters.FindAsync(
             p => p.DynamicQueryId == request.QueryId, cancellationToken);
@@ -100,7 +119,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         if (IsUpdateQuery(query.SqlQuery))
         {
             oldValuesJson = await FetchOldValuesJsonAsync(
-                query.SqlQuery, typedParameters, query.TimeoutSeconds, cancellationToken);
+                query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, cancellationToken);
         }
 
         var log = new QueryExecutionLog
@@ -117,8 +136,17 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         var sw = Stopwatch.StartNew();
         try
         {
-            var result = await _queryExecutor.ExecuteAsync(
-                query.SqlQuery, typedParameters, query.TimeoutSeconds, cancellationToken);
+            QueryExecutionResult result;
+            if (connectionString != null)
+            {
+                result = await _queryExecutor.ExecuteAsync(
+                    query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, cancellationToken);
+            }
+            else
+            {
+                result = await _queryExecutor.ExecuteAsync(
+                    query.SqlQuery, typedParameters, query.TimeoutSeconds, cancellationToken);
+            }
 
             sw.Stop();
             result.Parameters = typedParameters;
@@ -143,6 +171,34 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
 
             throw;
         }
+    }
+
+    /// <summary>
+    /// Resolves and validates a database user, checking the current user has access,
+    /// then returns the Oracle connection string built from encrypted credentials.
+    /// </summary>
+    private async Task<string> ResolveConnectionStringAsync(Guid databaseUserId, CancellationToken cancellationToken)
+    {
+        var dbUser = await _unitOfWork.DatabaseUsers.GetByIdAsync(databaseUserId, cancellationToken);
+        if (dbUser is null)
+            throw new NotFoundException(nameof(DatabaseUser), databaseUserId);
+
+        if (!dbUser.IsActive)
+            throw new DomainException($"Database user '{dbUser.Name}' is currently disabled.");
+
+        // Verify the current user has access to this DB user (Admins bypass)
+        if (!_currentUser.Roles.Contains("Admin"))
+        {
+            var hasDbAccess = await _unitOfWork.UserDatabaseUserAccess.ExistsAsync(
+                a => a.UserId == _currentUser.UserId && a.DatabaseUserId == databaseUserId,
+                cancellationToken);
+
+            if (!hasDbAccess)
+                throw new ForbiddenAccessException($"You do not have access to database user '{dbUser.Name}'.");
+        }
+
+        var password = _encryption.Decrypt(dbUser.EncryptedPassword);
+        return $"Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={dbUser.Host})(PORT={dbUser.Port}))(CONNECT_DATA=(SERVICE_NAME={dbUser.ServiceName})));User Id={dbUser.DbUsername};Password={password};";
     }
 
     private static object? ConvertParameter(string? rawValue, ParameterType type)
@@ -173,20 +229,16 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
     /// Attempts to build a SELECT from the UPDATE statement to read current column values
     /// before the update is applied. Returns serialized JSON of the first matching row,
     /// or null if the SQL cannot be parsed or the pre-SELECT fails.
-    ///
-    /// Supports the standard single-table UPDATE pattern:
-    ///   UPDATE table SET col1 = @p1 [, col2 = @p2 ...] WHERE condition
     /// </summary>
     private async Task<string?> FetchOldValuesJsonAsync(
         string sql,
         Dictionary<string, object?> typedParameters,
         int timeoutSeconds,
+        string? connectionString,
         CancellationToken cancellationToken)
     {
         try
         {
-            // Parse: UPDATE <table> SET <setClause> WHERE <whereClause>
-            // Table name may be bare (Users) or double-quoted ("Users")
             var match = Regex.Match(
                 sql.Trim(),
                 @"UPDATE\s+(""?\w+""?)\s+SET\s+(.*?)\s+WHERE\s+(.*)",
@@ -198,27 +250,31 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             var setPart   = match.Groups[2].Value;
             var wherePart = match.Groups[3].Value;
 
-            // Extract column names from the SET clause: col = @param or col = :param  →  col
             var setColumns = Regex.Matches(setPart, @"(\w+)\s*=\s*[@:]\w+")
                 .Select(m => m.Groups[1].Value)
                 .ToList();
 
-            // Extract parameter names referenced in the WHERE clause: @param or :param  →  param
             var whereParamNames = Regex.Matches(wherePart, @"[@:](\w+)")
                 .Select(m => m.Groups[1].Value)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             if (setColumns.Count == 0 || whereParamNames.Count == 0) return null;
 
-            // Build the lookup SELECT using the same WHERE clause
             var selectSql = $"SELECT {string.Join(", ", setColumns)} FROM {tableName} WHERE {wherePart}";
 
-            // Only pass parameters that appear in the WHERE clause
             var whereParams = typedParameters
                 .Where(p => whereParamNames.Contains(p.Key))
                 .ToDictionary(p => p.Key, p => p.Value);
 
-            var result = await _queryExecutor.ExecuteAsync(selectSql, whereParams, timeoutSeconds, cancellationToken);
+            QueryExecutionResult result;
+            if (connectionString != null)
+            {
+                result = await _queryExecutor.ExecuteAsync(selectSql, whereParams, timeoutSeconds, connectionString, cancellationToken);
+            }
+            else
+            {
+                result = await _queryExecutor.ExecuteAsync(selectSql, whereParams, timeoutSeconds, cancellationToken);
+            }
 
             if (result.Rows.Count == 0) return null;
 
@@ -232,7 +288,6 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         }
         catch
         {
-            // Never let a pre-fetch failure block the actual query execution
             return null;
         }
     }

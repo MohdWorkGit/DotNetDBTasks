@@ -20,4 +20,5 @@ public class User : BaseEntity
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<QueryExecutionLog> QueryExecutionLogs { get; set; } = new List<QueryExecutionLog>();
+    public ICollection<UserDatabaseUserAccess> DatabaseUserAccess { get; set; } = new List<UserDatabaseUserAccess>();
 }

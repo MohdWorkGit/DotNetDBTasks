@@ -16,6 +16,7 @@ public class CreateDynamicQueryCommand : IRequest<DynamicQueryDto>
     public string Description { get; set; } = string.Empty;
     public string SqlQuery { get; set; } = string.Empty;
     public int TimeoutSeconds { get; set; } = 30;
+    public Guid? DatabaseUserId { get; set; }
     public List<QueryParameterDto> Parameters { get; set; } = new();
 }
 
@@ -45,6 +46,7 @@ public class CreateDynamicQueryCommandHandler
         entity.CreatedAt = DateTime.UtcNow;
         entity.CreatedByUserId = _currentUser.UserId;
         entity.IsEnabled = true;
+        entity.DatabaseUserId = request.DatabaseUserId;
 
         foreach (var paramDto in request.Parameters)
         {

@@ -26,6 +26,7 @@ services:
       Jwt__Secret: "${JWT_SECRET:-CHANGE_THIS_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS_LONG_12345}"
       Jwt__Issuer: "${JWT_ISSUER:-DotNetDBTasks}"
       Jwt__Audience: "${JWT_AUDIENCE:-DotNetDBTasks}"
+      Encryption__Key: "${ENCRYPTION_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}"
       Ldap__Host: "ldap"
       Ldap__Port: "389"
       Ldap__BaseDn: "dc=dotnetdbtasks,dc=local"

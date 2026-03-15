@@ -3,14 +3,18 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
 import {
+  AssignDatabaseUserAccessRequest,
   AssignDepartmentsRequest,
   AssignRolesRequest,
   AssignUsersRequest,
   ChangePasswordRequest,
   ChangeUsernameRequest,
   ChangeUserRolesRequest,
+  CreateDatabaseUserRequest,
   CreateDynamicQueryRequest,
   CreateUserRequest,
+  DatabaseUser,
+  DatabaseUserSummary,
   DropdownOption,
   DynamicQuery,
   ExecutionLog,
@@ -20,7 +24,9 @@ import {
   ResetPasswordResult,
   Role,
   SystemUser,
+  TestConnectionResult,
   ToggleUserActiveRequest,
+  UpdateDatabaseUserRequest,
   UpdateDynamicQueryRequest
 } from '../models/dynamic-query.model';
 
@@ -32,6 +38,7 @@ export class QueryService {
   private userUrl = `${environment.apiUrl}/user/queries`;
   private rolesUrl = `${environment.apiUrl}/admin/roles`;
   private ldapUrl = `${environment.apiUrl}/admin/ldap`;
+  private dbUsersUrl = `${environment.apiUrl}/admin/databaseusers`;
 
   constructor(private http: HttpClient) {}
 
@@ -79,6 +86,39 @@ export class QueryService {
     return this.http.get<Role[]>(this.rolesUrl);
   }
 
+  // Database user management (Admin)
+  getAllDatabaseUsers(): Observable<DatabaseUser[]> {
+    return this.http.get<DatabaseUser[]>(this.dbUsersUrl);
+  }
+
+  getDatabaseUserById(id: string): Observable<DatabaseUser> {
+    return this.http.get<DatabaseUser>(`${this.dbUsersUrl}/${id}`);
+  }
+
+  createDatabaseUser(request: CreateDatabaseUserRequest): Observable<DatabaseUser> {
+    return this.http.post<DatabaseUser>(this.dbUsersUrl, request);
+  }
+
+  updateDatabaseUser(id: string, request: UpdateDatabaseUserRequest): Observable<DatabaseUser> {
+    return this.http.put<DatabaseUser>(`${this.dbUsersUrl}/${id}`, request);
+  }
+
+  deleteDatabaseUser(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.dbUsersUrl}/${id}`);
+  }
+
+  assignDatabaseUserAccess(dbUserId: string, request: AssignDatabaseUserAccessRequest): Observable<void> {
+    return this.http.post<void>(`${this.dbUsersUrl}/${dbUserId}/access`, request);
+  }
+
+  testDatabaseConnection(dbUserId: string): Observable<TestConnectionResult> {
+    return this.http.post<TestConnectionResult>(`${this.dbUsersUrl}/${dbUserId}/test-connection`, {});
+  }
+
+  getAccessibleDatabaseUsers(): Observable<DatabaseUserSummary[]> {
+    return this.http.get<DatabaseUserSummary[]>(`${this.userUrl}/database-users`);
+  }
+
   // User operations
   getMyQueries(): Observable<DynamicQuery[]> {
     return this.http.get<DynamicQuery[]>(this.userUrl);
@@ -88,8 +128,11 @@ export class QueryService {
     return this.http.get<DynamicQuery>(`${this.userUrl}/${id}`);
   }
 
-  executeQuery(queryId: string, parameters: Record<string, string>): Observable<QueryExecutionResult> {
-    return this.http.post<QueryExecutionResult>(`${this.userUrl}/${queryId}/execute`, parameters);
+  executeQuery(queryId: string, parameters: Record<string, string>, databaseUserId?: string | null): Observable<QueryExecutionResult> {
+    return this.http.post<QueryExecutionResult>(`${this.userUrl}/${queryId}/execute`, {
+      parameters,
+      databaseUserId: databaseUserId || null
+    });
   }
 
   getDropdownOptions(queryId: string, parameterId: string): Observable<DropdownOption[]> {

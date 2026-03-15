@@ -63,7 +63,7 @@ public class GetQueriesForUserQueryHandler
         // Fetch the matching enabled queries with related data
         var queries = await _unitOfWork.DynamicQueries.FindAsync(
             q => queryIds.Contains(q.Id) && q.IsEnabled, cancellationToken,
-            "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User", "Parameters");
+            "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User", "Parameters", "DatabaseUser");
 
         return _mapper.Map<IReadOnlyList<DynamicQueryDto>>(queries);
     }

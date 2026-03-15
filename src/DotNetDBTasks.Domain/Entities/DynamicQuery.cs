@@ -24,6 +24,13 @@ public class DynamicQuery : BaseEntity
 
     public Guid CreatedByUserId { get; set; }
 
+    /// <summary>
+    /// The database user whose credentials are used when executing this query.
+    /// Null means use the system default connection string.
+    /// </summary>
+    public Guid? DatabaseUserId { get; set; }
+    public DatabaseUser? DatabaseUser { get; set; }
+
     public ICollection<QueryParameter> Parameters { get; set; } = new List<QueryParameter>();
     public ICollection<DynamicQueryRole> DynamicQueryRoles { get; set; } = new List<DynamicQueryRole>();
     public ICollection<DynamicQueryDepartment> DynamicQueryDepartments { get; set; } = new List<DynamicQueryDepartment>();

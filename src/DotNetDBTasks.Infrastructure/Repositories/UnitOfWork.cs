@@ -21,6 +21,8 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<DynamicQueryRole> DynamicQueryRoles { get; }
     public IRepository<DynamicQueryDepartment> DynamicQueryDepartments { get; }
     public IRepository<DynamicQueryUser> DynamicQueryUsers { get; }
+    public IRepository<DatabaseUser> DatabaseUsers { get; }
+    public IRepository<UserDatabaseUserAccess> UserDatabaseUserAccess { get; }
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -34,6 +36,8 @@ public class UnitOfWork : IUnitOfWork
         DynamicQueryRoles = new Repository<DynamicQueryRole>(context);
         DynamicQueryDepartments = new Repository<DynamicQueryDepartment>(context);
         DynamicQueryUsers = new Repository<DynamicQueryUser>(context);
+        DatabaseUsers = new Repository<DatabaseUser>(context);
+        UserDatabaseUserAccess = new Repository<UserDatabaseUserAccess>(context);
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
