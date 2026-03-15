@@ -13,4 +13,14 @@ public interface IQueryExecutor
         Dictionary<string, object?> parameters,
         int timeoutSeconds,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes a query using a specific connection string (for dynamic database user support).
+    /// </summary>
+    Task<QueryExecutionResult> ExecuteAsync(
+        string sqlQuery,
+        Dictionary<string, object?> parameters,
+        int timeoutSeconds,
+        string connectionString,
+        CancellationToken cancellationToken = default);
 }

@@ -15,6 +15,8 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         CreateMap<DynamicQuery, DynamicQueryDto>()
+            .ForMember(d => d.DatabaseUserName, opt => opt.MapFrom(s =>
+                s.DatabaseUser != null ? s.DatabaseUser.Name : null))
             .ForMember(d => d.AssignedRoles, opt => opt.MapFrom(s =>
                 s.DynamicQueryRoles == null ? new List<RoleAssignmentDto>() :
                 s.DynamicQueryRoles.Select(qr => new RoleAssignmentDto
@@ -43,7 +45,8 @@ public class MappingProfile : Profile
             .ForMember(d => d.Parameters, opt => opt.Ignore())
             .ForMember(d => d.DynamicQueryRoles, opt => opt.Ignore())
             .ForMember(d => d.DynamicQueryDepartments, opt => opt.Ignore())
-            .ForMember(d => d.DynamicQueryUsers, opt => opt.Ignore());
+            .ForMember(d => d.DynamicQueryUsers, opt => opt.Ignore())
+            .ForMember(d => d.DatabaseUser, opt => opt.Ignore());
 
         CreateMap<QueryExecutionLog, ExecutionLogDto>()
             .ForMember(d => d.QueryName, opt => opt.MapFrom(s => s.DynamicQuery != null ? s.DynamicQuery.Name : string.Empty))

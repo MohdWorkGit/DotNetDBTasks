@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
@@ -24,15 +25,18 @@ public class GetParameterDropdownOptionsQueryHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQueryExecutor _queryExecutor;
     private readonly ICurrentUserService _currentUser;
+    private readonly IEncryptionService _encryption;
 
     public GetParameterDropdownOptionsQueryHandler(
         IUnitOfWork unitOfWork,
         IQueryExecutor queryExecutor,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IEncryptionService encryption)
     {
         _unitOfWork = unitOfWork;
         _queryExecutor = queryExecutor;
         _currentUser = currentUser;
+        _encryption = encryption;
     }
 
     public async Task<List<DropdownOptionDto>> Handle(
@@ -138,11 +142,23 @@ public class GetParameterDropdownOptionsQueryHandler
         var valueCol = param.DropdownQueryValueColumn!;
         var labelCol = param.DropdownQueryLabelColumn!;
 
-        var result = await _queryExecutor.ExecuteAsync(
-            lookupQuery.SqlQuery,
-            new Dictionary<string, object?>(),
-            lookupQuery.TimeoutSeconds,
-            cancellationToken);
+        // Use the lookup query's database user if configured
+        string? connectionString = null;
+        if (lookupQuery.DatabaseUserId.HasValue)
+        {
+            var dbUser = await _unitOfWork.DatabaseUsers.GetByIdAsync(lookupQuery.DatabaseUserId.Value, cancellationToken);
+            if (dbUser is { IsActive: true })
+            {
+                var password = _encryption.Decrypt(dbUser.EncryptedPassword);
+                connectionString = $"Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={dbUser.Host})(PORT={dbUser.Port}))(CONNECT_DATA=(SERVICE_NAME={dbUser.ServiceName})));User Id={dbUser.DbUsername};Password={password};";
+            }
+        }
+
+        var result = connectionString != null
+            ? await _queryExecutor.ExecuteAsync(
+                lookupQuery.SqlQuery, new Dictionary<string, object?>(), lookupQuery.TimeoutSeconds, connectionString, cancellationToken)
+            : await _queryExecutor.ExecuteAsync(
+                lookupQuery.SqlQuery, new Dictionary<string, object?>(), lookupQuery.TimeoutSeconds, cancellationToken);
 
         var options = new List<DropdownOptionDto>();
         foreach (var row in result.Rows)

@@ -27,6 +27,7 @@ import { RoleAssignmentComponent } from './components/role-assignment/role-assig
 import { ExecutionLogsComponent } from './components/execution-logs/execution-logs.component';
 import { AdUsersComponent } from './components/ad-users/ad-users.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
+import { DatabaseUsersComponent } from './components/database-users/database-users.component';
 import { MatMenuModule } from '@angular/material/menu';
 
 @NgModule({
@@ -36,7 +37,8 @@ import { MatMenuModule } from '@angular/material/menu';
     RoleAssignmentComponent,
     ExecutionLogsComponent,
     AdUsersComponent,
-    UserManagementComponent
+    UserManagementComponent,
+    DatabaseUsersComponent
   ],
   imports: [
     CommonModule,
@@ -69,6 +71,7 @@ import { MatMenuModule } from '@angular/material/menu';
       { path: 'logs', component: ExecutionLogsComponent },
       { path: 'ad-users', component: AdUsersComponent },
       { path: 'users', component: UserManagementComponent },
+      { path: 'database-users', component: DatabaseUsersComponent },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])
   ]

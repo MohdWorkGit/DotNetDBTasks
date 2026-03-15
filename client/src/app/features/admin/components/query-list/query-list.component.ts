@@ -49,6 +49,11 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
               </td>
             </ng-container>
 
+            <ng-container matColumnDef="databaseUserName">
+              <th mat-header-cell *matHeaderCellDef>DB User</th>
+              <td mat-cell *matCellDef="let q">{{ q.databaseUserName || 'Default' }}</td>
+            </ng-container>
+
             <ng-container matColumnDef="parameters">
               <th mat-header-cell *matHeaderCellDef>Parameters</th>
               <td mat-cell *matCellDef="let q">{{ q.parameters?.length || 0 }}</td>
@@ -98,7 +103,7 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
   `]
 })
 export class QueryListComponent implements OnInit {
-  displayedColumns = ['name', 'description', 'isEnabled', 'parameters', 'actions'];
+  displayedColumns = ['name', 'description', 'isEnabled', 'databaseUserName', 'parameters', 'actions'];
   dataSource = new MatTableDataSource<DynamicQuery>();
   loading = true;
 

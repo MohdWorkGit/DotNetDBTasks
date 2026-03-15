@@ -46,6 +46,60 @@ export interface UserAssignment {
   username: string;
 }
 
+export interface DatabaseUser {
+  id: string;
+  name: string;
+  description: string;
+  host: string;
+  port: number;
+  serviceName: string;
+  dbUsername: string;
+  isActive: boolean;
+  createdAt: string;
+  assignedUsers: DatabaseUserAccess[];
+}
+
+export interface DatabaseUserAccess {
+  userId: string;
+  username: string;
+}
+
+export interface DatabaseUserSummary {
+  id: string;
+  name: string;
+}
+
+export interface CreateDatabaseUserRequest {
+  name: string;
+  description: string;
+  host: string;
+  port: number;
+  serviceName: string;
+  dbUsername: string;
+  password: string;
+}
+
+export interface UpdateDatabaseUserRequest {
+  id: string;
+  name: string;
+  description: string;
+  host: string;
+  port: number;
+  serviceName: string;
+  dbUsername: string;
+  isActive: boolean;
+  password?: string;
+}
+
+export interface AssignDatabaseUserAccessRequest {
+  userIds: string[];
+}
+
+export interface TestConnectionResult {
+  success: boolean;
+  errorMessage?: string;
+}
+
 export interface DynamicQuery {
   id: string;
   name: string;
@@ -53,6 +107,8 @@ export interface DynamicQuery {
   sqlQuery: string;
   isEnabled: boolean;
   timeoutSeconds: number;
+  databaseUserId?: string;
+  databaseUserName?: string;
   createdAt: string;
   parameters: QueryParameter[];
   assignedRoles: RoleAssignment[];
@@ -65,12 +121,14 @@ export interface CreateDynamicQueryRequest {
   description: string;
   sqlQuery: string;
   timeoutSeconds: number;
+  databaseUserId?: string | null;
   parameters: QueryParameter[];
 }
 
 export interface UpdateDynamicQueryRequest extends CreateDynamicQueryRequest {
   id: string;
   isEnabled: boolean;
+  databaseUserId?: string | null;
 }
 
 export interface AssignRolesRequest {

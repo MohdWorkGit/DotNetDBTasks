@@ -5,7 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
-import { DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from '@core/models/dynamic-query.model';
+import { DatabaseUserSummary, DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from '@core/models/dynamic-query.model';
 
 @Component({
   standalone: false,
@@ -40,6 +40,17 @@ import { DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from 
             <mat-form-field appearance="outline">
               <mat-label>Timeout (seconds)</mat-label>
               <input matInput type="number" formControlName="timeoutSeconds">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Database User</mat-label>
+              <mat-select formControlName="databaseUserId">
+                <mat-option [value]="null">Default (system connection)</mat-option>
+                <mat-option *ngFor="let du of availableDbUsers" [value]="du.id">
+                  {{ du.name }}
+                </mat-option>
+              </mat-select>
+              <mat-hint>Select which database credentials to use when executing this query</mat-hint>
             </mat-form-field>
 
             <mat-slide-toggle *ngIf="isEdit" formControlName="isEnabled" class="toggle">
@@ -207,6 +218,7 @@ export class QueryFormComponent implements OnInit {
   queryId?: string;
   saving = false;
   availableQueries: DynamicQuery[] = [];
+  availableDbUsers: DatabaseUserSummary[] = [];
 
   readonly ParameterType = ParameterType;
   readonly DropdownSourceType = DropdownSourceType;
@@ -226,8 +238,15 @@ export class QueryFormComponent implements OnInit {
       description: ['', [Validators.required, Validators.maxLength(1000)]],
       sqlQuery: ['', [Validators.required, Validators.maxLength(4000)]],
       timeoutSeconds: [30, [Validators.min(1), Validators.max(120)]],
+      databaseUserId: [null],
       isEnabled: [true],
       parameters: this.fb.array([])
+    });
+
+    // Load available database users for the dropdown
+    this.queryService.getAccessibleDatabaseUsers().subscribe({
+      next: (dbUsers) => { this.availableDbUsers = dbUsers; },
+      error: () => {}
     });
 
     // Load all queries so admin can pick a lookup query
@@ -319,6 +338,7 @@ export class QueryFormComponent implements OnInit {
           description: query.description,
           sqlQuery: query.sqlQuery,
           timeoutSeconds: query.timeoutSeconds,
+          databaseUserId: query.databaseUserId || null,
           isEnabled: query.isEnabled
         });
 

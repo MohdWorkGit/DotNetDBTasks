@@ -10,6 +10,8 @@ public class DynamicQueryDto
     public string SqlQuery { get; set; } = string.Empty;
     public bool IsEnabled { get; set; }
     public int TimeoutSeconds { get; set; }
+    public Guid? DatabaseUserId { get; set; }
+    public string? DatabaseUserName { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<QueryParameterDto> Parameters { get; set; } = new();
     public List<RoleAssignmentDto> AssignedRoles { get; set; } = new();

@@ -1,3 +1,4 @@
+using DotNetDBTasks.Application.Features.DatabaseUsers.Queries;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Application.Features.QueryExecution.Commands;
 using DotNetDBTasks.Application.Features.QueryExecution.Queries;
@@ -6,6 +7,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotNetDBTasks.API.Controllers;
+
+public class ExecuteQueryRequest
+{
+    public Dictionary<string, string>? Parameters { get; set; }
+    public Guid? DatabaseUserId { get; set; }
+}
 
 /// <summary>
 /// User endpoints for viewing and executing assigned queries.
@@ -43,18 +50,19 @@ public class UserQueriesController : ControllerBase
     }
 
     /// <summary>
-    /// Executes a dynamic query with provided parameters.
+    /// Executes a dynamic query with provided parameters and optional database user override.
     /// </summary>
     [HttpPost("{id:guid}/execute")]
     public async Task<IActionResult> Execute(
         Guid id,
-        [FromBody] Dictionary<string, string> parameters,
+        [FromBody] ExecuteQueryRequest request,
         CancellationToken cancellationToken)
     {
         var command = new ExecuteQueryCommand
         {
             QueryId = id,
-            Parameters = parameters
+            Parameters = request.Parameters ?? new(),
+            DatabaseUserId = request.DatabaseUserId
         };
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
@@ -83,6 +91,16 @@ public class UserQueriesController : ControllerBase
     public async Task<IActionResult> GetMyHistory(CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetMyExecutionHistoryQuery(), cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Returns the database users accessible to the current user (for runtime selection).
+    /// </summary>
+    [HttpGet("database-users")]
+    public async Task<IActionResult> GetAccessibleDatabaseUsers(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetAccessibleDatabaseUsersQuery(), cancellationToken);
         return Ok(result);
     }
 }

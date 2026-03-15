@@ -16,5 +16,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<DynamicQueryRole> DynamicQueryRoles { get; }
     IRepository<DynamicQueryDepartment> DynamicQueryDepartments { get; }
     IRepository<DynamicQueryUser> DynamicQueryUsers { get; }
+    IRepository<DatabaseUser> DatabaseUsers { get; }
+    IRepository<UserDatabaseUserAccess> UserDatabaseUserAccess { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

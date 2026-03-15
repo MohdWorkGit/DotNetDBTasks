@@ -19,6 +19,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<DynamicQueryDepartment> DynamicQueryDepartments => Set<DynamicQueryDepartment>();
     public DbSet<DynamicQueryUser> DynamicQueryUsers => Set<DynamicQueryUser>();
     public DbSet<QueryExecutionLog> QueryExecutionLogs => Set<QueryExecutionLog>();
+    public DbSet<DatabaseUser> DatabaseUsers => Set<DatabaseUser>();
+    public DbSet<UserDatabaseUserAccess> UserDatabaseUserAccess => Set<UserDatabaseUserAccess>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

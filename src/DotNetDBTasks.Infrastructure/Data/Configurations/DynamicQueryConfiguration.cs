@@ -23,5 +23,10 @@ public class DynamicQueryConfiguration : IEntityTypeConfiguration<DynamicQuery>
             .WithOne(l => l.DynamicQuery)
             .HasForeignKey(l => l.DynamicQueryId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(e => e.DatabaseUser)
+            .WithMany(d => d.DynamicQueries)
+            .HasForeignKey(e => e.DatabaseUserId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
