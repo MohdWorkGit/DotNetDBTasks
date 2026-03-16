@@ -1,4 +1,3 @@
-using DotNetDBTasks.Application.Features.DatabaseUsers.Queries;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Application.Features.QueryExecution.Commands;
 using DotNetDBTasks.Application.Features.QueryExecution.Queries;
@@ -11,7 +10,6 @@ namespace DotNetDBTasks.API.Controllers;
 public class ExecuteQueryRequest
 {
     public Dictionary<string, string>? Parameters { get; set; }
-    public Guid? DatabaseUserId { get; set; }
 }
 
 /// <summary>
@@ -50,7 +48,7 @@ public class UserQueriesController : ControllerBase
     }
 
     /// <summary>
-    /// Executes a dynamic query with provided parameters and optional database user override.
+    /// Executes a dynamic query with provided parameters.
     /// </summary>
     [HttpPost("{id:guid}/execute")]
     public async Task<IActionResult> Execute(
@@ -61,8 +59,7 @@ public class UserQueriesController : ControllerBase
         var command = new ExecuteQueryCommand
         {
             QueryId = id,
-            Parameters = request.Parameters ?? new(),
-            DatabaseUserId = request.DatabaseUserId
+            Parameters = request.Parameters ?? new()
         };
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
@@ -94,13 +91,4 @@ public class UserQueriesController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Returns the database users accessible to the current user (for runtime selection).
-    /// </summary>
-    [HttpGet("database-users")]
-    public async Task<IActionResult> GetAccessibleDatabaseUsers(CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(new GetAccessibleDatabaseUsersQuery(), cancellationToken);
-        return Ok(result);
-    }
 }

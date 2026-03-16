@@ -14,18 +14,12 @@ namespace DotNetDBTasks.Application.Features.QueryExecution.Commands;
 /// <summary>
 /// Executes a dynamic query with user-provided parameters.
 /// Enforces strict parameterization — no string concatenation.
-/// Supports dynamic database user selection with access control.
+/// Uses the database user configured on the query (managed via the admin query page).
 /// </summary>
 public class ExecuteQueryCommand : IRequest<QueryExecutionResult>
 {
     public Guid QueryId { get; set; }
     public Dictionary<string, string> Parameters { get; set; } = new();
-
-    /// <summary>
-    /// Optional: override the query's default database user at execution time.
-    /// The user must have access to this database user.
-    /// </summary>
-    public Guid? DatabaseUserId { get; set; }
 }
 
 public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, QueryExecutionResult>
@@ -90,8 +84,8 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         if (!hasAccess && !_currentUser.Roles.Contains("Admin"))
             throw new ForbiddenAccessException("You do not have access to this query.");
 
-        // Resolve which database user to use
-        var effectiveDbUserId = request.DatabaseUserId ?? query.DatabaseUserId;
+        // Use the database user configured on the query
+        var effectiveDbUserId = query.DatabaseUserId;
         string? connectionString = null;
 
         if (effectiveDbUserId.HasValue)

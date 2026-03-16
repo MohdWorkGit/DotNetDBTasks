@@ -8,7 +8,6 @@ import { forkJoin, of, throwError } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
 import {
-  DatabaseUserSummary,
   DropdownOption,
   DynamicQuery,
   ParameterType,
@@ -105,20 +104,6 @@ import {
               </ng-container>
             </div>
 
-            <!-- Database User Selection -->
-            <mat-form-field *ngIf="availableDbUsers.length > 0" appearance="outline" class="db-user-select">
-              <mat-label>Database User</mat-label>
-              <mat-select [(value)]="selectedDbUserId">
-                <mat-option [value]="null">
-                  {{ query?.databaseUserName ? query.databaseUserName + ' (default)' : 'Default connection' }}
-                </mat-option>
-                <mat-option *ngFor="let du of availableDbUsers" [value]="du.id">
-                  {{ du.name }}
-                </mat-option>
-              </mat-select>
-              <mat-hint>Override the database user for this execution</mat-hint>
-            </mat-form-field>
-
             <div class="actions">
               <button mat-raised-button color="primary" type="submit"
                       [disabled]="form.invalid || executing || loadingDropdowns">
@@ -190,7 +175,6 @@ import {
     .non-query-result p { font-size: 16px; margin: 0; }
     .loading-hint { margin-bottom: 16px; }
     .loading-hint p { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
-    .db-user-select { width: 100%; margin-top: 8px; }
   `]
 })
 export class QueryExecuteComponent implements OnInit {
@@ -205,8 +189,6 @@ export class QueryExecuteComponent implements OnInit {
 
   /** Maps param.name -> list of dropdown options */
   dropdownOptions: Record<string, DropdownOption[]> = {};
-  availableDbUsers: DatabaseUserSummary[] = [];
-  selectedDbUserId: string | null = null;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
@@ -224,10 +206,6 @@ export class QueryExecuteComponent implements OnInit {
     this.form = this.fb.group({});
     this.queryId = this.route.snapshot.params['id'];
     this.loadQuery();
-    this.queryService.getAccessibleDatabaseUsers().subscribe({
-      next: (users) => { this.availableDbUsers = users; this.cdr.detectChanges(); },
-      error: () => {}
-    });
   }
 
   loadQuery(): void {
@@ -309,7 +287,7 @@ export class QueryExecuteComponent implements OnInit {
       params[param.name] = value;
     }
 
-    this.queryService.executeQuery(this.query.id, params, this.selectedDbUserId).subscribe({
+    this.queryService.executeQuery(this.query.id, params).subscribe({
       next: (res) => {
         this.result = res;
         this.dataSource.data = res.rows;

@@ -14,7 +14,6 @@ import {
   CreateDynamicQueryRequest,
   CreateUserRequest,
   DatabaseUser,
-  DatabaseUserSummary,
   DropdownOption,
   DynamicQuery,
   ExecutionLog,
@@ -115,10 +114,6 @@ export class QueryService {
     return this.http.post<TestConnectionResult>(`${this.dbUsersUrl}/${dbUserId}/test-connection`, {});
   }
 
-  getAccessibleDatabaseUsers(): Observable<DatabaseUserSummary[]> {
-    return this.http.get<DatabaseUserSummary[]>(`${this.userUrl}/database-users`);
-  }
-
   // User operations
   getMyQueries(): Observable<DynamicQuery[]> {
     return this.http.get<DynamicQuery[]>(this.userUrl);
@@ -128,10 +123,9 @@ export class QueryService {
     return this.http.get<DynamicQuery>(`${this.userUrl}/${id}`);
   }
 
-  executeQuery(queryId: string, parameters: Record<string, string>, databaseUserId?: string | null): Observable<QueryExecutionResult> {
+  executeQuery(queryId: string, parameters: Record<string, string>): Observable<QueryExecutionResult> {
     return this.http.post<QueryExecutionResult>(`${this.userUrl}/${queryId}/execute`, {
-      parameters,
-      databaseUserId: databaseUserId || null
+      parameters
     });
   }
 
