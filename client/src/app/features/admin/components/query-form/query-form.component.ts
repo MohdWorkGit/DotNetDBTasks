@@ -5,7 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
-import { DatabaseUserSummary, DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from '@core/models/dynamic-query.model';
+import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from '@core/models/dynamic-query.model';
 
 @Component({
   standalone: false,
@@ -218,7 +218,7 @@ export class QueryFormComponent implements OnInit {
   queryId?: string;
   saving = false;
   availableQueries: DynamicQuery[] = [];
-  availableDbUsers: DatabaseUserSummary[] = [];
+  availableDbUsers: DatabaseUser[] = [];
 
   readonly ParameterType = ParameterType;
   readonly DropdownSourceType = DropdownSourceType;
@@ -244,7 +244,7 @@ export class QueryFormComponent implements OnInit {
     });
 
     // Load available database users for the dropdown
-    this.queryService.getAccessibleDatabaseUsers().subscribe({
+    this.queryService.getAllDatabaseUsers().subscribe({
       next: (dbUsers) => { this.availableDbUsers = dbUsers; },
       error: () => {}
     });
