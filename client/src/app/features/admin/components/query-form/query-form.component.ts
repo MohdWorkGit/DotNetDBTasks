@@ -113,7 +113,7 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                   <div *ngIf="getDropdownSourceType(i) === DropdownSourceType.Static"
                        class="static-values-editor">
                     <p class="hint">Add label/value pairs. The "value" is what gets passed to the SQL query.</p>
-                    <div *ngFor="let opt of getStaticOptions(i); let j = index"
+                    <div *ngFor="let opt of getStaticOptions(i); let j = index; trackBy: trackStaticOption"
                          class="static-option-row">
                       <mat-form-field appearance="outline" class="option-field">
                         <mat-label>Label</mat-label>
@@ -292,6 +292,10 @@ export class QueryFormComponent implements OnInit {
     const opts = this.getStaticOptions(paramIndex);
     opts.splice(optIndex, 1);
     this.parameters.at(paramIndex).get('dropdownStaticValues')?.setValue(JSON.stringify(opts));
+  }
+
+  trackStaticOption(index: number): number {
+    return index;
   }
 
   updateStaticOption(paramIndex: number, optIndex: number, field: 'label' | 'value', event: Event): void {
