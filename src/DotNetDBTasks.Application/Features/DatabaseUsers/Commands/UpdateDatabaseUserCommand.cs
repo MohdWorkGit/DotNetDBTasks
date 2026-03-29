@@ -1,6 +1,7 @@
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Features.DatabaseUsers.Queries;
 using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
@@ -12,9 +13,11 @@ public class UpdateDatabaseUserCommand : IRequest<DatabaseUserDto>
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public DatabaseServerType ServerType { get; set; } = DatabaseServerType.Oracle;
     public string Host { get; set; } = string.Empty;
     public int Port { get; set; } = 1521;
     public string ServiceName { get; set; } = string.Empty;
+    public string DatabaseName { get; set; } = string.Empty;
     public string DbUsername { get; set; } = string.Empty;
     public bool IsActive { get; set; }
 
@@ -48,9 +51,11 @@ public class UpdateDatabaseUserCommandHandler
 
         entity.Name = request.Name;
         entity.Description = request.Description;
+        entity.ServerType = request.ServerType;
         entity.Host = request.Host;
         entity.Port = request.Port;
         entity.ServiceName = request.ServiceName;
+        entity.DatabaseName = request.DatabaseName;
         entity.DbUsername = request.DbUsername;
         entity.IsActive = request.IsActive;
         entity.UpdatedAt = DateTime.UtcNow;
@@ -68,9 +73,11 @@ public class UpdateDatabaseUserCommandHandler
             Id = entity.Id,
             Name = entity.Name,
             Description = entity.Description,
+            ServerType = entity.ServerType,
             Host = entity.Host,
             Port = entity.Port,
             ServiceName = entity.ServiceName,
+            DatabaseName = entity.DatabaseName,
             DbUsername = entity.DbUsername,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt

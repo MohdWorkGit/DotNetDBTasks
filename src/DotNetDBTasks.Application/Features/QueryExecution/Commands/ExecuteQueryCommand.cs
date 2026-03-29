@@ -28,17 +28,20 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
     private readonly IQueryExecutor _queryExecutor;
     private readonly ICurrentUserService _currentUser;
     private readonly IEncryptionService _encryption;
+    private readonly IDatabaseConnectionFactory _connectionFactory;
 
     public ExecuteQueryCommandHandler(
         IUnitOfWork unitOfWork,
         IQueryExecutor queryExecutor,
         ICurrentUserService currentUser,
-        IEncryptionService encryption)
+        IEncryptionService encryption,
+        IDatabaseConnectionFactory connectionFactory)
     {
         _unitOfWork = unitOfWork;
         _queryExecutor = queryExecutor;
         _currentUser = currentUser;
         _encryption = encryption;
+        _connectionFactory = connectionFactory;
     }
 
     public async Task<QueryExecutionResult> Handle(
@@ -87,10 +90,13 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         // Use the database user configured on the query
         var effectiveDbUserId = query.DatabaseUserId;
         string? connectionString = null;
+        DatabaseUser? resolvedDbUser = null;
 
         if (effectiveDbUserId.HasValue)
         {
-            connectionString = await ResolveConnectionStringAsync(effectiveDbUserId.Value, cancellationToken);
+            resolvedDbUser = await ResolveAndValidateDbUserAsync(effectiveDbUserId.Value, cancellationToken);
+            var password = _encryption.Decrypt(resolvedDbUser.EncryptedPassword);
+            connectionString = _connectionFactory.BuildConnectionString(resolvedDbUser, password);
         }
 
         // Build typed parameters from metadata
@@ -113,7 +119,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         if (IsUpdateQuery(query.SqlQuery))
         {
             oldValuesJson = await FetchOldValuesJsonAsync(
-                query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, cancellationToken);
+                query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser, cancellationToken);
         }
 
         var log = new QueryExecutionLog
@@ -131,10 +137,10 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         try
         {
             QueryExecutionResult result;
-            if (connectionString != null)
+            if (connectionString != null && resolvedDbUser != null)
             {
                 result = await _queryExecutor.ExecuteAsync(
-                    query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, cancellationToken);
+                    query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser.ServerType, cancellationToken);
             }
             else
             {
@@ -168,10 +174,10 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
     }
 
     /// <summary>
-    /// Resolves and validates a database user, checking the current user has access,
-    /// then returns the Oracle connection string built from encrypted credentials.
+    /// Resolves and validates a database user, checking the current user has access.
+    /// Returns the DatabaseUser entity for connection string building.
     /// </summary>
-    private async Task<string> ResolveConnectionStringAsync(Guid databaseUserId, CancellationToken cancellationToken)
+    private async Task<DatabaseUser> ResolveAndValidateDbUserAsync(Guid databaseUserId, CancellationToken cancellationToken)
     {
         var dbUser = await _unitOfWork.DatabaseUsers.GetByIdAsync(databaseUserId, cancellationToken);
         if (dbUser is null)
@@ -191,8 +197,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
                 throw new ForbiddenAccessException($"You do not have access to database user '{dbUser.Name}'.");
         }
 
-        var password = _encryption.Decrypt(dbUser.EncryptedPassword);
-        return $"Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={dbUser.Host})(PORT={dbUser.Port}))(CONNECT_DATA=(SERVICE_NAME={dbUser.ServiceName})));User Id={dbUser.DbUsername};Password={password};";
+        return dbUser;
     }
 
     private static object? ConvertParameter(string? rawValue, ParameterType type)
@@ -229,6 +234,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         Dictionary<string, object?> typedParameters,
         int timeoutSeconds,
         string? connectionString,
+        DatabaseUser? resolvedDbUser,
         CancellationToken cancellationToken)
     {
         try
@@ -261,9 +267,9 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
                 .ToDictionary(p => p.Key, p => p.Value);
 
             QueryExecutionResult result;
-            if (connectionString != null)
+            if (connectionString != null && resolvedDbUser != null)
             {
-                result = await _queryExecutor.ExecuteAsync(selectSql, whereParams, timeoutSeconds, connectionString, cancellationToken);
+                result = await _queryExecutor.ExecuteAsync(selectSql, whereParams, timeoutSeconds, connectionString, resolvedDbUser.ServerType, cancellationToken);
             }
             else
             {

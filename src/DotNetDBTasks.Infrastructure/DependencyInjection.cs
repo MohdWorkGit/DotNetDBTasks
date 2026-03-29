@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IQueryExecutor, QueryExecutor>();
+        services.AddScoped<IDatabaseConnectionFactory, DatabaseConnectionFactory>();
         services.AddScoped<IEncryptionService, AesEncryptionService>();
         services.AddScoped<ILdapService, LdapService>();
 

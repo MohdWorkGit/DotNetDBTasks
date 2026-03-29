@@ -1,6 +1,7 @@
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Features.DatabaseUsers.Queries;
 using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
 
@@ -10,9 +11,11 @@ public class CreateDatabaseUserCommand : IRequest<DatabaseUserDto>
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public DatabaseServerType ServerType { get; set; } = DatabaseServerType.Oracle;
     public string Host { get; set; } = string.Empty;
     public int Port { get; set; } = 1521;
     public string ServiceName { get; set; } = string.Empty;
+    public string DatabaseName { get; set; } = string.Empty;
     public string DbUsername { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
 }
@@ -40,9 +43,11 @@ public class CreateDatabaseUserCommandHandler
             Id = Guid.NewGuid(),
             Name = request.Name,
             Description = request.Description,
+            ServerType = request.ServerType,
             Host = request.Host,
             Port = request.Port,
             ServiceName = request.ServiceName,
+            DatabaseName = request.DatabaseName,
             DbUsername = request.DbUsername,
             EncryptedPassword = _encryption.Encrypt(request.Password),
             IsActive = true,
@@ -57,9 +62,11 @@ public class CreateDatabaseUserCommandHandler
             Id = entity.Id,
             Name = entity.Name,
             Description = entity.Description,
+            ServerType = entity.ServerType,
             Host = entity.Host,
             Port = entity.Port,
             ServiceName = entity.ServiceName,
+            DatabaseName = entity.DatabaseName,
             DbUsername = entity.DbUsername,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt

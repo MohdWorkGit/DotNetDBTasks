@@ -1,25 +1,36 @@
+using System.Data.Common;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Common.Models;
+using DotNetDBTasks.Domain.Enums;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using MySqlConnector;
+using Npgsql;
 using Oracle.ManagedDataAccess.Client;
 
 namespace DotNetDBTasks.Infrastructure.Services;
 
 /// <summary>
-/// Executes parameterized SQL queries securely against Oracle.
-/// All parameters are passed through OracleParameter — no string concatenation.
-/// Translates @param syntax (used in stored queries) to Oracle's :param syntax.
+/// Executes parameterized SQL queries securely against Oracle, SQL Server, PostgreSQL, and MySQL.
+/// All parameters are passed through DbParameter — no string concatenation.
 /// </summary>
 public class QueryExecutor : IQueryExecutor
 {
     private readonly string _defaultConnectionString;
+    private readonly DatabaseServerType _defaultServerType;
 
     public QueryExecutor(IConfiguration configuration)
     {
         _defaultConnectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not configured.");
+
+        // Parse the default server type from configuration, defaulting to Oracle for backwards compatibility
+        var serverTypeStr = configuration["DefaultDatabaseServerType"];
+        _defaultServerType = Enum.TryParse<DatabaseServerType>(serverTypeStr, true, out var parsed)
+            ? parsed
+            : DatabaseServerType.Oracle;
     }
 
     public Task<QueryExecutionResult> ExecuteAsync(
@@ -28,7 +39,7 @@ public class QueryExecutor : IQueryExecutor
         int timeoutSeconds,
         CancellationToken cancellationToken = default)
     {
-        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, _defaultConnectionString, cancellationToken);
+        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, _defaultConnectionString, _defaultServerType, cancellationToken);
     }
 
     public Task<QueryExecutionResult> ExecuteAsync(
@@ -36,9 +47,10 @@ public class QueryExecutor : IQueryExecutor
         Dictionary<string, object?> parameters,
         int timeoutSeconds,
         string connectionString,
+        DatabaseServerType serverType,
         CancellationToken cancellationToken = default)
     {
-        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, connectionString, cancellationToken);
+        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, connectionString, serverType, cancellationToken);
     }
 
     private static async Task<QueryExecutionResult> ExecuteInternalAsync(
@@ -46,42 +58,38 @@ public class QueryExecutor : IQueryExecutor
         Dictionary<string, object?> parameters,
         int timeoutSeconds,
         string connectionString,
+        DatabaseServerType serverType,
         CancellationToken cancellationToken)
     {
         var result = new QueryExecutionResult();
         var sw = Stopwatch.StartNew();
 
-        // Translate SQL Server syntax to Oracle syntax:
-        // 1. Convert [bracket] quoting to "double-quote" quoting (ORA-00903 fix)
-        // 2. Convert @paramName to :paramName bind variable syntax
-        var oracleSql = Regex.Replace(sqlQuery, @"\[([^\]]+)\]", "\"$1\"");
-        oracleSql = Regex.Replace(oracleSql, @"@(\w+)", ":$1");
+        var adaptedSql = AdaptSqlSyntax(sqlQuery, serverType);
 
-        await using var connection = new OracleConnection(connectionString);
+        await using var connection = CreateConnection(connectionString, serverType);
         await connection.OpenAsync(cancellationToken);
 
         await using var command = connection.CreateCommand();
-        command.CommandText = oracleSql;
+        command.CommandText = adaptedSql;
         command.CommandTimeout = timeoutSeconds;
-        command.BindByName = true;
 
-        // All parameters are added via OracleParameter — strict parameterization
-        foreach (var param in parameters)
+        // Oracle-specific: enable bind-by-name
+        if (command is OracleCommand oracleCmd)
         {
-            command.Parameters.Add(new OracleParameter($":{param.Key}", param.Value ?? DBNull.Value));
+            oracleCmd.BindByName = true;
         }
+
+        AddParameters(command, parameters, serverType);
 
         if (IsSelectQuery(sqlQuery))
         {
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-            // Read column names
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 result.Columns.Add(reader.GetName(i));
             }
 
-            // Read rows
             while (await reader.ReadAsync(cancellationToken))
             {
                 var row = new Dictionary<string, object?>();
@@ -105,6 +113,79 @@ public class QueryExecutor : IQueryExecutor
         result.ExecutionDurationMs = sw.ElapsedMilliseconds;
 
         return result;
+    }
+
+    /// <summary>
+    /// Creates the appropriate DbConnection for the given server type.
+    /// </summary>
+    private static DbConnection CreateConnection(string connectionString, DatabaseServerType serverType)
+    {
+        return serverType switch
+        {
+            DatabaseServerType.Oracle => new OracleConnection(connectionString),
+            DatabaseServerType.SqlServer => new SqlConnection(connectionString),
+            DatabaseServerType.PostgreSql => new NpgsqlConnection(connectionString),
+            DatabaseServerType.MySql => new MySqlConnection(connectionString),
+            _ => throw new NotSupportedException($"Database server type '{serverType}' is not supported.")
+        };
+    }
+
+    /// <summary>
+    /// Adapts SQL syntax for the target database server type.
+    /// Queries are stored with @param syntax and [bracket] quoting.
+    /// </summary>
+    private static string AdaptSqlSyntax(string sql, DatabaseServerType serverType)
+    {
+        return serverType switch
+        {
+            DatabaseServerType.Oracle => AdaptForOracle(sql),
+            DatabaseServerType.SqlServer => sql, // SQL Server natively supports @param and [bracket] syntax
+            DatabaseServerType.PostgreSql => AdaptForPostgreSql(sql),
+            DatabaseServerType.MySql => AdaptForMySql(sql),
+            _ => sql
+        };
+    }
+
+    private static string AdaptForOracle(string sql)
+    {
+        // Convert [bracket] quoting to "double-quote" quoting
+        var adapted = Regex.Replace(sql, @"\[([^\]]+)\]", "\"$1\"");
+        // Convert @paramName to :paramName bind variable syntax
+        adapted = Regex.Replace(adapted, @"@(\w+)", ":$1");
+        return adapted;
+    }
+
+    private static string AdaptForPostgreSql(string sql)
+    {
+        // Convert [bracket] quoting to "double-quote" quoting
+        var adapted = Regex.Replace(sql, @"\[([^\]]+)\]", "\"$1\"");
+        return adapted;
+    }
+
+    private static string AdaptForMySql(string sql)
+    {
+        // Convert [bracket] quoting to `backtick` quoting
+        var adapted = Regex.Replace(sql, @"\[([^\]]+)\]", "`$1`");
+        return adapted;
+    }
+
+    /// <summary>
+    /// Adds parameters using the appropriate DbParameter type for each server type.
+    /// </summary>
+    private static void AddParameters(DbCommand command, Dictionary<string, object?> parameters, DatabaseServerType serverType)
+    {
+        foreach (var param in parameters)
+        {
+            var dbParam = serverType switch
+            {
+                DatabaseServerType.Oracle => new OracleParameter($":{param.Key}", param.Value ?? DBNull.Value) as DbParameter,
+                DatabaseServerType.SqlServer => new SqlParameter($"@{param.Key}", param.Value ?? DBNull.Value),
+                DatabaseServerType.PostgreSql => new NpgsqlParameter($"@{param.Key}", param.Value ?? DBNull.Value),
+                DatabaseServerType.MySql => new MySqlParameter($"@{param.Key}", param.Value ?? DBNull.Value),
+                _ => throw new NotSupportedException($"Database server type '{serverType}' is not supported.")
+            };
+            command.Parameters.Add(dbParam);
+        }
     }
 
     /// <summary>

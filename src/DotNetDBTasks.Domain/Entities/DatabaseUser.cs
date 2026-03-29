@@ -1,3 +1,5 @@
+using DotNetDBTasks.Domain.Enums;
+
 namespace DotNetDBTasks.Domain.Entities;
 
 /// <summary>
@@ -8,9 +10,25 @@ public class DatabaseUser : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The type of database server (Oracle, SQL Server, PostgreSQL, MySQL).
+    /// </summary>
+    public DatabaseServerType ServerType { get; set; } = DatabaseServerType.Oracle;
+
     public string Host { get; set; } = string.Empty;
     public int Port { get; set; } = 1521;
+
+    /// <summary>
+    /// Oracle service name. Used when ServerType is Oracle.
+    /// </summary>
     public string ServiceName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Database/catalog name. Used when ServerType is SqlServer, PostgreSql, or MySql.
+    /// </summary>
+    public string DatabaseName { get; set; } = string.Empty;
+
     public string DbUsername { get; set; } = string.Empty;
 
     /// <summary>

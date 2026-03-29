@@ -1,4 +1,5 @@
 using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,6 +20,9 @@ public class DatabaseUserConfiguration : IEntityTypeConfiguration<DatabaseUser>
         builder.Property(e => e.Description)
             .HasMaxLength(1000);
 
+        builder.Property(e => e.ServerType)
+            .HasDefaultValue(DatabaseServerType.Oracle);
+
         builder.Property(e => e.Host)
             .IsRequired()
             .HasMaxLength(500);
@@ -27,7 +31,9 @@ public class DatabaseUserConfiguration : IEntityTypeConfiguration<DatabaseUser>
             .HasDefaultValue(1521);
 
         builder.Property(e => e.ServiceName)
-            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(e => e.DatabaseName)
             .HasMaxLength(200);
 
         builder.Property(e => e.DbUsername)

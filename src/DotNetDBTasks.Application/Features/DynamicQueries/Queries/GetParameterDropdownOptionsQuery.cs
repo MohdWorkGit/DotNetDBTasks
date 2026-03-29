@@ -26,17 +26,20 @@ public class GetParameterDropdownOptionsQueryHandler
     private readonly IQueryExecutor _queryExecutor;
     private readonly ICurrentUserService _currentUser;
     private readonly IEncryptionService _encryption;
+    private readonly IDatabaseConnectionFactory _connectionFactory;
 
     public GetParameterDropdownOptionsQueryHandler(
         IUnitOfWork unitOfWork,
         IQueryExecutor queryExecutor,
         ICurrentUserService currentUser,
-        IEncryptionService encryption)
+        IEncryptionService encryption,
+        IDatabaseConnectionFactory connectionFactory)
     {
         _unitOfWork = unitOfWork;
         _queryExecutor = queryExecutor;
         _currentUser = currentUser;
         _encryption = encryption;
+        _connectionFactory = connectionFactory;
     }
 
     public async Task<List<DropdownOptionDto>> Handle(
@@ -144,19 +147,20 @@ public class GetParameterDropdownOptionsQueryHandler
 
         // Use the lookup query's database user if configured
         string? connectionString = null;
+        Domain.Entities.DatabaseUser? dbUser = null;
         if (lookupQuery.DatabaseUserId.HasValue)
         {
-            var dbUser = await _unitOfWork.DatabaseUsers.GetByIdAsync(lookupQuery.DatabaseUserId.Value, cancellationToken);
+            dbUser = await _unitOfWork.DatabaseUsers.GetByIdAsync(lookupQuery.DatabaseUserId.Value, cancellationToken);
             if (dbUser is { IsActive: true })
             {
                 var password = _encryption.Decrypt(dbUser.EncryptedPassword);
-                connectionString = $"Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={dbUser.Host})(PORT={dbUser.Port}))(CONNECT_DATA=(SERVICE_NAME={dbUser.ServiceName})));User Id={dbUser.DbUsername};Password={password};";
+                connectionString = _connectionFactory.BuildConnectionString(dbUser, password);
             }
         }
 
-        var result = connectionString != null
+        var result = (connectionString != null && dbUser != null)
             ? await _queryExecutor.ExecuteAsync(
-                lookupQuery.SqlQuery, new Dictionary<string, object?>(), lookupQuery.TimeoutSeconds, connectionString, cancellationToken)
+                lookupQuery.SqlQuery, new Dictionary<string, object?>(), lookupQuery.TimeoutSeconds, connectionString, dbUser.ServerType, cancellationToken)
             : await _queryExecutor.ExecuteAsync(
                 lookupQuery.SqlQuery, new Dictionary<string, object?>(), lookupQuery.TimeoutSeconds, cancellationToken);
 
