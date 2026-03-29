@@ -26,15 +26,18 @@ public class TestDatabaseConnectionCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEncryptionService _encryption;
     private readonly IQueryExecutor _queryExecutor;
+    private readonly IDatabaseConnectionFactory _connectionFactory;
 
     public TestDatabaseConnectionCommandHandler(
         IUnitOfWork unitOfWork,
         IEncryptionService encryption,
-        IQueryExecutor queryExecutor)
+        IQueryExecutor queryExecutor,
+        IDatabaseConnectionFactory connectionFactory)
     {
         _unitOfWork = unitOfWork;
         _encryption = encryption;
         _queryExecutor = queryExecutor;
+        _connectionFactory = connectionFactory;
     }
 
     public async Task<TestConnectionResult> Handle(
@@ -48,13 +51,15 @@ public class TestDatabaseConnectionCommandHandler
         try
         {
             var password = _encryption.Decrypt(dbUser.EncryptedPassword);
-            var connectionString = BuildConnectionString(dbUser, password);
+            var connectionString = _connectionFactory.BuildConnectionString(dbUser, password);
+            var testQuery = _connectionFactory.GetTestQuery(dbUser);
 
             await _queryExecutor.ExecuteAsync(
-                "SELECT 1 FROM DUAL",
+                testQuery,
                 new Dictionary<string, object?>(),
                 10,
                 connectionString,
+                dbUser.ServerType,
                 cancellationToken);
 
             return new TestConnectionResult { Success = true };
@@ -63,10 +68,5 @@ public class TestDatabaseConnectionCommandHandler
         {
             return new TestConnectionResult { Success = false, ErrorMessage = ex.Message };
         }
-    }
-
-    private static string BuildConnectionString(DatabaseUser dbUser, string password)
-    {
-        return $"Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={dbUser.Host})(PORT={dbUser.Port}))(CONNECT_DATA=(SERVICE_NAME={dbUser.ServiceName})));User Id={dbUser.DbUsername};Password={password};";
     }
 }

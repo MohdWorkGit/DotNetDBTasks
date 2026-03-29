@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Models;
+using DotNetDBTasks.Domain.Enums;
 
 namespace DotNetDBTasks.Application.Common.Interfaces;
 
@@ -15,12 +16,13 @@ public interface IQueryExecutor
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Executes a query using a specific connection string (for dynamic database user support).
+    /// Executes a query using a specific connection string and database server type.
     /// </summary>
     Task<QueryExecutionResult> ExecuteAsync(
         string sqlQuery,
         Dictionary<string, object?> parameters,
         int timeoutSeconds,
         string connectionString,
+        DatabaseServerType serverType,
         CancellationToken cancellationToken = default);
 }
