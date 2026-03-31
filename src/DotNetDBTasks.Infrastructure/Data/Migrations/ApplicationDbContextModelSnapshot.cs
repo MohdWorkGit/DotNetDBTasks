@@ -28,6 +28,11 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TIMESTAMP(7)");
 
+                    b.Property<string>("DatabaseName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
                     b.Property<string>("DbUsername")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -60,6 +65,11 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(10)")
                         .HasDefaultValue(1521);
+
+                    b.Property<int>("ServerType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("ServiceName")
                         .IsRequired()
