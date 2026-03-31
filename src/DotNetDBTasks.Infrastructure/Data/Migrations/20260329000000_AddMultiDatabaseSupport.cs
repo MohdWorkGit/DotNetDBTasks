@@ -12,21 +12,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "ServerType",
-                table: "DatabaseUsers",
-                type: "NUMBER(10)",
-                nullable: false,
-                defaultValue: 0);
-
-            migrationBuilder.AddColumn<string>(
-                name: "DatabaseName",
-                table: "DatabaseUsers",
-                type: "NVARCHAR2(200)",
-                maxLength: 200,
-                nullable: false,
-                defaultValue: "");
-
             // ServiceName is no longer required (only used for Oracle)
             migrationBuilder.AlterColumn<string>(
                 name: "ServiceName",
@@ -42,13 +27,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "ServerType",
-                table: "DatabaseUsers");
-
-            migrationBuilder.DropColumn(
-                name: "DatabaseName",
-                table: "DatabaseUsers");
         }
     }
 }
