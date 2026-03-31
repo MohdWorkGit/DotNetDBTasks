@@ -25,29 +25,17 @@ public static class DatabaseSeeder
             {
                 await context.Database.MigrateAsync();
             }
-            catch (Exception ex) when (ex.Message.Contains("ORA-00955") || ex.InnerException?.Message?.Contains("ORA-00955") == true)
+            catch (Exception ex) when (ContainsOracleError(ex, "ORA-00955", "ORA-01430"))
             {
-                logger.LogWarning("Database objects already exist (ORA-00955). Dropping all tables and recreating schema...");
-
-                // Drop application tables explicitly (user_tables includes Oracle system tables like LogMiner that can't be dropped)
-                var tablesToDrop = new[]
-                {
-                    "DynamicQueryRoles", "DynamicQueryDepartments", "DynamicQueryUsers",
-                    "QueryExecutionLogs", "QueryParameters", "UserRoles",
-                    "UserDatabaseUserAccess", "DynamicQueries", "DatabaseUsers",
-                    "Users", "Roles", "__EFMigrationsHistory"
-                };
-                foreach (var table in tablesToDrop)
-                {
-                    try
-                    {
-                        await context.Database.ExecuteSqlRawAsync($@"BEGIN EXECUTE IMMEDIATE 'DROP TABLE ""{table}"" CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;");
-                    }
-                    catch { /* table may not exist */ }
-                }
-
+                logger.LogWarning("Database objects already exist (ORA-00955/ORA-01430). Dropping all tables and recreating schema...");
+                await DropAllTablesAsync(context);
                 await context.Database.MigrateAsync();
             }
+
+            // Repair broken schema: Oracle's non-transactional DDL can leave tables
+            // without columns that EF Core expects (migration recorded as applied but
+            // ALTER TABLE failed mid-way). See DATABASE_MIGRATION_NOTES.txt for details.
+            await RepairDatabaseUsersSchemaAsync(context, logger);
 
             if (await context.Roles.CountAsync() > 0)
                 return;
@@ -204,5 +192,94 @@ public static class DatabaseSeeder
             logger.LogError(ex, "An error occurred while seeding the database.");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Repairs the DatabaseUsers table when migrations were recorded as applied but
+    /// columns are missing due to Oracle's non-transactional DDL (auto-commit on each
+    /// ALTER TABLE). This handles the permanently-broken state where:
+    ///   1. AddMultiDatabaseSupport partially ran (some ALTERs committed, then one failed)
+    ///   2. The migration was never recorded in __EFMigrationsHistory (or was recorded
+    ///      despite partial failure in older seeder logic)
+    ///   3. MigrateAsync() now skips it, leaving columns missing → ORA-00904
+    /// Each statement is independently idempotent (catches ORA-01430 = column exists).
+    /// </summary>
+    private static async Task RepairDatabaseUsersSchemaAsync(ApplicationDbContext context, ILogger logger)
+    {
+        // Check if the DatabaseUsers table exists at all; if not, migrations will handle it.
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync(
+                @"SELECT 1 FROM ""DatabaseUsers"" WHERE ROWNUM = 0");
+        }
+        catch
+        {
+            return; // Table doesn't exist — nothing to repair.
+        }
+
+        var repairs = new (string column, string ddl)[]
+        {
+            ("ServerType",   @"ALTER TABLE ""DatabaseUsers"" ADD ""ServerType"" NUMBER(10) DEFAULT 0 NOT NULL"),
+            ("DatabaseName", @"ALTER TABLE ""DatabaseUsers"" ADD ""DatabaseName"" NVARCHAR2(200) NULL"),
+            ("ServiceName nullable", @"ALTER TABLE ""DatabaseUsers"" MODIFY ""ServiceName"" NULL"),
+        };
+
+        foreach (var (column, ddl) in repairs)
+        {
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(
+                    $@"BEGIN EXECUTE IMMEDIATE '{ddl}'; EXCEPTION WHEN OTHERS THEN IF SQLCODE NOT IN (-1430, -1451) THEN RAISE; END IF; END;");
+                logger.LogInformation("Schema repair: applied '{Column}' to DatabaseUsers.", column);
+            }
+            catch (Exception ex)
+            {
+                // -1430 = column already exists, -1451 = column already allows NULL
+                // Any other error is unexpected but non-fatal for startup.
+                logger.LogWarning(ex, "Schema repair: could not apply '{Column}' — may already be correct.", column);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Drops all application tables and __EFMigrationsHistory so MigrateAsync() can
+    /// recreate the schema from scratch.
+    /// </summary>
+    private static async Task DropAllTablesAsync(ApplicationDbContext context)
+    {
+        var tablesToDrop = new[]
+        {
+            "DynamicQueryRoles", "DynamicQueryDepartments", "DynamicQueryUsers",
+            "QueryExecutionLogs", "QueryParameters", "UserRoles",
+            "UserDatabaseUserAccess", "DynamicQueries", "DatabaseUsers",
+            "Users", "Roles", "__EFMigrationsHistory"
+        };
+        foreach (var table in tablesToDrop)
+        {
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(
+                    $@"BEGIN EXECUTE IMMEDIATE 'DROP TABLE ""{table}"" CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;");
+            }
+            catch { /* table may not exist */ }
+        }
+    }
+
+    /// <summary>
+    /// Checks if any exception in the chain contains one of the specified Oracle error codes.
+    /// </summary>
+    private static bool ContainsOracleError(Exception ex, params string[] oraCodes)
+    {
+        var current = ex;
+        while (current != null)
+        {
+            foreach (var code in oraCodes)
+            {
+                if (current.Message.Contains(code))
+                    return true;
+            }
+            current = current.InnerException;
+        }
+        return false;
     }
 }
