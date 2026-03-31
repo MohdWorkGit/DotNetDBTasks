@@ -25,6 +25,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     ServiceName = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
                     DbUsername = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
                     EncryptedPassword = table.Column<string>(type: "NVARCHAR2(1000)", maxLength: 1000, nullable: false),
+                    ServerType = table.Column<int>(type: "NUMBER(10)", nullable: false, defaultValue: 0),
+                    DatabaseName = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false, defaultValue: ""),
                     IsActive = table.Column<short>(type: "NUMBER(1)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true)
