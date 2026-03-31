@@ -1,0 +1,170 @@
+────────────────────────────────────────────────────────────────────────────────
+ DATABASE MIGRATION NOTES — Oracle / EF Core Identifier & Schema Guide
+────────────────────────────────────────────────────────────────────────────────
+
+This document explains the root causes of the recurring ORA-00904 ("invalid
+identifier") errors and provides rules for future development to prevent them.
+
+═══════════════════════════════════════════════════════════════════════════════
+ 1. ROOT CAUSE ANALYSIS
+═══════════════════════════════════════════════════════════════════════════════
+
+Three interrelated issues caused the "invalid identifier" errors:
+
+  A) MISSING COLUMNS IN THE CreateTable MIGRATION
+     ─────────────────────────────────────────────
+     The AddDatabaseUsers migration (20260315) created the "DatabaseUsers"
+     table WITHOUT the "ServerType" and "DatabaseName" columns. These were
+     added in a separate AddMultiDatabaseSupport migration (20260329).
+
+     When AddMultiDatabaseSupport failed mid-way (see issue B below), the
+     table was left without those columns, but EF Core's model expected them.
+     Every SELECT/INSERT that EF Core generated for DatabaseUser included
+     "ServerType" and "DatabaseName", causing ORA-00904.
+
+     FIX: Both columns are now included in the AddDatabaseUsers CreateTable.
+          AddMultiDatabaseSupport is kept for backward-compatibility but is
+          fully idempotent (catches ORA-01430 "column already exists").
+
+  B) ORACLE NON-TRANSACTIONAL DDL
+     ─────────────────────────────
+     Unlike SQL Server and PostgreSQL, Oracle AUTO-COMMITS every DDL statement.
+     This means EF Core cannot roll back a partially-applied migration:
+
+       1. ADD COLUMN "ServerType"   → succeeds, auto-committed
+       2. ADD COLUMN "DatabaseName" → succeeds, auto-committed
+       3. ALTER TABLE ... MODIFY    → FAILS (Oracle empty-string bug)
+       4. Migration is NOT recorded in __EFMigrationsHistory
+       5. Next run: "ServerType" already exists → ORA-01430
+       6. Migration can NEVER complete → permanently broken state
+
+     FIX: All DDL in AddMultiDatabaseSupport now uses PL/SQL exception
+          handling to skip ORA-01430 (column already exists). Each statement
+          is independently idempotent.
+
+  C) ORACLE TREATS EMPTY STRING AS NULL
+     ──────────────────────────────────
+     Oracle treats '' (empty string) as NULL. The "ServiceName" and
+     "DatabaseName" columns were NOT NULL with a default of '' — Oracle
+     stored NULL, violating the NOT NULL constraint → ORA-01400.
+
+     FIX: Both columns are now NULLABLE in the schema. The entity properties
+          are string? (nullable). Command handlers convert empty strings to
+          null before saving. DTO mappings use `?? string.Empty` when reading.
+
+  D) EMPTY DESIGNER FILES
+     ─────────────────────
+     The Designer.cs files for AddDatabaseUsers and AddMultiDatabaseSupport
+     contained only the ProductVersion annotation — no model definition. This
+     prevented `dotnet ef migrations add` from computing accurate diffs, which
+     could generate incorrect or duplicate column additions.
+
+     FIX: Both designer files now contain the complete model snapshot at their
+          respective points in the migration chain.
+
+═══════════════════════════════════════════════════════════════════════════════
+ 2. RULES FOR FUTURE MIGRATIONS (ORACLE-SPECIFIC)
+═══════════════════════════════════════════════════════════════════════════════
+
+  RULE 1: Include ALL new columns in the CreateTable call.
+  ────────────────────────────────────────────────────────
+  Never rely on a separate migration to add columns to a table that was just
+  created in a prior migration. If both migrations are part of the same
+  release, combine them. Oracle's non-transactional DDL makes multi-step
+  schema changes fragile.
+
+  RULE 2: Make every migration idempotent.
+  ────────────────────────────────────────
+  Wrap ALTER TABLE ADD COLUMN in PL/SQL that catches ORA-01430:
+
+      BEGIN
+          EXECUTE IMMEDIATE 'ALTER TABLE "MyTable" ADD "MyCol" NUMBER(10)';
+      EXCEPTION
+          WHEN OTHERS THEN
+              IF SQLCODE != -1430 THEN RAISE; END IF;
+      END;
+
+  RULE 3: Never use empty string ('') as a default or required value.
+  ───────────────────────────────────────────────────────────────────
+  Oracle treats '' as NULL. If a column may hold an empty value, make it
+  NULLABLE instead of NOT NULL DEFAULT ''. In C# entities, use string?
+  for such columns and coalesce to string.Empty in DTOs/command handlers.
+
+  RULE 4: Always populate Designer.cs files.
+  ──────────────────────────────────────────
+  When creating migrations manually (not via `dotnet ef migrations add`),
+  copy the current ApplicationDbContextModelSnapshot content into the
+  Designer.cs BuildTargetModel method. Empty designer files break future
+  migration generation.
+
+  RULE 5: Always quote identifiers in user-facing SQL.
+  ───────────────────────────────────────────────────
+  Oracle stores UNQUOTED identifiers as UPPERCASE. All EF Core schema uses
+  double-quoted PascalCase ("Username", not USERNAME). User-written dynamic
+  queries MUST use quoted identifiers:
+
+      ✓  SELECT "Username" FROM "Users"
+      ✗  SELECT Username FROM Users       ← resolves to UPPERCASE → ORA-00904
+
+  The QueryExecutor adapts bracket-quoted SQL ([col]) to the target database's
+  quoting style, so store queries with [bracket] syntax for portability.
+
+  RULE 6: Test migrations on a CLEAN database.
+  ────────────────────────────────────────────
+  After modifying any migration file, drop all tables (including
+  __EFMigrationsHistory) and run MigrateAsync() to verify the full chain
+  applies cleanly. The DatabaseSeeder already does this on ORA-00955.
+
+═══════════════════════════════════════════════════════════════════════════════
+ 3. ENTITY ↔ DATABASE COLUMN QUICK REFERENCE (DatabaseUser)
+═══════════════════════════════════════════════════════════════════════════════
+
+  C# Property       │ DB Column        │ Type           │ Nullable │ Notes
+  ───────────────────┼──────────────────┼────────────────┼──────────┼──────────
+  Id                 │ "Id"             │ RAW(16)        │ NO       │ PK
+  Name               │ "Name"           │ NVARCHAR2(200) │ NO       │ UNIQUE
+  Description        │ "Description"    │ NVARCHAR2(1000)│ NO       │
+  ServerType         │ "ServerType"     │ NUMBER(10)     │ NO       │ Default 0
+  Host               │ "Host"           │ NVARCHAR2(500) │ NO       │
+  Port               │ "Port"           │ NUMBER(10)     │ NO       │ Default 1521
+  ServiceName        │ "ServiceName"    │ NVARCHAR2(200) │ YES      │ Oracle only
+  DatabaseName       │ "DatabaseName"   │ NVARCHAR2(200) │ YES      │ Non-Oracle
+  DbUsername         │ "DbUsername"     │ NVARCHAR2(200) │ NO       │
+  EncryptedPassword  │ "EncryptedPassword"│ NVARCHAR2(1000)│ NO     │ AES-256
+  IsActive           │ "IsActive"       │ NUMBER(1)      │ NO       │ 0/1
+  CreatedAt          │ "CreatedAt"      │ TIMESTAMP(7)   │ NO       │
+  UpdatedAt          │ "UpdatedAt"      │ TIMESTAMP(7)   │ YES      │
+
+═══════════════════════════════════════════════════════════════════════════════
+ 4. MIGRATION CHAIN (in execution order)
+═══════════════════════════════════════════════════════════════════════════════
+
+  1. 20260220000000_InitialCreate
+     → Creates: Roles, Users, DynamicQueries, UserRoles, DynamicQueryRoles,
+                QueryParameters, QueryExecutionLogs
+
+  2. 20260224000000_AddQueryAccessControl
+     → Creates: DynamicQueryDepartments, DynamicQueryUsers
+
+  3. 20260304000000_AddDropdownParameters
+     → Adds: DropdownSourceType, DropdownStaticValues, DropdownQueryId,
+             DropdownQueryValueColumn, DropdownQueryLabelColumn
+             to QueryParameters
+
+  4. 20260305100000_AddOldValuesJsonToExecutionLog
+     → Adds: OldValuesJson (CLOB) to QueryExecutionLogs
+
+  5. 20260311000000_AddAuditorRole
+     → Seeds: "Auditor" role via PL/SQL INSERT
+
+  6. 20260315000000_AddDatabaseUsers
+     → Creates: DatabaseUsers (with ServerType + DatabaseName),
+                UserDatabaseUserAccess
+     → Adds: DatabaseUserId FK to DynamicQueries
+
+  7. 20260329000000_AddMultiDatabaseSupport
+     → Idempotent: adds ServerType + DatabaseName if missing,
+                   makes ServiceName nullable
+     → Kept for backward-compatibility only
+
+────────────────────────────────────────────────────────────────────────────────

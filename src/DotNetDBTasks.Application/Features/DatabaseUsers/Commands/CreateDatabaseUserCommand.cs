@@ -46,8 +46,10 @@ public class CreateDatabaseUserCommandHandler
             ServerType = request.ServerType,
             Host = request.Host,
             Port = request.Port,
-            ServiceName = request.ServiceName,
-            DatabaseName = request.DatabaseName,
+            // Store null instead of empty string — Oracle treats "" as NULL which
+            // violates NOT NULL constraints. Only populate the field relevant to the ServerType.
+            ServiceName = string.IsNullOrEmpty(request.ServiceName) ? null : request.ServiceName,
+            DatabaseName = string.IsNullOrEmpty(request.DatabaseName) ? null : request.DatabaseName,
             DbUsername = request.DbUsername,
             EncryptedPassword = _encryption.Encrypt(request.Password),
             IsActive = true,
@@ -65,8 +67,8 @@ public class CreateDatabaseUserCommandHandler
             ServerType = entity.ServerType,
             Host = entity.Host,
             Port = entity.Port,
-            ServiceName = entity.ServiceName,
-            DatabaseName = entity.DatabaseName,
+            ServiceName = entity.ServiceName ?? string.Empty,
+            DatabaseName = entity.DatabaseName ?? string.Empty,
             DbUsername = entity.DbUsername,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt
