@@ -54,8 +54,9 @@ public class UpdateDatabaseUserCommandHandler
         entity.ServerType = request.ServerType;
         entity.Host = request.Host;
         entity.Port = request.Port;
-        entity.ServiceName = request.ServiceName;
-        entity.DatabaseName = request.DatabaseName;
+        // Store null instead of empty string — Oracle treats "" as NULL.
+        entity.ServiceName = string.IsNullOrEmpty(request.ServiceName) ? null : request.ServiceName;
+        entity.DatabaseName = string.IsNullOrEmpty(request.DatabaseName) ? null : request.DatabaseName;
         entity.DbUsername = request.DbUsername;
         entity.IsActive = request.IsActive;
         entity.UpdatedAt = DateTime.UtcNow;
@@ -76,8 +77,8 @@ public class UpdateDatabaseUserCommandHandler
             ServerType = entity.ServerType,
             Host = entity.Host,
             Port = entity.Port,
-            ServiceName = entity.ServiceName,
-            DatabaseName = entity.DatabaseName,
+            ServiceName = entity.ServiceName ?? string.Empty,
+            DatabaseName = entity.DatabaseName ?? string.Empty,
             DbUsername = entity.DbUsername,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt

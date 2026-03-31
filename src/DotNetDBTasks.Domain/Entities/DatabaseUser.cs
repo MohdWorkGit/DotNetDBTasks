@@ -21,13 +21,17 @@ public class DatabaseUser : BaseEntity
 
     /// <summary>
     /// Oracle service name. Used when ServerType is Oracle.
+    /// Nullable because it is only relevant for Oracle connections.
+    /// Oracle treats empty strings as NULL, so this must be nullable to avoid ORA-01400.
     /// </summary>
-    public string ServiceName { get; set; } = string.Empty;
+    public string? ServiceName { get; set; }
 
     /// <summary>
     /// Database/catalog name. Used when ServerType is SqlServer, PostgreSql, or MySql.
+    /// Nullable because it is only relevant for non-Oracle connections.
+    /// Oracle treats empty strings as NULL, so this must be nullable to avoid ORA-01400.
     /// </summary>
-    public string DatabaseName { get; set; } = string.Empty;
+    public string? DatabaseName { get; set; }
 
     public string DbUsername { get; set; } = string.Empty;
 

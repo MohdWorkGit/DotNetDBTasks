@@ -29,7 +29,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .HasColumnType("TIMESTAMP(7)");
 
                     b.Property<string>("DatabaseName")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("NVARCHAR2(200)");
 
@@ -72,7 +71,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<string>("ServiceName")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("NVARCHAR2(200)");
 

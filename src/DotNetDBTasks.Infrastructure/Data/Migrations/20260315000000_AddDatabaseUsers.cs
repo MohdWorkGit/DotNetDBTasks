@@ -20,9 +20,13 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     Id = table.Column<Guid>(type: "RAW(16)", nullable: false),
                     Name = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "NVARCHAR2(1000)", maxLength: 1000, nullable: false),
+                    ServerType = table.Column<int>(type: "NUMBER(10)", nullable: false, defaultValue: 0),
                     Host = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: false),
                     Port = table.Column<int>(type: "NUMBER(10)", nullable: false, defaultValue: 1521),
-                    ServiceName = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
+                    // Nullable: Oracle treats empty strings as NULL; ServiceName is only used for Oracle connections.
+                    ServiceName = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: true),
+                    // Nullable: DatabaseName is only used for non-Oracle connections.
+                    DatabaseName = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: true),
                     DbUsername = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
                     EncryptedPassword = table.Column<string>(type: "NVARCHAR2(1000)", maxLength: 1000, nullable: false),
                     IsActive = table.Column<short>(type: "NUMBER(1)", nullable: false),

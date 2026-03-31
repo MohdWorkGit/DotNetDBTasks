@@ -30,10 +30,15 @@ public class DatabaseUserConfiguration : IEntityTypeConfiguration<DatabaseUser>
         builder.Property(e => e.Port)
             .HasDefaultValue(1521);
 
+        // ServiceName is only used for Oracle connections; nullable to avoid
+        // ORA-01400 when inserting non-Oracle database users (Oracle treats "" as NULL).
         builder.Property(e => e.ServiceName)
+            .IsRequired(false)
             .HasMaxLength(200);
 
+        // DatabaseName is only used for non-Oracle connections; nullable for the same reason.
         builder.Property(e => e.DatabaseName)
+            .IsRequired(false)
             .HasMaxLength(200);
 
         builder.Property(e => e.DbUsername)
