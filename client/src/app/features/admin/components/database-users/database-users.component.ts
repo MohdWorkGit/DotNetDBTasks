@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { QueryService } from '@core/services/query.service';
-import { DatabaseUser, SystemUser } from '@core/models/dynamic-query.model';
+import { DatabaseUser, DatabaseServerType, SystemUser } from '@core/models/dynamic-query.model';
 
 @Component({
   standalone: false,
@@ -36,6 +36,13 @@ import { DatabaseUser, SystemUser } from '@core/models/dynamic-query.model';
               </mat-form-field>
 
               <mat-form-field appearance="outline">
+                <mat-label>Database Type</mat-label>
+                <mat-select formControlName="serverType" (selectionChange)="onServerTypeChange($event.value)">
+                  <mat-option *ngFor="let st of serverTypes" [value]="st.value">{{ st.label }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
                 <mat-label>Host</mat-label>
                 <input matInput formControlName="host" placeholder="e.g. db.example.com">
               </mat-form-field>
@@ -45,9 +52,14 @@ import { DatabaseUser, SystemUser } from '@core/models/dynamic-query.model';
                 <input matInput type="number" formControlName="port">
               </mat-form-field>
 
-              <mat-form-field appearance="outline">
+              <mat-form-field *ngIf="isOracle" appearance="outline">
                 <mat-label>Service Name</mat-label>
                 <input matInput formControlName="serviceName" placeholder="e.g. XEPDB1">
+              </mat-form-field>
+
+              <mat-form-field *ngIf="!isOracle" appearance="outline">
+                <mat-label>Database Name</mat-label>
+                <input matInput formControlName="databaseName" placeholder="e.g. mydb">
               </mat-form-field>
 
               <mat-form-field appearance="outline">
@@ -84,7 +96,10 @@ import { DatabaseUser, SystemUser } from '@core/models/dynamic-query.model';
               {{ du.isActive ? 'check_circle' : 'cancel' }}
             </mat-icon>
           </mat-card-title>
-          <mat-card-subtitle>{{ du.dbUsername }}@{{ du.host }}:{{ du.port }}/{{ du.serviceName }}</mat-card-subtitle>
+          <mat-card-subtitle>
+            <span class="db-type-badge">{{ getServerTypeLabel(du.serverType) }}</span>
+            {{ du.dbUsername }}@{{ du.host }}:{{ du.port }}/{{ du.serverType === 0 ? du.serviceName : du.databaseName }}
+          </mat-card-subtitle>
         </mat-card-header>
 
         <mat-card-content>
@@ -159,6 +174,17 @@ import { DatabaseUser, SystemUser } from '@core/models/dynamic-query.model';
     .empty { text-align: center; color: var(--text-secondary); padding: 40px 0; }
     .hint { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
     .user-checkboxes { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+    .db-type-badge {
+      display: inline-block;
+      background: var(--primary-color, #1976d2);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
   `]
 })
 export class DatabaseUsersComponent implements OnInit {
@@ -173,6 +199,17 @@ export class DatabaseUsersComponent implements OnInit {
   accessDialogDbUser: DatabaseUser | null = null;
   selectedUserIds = new Set<string>();
   savingAccess = false;
+
+  serverTypes = [
+    { value: DatabaseServerType.Oracle, label: 'Oracle', defaultPort: 1521 },
+    { value: DatabaseServerType.SqlServer, label: 'SQL Server', defaultPort: 1433 },
+    { value: DatabaseServerType.PostgreSql, label: 'PostgreSQL', defaultPort: 5432 },
+    { value: DatabaseServerType.MySql, label: 'MySQL', defaultPort: 3306 }
+  ];
+
+  get isOracle(): boolean {
+    return this.form?.get('serverType')?.value === DatabaseServerType.Oracle;
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -195,13 +232,24 @@ export class DatabaseUsersComponent implements OnInit {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(200)]],
       description: ['', Validators.maxLength(1000)],
+      serverType: [DatabaseServerType.Oracle, Validators.required],
       host: ['', Validators.required],
       port: [1521, [Validators.required, Validators.min(1)]],
-      serviceName: ['', Validators.required],
+      serviceName: [''],
+      databaseName: [''],
       dbUsername: ['', Validators.required],
       password: ['', Validators.required],
       isActive: [true]
     });
+  }
+
+  onServerTypeChange(value: DatabaseServerType): void {
+    const defaultPort = this.serverTypes.find(s => s.value === value)?.defaultPort ?? 1521;
+    this.form.patchValue({ port: defaultPort });
+  }
+
+  getServerTypeLabel(value: DatabaseServerType): string {
+    return this.serverTypes.find(s => s.value === value)?.label ?? 'Unknown';
   }
 
   loadDbUsers(): void {
@@ -225,9 +273,11 @@ export class DatabaseUsersComponent implements OnInit {
     this.form.patchValue({
       name: du.name,
       description: du.description,
+      serverType: du.serverType,
       host: du.host,
       port: du.port,
       serviceName: du.serviceName,
+      databaseName: du.databaseName,
       dbUsername: du.dbUsername,
       isActive: du.isActive,
       password: ''

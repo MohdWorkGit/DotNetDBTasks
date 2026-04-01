@@ -46,13 +46,22 @@ export interface UserAssignment {
   username: string;
 }
 
+export enum DatabaseServerType {
+  Oracle = 0,
+  SqlServer = 1,
+  PostgreSql = 2,
+  MySql = 3
+}
+
 export interface DatabaseUser {
   id: string;
   name: string;
   description: string;
+  serverType: DatabaseServerType;
   host: string;
   port: number;
   serviceName: string;
+  databaseName: string;
   dbUsername: string;
   isActive: boolean;
   createdAt: string;
@@ -72,9 +81,11 @@ export interface DatabaseUserSummary {
 export interface CreateDatabaseUserRequest {
   name: string;
   description: string;
+  serverType: DatabaseServerType;
   host: string;
   port: number;
   serviceName: string;
+  databaseName: string;
   dbUsername: string;
   password: string;
 }
@@ -83,9 +94,11 @@ export interface UpdateDatabaseUserRequest {
   id: string;
   name: string;
   description: string;
+  serverType: DatabaseServerType;
   host: string;
   port: number;
   serviceName: string;
+  databaseName: string;
   dbUsername: string;
   isActive: boolean;
   password?: string;
