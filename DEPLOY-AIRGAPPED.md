@@ -106,21 +106,34 @@ The Angular production build uses `/api` as a relative URL, so nginx must proxy 
 Create this as `conf/nginx.conf` inside your nginx folder:
 
 ```nginx
-server {
-    listen 80;
+worker_processes 1;
 
-    root C:/deploy/client;
-    index index.html;
+events {
+    worker_connections 1024;
+}
 
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+http {
+    include mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+    keepalive_timeout 65;
 
-    location /api {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+    server {
+        listen 80;
+
+        root C:/deploy/client;
+        index index.html;
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        location /api {
+            proxy_pass http://localhost:5000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
     }
 }
 ```
