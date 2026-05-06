@@ -14,6 +14,9 @@ client/dist/
 client/.angular/
 client/.sass-cache/
 
+# Publish output
+api-publish/
+
 # Docker
 .env
 
