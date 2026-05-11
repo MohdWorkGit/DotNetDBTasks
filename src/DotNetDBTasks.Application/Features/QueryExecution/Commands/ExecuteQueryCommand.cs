@@ -111,6 +111,9 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             if (paramDef.IsRequired && string.IsNullOrWhiteSpace(rawValue))
                 throw new DomainException($"Parameter '{paramDef.DisplayName}' is required.");
 
+            if (paramDef.ParameterType == ParameterType.Dropdown && !string.IsNullOrWhiteSpace(rawValue))
+                ValidateDropdownOption(rawValue, paramDef);
+
             typedParameters[paramDef.Name] = ConvertParameter(rawValue, paramDef.ParameterType);
         }
 
@@ -207,7 +210,9 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
 
         return type switch
         {
-            ParameterType.String => rawValue,
+            ParameterType.String => rawValue.Length > 4000
+                ? throw new DomainException($"Parameter value exceeds the maximum allowed length of 4000 characters.")
+                : rawValue,
             ParameterType.Number => decimal.TryParse(rawValue, out var num) ? num
                 : throw new DomainException($"Invalid number value: {rawValue}"),
             ParameterType.Date => DateTime.TryParse(rawValue, out var date) ? date
@@ -219,6 +224,22 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             ParameterType.Dropdown => rawValue,
             _ => rawValue
         };
+    }
+
+    private static void ValidateDropdownOption(string rawValue, QueryParameter paramDef)
+    {
+        if (paramDef.DropdownSourceType != DropdownSourceType.Static
+            || string.IsNullOrWhiteSpace(paramDef.DropdownStaticValues))
+            return;
+
+        using var doc = JsonDocument.Parse(paramDef.DropdownStaticValues);
+        var allowed = doc.RootElement.EnumerateArray()
+            .Select(e => e.TryGetProperty("value", out var v) ? v.GetString() : null)
+            .Where(v => v is not null)
+            .ToHashSet(StringComparer.Ordinal);
+
+        if (!allowed.Contains(rawValue))
+            throw new DomainException($"Invalid value for parameter '{paramDef.DisplayName}'. Select a valid option.");
     }
 
     private static bool IsUpdateQuery(string sql) =>

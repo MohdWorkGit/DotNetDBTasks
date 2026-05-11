@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MatPaginator } from '@angular/material/paginator';
+import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { forkJoin, of, throwError } from 'rxjs';
@@ -133,13 +134,23 @@ import {
         </mat-card-header>
         <mat-card-content>
           <div *ngIf="result.columns.length > 0" class="table-wrapper">
-            <table mat-table [dataSource]="dataSource">
+            <table mat-table [dataSource]="dataSource" matSort>
               <ng-container *ngFor="let col of result.columns" [matColumnDef]="col">
-                <th mat-header-cell *matHeaderCellDef>{{ col }}</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ col }}</th>
                 <td mat-cell *matCellDef="let row">{{ row[col] }}</td>
               </ng-container>
 
+              <ng-container *ngFor="let col of result.columns" [matColumnDef]="'filter_' + col">
+                <th mat-header-cell *matHeaderCellDef>
+                  <input class="col-filter-input"
+                         [value]="columnFilters[col] || ''"
+                         placeholder="Filter..."
+                         (input)="applyColumnFilter($event, col)" />
+                </th>
+              </ng-container>
+
               <tr mat-header-row *matHeaderRowDef="result.columns"></tr>
+              <tr mat-header-row *matHeaderRowDef="filterColumns" class="filter-row"></tr>
               <tr mat-row *matRowDef="let row; columns: result.columns;"></tr>
             </table>
           </div>
@@ -170,6 +181,20 @@ import {
     .results-card { margin-top: 24px; }
     .table-wrapper { overflow-x: auto; }
     table { width: 100%; }
+    .filter-row th { padding-top: 4px; padding-bottom: 4px; background: var(--bg-secondary, #f5f5f5); }
+    .col-filter-input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--border-color, #ccc);
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 12px;
+      background: var(--bg-primary, #fff);
+      color: inherit;
+      outline: none;
+    }
+    .col-filter-input:focus { border-color: var(--primary, #1976d2); box-shadow: 0 0 0 2px rgba(25,118,210,.15); }
+    .col-filter-input::placeholder { color: var(--text-hint, #999); }
     .non-query-result { display: flex; align-items: center; gap: 8px; padding: 24px 0; color: var(--status-success); }
     .non-query-result mat-icon { font-size: 32px; width: 32px; height: 32px; }
     .non-query-result p { font-size: 16px; margin: 0; }
@@ -186,11 +211,14 @@ export class QueryExecuteComponent implements OnInit {
   loadingQuery = true;
   loadingDropdowns = false;
   queryError = '';
+  columnFilters: Record<string, string> = {};
+  filterColumns: string[] = [];
 
   /** Maps param.name -> list of dropdown options */
   dropdownOptions: Record<string, DropdownOption[]> = {};
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
 
   private queryId = '';
 
@@ -290,11 +318,20 @@ export class QueryExecuteComponent implements OnInit {
     this.queryService.executeQuery(this.query.id, params).subscribe({
       next: (res) => {
         this.result = res;
+        this.columnFilters = {};
+        this.filterColumns = res.columns.map(c => 'filter_' + c);
+        this.dataSource.filterPredicate = (row: Record<string, any>, filter: string) => {
+          const filters: Record<string, string> = JSON.parse(filter || '{}');
+          return Object.entries(filters).every(([col, val]) => {
+            if (!val) return true;
+            return String(row[col] ?? '').toLowerCase().includes(val.toLowerCase());
+          });
+        };
         this.dataSource.data = res.rows;
+        this.dataSource.filter = '';
         setTimeout(() => {
-          if (this.paginator) {
-            this.dataSource.paginator = this.paginator;
-          }
+          if (this.paginator) this.dataSource.paginator = this.paginator;
+          if (this.sort) this.dataSource.sort = this.sort;
         });
         this.executing = false;
         this.cdr.detectChanges();
@@ -310,19 +347,32 @@ export class QueryExecuteComponent implements OnInit {
     });
   }
 
+  applyColumnFilter(event: Event, col: string): void {
+    const value = (event.target as HTMLInputElement).value.trim();
+    this.columnFilters[col] = value;
+    this.dataSource.filter = JSON.stringify(this.columnFilters);
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
+  }
+
   exportCsv(): void {
     if (!this.result) return;
 
-    const headers = this.result.columns.join(',');
+    const escape = (val: string) => {
+      if (val.includes('"') || val.includes(',') || val.includes('\n') || val.includes('\r')) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
+    const headers = this.result.columns.map(escape).join(',');
     const rows = this.result.rows.map(row =>
-      this.result!.columns.map(col => {
-        const val = String(row[col] ?? '');
-        return val.includes(',') ? `"${val}"` : val;
-      }).join(',')
+      this.result!.columns.map(col => escape(String(row[col] ?? ''))).join(',')
     );
 
-    const csv = [headers, ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csv = [headers, ...rows].join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

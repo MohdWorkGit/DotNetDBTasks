@@ -20,17 +20,19 @@ public class QueryExecutor : IQueryExecutor
 {
     private readonly string _defaultConnectionString;
     private readonly DatabaseServerType _defaultServerType;
+    private readonly int _maxQueryRows;
 
     public QueryExecutor(IConfiguration configuration)
     {
         _defaultConnectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not configured.");
 
-        // Parse the default server type from configuration, defaulting to Oracle for backwards compatibility
         var serverTypeStr = configuration["DefaultDatabaseServerType"];
         _defaultServerType = Enum.TryParse<DatabaseServerType>(serverTypeStr, true, out var parsed)
             ? parsed
             : DatabaseServerType.Oracle;
+
+        _maxQueryRows = configuration.GetValue<int>("MaxQueryRows", 10_000);
     }
 
     public Task<QueryExecutionResult> ExecuteAsync(
@@ -39,7 +41,7 @@ public class QueryExecutor : IQueryExecutor
         int timeoutSeconds,
         CancellationToken cancellationToken = default)
     {
-        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, _defaultConnectionString, _defaultServerType, cancellationToken);
+        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, _defaultConnectionString, _defaultServerType, _maxQueryRows, cancellationToken);
     }
 
     public Task<QueryExecutionResult> ExecuteAsync(
@@ -50,7 +52,7 @@ public class QueryExecutor : IQueryExecutor
         DatabaseServerType serverType,
         CancellationToken cancellationToken = default)
     {
-        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, connectionString, serverType, cancellationToken);
+        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, connectionString, serverType, _maxQueryRows, cancellationToken);
     }
 
     private static async Task<QueryExecutionResult> ExecuteInternalAsync(
@@ -59,6 +61,7 @@ public class QueryExecutor : IQueryExecutor
         int timeoutSeconds,
         string connectionString,
         DatabaseServerType serverType,
+        int maxQueryRows,
         CancellationToken cancellationToken)
     {
         var result = new QueryExecutionResult();
@@ -92,6 +95,12 @@ public class QueryExecutor : IQueryExecutor
 
             while (await reader.ReadAsync(cancellationToken))
             {
+                if (result.Rows.Count >= maxQueryRows)
+                {
+                    result.IsLimitReached = true;
+                    break;
+                }
+
                 var row = new Dictionary<string, object?>();
                 for (int i = 0; i < reader.FieldCount; i++)
                 {

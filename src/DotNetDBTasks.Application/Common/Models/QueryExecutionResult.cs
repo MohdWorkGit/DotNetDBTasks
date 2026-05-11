@@ -11,6 +11,7 @@ public class QueryExecutionResult
     public List<Dictionary<string, object?>> Rows { get; set; } = new();
     public int TotalRows { get; set; }
     public int AffectedRows { get; set; }
+    public bool IsLimitReached { get; set; }
     public long ExecutionDurationMs { get; set; }
     public Dictionary<string, object?> Parameters { get; set; } = new();
 }
