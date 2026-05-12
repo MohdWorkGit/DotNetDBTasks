@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\msm508\\\\Desktop\\\\DBTasks\\\\DotNetDBTasks\" -Directory)"
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\msm508\\\\Desktop\\\\DBTasks\\\\DotNetDBTasks\" -Directory)",
+      "Bash(dotnet build *)",
+      "PowerShell($ports = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -in 5000,5001,5005,7000,7001,7005,8080,4200 } | Select-Object LocalPort, OwningProcess -Unique; if \\($ports\\) { $ports | ForEach-Object { $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; \"$\\($_.LocalPort\\) -> PID $\\($_.OwningProcess\\) \\($\\($proc.ProcessName\\)\\)\" } } else { 'no listeners on common dev ports' })"
     ]
   }
 }

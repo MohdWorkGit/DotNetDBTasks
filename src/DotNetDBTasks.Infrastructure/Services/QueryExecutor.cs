@@ -55,6 +55,65 @@ public class QueryExecutor : IQueryExecutor
         return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, connectionString, serverType, _maxQueryRows, cancellationToken);
     }
 
+    public Task<QueryExecutionResult> ExecutePreviewAsync(
+        string sqlQuery,
+        Dictionary<string, object?> parameters,
+        int timeoutSeconds,
+        string? connectionString,
+        DatabaseServerType? serverType,
+        CancellationToken cancellationToken = default)
+    {
+        var cs = connectionString ?? _defaultConnectionString;
+        var st = serverType ?? _defaultServerType;
+        return ExecutePreviewInternalAsync(sqlQuery, parameters, timeoutSeconds, cs, st, cancellationToken);
+    }
+
+    private static async Task<QueryExecutionResult> ExecutePreviewInternalAsync(
+        string sqlQuery,
+        Dictionary<string, object?> parameters,
+        int timeoutSeconds,
+        string connectionString,
+        DatabaseServerType serverType,
+        CancellationToken cancellationToken)
+    {
+        var result = new QueryExecutionResult();
+        var sw = Stopwatch.StartNew();
+
+        var adaptedSql = AdaptSqlSyntax(sqlQuery, serverType);
+
+        await using var connection = CreateConnection(connectionString, serverType);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = adaptedSql;
+            command.CommandTimeout = timeoutSeconds;
+
+            if (command is OracleCommand oracleCmd)
+            {
+                oracleCmd.BindByName = true;
+            }
+
+            AddParameters(command, parameters, serverType);
+
+            var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
+            result.AffectedRows = affectedRows;
+        }
+        finally
+        {
+            await transaction.RollbackAsync(cancellationToken);
+        }
+
+        sw.Stop();
+        result.ExecutionDurationMs = sw.ElapsedMilliseconds;
+        result.RequiresConfirmation = true;
+
+        return result;
+    }
+
     private static async Task<QueryExecutionResult> ExecuteInternalAsync(
         string sqlQuery,
         Dictionary<string, object?> parameters,

@@ -10,6 +10,7 @@ namespace DotNetDBTasks.API.Controllers;
 public class ExecuteQueryRequest
 {
     public Dictionary<string, string>? Parameters { get; set; }
+    public bool Confirmed { get; set; }
 }
 
 /// <summary>
@@ -59,7 +60,8 @@ public class UserQueriesController : ControllerBase
         var command = new ExecuteQueryCommand
         {
             QueryId = id,
-            Parameters = request.Parameters ?? new()
+            Parameters = request.Parameters ?? new(),
+            Confirmed = request.Confirmed
         };
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);

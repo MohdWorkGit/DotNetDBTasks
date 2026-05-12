@@ -14,4 +14,19 @@ public class QueryExecutionResult
     public bool IsLimitReached { get; set; }
     public long ExecutionDurationMs { get; set; }
     public Dictionary<string, object?> Parameters { get; set; } = new();
+
+    /// <summary>
+    /// True when this result is a preview of a write query (INSERT/UPDATE/DELETE).
+    /// The transaction has been rolled back; the client must re-submit with confirmation
+    /// to actually commit the changes. AffectedRows reflects the count that would be changed.
+    /// </summary>
+    public bool RequiresConfirmation { get; set; }
+
+    /// <summary>
+    /// For preview results on UPDATE/DELETE: the current rows in the database that match the
+    /// WHERE clause and will be modified or deleted. Empty when the SQL cannot be parsed or
+    /// for INSERT statements.
+    /// </summary>
+    public List<string> PreviewColumns { get; set; } = new();
+    public List<Dictionary<string, object?>> PreviewRows { get; set; } = new();
 }

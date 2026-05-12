@@ -25,4 +25,16 @@ public interface IQueryExecutor
         string connectionString,
         DatabaseServerType serverType,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes a non-SELECT query inside a transaction and rolls back, returning the
+    /// number of rows that would be affected if committed.
+    /// </summary>
+    Task<QueryExecutionResult> ExecutePreviewAsync(
+        string sqlQuery,
+        Dictionary<string, object?> parameters,
+        int timeoutSeconds,
+        string? connectionString,
+        DatabaseServerType? serverType,
+        CancellationToken cancellationToken = default);
 }

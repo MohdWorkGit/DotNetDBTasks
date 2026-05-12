@@ -57,7 +57,7 @@ import { AuthService } from '@core/services/auth.service';
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background: var(--bg-secondary);
+      background: var(--bg-primary);
     }
     .login-card {
       width: 400px;

@@ -176,7 +176,7 @@ import { DatabaseUser, DatabaseServerType, SystemUser } from '@core/models/dynam
     .user-checkboxes { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
     .db-type-badge {
       display: inline-block;
-      background: var(--primary-color, #1976d2);
+      background: var(--accent-primary);
       color: #fff;
       font-size: 11px;
       font-weight: 500;

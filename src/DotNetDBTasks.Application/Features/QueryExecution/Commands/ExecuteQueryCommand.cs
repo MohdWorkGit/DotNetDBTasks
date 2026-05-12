@@ -20,6 +20,14 @@ public class ExecuteQueryCommand : IRequest<QueryExecutionResult>
 {
     public Guid QueryId { get; set; }
     public Dictionary<string, string> Parameters { get; set; } = new();
+
+    /// <summary>
+    /// When false (default), write queries (INSERT/UPDATE/DELETE) are executed in
+    /// preview mode: the change is run inside a transaction and rolled back, and
+    /// only the affected row count is returned so the user can confirm. The client
+    /// must re-submit with Confirmed=true to actually commit the change.
+    /// </summary>
+    public bool Confirmed { get; set; }
 }
 
 public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, QueryExecutionResult>
@@ -115,6 +123,32 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
                 ValidateDropdownOption(rawValue, paramDef);
 
             typedParameters[paramDef.Name] = ConvertParameter(rawValue, paramDef.ParameterType);
+        }
+
+        // Preview mode: for unconfirmed write queries (INSERT/UPDATE/DELETE), run inside
+        // a transaction, capture the affected row count, then roll back. The client shows
+        // the count to the user and re-submits with Confirmed=true to actually commit.
+        if (!request.Confirmed && IsWriteQuery(query.SqlQuery))
+        {
+            var previewResult = await _queryExecutor.ExecutePreviewAsync(
+                query.SqlQuery,
+                typedParameters,
+                query.TimeoutSeconds,
+                connectionString,
+                resolvedDbUser?.ServerType,
+                cancellationToken);
+            previewResult.Parameters = typedParameters;
+
+            // For UPDATE/DELETE, also fetch the affected rows so the user can review them.
+            var affectedRowsPreview = await FetchAffectedRowsPreviewAsync(
+                query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser, cancellationToken);
+            if (affectedRowsPreview is not null)
+            {
+                previewResult.PreviewColumns = affectedRowsPreview.Columns;
+                previewResult.PreviewRows = affectedRowsPreview.Rows;
+            }
+
+            return previewResult;
         }
 
         // For UPDATE queries, fetch the current (old) values from the database before applying the update.
@@ -244,6 +278,97 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
 
     private static bool IsUpdateQuery(string sql) =>
         sql.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// For UPDATE/DELETE statements, parses out the table and WHERE clause and runs a
+    /// SELECT * against the same predicate so the user can see which rows will be affected
+    /// before confirming. Returns null for INSERT or when the SQL can't be parsed.
+    /// </summary>
+    private async Task<QueryExecutionResult?> FetchAffectedRowsPreviewAsync(
+        string sql,
+        Dictionary<string, object?> typedParameters,
+        int timeoutSeconds,
+        string? connectionString,
+        DatabaseUser? resolvedDbUser,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var trimmed = sql.TrimStart();
+            string? tableName = null;
+            string? wherePart = null;
+
+            if (trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase))
+            {
+                var match = Regex.Match(
+                    trimmed,
+                    @"UPDATE\s+(""?\w+""?)\s+SET\s+.*?\s+WHERE\s+(.*)",
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                if (match.Success)
+                {
+                    tableName = match.Groups[1].Value;
+                    wherePart = match.Groups[2].Value;
+                }
+            }
+            else if (trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase))
+            {
+                var match = Regex.Match(
+                    trimmed,
+                    @"DELETE\s+FROM\s+(""?\w+""?)(?:\s+WHERE\s+(.*))?",
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                if (match.Success)
+                {
+                    tableName = match.Groups[1].Value;
+                    wherePart = match.Groups[2].Success ? match.Groups[2].Value : null;
+                }
+            }
+            else
+            {
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(tableName)) return null;
+
+            var selectSql = string.IsNullOrWhiteSpace(wherePart)
+                ? $"SELECT * FROM {tableName}"
+                : $"SELECT * FROM {tableName} WHERE {wherePart}";
+
+            Dictionary<string, object?> selectParams;
+            if (string.IsNullOrWhiteSpace(wherePart))
+            {
+                selectParams = new Dictionary<string, object?>();
+            }
+            else
+            {
+                var whereParamNames = Regex.Matches(wherePart, @"[@:](\w+)")
+                    .Select(m => m.Groups[1].Value)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                selectParams = typedParameters
+                    .Where(p => whereParamNames.Contains(p.Key))
+                    .ToDictionary(p => p.Key, p => p.Value);
+            }
+
+            if (connectionString != null && resolvedDbUser != null)
+            {
+                return await _queryExecutor.ExecuteAsync(
+                    selectSql, selectParams, timeoutSeconds, connectionString, resolvedDbUser.ServerType, cancellationToken);
+            }
+            return await _queryExecutor.ExecuteAsync(selectSql, selectParams, timeoutSeconds, cancellationToken);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsWriteQuery(string sql)
+    {
+        var trimmed = sql.TrimStart();
+        return trimmed.StartsWith("INSERT", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// Attempts to build a SELECT from the UPDATE statement to read current column values

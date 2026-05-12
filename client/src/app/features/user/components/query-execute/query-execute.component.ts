@@ -123,6 +123,42 @@ import {
         </mat-card-content>
       </mat-card>
 
+      <mat-card *ngIf="pendingPreview" class="confirm-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="warn-icon">warning</mat-icon>
+          <mat-card-title>Confirm changes</mat-card-title>
+          <mat-card-subtitle>This query will modify data. Review before committing.</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>
+            <strong>{{ pendingPreview.affectedRows }}</strong>
+            {{ pendingPreview.affectedRows === 1 ? 'row' : 'rows' }} will be affected.
+            The change has not been committed yet.
+          </p>
+          <div *ngIf="pendingPreview.previewRows && pendingPreview.previewRows.length > 0"
+               class="preview-table-wrapper">
+            <p class="preview-table-title">Rows that will be affected:</p>
+            <table mat-table [dataSource]="pendingPreview.previewRows" class="preview-table">
+              <ng-container *ngFor="let col of pendingPreview.previewColumns || []" [matColumnDef]="col">
+                <th mat-header-cell *matHeaderCellDef>{{ col }}</th>
+                <td mat-cell *matCellDef="let row">{{ row[col] }}</td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="pendingPreview.previewColumns || []"></tr>
+              <tr mat-row *matRowDef="let row; columns: pendingPreview.previewColumns || [];"></tr>
+            </table>
+          </div>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-stroked-button type="button" (click)="cancelConfirm()" [disabled]="executing">
+            Cancel
+          </button>
+          <button mat-raised-button color="warn" type="button" (click)="confirmExecute()" [disabled]="executing">
+            <mat-icon>check</mat-icon>
+            {{ executing ? 'Committing...' : 'Confirm & Commit' }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
       <mat-card *ngIf="result" class="results-card">
         <mat-card-header>
           <mat-card-title>Results</mat-card-title>
@@ -196,19 +232,33 @@ import {
       color: inherit;
       outline: none;
     }
-    .col-filter-input:focus { border-color: var(--primary, #1976d2); box-shadow: 0 0 0 2px rgba(25,118,210,.15); }
+    .col-filter-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,.25); }
     .col-filter-input::placeholder { color: var(--text-hint, #999); }
     .non-query-result { display: flex; align-items: center; gap: 8px; padding: 24px 0; color: var(--status-success); }
     .non-query-result mat-icon { font-size: 32px; width: 32px; height: 32px; }
     .non-query-result p { font-size: 16px; margin: 0; }
     .loading-hint { margin-bottom: 16px; }
     .loading-hint p { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
+    .confirm-card { margin-top: 16px; border-left: 4px solid var(--status-warning, #f59e0b); }
+    .confirm-card .warn-icon {
+      display: flex; align-items: center; justify-content: center;
+      background: var(--status-warning, #f59e0b); color: #fff; border-radius: 50%;
+    }
+    .confirm-card p { font-size: 15px; margin: 0; }
+    .preview-table-wrapper { margin-top: 12px; overflow-x: auto; max-height: 320px; overflow-y: auto; border: 1px solid var(--border-color, #e0e0e0); border-radius: 4px; }
+    .preview-table-title { font-size: 13px; margin: 0 0 8px 0; color: var(--text-secondary); }
+    .preview-table { width: 100%; font-size: 13px; }
+    .preview-table th { font-weight: 600; background: var(--bg-secondary, #fafafa); position: sticky; top: 0; z-index: 1; }
   `]
 })
 export class QueryExecuteComponent implements OnInit {
   query?: DynamicQuery;
   form!: FormGroup;
   result?: QueryExecutionResult;
+  /** Preview returned by the backend for a write query awaiting user confirmation. */
+  pendingPreview?: QueryExecutionResult;
+  /** Parameters used for the pending preview, replayed on confirm. */
+  private pendingParams: Record<string, string> = {};
   dataSource = new MatTableDataSource<Record<string, any>>();
   executing = false;
   loadingQuery = true;
@@ -323,7 +373,6 @@ export class QueryExecuteComponent implements OnInit {
   execute(): void {
     if (this.form.invalid || !this.query) return;
 
-    this.executing = true;
     const params: Record<string, string> = {};
 
     for (const param of this.query.parameters) {
@@ -340,8 +389,39 @@ export class QueryExecuteComponent implements OnInit {
       params[param.name] = value;
     }
 
-    this.queryService.executeQuery(this.query.id, params).subscribe({
+    this.pendingPreview = undefined;
+    this.runExecute(params, false);
+  }
+
+  confirmExecute(): void {
+    if (!this.pendingPreview) return;
+    this.runExecute(this.pendingParams, true);
+  }
+
+  cancelConfirm(): void {
+    this.pendingPreview = undefined;
+    this.pendingParams = {};
+    this.cdr.detectChanges();
+  }
+
+  private runExecute(params: Record<string, string>, confirmed: boolean): void {
+    if (!this.query) return;
+
+    this.executing = true;
+    this.queryService.executeQuery(this.query.id, params, confirmed).subscribe({
       next: (res) => {
+        this.executing = false;
+
+        if (res.requiresConfirmation && !confirmed) {
+          this.pendingPreview = res;
+          this.pendingParams = params;
+          this.result = undefined;
+          this.cdr.detectChanges();
+          return;
+        }
+
+        this.pendingPreview = undefined;
+        this.pendingParams = {};
         this.result = res;
         this.columnFilters = {};
         this.filterColumns = res.columns.map(c => 'filter_' + c);
@@ -358,7 +438,6 @@ export class QueryExecuteComponent implements OnInit {
           if (this.paginator) this.dataSource.paginator = this.paginator;
           if (this.sort) this.dataSource.sort = this.sort;
         });
-        this.executing = false;
         this.cdr.detectChanges();
       },
       error: (err) => {

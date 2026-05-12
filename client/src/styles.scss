@@ -89,11 +89,11 @@ body.dark-theme {
     --mdc-outlined-card-container-color: var(--bg-card);
     --mat-card-title-text-color: var(--text-primary);
     --mat-card-subtitle-text-color: var(--text-secondary);
-    color: #000000;
+    color: var(--text-primary);
 
     .mat-mdc-card-content,
     .mat-mdc-card-content p {
-      color: #000000;
+      color: var(--text-primary);
     }
 
     .mat-mdc-card-content {
@@ -101,8 +101,8 @@ body.dark-theme {
     }
 
     .mat-mdc-card-actions {
-      button {
-        color: #000000;
+      button:not(.mat-primary):not(.mat-accent):not(.mat-warn) {
+        color: var(--text-primary);
       }
     }
   }
@@ -158,6 +158,16 @@ body.dark-theme {
     --mdc-outlined-text-field-hover-outline-color: var(--text-hint);
     --mdc-outlined-text-field-focus-outline-color: var(--accent-primary);
     --mdc-outlined-text-field-focus-label-text-color: var(--accent-primary);
+    --mdc-outlined-text-field-caret-color: var(--accent-primary);
+    --mdc-outlined-text-field-supporting-text-color: var(--text-secondary);
+    --mat-form-field-subscript-text-color: var(--text-secondary);
+    --mat-select-placeholder-text-color: var(--text-hint);
+  }
+
+  // mat-hint placed outside the form-field token tree
+  .mat-mdc-form-field-hint,
+  .mat-mdc-form-field-subscript-wrapper {
+    color: var(--text-secondary);
   }
 
   .mat-mdc-select {
@@ -194,6 +204,12 @@ body.dark-theme {
   .mat-mdc-slide-toggle {
     --mdc-switch-selected-track-color: var(--accent-hover);
     --mdc-switch-selected-handle-color: var(--accent-primary);
+    --mat-switch-label-text-color: var(--text-primary);
+    --mdc-form-field-label-text-color: var(--text-primary);
+
+    label, .mdc-label {
+      color: var(--text-primary);
+    }
   }
 
   .mat-mdc-chip {
@@ -264,11 +280,22 @@ body.dark-theme {
     --mdc-checkbox-unselected-icon-color: var(--text-secondary);
     --mdc-checkbox-selected-icon-color: var(--accent-primary);
     --mdc-checkbox-selected-container-color: var(--accent-primary);
+    --mdc-form-field-label-text-color: var(--text-primary);
+
+    label, .mdc-label {
+      color: var(--text-primary);
+    }
   }
 
   .mat-mdc-radio-button {
     --mdc-radio-unselected-icon-color: var(--text-secondary);
     --mdc-radio-selected-icon-color: var(--accent-primary);
+    --mat-radio-label-text-color: var(--text-primary);
+    --mdc-form-field-label-text-color: var(--text-primary);
+
+    label, .mdc-label {
+      color: var(--text-primary);
+    }
   }
 
   // Ensure toolbar buttons get correct text color
@@ -321,11 +348,6 @@ body.dark-theme {
     background-color: var(--bg-surface);
     border-color: var(--border-color);
     color: var(--text-primary);
-  }
-
-  // Login container
-  .login-container {
-    background-color: var(--bg-secondary);
   }
 
   // Query grid cards
