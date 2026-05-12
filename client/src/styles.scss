@@ -397,6 +397,11 @@ body.dark-theme {
   }
 }
 
+// ── CDK Overlay: keep all dropdowns, selects, menus, and datepickers on top ──
+.cdk-overlay-container {
+  z-index: 1050 !important;
+}
+
 // ── Base Styles ──
 html, body {
   height: 100%;

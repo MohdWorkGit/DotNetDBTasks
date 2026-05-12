@@ -231,6 +231,67 @@ public class LdapUsersController : ControllerBase
     }
 
     /// <summary>
+    /// Restores access for a previously revoked LDAP user.
+    /// </summary>
+    [HttpPost("restore/{username}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> RestoreAccess(string username)
+    {
+        var users = await _unitOfWork.Users.FindAsync(
+            u => u.Username == username && u.AuthSource == AuthSource.Ldap);
+        var user = users.FirstOrDefault();
+
+        if (user is null)
+            return NotFound("LDAP user not found in the system.");
+
+        user.IsActive = true;
+        user.UpdatedAt = DateTime.UtcNow;
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Syncs department (and profile fields) for all imported LDAP users from the directory.
+    /// </summary>
+    [HttpPost("sync")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SyncImportedUsers()
+    {
+        var importedUsers = await _unitOfWork.Users.FindAsync(u => u.AuthSource == AuthSource.Ldap);
+
+        var synced = 0;
+        var notFound = 0;
+
+        foreach (var user in importedUsers)
+        {
+            var ldapUser = await _ldapService.GetUserByUsernameAsync(user.Username);
+            if (ldapUser is null)
+            {
+                notFound++;
+                continue;
+            }
+
+            var changed = false;
+            if (user.Department != ldapUser.Department) { user.Department = ldapUser.Department; changed = true; }
+            if (user.Email != ldapUser.Email) { user.Email = ldapUser.Email; changed = true; }
+            if (user.FirstName != ldapUser.FirstName) { user.FirstName = ldapUser.FirstName; changed = true; }
+            if (user.LastName != ldapUser.LastName) { user.LastName = ldapUser.LastName; changed = true; }
+
+            if (changed)
+            {
+                user.UpdatedAt = DateTime.UtcNow;
+                _unitOfWork.Users.Update(user);
+                synced++;
+            }
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return Ok(new { Synced = synced, NotFound = notFound });
+    }
+
+    /// <summary>
     /// Lists all imported LDAP users with their status.
     /// </summary>
     [HttpGet("imported")]

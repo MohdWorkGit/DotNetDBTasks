@@ -149,6 +149,13 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
         <!-- Tab 3: Imported Users -->
         <mat-tab label="Imported Users">
           <div class="tab-content">
+            <div class="tab-header-row">
+              <button mat-stroked-button (click)="syncFromAd()" [disabled]="syncing || loadingImported">
+                <mat-icon>sync</mat-icon>
+                {{ syncing ? 'Syncing...' : 'Sync from AD' }}
+              </button>
+            </div>
+
             <div *ngIf="loadingImported" class="loading">
               <mat-spinner diameter="40"></mat-spinner>
             </div>
@@ -188,9 +195,13 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
                 <td mat-cell *matCellDef="let user">
-                  <button mat-icon-button color="warn" (click)="revokeUser(user.username)"
-                          [disabled]="!user.isActive" matTooltip="Revoke access">
+                  <button *ngIf="user.isActive" mat-icon-button color="warn"
+                          (click)="revokeUser(user.username)" matTooltip="Revoke access">
                     <mat-icon>block</mat-icon>
+                  </button>
+                  <button *ngIf="!user.isActive" mat-icon-button color="primary"
+                          (click)="restoreUser(user.username)" matTooltip="Restore access">
+                    <mat-icon>lock_open</mat-icon>
                   </button>
                 </td>
               </ng-container>
@@ -209,6 +220,7 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
   `,
   styles: [`
     .tab-content { padding: 24px 0; }
+    .tab-header-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
     .loading { display: flex; justify-content: center; padding: 40px; }
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
     .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
@@ -225,6 +237,7 @@ export class AdUsersComponent implements OnInit {
   searchTerm = '';
   searching = false;
   importing = false;
+  syncing = false;
   loadingDepts = false;
   loadingImported = false;
 
@@ -403,6 +416,36 @@ export class AdUsersComponent implements OnInit {
       },
       error: () => {
         this.snackBar.open('Failed to revoke access', 'Close', { duration: 5000 });
+      }
+    });
+  }
+
+  restoreUser(username: string): void {
+    this.queryService.restoreLdapUser(username).subscribe({
+      next: () => {
+        this.snackBar.open(`Access restored for ${username}`, 'Close', { duration: 3000 });
+        this.loadImportedUsers();
+      },
+      error: () => {
+        this.snackBar.open('Failed to restore access', 'Close', { duration: 5000 });
+      }
+    });
+  }
+
+  syncFromAd(): void {
+    this.syncing = true;
+    this.queryService.syncLdapImportedUsers().subscribe({
+      next: (result) => {
+        this.syncing = false;
+        this.snackBar.open(
+          `Sync complete — ${result.synced} updated, ${result.notFound} not found in AD`,
+          'Close', { duration: 5000 }
+        );
+        this.loadImportedUsers();
+      },
+      error: () => {
+        this.syncing = false;
+        this.snackBar.open('Sync failed', 'Close', { duration: 5000 });
       }
     });
   }

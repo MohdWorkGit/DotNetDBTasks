@@ -168,6 +168,14 @@ export class QueryService {
     return this.http.post<void>(`${this.ldapUrl}/revoke/${encodeURIComponent(username)}`, {});
   }
 
+  restoreLdapUser(username: string): Observable<void> {
+    return this.http.post<void>(`${this.ldapUrl}/restore/${encodeURIComponent(username)}`, {});
+  }
+
+  syncLdapImportedUsers(): Observable<{ synced: number; notFound: number }> {
+    return this.http.post<{ synced: number; notFound: number }>(`${this.ldapUrl}/sync`, {});
+  }
+
   // User management operations (Admin)
   private usersUrl = `${environment.apiUrl}/admin/users`;
 

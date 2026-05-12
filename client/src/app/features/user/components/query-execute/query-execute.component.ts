@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
@@ -55,6 +55,9 @@ import {
                   <input matInput [formControlName]="param.name">
                   <mat-error *ngIf="form.get(param.name)?.hasError('required')">
                     {{ param.displayName }} is required
+                  </mat-error>
+                  <mat-error *ngIf="form.get(param.name)?.hasError('sqlInjection')">
+                    Invalid input: SQL keywords or special characters are not allowed
                   </mat-error>
                 </mat-form-field>
 
@@ -256,7 +259,10 @@ export class QueryExecuteComponent implements OnInit {
         // Build dynamic form from parameter metadata
         const sorted = [...this.query.parameters].sort((a, b) => a.sortOrder - b.sortOrder);
         for (const param of sorted) {
-          const validators = param.isRequired ? [Validators.required] : [];
+          const validators: any[] = param.isRequired ? [Validators.required] : [];
+          if (param.parameterType === ParameterType.String) {
+            validators.push(this.sqlInjectionValidator);
+          }
           let defaultValue: any = param.defaultValue || '';
 
           if (param.parameterType === ParameterType.Boolean) {
@@ -293,6 +299,25 @@ export class QueryExecuteComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  private sqlInjectionValidator(control: AbstractControl): ValidationErrors | null {
+    const value = String(control.value ?? '').trim();
+    if (!value) return null;
+
+    const patterns = [
+      /--/,                                                                            // SQL line comment
+      /\/\*/,                                                                          // SQL block comment
+      /;\s*(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE)\b/i, // stacked queries
+      /\bUNION\b.{0,30}\bSELECT\b/i,                                                // UNION SELECT
+      /\b(OR|AND)\s+['"]?\d+['"]?\s*=\s*['"]?\d+['"]?/i,                           // OR 1=1 / AND 1=1
+      /'\s*(OR|AND)\s+'[^']*'\s*=\s*'/i,                                            // ' OR 'x'='x
+      /\bEXEC(\s+|\s*\()\s*(xp_|sp_)/i,                                             // EXEC xp_ / sp_
+      /\bWAITFOR\s+DELAY\b/i,                                                        // time-based blind (MSSQL)
+      /\bSLEEP\s*\(/i,                                                               // time-based blind (MySQL)
+    ];
+
+    return patterns.some(p => p.test(value)) ? { sqlInjection: true } : null;
   }
 
   execute(): void {
