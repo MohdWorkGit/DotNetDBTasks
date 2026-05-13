@@ -18,9 +18,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<DynamicQueryRole> DynamicQueryRoles => Set<DynamicQueryRole>();
     public DbSet<DynamicQueryDepartment> DynamicQueryDepartments => Set<DynamicQueryDepartment>();
     public DbSet<DynamicQueryUser> DynamicQueryUsers => Set<DynamicQueryUser>();
+    public DbSet<QueryGroup> QueryGroups => Set<QueryGroup>();
+    public DbSet<QueryGroupRole> QueryGroupRoles => Set<QueryGroupRole>();
+    public DbSet<QueryGroupDepartment> QueryGroupDepartments => Set<QueryGroupDepartment>();
+    public DbSet<QueryGroupUser> QueryGroupUsers => Set<QueryGroupUser>();
     public DbSet<QueryExecutionLog> QueryExecutionLogs => Set<QueryExecutionLog>();
     public DbSet<DatabaseUser> DatabaseUsers => Set<DatabaseUser>();
-    public DbSet<UserDatabaseUserAccess> UserDatabaseUserAccess => Set<UserDatabaseUserAccess>();
+    public DbSet<DatabaseUserRoleAccess> DatabaseUserRoleAccess => Set<DatabaseUserRoleAccess>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -54,6 +54,14 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
               <td mat-cell *matCellDef="let q">{{ q.databaseUserName || 'Default' }}</td>
             </ng-container>
 
+            <ng-container matColumnDef="queryGroupName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Group</th>
+              <td mat-cell *matCellDef="let q">
+                <span *ngIf="q.queryGroupName; else ungrouped">{{ q.queryGroupName }}</span>
+                <ng-template #ungrouped><span class="ungrouped">—</span></ng-template>
+              </td>
+            </ng-container>
+
             <ng-container matColumnDef="parameters">
               <th mat-header-cell *matHeaderCellDef>Parameters</th>
               <td mat-cell *matCellDef="let q">{{ q.parameters?.length || 0 }}</td>
@@ -66,6 +74,12 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
                         [routerLink]="['/admin/queries/edit', q.id]"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button matTooltip="Copy"
+                        routerLink="/admin/queries/create"
+                        [queryParams]="{ copyFrom: q.id }"
+                        *ngIf="authService.isAdmin()">
+                  <mat-icon>content_copy</mat-icon>
                 </button>
                 <button mat-icon-button matTooltip="Manage Access"
                         [routerLink]="['/admin/queries', q.id, 'roles']">
@@ -103,7 +117,7 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
   `]
 })
 export class QueryListComponent implements OnInit {
-  displayedColumns = ['name', 'description', 'isEnabled', 'databaseUserName', 'parameters', 'actions'];
+  displayedColumns = ['name', 'description', 'isEnabled', 'queryGroupName', 'databaseUserName', 'parameters', 'actions'];
   dataSource = new MatTableDataSource<DynamicQuery>();
   loading = true;
 

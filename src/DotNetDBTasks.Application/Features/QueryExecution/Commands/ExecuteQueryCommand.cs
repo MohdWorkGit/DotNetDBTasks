@@ -91,6 +91,30 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
                 cancellationToken);
         }
 
+        // Group-level access — any assignment on the parent group grants access to this query.
+        if (!hasAccess && query.QueryGroupId.HasValue)
+        {
+            var groupId = query.QueryGroupId.Value;
+
+            hasAccess = userRoleIds.Count > 0 && await _unitOfWork.QueryGroupRoles.ExistsAsync(
+                gr => gr.QueryGroupId == groupId && userRoleIds.Contains(gr.RoleId),
+                cancellationToken);
+
+            if (!hasAccess && !string.IsNullOrEmpty(_currentUser.Department))
+            {
+                hasAccess = await _unitOfWork.QueryGroupDepartments.ExistsAsync(
+                    gd => gd.QueryGroupId == groupId && gd.Department == _currentUser.Department,
+                    cancellationToken);
+            }
+
+            if (!hasAccess)
+            {
+                hasAccess = await _unitOfWork.QueryGroupUsers.ExistsAsync(
+                    gu => gu.QueryGroupId == groupId && gu.UserId == _currentUser.UserId,
+                    cancellationToken);
+            }
+        }
+
         // Admins always have access
         if (!hasAccess && !_currentUser.Roles.Contains("Admin"))
             throw new ForbiddenAccessException("You do not have access to this query.");
@@ -230,11 +254,15 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         if (!dbUser.IsActive)
             throw new DomainException($"Database user '{dbUser.Name}' is currently disabled.");
 
-        // Verify the current user has access to this DB user (Admins bypass)
+        // Verify the current user has access to this DB user via their roles (Admins bypass)
         if (!_currentUser.Roles.Contains("Admin"))
         {
-            var hasDbAccess = await _unitOfWork.UserDatabaseUserAccess.ExistsAsync(
-                a => a.UserId == _currentUser.UserId && a.DatabaseUserId == databaseUserId,
+            var userRoles = await _unitOfWork.UserRoles.FindAsync(
+                ur => ur.UserId == _currentUser.UserId, cancellationToken);
+            var userRoleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
+
+            var hasDbAccess = userRoleIds.Count > 0 && await _unitOfWork.DatabaseUserRoleAccess.ExistsAsync(
+                a => a.DatabaseUserId == databaseUserId && userRoleIds.Contains(a.RoleId),
                 cancellationToken);
 
             if (!hasDbAccess)

@@ -1,6 +1,7 @@
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Application.Features.QueryExecution.Commands;
 using DotNetDBTasks.Application.Features.QueryExecution.Queries;
+using DotNetDBTasks.Application.Features.QueryGroups.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,17 @@ public class UserQueriesController : ControllerBase
     public async Task<IActionResult> GetMyQueries(CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetQueriesForUserQuery(), cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Retrieves the same accessible queries as <see cref="GetMyQueries"/> but bucketed
+    /// into the QueryGroups they belong to (and an "Ungrouped" bucket).
+    /// </summary>
+    [HttpGet("groups")]
+    public async Task<IActionResult> GetMyGroups(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetMyQueryGroupsQuery(), cancellationToken);
         return Ok(result);
     }
 

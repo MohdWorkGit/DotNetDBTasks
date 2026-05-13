@@ -6,12 +6,12 @@ using MediatR;
 namespace DotNetDBTasks.Application.Features.DatabaseUsers.Commands;
 
 /// <summary>
-/// Replaces the set of application users that are allowed to use a given database user.
+/// Replaces the set of roles that are allowed to use a given database user.
 /// </summary>
 public class AssignDatabaseUserAccessCommand : IRequest
 {
     public Guid DatabaseUserId { get; set; }
-    public List<Guid> UserIds { get; set; } = new();
+    public List<Guid> RoleIds { get; set; } = new();
 }
 
 public class AssignDatabaseUserAccessCommandHandler : IRequestHandler<AssignDatabaseUserAccessCommand>
@@ -29,18 +29,16 @@ public class AssignDatabaseUserAccessCommandHandler : IRequestHandler<AssignData
         if (dbUser is null)
             throw new NotFoundException(nameof(DatabaseUser), request.DatabaseUserId);
 
-        // Remove existing access entries
-        var existing = await _unitOfWork.UserDatabaseUserAccess.FindAsync(
+        var existing = await _unitOfWork.DatabaseUserRoleAccess.FindAsync(
             a => a.DatabaseUserId == request.DatabaseUserId, cancellationToken);
         foreach (var entry in existing)
-            _unitOfWork.UserDatabaseUserAccess.Delete(entry);
+            _unitOfWork.DatabaseUserRoleAccess.Delete(entry);
 
-        // Add new access entries
-        foreach (var userId in request.UserIds)
+        foreach (var roleId in request.RoleIds.Distinct())
         {
-            await _unitOfWork.UserDatabaseUserAccess.AddAsync(new UserDatabaseUserAccess
+            await _unitOfWork.DatabaseUserRoleAccess.AddAsync(new DatabaseUserRoleAccess
             {
-                UserId = userId,
+                RoleId = roleId,
                 DatabaseUserId = request.DatabaseUserId
             }, cancellationToken);
         }

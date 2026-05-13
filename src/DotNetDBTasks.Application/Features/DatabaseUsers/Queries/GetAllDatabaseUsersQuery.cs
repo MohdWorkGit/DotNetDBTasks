@@ -20,7 +20,7 @@ public class GetAllDatabaseUsersQueryHandler
         CancellationToken cancellationToken)
     {
         var dbUsers = await _unitOfWork.DatabaseUsers.GetAllAsync(
-            cancellationToken, "UserAccess");
+            cancellationToken, "RoleAccess");
 
         var result = new List<DatabaseUserDto>();
         foreach (var du in dbUsers)
@@ -38,18 +38,18 @@ public class GetAllDatabaseUsersQueryHandler
                 DbUsername = du.DbUsername,
                 IsActive = du.IsActive,
                 CreatedAt = du.CreatedAt,
-                AssignedUsers = new List<DatabaseUserAccessDto>()
+                AssignedRoles = new List<DatabaseUserRoleAccessDto>()
             };
 
-            if (du.UserAccess != null)
+            if (du.RoleAccess != null)
             {
-                foreach (var access in du.UserAccess)
+                foreach (var access in du.RoleAccess)
                 {
-                    var user = await _unitOfWork.Users.GetByIdAsync(access.UserId, cancellationToken);
-                    dto.AssignedUsers.Add(new DatabaseUserAccessDto
+                    var role = await _unitOfWork.Roles.GetByIdAsync(access.RoleId, cancellationToken);
+                    dto.AssignedRoles.Add(new DatabaseUserRoleAccessDto
                     {
-                        UserId = access.UserId,
-                        Username = user?.Username ?? string.Empty
+                        RoleId = access.RoleId,
+                        RoleName = role?.Name ?? string.Empty
                     });
                 }
             }

@@ -21,8 +21,12 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<DynamicQueryRole> DynamicQueryRoles { get; }
     public IRepository<DynamicQueryDepartment> DynamicQueryDepartments { get; }
     public IRepository<DynamicQueryUser> DynamicQueryUsers { get; }
+    public IRepository<QueryGroup> QueryGroups { get; }
+    public IRepository<QueryGroupRole> QueryGroupRoles { get; }
+    public IRepository<QueryGroupDepartment> QueryGroupDepartments { get; }
+    public IRepository<QueryGroupUser> QueryGroupUsers { get; }
     public IRepository<DatabaseUser> DatabaseUsers { get; }
-    public IRepository<UserDatabaseUserAccess> UserDatabaseUserAccess { get; }
+    public IRepository<DatabaseUserRoleAccess> DatabaseUserRoleAccess { get; }
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -36,8 +40,12 @@ public class UnitOfWork : IUnitOfWork
         DynamicQueryRoles = new Repository<DynamicQueryRole>(context);
         DynamicQueryDepartments = new Repository<DynamicQueryDepartment>(context);
         DynamicQueryUsers = new Repository<DynamicQueryUser>(context);
+        QueryGroups = new Repository<QueryGroup>(context);
+        QueryGroupRoles = new Repository<QueryGroupRole>(context);
+        QueryGroupDepartments = new Repository<QueryGroupDepartment>(context);
+        QueryGroupUsers = new Repository<QueryGroupUser>(context);
         DatabaseUsers = new Repository<DatabaseUser>(context);
-        UserDatabaseUserAccess = new Repository<UserDatabaseUserAccess>(context);
+        DatabaseUserRoleAccess = new Repository<DatabaseUserRoleAccess>(context);
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -5,8 +5,8 @@ using MediatR;
 namespace DotNetDBTasks.Application.Features.DatabaseUsers.Queries;
 
 /// <summary>
-/// Returns the list of database users that the current user has been granted access to.
-/// Admins see all active database users.
+/// Returns the list of database users that the current user has been granted access to
+/// via their assigned roles. Admins see all active database users.
 /// </summary>
 public class GetAccessibleDatabaseUsersQuery : IRequest<List<DatabaseUserSummaryDto>> { }
 
@@ -39,13 +39,22 @@ public class GetAccessibleDatabaseUsersQueryHandler
             }).ToList();
         }
 
-        var accessEntries = await _unitOfWork.UserDatabaseUserAccess.FindAsync(
-            a => a.UserId == _currentUser.UserId, cancellationToken);
+        var userRoles = await _unitOfWork.UserRoles.FindAsync(
+            ur => ur.UserId == _currentUser.UserId, cancellationToken);
+        var userRoleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
+
+        if (userRoleIds.Count == 0)
+            return new List<DatabaseUserSummaryDto>();
+
+        var accessEntries = await _unitOfWork.DatabaseUserRoleAccess.FindAsync(
+            a => userRoleIds.Contains(a.RoleId), cancellationToken);
+
+        var dbUserIds = accessEntries.Select(a => a.DatabaseUserId).Distinct().ToList();
 
         var result = new List<DatabaseUserSummaryDto>();
-        foreach (var entry in accessEntries)
+        foreach (var dbUserId in dbUserIds)
         {
-            var du = await _unitOfWork.DatabaseUsers.GetByIdAsync(entry.DatabaseUserId, cancellationToken);
+            var du = await _unitOfWork.DatabaseUsers.GetByIdAsync(dbUserId, cancellationToken);
             if (du is { IsActive: true })
             {
                 result.Add(new DatabaseUserSummaryDto { Id = du.Id, Name = du.Name });

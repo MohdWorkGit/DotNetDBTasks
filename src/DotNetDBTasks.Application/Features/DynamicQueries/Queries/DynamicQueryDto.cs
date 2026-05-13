@@ -12,6 +12,8 @@ public class DynamicQueryDto
     public int TimeoutSeconds { get; set; }
     public Guid? DatabaseUserId { get; set; }
     public string? DatabaseUserName { get; set; }
+    public Guid? QueryGroupId { get; set; }
+    public string? QueryGroupName { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<QueryParameterDto> Parameters { get; set; } = new();
     public List<RoleAssignmentDto> AssignedRoles { get; set; } = new();

@@ -15,13 +15,13 @@ public class DatabaseUserDto
     public string DbUsername { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
-    public List<DatabaseUserAccessDto> AssignedUsers { get; set; } = new();
+    public List<DatabaseUserRoleAccessDto> AssignedRoles { get; set; } = new();
 }
 
-public class DatabaseUserAccessDto
+public class DatabaseUserRoleAccessDto
 {
-    public Guid UserId { get; set; }
-    public string Username { get; set; } = string.Empty;
+    public Guid RoleId { get; set; }
+    public string RoleName { get; set; } = string.Empty;
 }
 
 /// <summary>

@@ -34,26 +34,31 @@ public class GetQueryForUserByIdQueryHandler
         CancellationToken cancellationToken)
     {
         var query = await _unitOfWork.DynamicQueries.GetByIdAsync(request.Id, cancellationToken,
-            "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User", "Parameters", "DatabaseUser");
+            "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User",
+            "Parameters", "DatabaseUser",
+            "QueryGroup.QueryGroupRoles", "QueryGroup.QueryGroupDepartments", "QueryGroup.QueryGroupUsers");
 
         if (query is null || !query.IsEnabled)
             throw new NotFoundException(nameof(Domain.Entities.DynamicQuery), request.Id);
 
-        // Verify user has access via roles
         var userRoles = await _unitOfWork.UserRoles.FindAsync(
             ur => ur.UserId == _currentUser.UserId, cancellationToken);
         var roleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
-        var hasRoleAccess = query.DynamicQueryRoles.Any(qr => roleIds.Contains(qr.RoleId));
-
-        // Verify user has access via department
         var department = _currentUser.Department;
+
+        var hasRoleAccess = query.DynamicQueryRoles.Any(qr => roleIds.Contains(qr.RoleId));
         var hasDeptAccess = !string.IsNullOrEmpty(department)
             && query.DynamicQueryDepartments.Any(qd => qd.Department == department);
-
-        // Verify user has direct access
         var hasDirectAccess = query.DynamicQueryUsers.Any(qu => qu.UserId == _currentUser.UserId);
 
-        if (!hasRoleAccess && !hasDeptAccess && !hasDirectAccess)
+        // Group-level access: any assignment on the parent group grants access to this query.
+        var hasGroupAccess = query.QueryGroup is not null && (
+            query.QueryGroup.QueryGroupRoles.Any(gr => roleIds.Contains(gr.RoleId)) ||
+            (!string.IsNullOrEmpty(department)
+                && query.QueryGroup.QueryGroupDepartments.Any(gd => gd.Department == department)) ||
+            query.QueryGroup.QueryGroupUsers.Any(gu => gu.UserId == _currentUser.UserId));
+
+        if (!hasRoleAccess && !hasDeptAccess && !hasDirectAccess && !hasGroupAccess)
             throw new ForbiddenAccessException("You do not have access to this query.");
 
         return _mapper.Map<DynamicQueryDto>(query);

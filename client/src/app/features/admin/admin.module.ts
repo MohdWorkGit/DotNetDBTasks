@@ -28,6 +28,9 @@ import { ExecutionLogsComponent } from './components/execution-logs/execution-lo
 import { AdUsersComponent } from './components/ad-users/ad-users.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
 import { DatabaseUsersComponent } from './components/database-users/database-users.component';
+import { QueryGroupsListComponent } from './components/query-groups/query-groups-list.component';
+import { QueryGroupFormComponent } from './components/query-groups/query-group-form.component';
+import { QueryGroupAccessComponent } from './components/query-groups/query-group-access.component';
 import { MatMenuModule } from '@angular/material/menu';
 
 @NgModule({
@@ -38,7 +41,10 @@ import { MatMenuModule } from '@angular/material/menu';
     ExecutionLogsComponent,
     AdUsersComponent,
     UserManagementComponent,
-    DatabaseUsersComponent
+    DatabaseUsersComponent,
+    QueryGroupsListComponent,
+    QueryGroupFormComponent,
+    QueryGroupAccessComponent
   ],
   imports: [
     CommonModule,
@@ -68,6 +74,10 @@ import { MatMenuModule } from '@angular/material/menu';
       { path: 'queries/create', component: QueryFormComponent },
       { path: 'queries/edit/:id', component: QueryFormComponent },
       { path: 'queries/:id/roles', component: RoleAssignmentComponent },
+      { path: 'query-groups', component: QueryGroupsListComponent },
+      { path: 'query-groups/create', component: QueryGroupFormComponent },
+      { path: 'query-groups/edit/:id', component: QueryGroupFormComponent },
+      { path: 'query-groups/:id/access', component: QueryGroupAccessComponent },
       { path: 'logs', component: ExecutionLogsComponent },
       { path: 'ad-users', component: AdUsersComponent },
       { path: 'users', component: UserManagementComponent },

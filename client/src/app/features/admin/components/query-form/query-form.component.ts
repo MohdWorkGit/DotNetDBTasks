@@ -5,14 +5,14 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
-import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, ParameterType } from '@core/models/dynamic-query.model';
+import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, ParameterType, QueryGroup } from '@core/models/dynamic-query.model';
 
 @Component({
   standalone: false,
   selector: 'app-query-form',
   template: `
     <div class="container">
-      <h2>{{ isEdit ? 'Edit' : 'Create' }} Dynamic Query</h2>
+      <h2>{{ isEdit ? 'Edit' : (isCopy ? 'Copy' : 'Create') }} Dynamic Query</h2>
 
       <mat-card>
         <mat-card-content>
@@ -51,6 +51,17 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                 </mat-option>
               </mat-select>
               <mat-hint>Select which database credentials to use when executing this query</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Group</mat-label>
+              <mat-select formControlName="queryGroupId">
+                <mat-option [value]="null">Ungrouped</mat-option>
+                <mat-option *ngFor="let g of availableGroups" [value]="g.id">
+                  {{ g.name }}
+                </mat-option>
+              </mat-select>
+              <mat-hint>Pick a folder to organise this query on the My Queries page</mat-hint>
             </mat-form-field>
 
             <mat-slide-toggle *ngIf="isEdit" formControlName="isEnabled" class="toggle">
@@ -215,10 +226,12 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
 export class QueryFormComponent implements OnInit {
   form!: FormGroup;
   isEdit = false;
+  isCopy = false;
   queryId?: string;
   saving = false;
   availableQueries: DynamicQuery[] = [];
   availableDbUsers: DatabaseUser[] = [];
+  availableGroups: QueryGroup[] = [];
 
   readonly ParameterType = ParameterType;
   readonly DropdownSourceType = DropdownSourceType;
@@ -239,6 +252,7 @@ export class QueryFormComponent implements OnInit {
       sqlQuery: ['', [Validators.required, Validators.maxLength(4000)]],
       timeoutSeconds: [30, [Validators.min(1), Validators.max(120)]],
       databaseUserId: [null],
+      queryGroupId: [null],
       isEnabled: [true],
       parameters: this.fb.array([])
     });
@@ -255,10 +269,21 @@ export class QueryFormComponent implements OnInit {
       error: () => { /* non-critical, user can still type manually */ }
     });
 
+    this.queryService.getAllQueryGroups().subscribe({
+      next: (groups) => { this.availableGroups = groups; },
+      error: () => { /* non-critical, the query is just ungrouped */ }
+    });
+
     this.queryId = this.route.snapshot.params['id'];
     if (this.queryId) {
       this.isEdit = true;
       this.loadQuery(this.queryId);
+    } else {
+      const copyFromId = this.route.snapshot.queryParams['copyFrom'];
+      if (copyFromId) {
+        this.isCopy = true;
+        this.loadQuery(copyFromId);
+      }
     }
   }
 
@@ -338,12 +363,13 @@ export class QueryFormComponent implements OnInit {
     ).subscribe({
       next: (query) => {
         this.form.patchValue({
-          name: query.name,
+          name: this.isCopy ? `Copy of ${query.name}` : query.name,
           description: query.description,
           sqlQuery: query.sqlQuery,
           timeoutSeconds: query.timeoutSeconds,
           databaseUserId: query.databaseUserId || null,
-          isEnabled: query.isEnabled
+          queryGroupId: query.queryGroupId || null,
+          isEnabled: this.isCopy ? true : query.isEnabled
         });
 
         query.parameters.forEach(p => {
@@ -408,7 +434,7 @@ export class QueryFormComponent implements OnInit {
       next: () => {
         this.saving = false;
         this.snackBar.open(
-          `Query ${this.isEdit ? 'updated' : 'created'} successfully`,
+          `Query ${this.isEdit ? 'updated' : (this.isCopy ? 'copied' : 'created')} successfully`,
           'Close', { duration: 3000 }
         );
         this.router.navigate(['/admin/queries']);

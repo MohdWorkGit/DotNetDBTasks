@@ -10,4 +10,5 @@ public class Role : BaseEntity
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<DynamicQueryRole> DynamicQueryRoles { get; set; } = new List<DynamicQueryRole>();
+    public ICollection<DatabaseUserRoleAccess> DatabaseUserAccess { get; set; } = new List<DatabaseUserRoleAccess>();
 }

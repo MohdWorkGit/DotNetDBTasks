@@ -251,7 +251,7 @@ public static class DatabaseSeeder
         {
             "DynamicQueryRoles", "DynamicQueryDepartments", "DynamicQueryUsers",
             "QueryExecutionLogs", "QueryParameters", "UserRoles",
-            "UserDatabaseUserAccess", "DynamicQueries", "DatabaseUsers",
+            "DatabaseUserRoleAccess", "UserDatabaseUserAccess", "DynamicQueries", "DatabaseUsers",
             "Users", "Roles", "__EFMigrationsHistory"
         };
         foreach (var table in tablesToDrop)

@@ -42,6 +42,6 @@ public class DatabaseUser : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public ICollection<UserDatabaseUserAccess> UserAccess { get; set; } = new List<UserDatabaseUserAccess>();
+    public ICollection<DatabaseUserRoleAccess> RoleAccess { get; set; } = new List<DatabaseUserRoleAccess>();
     public ICollection<DynamicQuery> DynamicQueries { get; set; } = new List<DynamicQuery>();
 }

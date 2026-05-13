@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { QueryService } from '@core/services/query.service';
-import { DatabaseUser, DatabaseServerType, SystemUser } from '@core/models/dynamic-query.model';
+import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-query.model';
 
 @Component({
   standalone: false,
@@ -19,7 +19,7 @@ import { DatabaseUser, DatabaseServerType, SystemUser } from '@core/models/dynam
       <!-- Form Dialog -->
       <mat-card *ngIf="showForm" class="form-card">
         <mat-card-header>
-          <mat-card-title>{{ editingId ? 'Edit' : 'Create' }} Database User</mat-card-title>
+          <mat-card-title>{{ editingId ? 'Edit' : (isCopy ? 'Copy' : 'Create') }} Database User</mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
@@ -106,10 +106,10 @@ import { DatabaseUser, DatabaseServerType, SystemUser } from '@core/models/dynam
           <p *ngIf="du.description" class="description">{{ du.description }}</p>
 
           <div class="access-section">
-            <strong>Allowed Users:</strong>
+            <strong>Allowed Roles:</strong>
             <mat-chip-set>
-              <mat-chip *ngFor="let u of du.assignedUsers">{{ u.username }}</mat-chip>
-              <mat-chip *ngIf="!du.assignedUsers?.length" class="none-chip">None assigned</mat-chip>
+              <mat-chip *ngFor="let r of du.assignedRoles">{{ r.roleName }}</mat-chip>
+              <mat-chip *ngIf="!du.assignedRoles?.length" class="none-chip">None assigned</mat-chip>
             </mat-chip-set>
           </div>
         </mat-card-content>
@@ -117,6 +117,9 @@ import { DatabaseUser, DatabaseServerType, SystemUser } from '@core/models/dynam
         <mat-card-actions>
           <button mat-button (click)="editDbUser(du)">
             <mat-icon>edit</mat-icon> Edit
+          </button>
+          <button mat-button (click)="copyDbUser(du)">
+            <mat-icon>content_copy</mat-icon> Copy
           </button>
           <button mat-button (click)="openAccessDialog(du)">
             <mat-icon>people</mat-icon> Manage Access
@@ -138,12 +141,12 @@ import { DatabaseUser, DatabaseServerType, SystemUser } from '@core/models/dynam
           <mat-card-title>Manage Access: {{ accessDialogDbUser.name }}</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <p class="hint">Select which application users can execute queries using this database user.</p>
+          <p class="hint">Select which roles can execute queries using this database user.</p>
           <div class="user-checkboxes">
-            <mat-checkbox *ngFor="let user of allUsers"
-                          [checked]="selectedUserIds.has(user.id)"
-                          (change)="toggleUserAccess(user.id, $event.checked)">
-              {{ user.username }} ({{ user.firstName }} {{ user.lastName }})
+            <mat-checkbox *ngFor="let role of allRoles"
+                          [checked]="selectedRoleIds.has(role.id)"
+                          (change)="toggleRoleAccess(role.id, $event.checked)">
+              {{ role.name }}<span *ngIf="role.description"> &mdash; {{ role.description }}</span>
             </mat-checkbox>
           </div>
           <div class="actions">
@@ -189,15 +192,16 @@ import { DatabaseUser, DatabaseServerType, SystemUser } from '@core/models/dynam
 })
 export class DatabaseUsersComponent implements OnInit {
   dbUsers: DatabaseUser[] = [];
-  allUsers: SystemUser[] = [];
+  allRoles: Role[] = [];
   showForm = false;
   form!: FormGroup;
   editingId: string | null = null;
+  isCopy = false;
   saving = false;
   loading = true;
 
   accessDialogDbUser: DatabaseUser | null = null;
-  selectedUserIds = new Set<string>();
+  selectedRoleIds = new Set<string>();
   savingAccess = false;
 
   serverTypes = [
@@ -221,14 +225,15 @@ export class DatabaseUsersComponent implements OnInit {
   ngOnInit(): void {
     this.resetForm();
     this.loadDbUsers();
-    this.queryService.getAllUsers().subscribe({
-      next: (users) => { this.allUsers = users; },
+    this.queryService.getRoles().subscribe({
+      next: (roles) => { this.allRoles = roles; },
       error: () => {}
     });
   }
 
   resetForm(): void {
     this.editingId = null;
+    this.isCopy = false;
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(200)]],
       description: ['', Validators.maxLength(1000)],
@@ -269,6 +274,7 @@ export class DatabaseUsersComponent implements OnInit {
 
   editDbUser(du: DatabaseUser): void {
     this.editingId = du.id;
+    this.isCopy = false;
     this.showForm = true;
     this.form.patchValue({
       name: du.name,
@@ -285,6 +291,24 @@ export class DatabaseUsersComponent implements OnInit {
     // Password not required when editing
     this.form.get('password')?.clearValidators();
     this.form.get('password')?.updateValueAndValidity();
+  }
+
+  copyDbUser(du: DatabaseUser): void {
+    this.resetForm();
+    this.isCopy = true;
+    this.showForm = true;
+    this.form.patchValue({
+      name: `Copy of ${du.name}`,
+      description: du.description,
+      serverType: du.serverType,
+      host: du.host,
+      port: du.port,
+      serviceName: du.serviceName,
+      databaseName: du.databaseName,
+      dbUsername: du.dbUsername,
+      password: '',
+      isActive: true
+    });
   }
 
   onSubmit(): void {
@@ -356,14 +380,14 @@ export class DatabaseUsersComponent implements OnInit {
 
   openAccessDialog(du: DatabaseUser): void {
     this.accessDialogDbUser = du;
-    this.selectedUserIds = new Set(du.assignedUsers?.map(u => u.userId) || []);
+    this.selectedRoleIds = new Set(du.assignedRoles?.map(r => r.roleId) || []);
   }
 
-  toggleUserAccess(userId: string, checked: boolean): void {
+  toggleRoleAccess(roleId: string, checked: boolean): void {
     if (checked) {
-      this.selectedUserIds.add(userId);
+      this.selectedRoleIds.add(roleId);
     } else {
-      this.selectedUserIds.delete(userId);
+      this.selectedRoleIds.delete(roleId);
     }
   }
 
@@ -371,7 +395,7 @@ export class DatabaseUsersComponent implements OnInit {
     if (!this.accessDialogDbUser) return;
     this.savingAccess = true;
     this.queryService.assignDatabaseUserAccess(this.accessDialogDbUser.id, {
-      userIds: Array.from(this.selectedUserIds)
+      roleIds: Array.from(this.selectedRoleIds)
     }).subscribe({
       next: () => {
         this.savingAccess = false;

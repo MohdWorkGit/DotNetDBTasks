@@ -19,6 +19,7 @@ public class UpdateDynamicQueryCommand : IRequest<DynamicQueryDto>
     public bool IsEnabled { get; set; }
     public int TimeoutSeconds { get; set; }
     public Guid? DatabaseUserId { get; set; }
+    public Guid? QueryGroupId { get; set; }
     public List<QueryParameterDto> Parameters { get; set; } = new();
 }
 
@@ -48,6 +49,7 @@ public class UpdateDynamicQueryCommandHandler
         entity.IsEnabled = request.IsEnabled;
         entity.TimeoutSeconds = request.TimeoutSeconds;
         entity.DatabaseUserId = request.DatabaseUserId;
+        entity.QueryGroupId = request.QueryGroupId;
         entity.UpdatedAt = DateTime.UtcNow;
 
         // Remove old parameters

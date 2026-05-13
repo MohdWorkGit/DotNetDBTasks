@@ -31,6 +31,12 @@ public class DynamicQuery : BaseEntity
     public Guid? DatabaseUserId { get; set; }
     public DatabaseUser? DatabaseUser { get; set; }
 
+    /// <summary>
+    /// Optional group/folder this query belongs to. Null means the query is "ungrouped".
+    /// </summary>
+    public Guid? QueryGroupId { get; set; }
+    public QueryGroup? QueryGroup { get; set; }
+
     public ICollection<QueryParameter> Parameters { get; set; } = new List<QueryParameter>();
     public ICollection<DynamicQueryRole> DynamicQueryRoles { get; set; } = new List<DynamicQueryRole>();
     public ICollection<DynamicQueryDepartment> DynamicQueryDepartments { get; set; } = new List<DynamicQueryDepartment>();

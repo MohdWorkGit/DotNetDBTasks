@@ -65,12 +65,12 @@ export interface DatabaseUser {
   dbUsername: string;
   isActive: boolean;
   createdAt: string;
-  assignedUsers: DatabaseUserAccess[];
+  assignedRoles: DatabaseUserRoleAccess[];
 }
 
-export interface DatabaseUserAccess {
-  userId: string;
-  username: string;
+export interface DatabaseUserRoleAccess {
+  roleId: string;
+  roleName: string;
 }
 
 export interface DatabaseUserSummary {
@@ -105,7 +105,7 @@ export interface UpdateDatabaseUserRequest {
 }
 
 export interface AssignDatabaseUserAccessRequest {
-  userIds: string[];
+  roleIds: string[];
 }
 
 export interface TestConnectionResult {
@@ -122,11 +122,44 @@ export interface DynamicQuery {
   timeoutSeconds: number;
   databaseUserId?: string;
   databaseUserName?: string;
+  queryGroupId?: string | null;
+  queryGroupName?: string | null;
   createdAt: string;
   parameters: QueryParameter[];
   assignedRoles: RoleAssignment[];
   assignedDepartments: DepartmentAssignment[];
   assignedUsers: UserAssignment[];
+}
+
+export interface QueryGroup {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  queryCount: number;
+  assignedRoles: RoleAssignment[];
+  assignedDepartments: DepartmentAssignment[];
+  assignedUsers: UserAssignment[];
+}
+
+export interface CreateQueryGroupRequest {
+  name: string;
+  description: string;
+}
+
+export interface UpdateQueryGroupRequest {
+  id: string;
+  name: string;
+  description: string;
+}
+
+/** A bucket of accessible queries surfaced on the "My Queries" page. id=null for the
+ * synthetic "Ungrouped" bucket containing queries with no QueryGroupId. */
+export interface MyQueryGroup {
+  id: string | null;
+  name: string;
+  description: string;
+  queries: DynamicQuery[];
 }
 
 export interface CreateDynamicQueryRequest {
@@ -135,6 +168,7 @@ export interface CreateDynamicQueryRequest {
   sqlQuery: string;
   timeoutSeconds: number;
   databaseUserId?: string | null;
+  queryGroupId?: string | null;
   parameters: QueryParameter[];
 }
 
@@ -142,6 +176,7 @@ export interface UpdateDynamicQueryRequest extends CreateDynamicQueryRequest {
   id: string;
   isEnabled: boolean;
   databaseUserId?: string | null;
+  queryGroupId?: string | null;
 }
 
 export interface AssignRolesRequest {

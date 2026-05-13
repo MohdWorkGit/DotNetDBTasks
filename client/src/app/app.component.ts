@@ -20,6 +20,9 @@ import { ThemeService } from './core/services/theme.service';
       <button mat-button routerLink="/admin/queries" *ngIf="authService.isAdminOrAuditor()">
         <mat-icon>dashboard</mat-icon> Manage Queries
       </button>
+      <button mat-button routerLink="/admin/query-groups" *ngIf="authService.isAdminOrAuditor()">
+        <mat-icon>folder</mat-icon> Query Groups
+      </button>
       <button mat-button routerLink="/admin/users" *ngIf="authService.isAdminOrAuditor()">
         <mat-icon>people</mat-icon> Users
       </button>

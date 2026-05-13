@@ -12,6 +12,7 @@ import {
   ChangeUserRolesRequest,
   CreateDatabaseUserRequest,
   CreateDynamicQueryRequest,
+  CreateQueryGroupRequest,
   CreateUserRequest,
   DatabaseUser,
   DropdownOption,
@@ -19,14 +20,17 @@ import {
   ExecutionLog,
   ImportedLdapUser,
   LdapUser,
+  MyQueryGroup,
   QueryExecutionResult,
+  QueryGroup,
   ResetPasswordResult,
   Role,
   SystemUser,
   TestConnectionResult,
   ToggleUserActiveRequest,
   UpdateDatabaseUserRequest,
-  UpdateDynamicQueryRequest
+  UpdateDynamicQueryRequest,
+  UpdateQueryGroupRequest
 } from '../models/dynamic-query.model';
 
 @Injectable({
@@ -38,6 +42,7 @@ export class QueryService {
   private rolesUrl = `${environment.apiUrl}/admin/roles`;
   private ldapUrl = `${environment.apiUrl}/admin/ldap`;
   private dbUsersUrl = `${environment.apiUrl}/admin/databaseusers`;
+  private groupsUrl = `${environment.apiUrl}/admin/querygroups`;
 
   constructor(private http: HttpClient) {}
 
@@ -114,9 +119,46 @@ export class QueryService {
     return this.http.post<TestConnectionResult>(`${this.dbUsersUrl}/${dbUserId}/test-connection`, {});
   }
 
+  // Query groups (Admin)
+  getAllQueryGroups(): Observable<QueryGroup[]> {
+    return this.http.get<QueryGroup[]>(this.groupsUrl);
+  }
+
+  getQueryGroupById(id: string): Observable<QueryGroup> {
+    return this.http.get<QueryGroup>(`${this.groupsUrl}/${id}`);
+  }
+
+  createQueryGroup(request: CreateQueryGroupRequest): Observable<QueryGroup> {
+    return this.http.post<QueryGroup>(this.groupsUrl, request);
+  }
+
+  updateQueryGroup(id: string, request: UpdateQueryGroupRequest): Observable<QueryGroup> {
+    return this.http.put<QueryGroup>(`${this.groupsUrl}/${id}`, request);
+  }
+
+  deleteQueryGroup(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.groupsUrl}/${id}`);
+  }
+
+  assignGroupRoles(groupId: string, request: AssignRolesRequest): Observable<void> {
+    return this.http.post<void>(`${this.groupsUrl}/${groupId}/roles`, request);
+  }
+
+  assignGroupDepartments(groupId: string, request: AssignDepartmentsRequest): Observable<void> {
+    return this.http.post<void>(`${this.groupsUrl}/${groupId}/departments`, request);
+  }
+
+  assignGroupUsers(groupId: string, request: AssignUsersRequest): Observable<void> {
+    return this.http.post<void>(`${this.groupsUrl}/${groupId}/users`, request);
+  }
+
   // User operations
   getMyQueries(): Observable<DynamicQuery[]> {
     return this.http.get<DynamicQuery[]>(this.userUrl);
+  }
+
+  getMyQueryGroups(): Observable<MyQueryGroup[]> {
+    return this.http.get<MyQueryGroup[]>(`${this.userUrl}/groups`);
   }
 
   getMyQueryById(id: string): Observable<DynamicQuery> {
