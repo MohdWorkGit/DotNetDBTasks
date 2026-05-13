@@ -18,9 +18,10 @@ public class QueryExecutionLog : BaseEntity
     public string ParametersJson { get; set; } = string.Empty;
 
     /// <summary>
-    /// For UPDATE queries: JSON-serialized dictionary of column values fetched from the database
-    /// before the update was applied, keyed by column name.
-    /// Null for non-UPDATE queries or when the pre-fetch could not be performed.
+    /// For UPDATE/DELETE queries: JSON-serialized array of every affected row (full column
+    /// values) as it existed in the database before the change was applied. Each element is
+    /// a dictionary keyed by column name. Null for INSERT or when the pre-fetch could not
+    /// be performed.
     /// </summary>
     public string? OldValuesJson { get; set; }
 

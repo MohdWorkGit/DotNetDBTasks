@@ -37,16 +37,20 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
             <ng-container matColumnDef="parameters">
               <th mat-header-cell *matHeaderCellDef>Parameters</th>
               <td mat-cell *matCellDef="let log">
-                <ng-container *ngIf="log.isUpdateQuery && log.oldValues; else plainParams">
+                <ng-container *ngIf="hasOldRows(log); else plainParams">
                   <div class="update-params">
-                    <span class="update-label old-label">Before:</span>
-                    <span class="parameters-cell old-values" [matTooltip]="formatParametersTooltip(log.oldValues)">
-                      {{ formatParameters(log.oldValues) }}
+                    <span class="update-label old-label">
+                      Before ({{ log.oldValues.length }} row{{ log.oldValues.length === 1 ? '' : 's' }}):
                     </span>
-                    <span class="update-label new-label">After:</span>
-                    <span class="parameters-cell new-values" [matTooltip]="formatParametersTooltip(log.parameters)">
-                      {{ formatParameters(log.parameters) }}
+                    <span class="parameters-cell old-values" [matTooltip]="formatRowsTooltip(log.oldValues)">
+                      {{ formatRowsSummary(log.oldValues) }}
                     </span>
+                    <ng-container *ngIf="log.isUpdateQuery">
+                      <span class="update-label new-label">After:</span>
+                      <span class="parameters-cell new-values" [matTooltip]="formatParametersTooltip(log.parameters)">
+                        {{ formatParameters(log.parameters) }}
+                      </span>
+                    </ng-container>
                   </div>
                 </ng-container>
                 <ng-template #plainParams>
@@ -180,5 +184,22 @@ export class ExecutionHistoryComponent implements OnInit {
   formatParametersTooltip(params: Record<string, string>): string {
     if (!params || Object.keys(params).length === 0) return 'No parameters';
     return Object.entries(params).map(([k, v]) => `${k}: ${v}`).join('\n');
+  }
+
+  hasOldRows(log: ExecutionLog): boolean {
+    return !!log.oldValues && Array.isArray(log.oldValues) && log.oldValues.length > 0;
+  }
+
+  formatRowsSummary(rows: Record<string, string>[]): string {
+    if (!rows || rows.length === 0) return '-';
+    const first = this.formatParameters(rows[0]);
+    return rows.length === 1 ? first : `${first} (+${rows.length - 1} more)`;
+  }
+
+  formatRowsTooltip(rows: Record<string, string>[]): string {
+    if (!rows || rows.length === 0) return 'No rows';
+    return rows
+      .map((r, i) => `Row ${i + 1}:\n${this.formatParametersTooltip(r)}`)
+      .join('\n\n');
   }
 }

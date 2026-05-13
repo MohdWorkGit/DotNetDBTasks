@@ -152,13 +152,22 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #actionMenu="matMenu">
-                <button mat-menu-item (click)="openEditUsername(user)">
+                <button mat-menu-item (click)="openEditUsername(user)"
+                        [disabled]="isLdapUser(user)"
+                        [matTooltip]="isLdapUser(user) ? 'Managed by Active Directory' : ''"
+                        matTooltipPosition="left">
                   <mat-icon>edit</mat-icon> Change Username
                 </button>
-                <button mat-menu-item (click)="openChangePassword(user)">
+                <button mat-menu-item (click)="openChangePassword(user)"
+                        [disabled]="isLdapUser(user)"
+                        [matTooltip]="isLdapUser(user) ? 'Managed by Active Directory' : ''"
+                        matTooltipPosition="left">
                   <mat-icon>lock</mat-icon> Change Password
                 </button>
-                <button mat-menu-item (click)="resetPassword(user)">
+                <button mat-menu-item (click)="resetPassword(user)"
+                        [disabled]="isLdapUser(user)"
+                        [matTooltip]="isLdapUser(user) ? 'Managed by Active Directory' : ''"
+                        matTooltipPosition="left">
                   <mat-icon>lock_reset</mat-icon> Reset Password
                 </button>
                 <button mat-menu-item (click)="openChangeRoles(user)">
@@ -501,6 +510,10 @@ export class UserManagementComponent implements OnInit {
         this.saving = false;
       }
     });
+  }
+
+  isLdapUser(user: SystemUser): boolean {
+    return (user.authSource || '').toLowerCase() === 'ldap';
   }
 
   toggleActive(user: SystemUser): void {

@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
 using FluentValidation;
@@ -40,6 +41,9 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
         var user = await _unitOfWork.Users.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             throw new NotFoundException("User", request.UserId);
+
+        if (user.AuthSource == AuthSource.Ldap)
+            throw new InvalidOperationException("Cannot reset password for LDAP users. Passwords are managed by Active Directory.");
 
         var tempPassword = GenerateTemporaryPassword();
         user.PasswordHash = _passwordHasher.HashPassword(tempPassword);

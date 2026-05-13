@@ -1,3 +1,4 @@
+using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
 using FluentValidation;
@@ -34,6 +35,9 @@ public class ChangeUsernameCommandHandler : IRequestHandler<ChangeUsernameComman
         var user = await _unitOfWork.Users.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             throw new NotFoundException("User", request.UserId);
+
+        if (user.AuthSource == AuthSource.Ldap)
+            throw new InvalidOperationException("Cannot change username for LDAP users. Usernames are managed by Active Directory.");
 
         var taken = await _unitOfWork.Users.ExistsAsync(
             u => u.Username == request.NewUsername && u.Id != request.UserId, cancellationToken);

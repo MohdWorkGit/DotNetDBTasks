@@ -151,12 +151,19 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             return previewResult;
         }
 
-        // For UPDATE queries, fetch the current (old) values from the database before applying the update.
+        // For UPDATE/DELETE, capture the current rows that match the WHERE clause so the
+        // audit log preserves the pre-change state of every affected row.
         string? oldValuesJson = null;
-        if (IsUpdateQuery(query.SqlQuery))
+        if (IsUpdateQuery(query.SqlQuery) || IsDeleteQuery(query.SqlQuery))
         {
-            oldValuesJson = await FetchOldValuesJsonAsync(
+            var oldRows = await FetchAffectedRowsPreviewAsync(
                 query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser, cancellationToken);
+            if (oldRows is not null && oldRows.Rows.Count > 0)
+            {
+                var serializable = oldRows.Rows.Select(r =>
+                    r.ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? "NULL"));
+                oldValuesJson = JsonSerializer.Serialize(serializable);
+            }
         }
 
         var log = new QueryExecutionLog
@@ -279,6 +286,9 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
     private static bool IsUpdateQuery(string sql) =>
         sql.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsDeleteQuery(string sql) =>
+        sql.TrimStart().StartsWith("DELETE", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// For UPDATE/DELETE statements, parses out the table and WHERE clause and runs a
     /// SELECT * against the same predicate so the user can see which rows will be affected
@@ -375,66 +385,4 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
     /// before the update is applied. Returns serialized JSON of the first matching row,
     /// or null if the SQL cannot be parsed or the pre-SELECT fails.
     /// </summary>
-    private async Task<string?> FetchOldValuesJsonAsync(
-        string sql,
-        Dictionary<string, object?> typedParameters,
-        int timeoutSeconds,
-        string? connectionString,
-        DatabaseUser? resolvedDbUser,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var match = Regex.Match(
-                sql.Trim(),
-                @"UPDATE\s+(""?\w+""?)\s+SET\s+(.*?)\s+WHERE\s+(.*)",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-            if (!match.Success) return null;
-
-            var tableName = match.Groups[1].Value;
-            var setPart   = match.Groups[2].Value;
-            var wherePart = match.Groups[3].Value;
-
-            var setColumns = Regex.Matches(setPart, @"(\w+)\s*=\s*[@:]\w+")
-                .Select(m => m.Groups[1].Value)
-                .ToList();
-
-            var whereParamNames = Regex.Matches(wherePart, @"[@:](\w+)")
-                .Select(m => m.Groups[1].Value)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            if (setColumns.Count == 0 || whereParamNames.Count == 0) return null;
-
-            var selectSql = $"SELECT {string.Join(", ", setColumns)} FROM {tableName} WHERE {wherePart}";
-
-            var whereParams = typedParameters
-                .Where(p => whereParamNames.Contains(p.Key))
-                .ToDictionary(p => p.Key, p => p.Value);
-
-            QueryExecutionResult result;
-            if (connectionString != null && resolvedDbUser != null)
-            {
-                result = await _queryExecutor.ExecuteAsync(selectSql, whereParams, timeoutSeconds, connectionString, resolvedDbUser.ServerType, cancellationToken);
-            }
-            else
-            {
-                result = await _queryExecutor.ExecuteAsync(selectSql, whereParams, timeoutSeconds, cancellationToken);
-            }
-
-            if (result.Rows.Count == 0) return null;
-
-            var oldValues = new Dictionary<string, string>();
-            foreach (var col in result.Columns)
-            {
-                oldValues[col] = result.Rows[0][col]?.ToString() ?? "NULL";
-            }
-
-            return JsonSerializer.Serialize(oldValues);
-        }
-        catch
-        {
-            return null;
-        }
-    }
 }

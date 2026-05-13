@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
 using FluentValidation;
@@ -37,6 +38,9 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         var user = await _unitOfWork.Users.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             throw new NotFoundException("User", request.UserId);
+
+        if (user.AuthSource == AuthSource.Ldap)
+            throw new InvalidOperationException("Cannot change password for LDAP users. Passwords are managed by Active Directory.");
 
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;

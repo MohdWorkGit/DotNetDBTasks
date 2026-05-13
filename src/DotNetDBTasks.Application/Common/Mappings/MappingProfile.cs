@@ -55,7 +55,10 @@ public class MappingProfile : Profile
             .ForMember(d => d.OldValues, opt => opt.MapFrom<OldValuesJsonResolver>())
             .ForMember(d => d.IsUpdateQuery, opt => opt.MapFrom(s =>
                 s.DynamicQuery != null &&
-                s.DynamicQuery.SqlQuery.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)));
+                s.DynamicQuery.SqlQuery.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)))
+            .ForMember(d => d.IsDeleteQuery, opt => opt.MapFrom(s =>
+                s.DynamicQuery != null &&
+                s.DynamicQuery.SqlQuery.TrimStart().StartsWith("DELETE", StringComparison.OrdinalIgnoreCase)));
     }
 }
 
@@ -81,19 +84,35 @@ public class ParametersJsonResolver : IValueResolver<QueryExecutionLog, Executio
 }
 
 /// <summary>
-/// Deserializes OldValuesJson (stored as JSON string) into a nullable Dictionary for the DTO.
+/// Deserializes OldValuesJson into a list of row dictionaries. Current format is a JSON
+/// array of objects (one per affected row). Older logs may contain a single object — those
+/// are wrapped in a one-element list so the DTO shape stays consistent.
 /// </summary>
-public class OldValuesJsonResolver : IValueResolver<QueryExecutionLog, ExecutionLogDto, Dictionary<string, string>?>
+public class OldValuesJsonResolver : IValueResolver<QueryExecutionLog, ExecutionLogDto, List<Dictionary<string, string>>?>
 {
-    public Dictionary<string, string>? Resolve(
+    public List<Dictionary<string, string>>? Resolve(
         QueryExecutionLog source,
         ExecutionLogDto destination,
-        Dictionary<string, string>? destMember,
+        List<Dictionary<string, string>>? destMember,
         ResolutionContext context)
     {
         if (string.IsNullOrEmpty(source.OldValuesJson))
             return null;
 
-        return JsonSerializer.Deserialize<Dictionary<string, string>>(source.OldValuesJson);
+        try
+        {
+            using var doc = JsonDocument.Parse(source.OldValuesJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                return JsonSerializer.Deserialize<List<Dictionary<string, string>>>(source.OldValuesJson);
+            }
+            // Legacy format: single object — wrap it.
+            var single = JsonSerializer.Deserialize<Dictionary<string, string>>(source.OldValuesJson);
+            return single is null ? null : new List<Dictionary<string, string>> { single };
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

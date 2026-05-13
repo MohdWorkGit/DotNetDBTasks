@@ -9,14 +9,18 @@ public class ExecutionLogDto
     public string Username { get; set; } = string.Empty;
     public Dictionary<string, string> Parameters { get; set; } = new();
     /// <summary>
-    /// For UPDATE queries: the column values that existed in the database before the update.
-    /// Null for non-UPDATE queries or when old values could not be fetched.
+    /// For UPDATE/DELETE queries: every affected row as it existed before the change, with
+    /// full column values. Null for INSERT or when old values could not be fetched.
     /// </summary>
-    public Dictionary<string, string>? OldValues { get; set; }
+    public List<Dictionary<string, string>>? OldValues { get; set; }
     /// <summary>
-    /// True when the SQL query is a DML UPDATE statement.
+    /// True when the SQL query is a DML UPDATE statement (used to show a before/after view).
     /// </summary>
     public bool IsUpdateQuery { get; set; }
+    /// <summary>
+    /// True when the SQL query is a DML DELETE statement.
+    /// </summary>
+    public bool IsDeleteQuery { get; set; }
     public DateTime ExecutedAt { get; set; }
     public long ExecutionDurationMs { get; set; }
     public int RowsReturned { get; set; }

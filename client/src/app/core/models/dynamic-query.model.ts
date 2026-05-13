@@ -176,10 +176,12 @@ export interface ExecutionLog {
   userId: string;
   username: string;
   parameters: Record<string, string>;
-  /** For UPDATE queries: column values that existed before the update was applied. */
-  oldValues?: Record<string, string> | null;
+  /** For UPDATE/DELETE queries: every affected row as it existed before the change. */
+  oldValues?: Record<string, string>[] | null;
   /** True when the SQL query is a DML UPDATE statement. */
   isUpdateQuery: boolean;
+  /** True when the SQL query is a DML DELETE statement. */
+  isDeleteQuery?: boolean;
   executedAt: string;
   executionDurationMs: number;
   rowsReturned: number;
