@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { forkJoin, throwError } from 'rxjs';
@@ -126,6 +126,7 @@ export class QueryGroupAccessComponent implements OnInit {
     private fb: FormBuilder,
     private queryService: QueryService,
     private route: ActivatedRoute,
+    private router: Router,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef
   ) {
@@ -188,10 +189,11 @@ export class QueryGroupAccessComponent implements OnInit {
       next: () => {
         this.saving = false;
         this.snackBar.open('Roles assigned successfully', 'Close', { duration: 3000 });
+        this.router.navigate(['/admin/query-groups']);
       },
-      error: () => {
+      error: (err) => {
         this.saving = false;
-        this.snackBar.open('Failed to assign roles', 'Close', { duration: 5000 });
+        this.snackBar.open(err.error?.message || 'Failed to assign roles', 'Close', { duration: 5000 });
       }
     });
   }
@@ -202,10 +204,11 @@ export class QueryGroupAccessComponent implements OnInit {
       next: () => {
         this.saving = false;
         this.snackBar.open('Departments assigned successfully', 'Close', { duration: 3000 });
+        this.router.navigate(['/admin/query-groups']);
       },
-      error: () => {
+      error: (err) => {
         this.saving = false;
-        this.snackBar.open('Failed to assign departments', 'Close', { duration: 5000 });
+        this.snackBar.open(err.error?.message || 'Failed to assign departments', 'Close', { duration: 5000 });
       }
     });
   }
@@ -216,10 +219,11 @@ export class QueryGroupAccessComponent implements OnInit {
       next: () => {
         this.saving = false;
         this.snackBar.open('Users assigned successfully', 'Close', { duration: 3000 });
+        this.router.navigate(['/admin/query-groups']);
       },
-      error: () => {
+      error: (err) => {
         this.saving = false;
-        this.snackBar.open('Failed to assign users', 'Close', { duration: 5000 });
+        this.snackBar.open(err.error?.message || 'Failed to assign users', 'Close', { duration: 5000 });
       }
     });
   }

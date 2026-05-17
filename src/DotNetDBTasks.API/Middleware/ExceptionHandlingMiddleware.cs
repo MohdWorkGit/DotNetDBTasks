@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Net;
 using System.Text.Json;
 using DotNetDBTasks.Application.Common.Exceptions;
@@ -64,6 +65,10 @@ public class ExceptionHandlingMiddleware
                 HttpStatusCode.RequestTimeout,
                 new ErrorResponse { Message = "The operation was cancelled or timed out." }),
 
+            DbException dbEx => (
+                HttpStatusCode.BadRequest,
+                new ErrorResponse { Message = $"Database error: {dbEx.Message}" }),
+
             _ => (
                 HttpStatusCode.InternalServerError,
                 new ErrorResponse { Message = "An unexpected error occurred." })
@@ -72,6 +77,10 @@ public class ExceptionHandlingMiddleware
         if (statusCode == HttpStatusCode.InternalServerError)
         {
             _logger.LogError(exception, "Unhandled exception occurred: {Message}", exception.Message);
+        }
+        else if (exception is DbException)
+        {
+            _logger.LogError(exception, "Database error: {Message}", exception.Message);
         }
         else
         {

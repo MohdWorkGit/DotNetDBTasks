@@ -81,7 +81,7 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
               <td mat-cell *matCellDef="let log">
                 <mat-icon [class]="log.isSuccess ? 'success' : 'error'"
                           [matTooltip]="log.isSuccess ? 'Success' : (log.errorMessage || 'Unknown error')"
-                          matTooltipClass="error-tooltip">
+                          [matTooltipClass]="log.isSuccess ? 'success-tooltip' : 'error-tooltip'">
                   {{ log.isSuccess ? 'check_circle' : 'error' }}
                 </mat-icon>
               </td>

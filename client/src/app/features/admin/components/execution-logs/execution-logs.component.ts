@@ -28,7 +28,25 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
             </button>
           </div>
 
-          <table mat-table [dataSource]="dataSource" matSort *ngIf="!loading && !errorMessage">
+          <div *ngIf="!loading && !errorMessage" class="table-toolbar">
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Filter logs</mat-label>
+              <input matInput (keyup)="applyFilter($event)" placeholder="Search by query, user, parameters, error...">
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="status-filter">
+              <mat-label>Status</mat-label>
+              <mat-select [(value)]="statusFilter" (selectionChange)="refreshFilter()">
+                <mat-option value="all">All</mat-option>
+                <mat-option value="success">Success</mat-option>
+                <mat-option value="failed">Failed</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <table mat-table [dataSource]="dataSource" matSort matSortActive="executedAt" matSortDirection="desc"
+                 *ngIf="!loading && !errorMessage">
             <ng-container matColumnDef="queryName">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Query</th>
               <td mat-cell *matCellDef="let log">{{ log.queryName }}</td>
@@ -86,7 +104,7 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
               <td mat-cell *matCellDef="let log">
                 <mat-icon [class]="log.isSuccess ? 'success' : 'error'"
                           [matTooltip]="log.isSuccess ? 'Success' : (log.errorMessage || 'Unknown error')"
-                          matTooltipClass="error-tooltip">
+                          [matTooltipClass]="log.isSuccess ? 'success-tooltip' : 'error-tooltip'">
                   {{ log.isSuccess ? 'check_circle' : 'error' }}
                 </mat-icon>
               </td>
@@ -94,6 +112,12 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+            <tr class="mat-row no-data-row" *matNoDataRow>
+              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+                No logs match the current filters.
+              </td>
+            </tr>
           </table>
 
           <mat-paginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons>
@@ -108,6 +132,11 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
     .error-text { color: var(--status-error); margin-bottom: 16px; }
     .success { color: var(--status-success); cursor: default; }
     .error { color: var(--status-error); cursor: help; }
+    .table-toolbar { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+    .filter-field { flex: 1; min-width: 240px; }
+    .status-filter { width: 160px; }
+    .no-data-row { height: 56px; }
+    .no-data-cell { text-align: center; color: var(--text-secondary); padding: 16px; }
     table { width: 100%; }
     .parameters-cell {
       max-width: 250px;
@@ -141,6 +170,8 @@ export class ExecutionLogsComponent implements OnInit {
   dataSource = new MatTableDataSource<ExecutionLog>();
   loading = true;
   errorMessage = '';
+  statusFilter: 'all' | 'success' | 'failed' = 'all';
+  private textFilter = '';
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -170,6 +201,30 @@ export class ExecutionLogsComponent implements OnInit {
         this.dataSource.data = logs;
         this.dataSource.paginator = this.paginator;
         this.dataSource.sort = this.sort;
+        this.dataSource.sortingDataAccessor = (item: ExecutionLog, property: string) => {
+          switch (property) {
+            case 'queryName': return (item.queryName || '').toLowerCase();
+            case 'username': return (item.username || '').toLowerCase();
+            case 'executedAt': return new Date(item.executedAt).getTime();
+            case 'isSuccess': return item.isSuccess ? 1 : 0;
+            default: return (item as any)[property];
+          }
+        };
+        this.dataSource.filterPredicate = (data: ExecutionLog, filter: string) => {
+          const f = JSON.parse(filter) as { text: string; status: 'all' | 'success' | 'failed' };
+          if (f.status === 'success' && !data.isSuccess) return false;
+          if (f.status === 'failed' && data.isSuccess) return false;
+          if (!f.text) return true;
+          const paramsStr = data.parameters ? Object.entries(data.parameters).map(([k, v]) => `${k} ${v}`).join(' ') : '';
+          const haystack = [
+            data.queryName,
+            data.username,
+            data.errorMessage,
+            paramsStr
+          ].filter(Boolean).join(' ').toLowerCase();
+          return haystack.includes(f.text);
+        };
+        this.refreshFilter();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -179,6 +234,16 @@ export class ExecutionLogsComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  applyFilter(event: Event): void {
+    this.textFilter = (event.target as HTMLInputElement).value.trim().toLowerCase();
+    this.refreshFilter();
+  }
+
+  refreshFilter(): void {
+    this.dataSource.filter = JSON.stringify({ text: this.textFilter, status: this.statusFilter });
+    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 
   formatParameters(params: Record<string, string>): string {

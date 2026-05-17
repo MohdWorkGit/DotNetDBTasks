@@ -475,9 +475,16 @@ html.dark-theme {
   }
 }
 
-// ── Error Tooltip ──
+// ── Status Tooltips ──
 .error-tooltip .mdc-tooltip__surface {
   background-color: var(--status-error);
+  color: #fff;
+  font-size: 13px;
+  max-width: 400px;
+  white-space: pre-wrap;
+}
+.success-tooltip .mdc-tooltip__surface {
+  background-color: var(--status-success);
   color: #fff;
   font-size: 13px;
   max-width: 400px;

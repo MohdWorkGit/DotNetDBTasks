@@ -185,45 +185,45 @@ export class RoleAssignmentComponent implements OnInit {
 
   onSaveRoles(): void {
     this.saving = true;
-    const queryId = this.route.snapshot.params['id'];
-    this.queryService.assignRoles(queryId, { roleIds: this.rolesForm.value.roleIds }).subscribe({
+    this.queryService.assignRoles(this.queryId, { roleIds: this.rolesForm.value.roleIds }).subscribe({
       next: () => {
         this.saving = false;
         this.snackBar.open('Roles assigned successfully', 'Close', { duration: 3000 });
+        this.router.navigate(['/admin/queries']);
       },
-      error: () => {
+      error: (err) => {
         this.saving = false;
-        this.snackBar.open('Failed to assign roles', 'Close', { duration: 5000 });
+        this.snackBar.open(err.error?.message || 'Failed to assign roles', 'Close', { duration: 5000 });
       }
     });
   }
 
   onSaveDepartments(): void {
     this.saving = true;
-    const queryId = this.route.snapshot.params['id'];
-    this.queryService.assignDepartments(queryId, { departments: this.departmentsForm.value.departments }).subscribe({
+    this.queryService.assignDepartments(this.queryId, { departments: this.departmentsForm.value.departments }).subscribe({
       next: () => {
         this.saving = false;
         this.snackBar.open('Departments assigned successfully', 'Close', { duration: 3000 });
+        this.router.navigate(['/admin/queries']);
       },
-      error: () => {
+      error: (err) => {
         this.saving = false;
-        this.snackBar.open('Failed to assign departments', 'Close', { duration: 5000 });
+        this.snackBar.open(err.error?.message || 'Failed to assign departments', 'Close', { duration: 5000 });
       }
     });
   }
 
   onSaveUsers(): void {
     this.saving = true;
-    const queryId = this.route.snapshot.params['id'];
-    this.queryService.assignUsers(queryId, { userIds: this.usersForm.value.userIds }).subscribe({
+    this.queryService.assignUsers(this.queryId, { userIds: this.usersForm.value.userIds }).subscribe({
       next: () => {
         this.saving = false;
         this.snackBar.open('Users assigned successfully', 'Close', { duration: 3000 });
+        this.router.navigate(['/admin/queries']);
       },
-      error: () => {
+      error: (err) => {
         this.saving = false;
-        this.snackBar.open('Failed to assign users', 'Close', { duration: 5000 });
+        this.snackBar.open(err.error?.message || 'Failed to assign users', 'Close', { duration: 5000 });
       }
     });
   }

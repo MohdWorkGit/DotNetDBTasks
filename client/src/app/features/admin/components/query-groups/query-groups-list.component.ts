@@ -28,6 +28,14 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
             <mat-spinner diameter="40"></mat-spinner>
           </div>
 
+          <div *ngIf="!loading" class="table-toolbar">
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Filter groups</mat-label>
+              <input matInput (keyup)="applyFilter($event)" placeholder="Search by name or description">
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+          </div>
+
           <table mat-table [dataSource]="dataSource" matSort *ngIf="!loading">
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
@@ -35,7 +43,7 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
             </ng-container>
 
             <ng-container matColumnDef="description">
-              <th mat-header-cell *matHeaderCellDef>Description</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Description</th>
               <td mat-cell *matCellDef="let g">{{ g.description | slice:0:80 }}{{ g.description?.length > 80 ? '…' : '' }}</td>
             </ng-container>
 
@@ -66,6 +74,12 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+            <tr class="mat-row no-data-row" *matNoDataRow>
+              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+                No groups match the current filter.
+              </td>
+            </tr>
           </table>
 
           <mat-paginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons>
@@ -82,6 +96,10 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
       margin-bottom: 16px;
     }
     .loading { display: flex; justify-content: center; padding: 40px; }
+    .table-toolbar { margin-bottom: 8px; }
+    .filter-field { width: 100%; max-width: 480px; }
+    .no-data-row { height: 56px; }
+    .no-data-cell { text-align: center; color: var(--text-secondary); padding: 16px; }
     table { width: 100%; }
   `]
 })
@@ -119,6 +137,19 @@ export class QueryGroupsListComponent implements OnInit {
         this.dataSource.data = groups;
         this.dataSource.paginator = this.paginator;
         this.dataSource.sort = this.sort;
+        this.dataSource.sortingDataAccessor = (item: QueryGroup, property: string) => {
+          switch (property) {
+            case 'name': return (item.name || '').toLowerCase();
+            case 'description': return (item.description || '').toLowerCase();
+            case 'queryCount': return item.queryCount || 0;
+            default: return (item as any)[property];
+          }
+        };
+        this.dataSource.filterPredicate = (data: QueryGroup, filter: string) => {
+          if (!filter) return true;
+          const haystack = `${data.name || ''} ${data.description || ''}`.toLowerCase();
+          return haystack.includes(filter);
+        };
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -128,6 +159,11 @@ export class QueryGroupsListComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  applyFilter(event: Event): void {
+    this.dataSource.filter = (event.target as HTMLInputElement).value.trim().toLowerCase();
+    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 
   deleteGroup(id: string, name: string): void {

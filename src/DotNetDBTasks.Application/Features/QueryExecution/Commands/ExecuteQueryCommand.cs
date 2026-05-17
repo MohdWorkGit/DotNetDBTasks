@@ -154,25 +154,48 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         // the count to the user and re-submits with Confirmed=true to actually commit.
         if (!request.Confirmed && IsWriteQuery(query.SqlQuery))
         {
-            var previewResult = await _queryExecutor.ExecutePreviewAsync(
-                query.SqlQuery,
-                typedParameters,
-                query.TimeoutSeconds,
-                connectionString,
-                resolvedDbUser?.ServerType,
-                cancellationToken);
-            previewResult.Parameters = typedParameters;
-
-            // For UPDATE/DELETE, also fetch the affected rows so the user can review them.
-            var affectedRowsPreview = await FetchAffectedRowsPreviewAsync(
-                query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser, cancellationToken);
-            if (affectedRowsPreview is not null)
+            var previewSw = Stopwatch.StartNew();
+            try
             {
-                previewResult.PreviewColumns = affectedRowsPreview.Columns;
-                previewResult.PreviewRows = affectedRowsPreview.Rows;
-            }
+                var previewResult = await _queryExecutor.ExecutePreviewAsync(
+                    query.SqlQuery,
+                    typedParameters,
+                    query.TimeoutSeconds,
+                    connectionString,
+                    resolvedDbUser?.ServerType,
+                    cancellationToken);
+                previewResult.Parameters = typedParameters;
 
-            return previewResult;
+                // For UPDATE/DELETE, also fetch the affected rows so the user can review them.
+                var affectedRowsPreview = await FetchAffectedRowsPreviewAsync(
+                    query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser, cancellationToken);
+                if (affectedRowsPreview is not null)
+                {
+                    previewResult.PreviewColumns = affectedRowsPreview.Columns;
+                    previewResult.PreviewRows = affectedRowsPreview.Rows;
+                }
+
+                return previewResult;
+            }
+            catch (Exception ex)
+            {
+                previewSw.Stop();
+                var previewLog = new QueryExecutionLog
+                {
+                    Id = Guid.NewGuid(),
+                    DynamicQueryId = request.QueryId,
+                    UserId = _currentUser.UserId,
+                    ParametersJson = JsonSerializer.Serialize(request.Parameters),
+                    ExecutedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    ExecutionDurationMs = previewSw.ElapsedMilliseconds,
+                    IsSuccess = false,
+                    ErrorMessage = ex.Message
+                };
+                await _unitOfWork.QueryExecutionLogs.AddAsync(previewLog, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                throw;
+            }
         }
 
         // For UPDATE/DELETE, capture the current rows that match the WHERE clause so the
