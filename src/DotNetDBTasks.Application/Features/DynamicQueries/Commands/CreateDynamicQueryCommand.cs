@@ -62,6 +62,7 @@ public class CreateDynamicQueryCommandHandler
                 IsRequired = paramDto.IsRequired,
                 DefaultValue = paramDto.DefaultValue,
                 SortOrder = paramDto.SortOrder,
+                AllowMultiple = paramDto.AllowMultiple,
                 DropdownSourceType = paramDto.DropdownSourceType,
                 DropdownStaticValues = paramDto.DropdownStaticValues,
                 DropdownQueryId = paramDto.DropdownQueryId,

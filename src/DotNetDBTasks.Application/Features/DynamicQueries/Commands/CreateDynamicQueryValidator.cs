@@ -47,7 +47,7 @@ public partial class CreateDynamicQueryValidator : AbstractValidator<CreateDynam
                 .NotEmpty().WithMessage("Display name is required.")
                 .MaximumLength(200);
 
-            // Dropdown-specific validation
+            // Dropdown-specific validation (also covers the multi-select toggle).
             param.When(p => p.ParameterType == ParameterType.Dropdown, () =>
             {
                 param.RuleFor(p => p.DropdownSourceType)

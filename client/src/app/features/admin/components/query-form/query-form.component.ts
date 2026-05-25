@@ -111,6 +111,14 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                 <div *ngIf="getParamType(i) === ParameterType.Dropdown" class="dropdown-config">
                   <h4>Dropdown Configuration</h4>
 
+                  <mat-slide-toggle formControlName="allowMultiple" class="allow-multiple-toggle">
+                    Allow multiple selections
+                  </mat-slide-toggle>
+                  <p *ngIf="isAllowMultiple(i)" class="hint">
+                    Selected values are expanded into <code>(&#64;name_0, &#64;name_1, ...)</code> at
+                    execution time. Use <code>WHERE col IN (&#64;name)</code> in your SQL.
+                  </p>
+
                   <mat-radio-group formControlName="dropdownSourceType" class="source-radio-group">
                     <mat-radio-button [value]="DropdownSourceType.Static">
                       Static list (defined manually)
@@ -212,6 +220,7 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
     }
     .dropdown-config h4 { margin: 0 0 8px; font-size: 14px; color: var(--text-hint); }
     .source-radio-group { display: flex; gap: 24px; margin-bottom: 16px; }
+    .allow-multiple-toggle { display: block; margin-bottom: 12px; }
     .hint { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
 
     .static-values-editor { margin-top: 8px; }
@@ -295,6 +304,10 @@ export class QueryFormComponent implements OnInit {
     return this.parameters.at(index).get('parameterType')?.value;
   }
 
+  isAllowMultiple(index: number): boolean {
+    return !!this.parameters.at(index).get('allowMultiple')?.value;
+  }
+
   getDropdownSourceType(index: number): DropdownSourceType | null {
     return this.parameters.at(index).get('dropdownSourceType')?.value ?? null;
   }
@@ -339,6 +352,7 @@ export class QueryFormComponent implements OnInit {
       isRequired: [true],
       defaultValue: [''],
       sortOrder: [this.parameters.length],
+      allowMultiple: [false],
       dropdownSourceType: [DropdownSourceType.Static],
       dropdownStaticValues: ['[]'],
       dropdownQueryId: [null],
@@ -380,6 +394,7 @@ export class QueryFormComponent implements OnInit {
             isRequired: [p.isRequired],
             defaultValue: [p.defaultValue || ''],
             sortOrder: [p.sortOrder],
+            allowMultiple: [!!p.allowMultiple],
             dropdownSourceType: [p.dropdownSourceType ?? DropdownSourceType.Static],
             dropdownStaticValues: [p.dropdownStaticValues || '[]'],
             dropdownQueryId: [p.dropdownQueryId || null],
@@ -401,11 +416,12 @@ export class QueryFormComponent implements OnInit {
     this.saving = true;
     const value = this.form.value;
 
-    // For non-dropdown parameters, clear dropdown fields before sending
+    // For non-dropdown parameters, clear dropdown config + multi-select toggle before sending.
     const cleanedParams = value.parameters.map((p: any) => {
       if (p.parameterType !== ParameterType.Dropdown) {
         return {
           ...p,
+          allowMultiple: false,
           dropdownSourceType: null,
           dropdownStaticValues: null,
           dropdownQueryId: null,

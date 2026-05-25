@@ -22,6 +22,13 @@ public class QueryParameter : BaseEntity
     // --- Dropdown-specific fields (only used when ParameterType == Dropdown) ---
 
     /// <summary>
+    /// When true the dropdown accepts multiple selections and the bound value is
+    /// expanded by the executor into `(@name_0, @name_1, ...)` so it can be used
+    /// directly inside a SQL `IN` clause. Defaults to false (single-select).
+    /// </summary>
+    public bool AllowMultiple { get; set; }
+
+    /// <summary>
     /// Specifies whether dropdown options come from a static list or a database query.
     /// </summary>
     public DropdownSourceType? DropdownSourceType { get; set; }

@@ -25,6 +25,7 @@ export interface QueryParameter {
   defaultValue?: string;
   sortOrder: number;
   // Dropdown-specific fields
+  allowMultiple?: boolean;
   dropdownSourceType?: DropdownSourceType;
   dropdownStaticValues?: string;
   dropdownQueryId?: string;

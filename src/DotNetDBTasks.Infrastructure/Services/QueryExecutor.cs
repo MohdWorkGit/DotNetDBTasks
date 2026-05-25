@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -79,7 +80,8 @@ public class QueryExecutor : IQueryExecutor
         var result = new QueryExecutionResult();
         var sw = Stopwatch.StartNew();
 
-        var adaptedSql = AdaptSqlSyntax(sqlQuery, serverType);
+        var (expandedSql, expandedParameters) = ExpandCollectionParameters(sqlQuery, parameters);
+        var adaptedSql = AdaptSqlSyntax(expandedSql, serverType);
 
         await using var connection = CreateConnection(connectionString, serverType);
         await connection.OpenAsync(cancellationToken);
@@ -97,7 +99,7 @@ public class QueryExecutor : IQueryExecutor
                 oracleCmd.BindByName = true;
             }
 
-            AddParameters(command, parameters, serverType);
+            AddParameters(command, expandedParameters, serverType);
 
             var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
             result.AffectedRows = affectedRows;
@@ -126,7 +128,8 @@ public class QueryExecutor : IQueryExecutor
         var result = new QueryExecutionResult();
         var sw = Stopwatch.StartNew();
 
-        var adaptedSql = AdaptSqlSyntax(sqlQuery, serverType);
+        var (expandedSql, expandedParameters) = ExpandCollectionParameters(sqlQuery, parameters);
+        var adaptedSql = AdaptSqlSyntax(expandedSql, serverType);
 
         await using var connection = CreateConnection(connectionString, serverType);
         await connection.OpenAsync(cancellationToken);
@@ -141,7 +144,7 @@ public class QueryExecutor : IQueryExecutor
             oracleCmd.BindByName = true;
         }
 
-        AddParameters(command, parameters, serverType);
+        AddParameters(command, expandedParameters, serverType);
 
         if (IsSelectQuery(sqlQuery))
         {
@@ -197,6 +200,62 @@ public class QueryExecutor : IQueryExecutor
             _ => throw new NotSupportedException($"Database server type '{serverType}' is not supported.")
         };
     }
+
+    /// <summary>
+    /// Expands collection-valued parameters into multiple scalar bind variables so
+    /// `WHERE col IN (@names)` becomes `WHERE col IN (@names_0, @names_1, ...)` with
+    /// each item bound separately. The user's SQL must already wrap the parameter in
+    /// the IN clause's own parens — we only inject the comma list, never an extra
+    /// pair, because Oracle (and the SQL spec) treats `IN ((a, b, c))` as a row-
+    /// constructor compared against a scalar (ORA-00907). Empty collections expand
+    /// to `NULL` so the resulting `IN (NULL)` is valid SQL that matches no rows.
+    ///
+    /// Non-mutating: returns a fresh dictionary so callers that reuse the original
+    /// parameters across multiple executions (e.g. preview + affected-rows fetch)
+    /// still see the original collection entries.
+    /// </summary>
+    private static (string Sql, Dictionary<string, object?> Parameters) ExpandCollectionParameters(
+        string sql, Dictionary<string, object?> parameters)
+    {
+        var expanded = new Dictionary<string, object?>(parameters.Count);
+
+        foreach (var entry in parameters)
+        {
+            if (!IsExpandableCollection(entry.Value))
+            {
+                expanded[entry.Key] = entry.Value;
+                continue;
+            }
+
+            var items = ((IEnumerable)entry.Value!).Cast<object?>().ToList();
+            // `\b` after the name prevents matching `@names_extra` or `@namesId` when
+            // expanding `@names` — the next char must be a non-word boundary.
+            var placeholderPattern = $@"@{Regex.Escape(entry.Key)}\b";
+
+            if (items.Count == 0)
+            {
+                sql = Regex.Replace(sql, placeholderPattern, "NULL");
+                continue;
+            }
+
+            var expandedKeys = Enumerable.Range(0, items.Count)
+                .Select(i => $"{entry.Key}_{i}")
+                .ToArray();
+
+            var placeholders = string.Join(", ", expandedKeys.Select(k => "@" + k));
+            sql = Regex.Replace(sql, placeholderPattern, placeholders);
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                expanded[expandedKeys[i]] = items[i] ?? DBNull.Value;
+            }
+        }
+
+        return (sql, expanded);
+    }
+
+    private static bool IsExpandableCollection(object? value) =>
+        value is IEnumerable && value is not string && value is not byte[];
 
     /// <summary>
     /// Adapts SQL syntax for the target database server type.

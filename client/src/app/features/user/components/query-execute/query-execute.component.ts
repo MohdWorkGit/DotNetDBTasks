@@ -88,10 +88,10 @@ import {
                   </mat-slide-toggle>
                 </div>
 
-                <!-- Dropdown -->
+                <!-- Dropdown (single or multi based on param.allowMultiple) -->
                 <mat-form-field *ngIf="param.parameterType === 4" appearance="outline">
                   <mat-label>{{ param.displayName }}</mat-label>
-                  <mat-select [formControlName]="param.name">
+                  <mat-select [formControlName]="param.name" [multiple]="!!param.allowMultiple">
                     <mat-option
                       *ngFor="let opt of dropdownOptions[param.name]"
                       [value]="opt.value">
@@ -309,20 +309,27 @@ export class QueryExecuteComponent implements OnInit {
         // Build dynamic form from parameter metadata
         const sorted = [...this.query.parameters].sort((a, b) => a.sortOrder - b.sortOrder);
         for (const param of sorted) {
+          const isMultiDropdown = param.parameterType === ParameterType.Dropdown && !!param.allowMultiple;
           const validators: any[] = param.isRequired ? [Validators.required] : [];
           if (param.parameterType === ParameterType.String) {
             validators.push(this.sqlInjectionValidator);
+          }
+          if (isMultiDropdown && param.isRequired) {
+            // Required-on-array means at least one selection.
+            validators.push(this.nonEmptyArrayValidator);
           }
           let defaultValue: any = param.defaultValue || '';
 
           if (param.parameterType === ParameterType.Boolean) {
             defaultValue = param.defaultValue === 'true';
+          } else if (isMultiDropdown) {
+            defaultValue = [];
           }
 
           this.form.addControl(param.name, this.fb.control(defaultValue, validators));
         }
 
-        // Load options for all dropdown parameters in parallel
+        // Load options for all dropdown parameters (single- and multi-select) in parallel
         const dropdownParams = sorted.filter(p => p.parameterType === ParameterType.Dropdown && p.id);
         if (dropdownParams.length > 0) {
           this.loadingDropdowns = true;
@@ -349,6 +356,10 @@ export class QueryExecuteComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  private nonEmptyArrayValidator(control: AbstractControl): ValidationErrors | null {
+    return Array.isArray(control.value) && control.value.length > 0 ? null : { required: true };
   }
 
   private sqlInjectionValidator(control: AbstractControl): ValidationErrors | null {
@@ -382,6 +393,10 @@ export class QueryExecuteComponent implements OnInit {
         value = value.toISOString().split('T')[0];
       } else if (param.parameterType === ParameterType.Boolean) {
         value = String(value);
+      } else if (param.parameterType === ParameterType.Dropdown && param.allowMultiple) {
+        // Backend wire format is Record<string, string>; multi-select payloads
+        // ride along as a JSON-array string and are parsed server-side.
+        value = JSON.stringify(Array.isArray(value) ? value : []);
       } else {
         value = String(value ?? '');
       }

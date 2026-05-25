@@ -143,6 +143,15 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             if (paramDef.IsRequired && string.IsNullOrWhiteSpace(rawValue))
                 throw new DomainException($"Parameter '{paramDef.DisplayName}' is required.");
 
+            if (paramDef.ParameterType == ParameterType.Dropdown && paramDef.AllowMultiple)
+            {
+                var items = ParseMultiSelectValue(rawValue, paramDef);
+                if (paramDef.IsRequired && items.Length == 0)
+                    throw new DomainException($"Parameter '{paramDef.DisplayName}' is required.");
+                typedParameters[paramDef.Name] = items;
+                continue;
+            }
+
             if (paramDef.ParameterType == ParameterType.Dropdown && !string.IsNullOrWhiteSpace(rawValue))
                 ValidateDropdownOption(rawValue, paramDef);
 
@@ -320,18 +329,67 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
 
     private static void ValidateDropdownOption(string rawValue, QueryParameter paramDef)
     {
-        if (paramDef.DropdownSourceType != DropdownSourceType.Static
-            || string.IsNullOrWhiteSpace(paramDef.DropdownStaticValues))
-            return;
-
-        using var doc = JsonDocument.Parse(paramDef.DropdownStaticValues);
-        var allowed = doc.RootElement.EnumerateArray()
-            .Select(e => e.TryGetProperty("value", out var v) ? v.GetString() : null)
-            .Where(v => v is not null)
-            .ToHashSet(StringComparer.Ordinal);
+        var allowed = GetStaticDropdownAllowedValues(paramDef);
+        if (allowed is null) return;
 
         if (!allowed.Contains(rawValue))
             throw new DomainException($"Invalid value for parameter '{paramDef.DisplayName}'. Select a valid option.");
+    }
+
+    /// <summary>
+    /// Parses the JSON-array payload sent for a MultiSelect parameter and returns the
+    /// individual string values. For static dropdowns, each value is verified against
+    /// the configured option list. Empty/null input yields an empty array (caller
+    /// enforces the required check separately).
+    /// </summary>
+    private static string[] ParseMultiSelectValue(string? rawValue, QueryParameter paramDef)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+            return Array.Empty<string>();
+
+        string[] items;
+        try
+        {
+            using var doc = JsonDocument.Parse(rawValue);
+            if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                throw new DomainException($"Parameter '{paramDef.DisplayName}' must be a JSON array of values.");
+
+            items = doc.RootElement.EnumerateArray()
+                .Select(e => e.ValueKind == JsonValueKind.String ? e.GetString() : e.ToString())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Select(v => v!)
+                .ToArray();
+        }
+        catch (JsonException)
+        {
+            throw new DomainException($"Parameter '{paramDef.DisplayName}' must be a JSON array of values.");
+        }
+
+        var allowed = GetStaticDropdownAllowedValues(paramDef);
+        if (allowed is not null)
+        {
+            foreach (var item in items)
+            {
+                if (!allowed.Contains(item))
+                    throw new DomainException($"Invalid value for parameter '{paramDef.DisplayName}'. Select a valid option.");
+            }
+        }
+
+        return items;
+    }
+
+    private static HashSet<string>? GetStaticDropdownAllowedValues(QueryParameter paramDef)
+    {
+        if (paramDef.DropdownSourceType != DropdownSourceType.Static
+            || string.IsNullOrWhiteSpace(paramDef.DropdownStaticValues))
+            return null;
+
+        using var doc = JsonDocument.Parse(paramDef.DropdownStaticValues);
+        return doc.RootElement.EnumerateArray()
+            .Select(e => e.TryGetProperty("value", out var v) ? v.GetString() : null)
+            .Where(v => v is not null)
+            .Select(v => v!)
+            .ToHashSet(StringComparer.Ordinal);
     }
 
     private static bool IsUpdateQuery(string sql) =>
@@ -359,11 +417,17 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             string? tableName = null;
             string? wherePart = null;
 
+            // Identifier: bare word, "double-quoted", or [bracketed], optionally schema-qualified
+            // (each segment may use any of the three forms). Captured group includes an optional
+            // table alias so it can be embedded directly into the SELECT's FROM clause —
+            // preserving the alias is required when the WHERE clause references it.
+            const string ident = @"(?:""[^""]+""|\[[^\]]+\]|\w+)(?:\.(?:""[^""]+""|\[[^\]]+\]|\w+))?";
+
             if (trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase))
             {
                 var match = Regex.Match(
                     trimmed,
-                    @"UPDATE\s+(""?\w+""?)\s+SET\s+.*?\s+WHERE\s+(.*)",
+                    $@"UPDATE\s+({ident}(?:\s+(?:AS\s+)?(?!SET\b)\w+)?)\s+SET\s+.*?\s+WHERE\s+(.*)",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 if (match.Success)
                 {
@@ -375,7 +439,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             {
                 var match = Regex.Match(
                     trimmed,
-                    @"DELETE\s+FROM\s+(""?\w+""?)(?:\s+WHERE\s+(.*))?",
+                    $@"DELETE\s+FROM\s+({ident}(?:\s+(?:AS\s+)?(?!WHERE\b)\w+)?)(?:\s+WHERE\s+(.*))?",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 if (match.Success)
                 {

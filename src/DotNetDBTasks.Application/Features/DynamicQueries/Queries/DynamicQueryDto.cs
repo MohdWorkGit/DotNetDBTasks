@@ -32,6 +32,7 @@ public class QueryParameterDto
     public int SortOrder { get; set; }
 
     // Dropdown-specific fields
+    public bool AllowMultiple { get; set; }
     public DropdownSourceType? DropdownSourceType { get; set; }
     public string? DropdownStaticValues { get; set; }
     public Guid? DropdownQueryId { get; set; }

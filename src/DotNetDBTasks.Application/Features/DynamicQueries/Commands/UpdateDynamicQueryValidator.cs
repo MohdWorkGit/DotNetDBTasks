@@ -41,7 +41,7 @@ public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryC
             param.RuleFor(p => p.DisplayName)
                 .NotEmpty().MaximumLength(200);
 
-            // Dropdown-specific validation
+            // Dropdown-specific validation (also covers the multi-select toggle).
             param.When(p => p.ParameterType == ParameterType.Dropdown, () =>
             {
                 param.RuleFor(p => p.DropdownSourceType)
