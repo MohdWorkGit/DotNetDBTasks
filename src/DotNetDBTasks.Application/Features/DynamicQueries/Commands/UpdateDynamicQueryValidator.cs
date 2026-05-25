@@ -29,7 +29,7 @@ public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryC
             .Must(NotContainDangerousPatterns).WithMessage("Query contains forbidden SQL patterns.");
 
         RuleFor(x => x.TimeoutSeconds)
-            .InclusiveBetween(1, 120);
+            .GreaterThanOrEqualTo(0).WithMessage("Timeout must be 0 or greater (0 = no timeout).");
 
         RuleForEach(x => x.Parameters).ChildRules(param =>
         {

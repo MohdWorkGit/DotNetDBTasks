@@ -39,7 +39,8 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
 
             <mat-form-field appearance="outline">
               <mat-label>Timeout (seconds)</mat-label>
-              <input matInput type="number" formControlName="timeoutSeconds">
+              <input matInput type="number" min="0" formControlName="timeoutSeconds">
+              <mat-hint>Set to 0 for no timeout (query can run indefinitely).</mat-hint>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
@@ -259,7 +260,7 @@ export class QueryFormComponent implements OnInit {
       name: ['', [Validators.required, Validators.maxLength(200)]],
       description: ['', [Validators.required, Validators.maxLength(1000)]],
       sqlQuery: ['', [Validators.required, Validators.maxLength(4000)]],
-      timeoutSeconds: [30, [Validators.min(1), Validators.max(120)]],
+      timeoutSeconds: [30, [Validators.min(0)]],
       databaseUserId: [null],
       queryGroupId: [null],
       isEnabled: [true],
