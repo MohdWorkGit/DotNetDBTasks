@@ -49,10 +49,14 @@ import {
           <form [formGroup]="form" (ngSubmit)="execute()">
             <div class="form-grid">
               <ng-container *ngFor="let param of query.parameters">
-                <!-- String -->
+                <!-- String (single value, or comma-separated when allowMultiple) -->
                 <mat-form-field *ngIf="param.parameterType === 0" appearance="outline">
                   <mat-label>{{ param.displayName }}</mat-label>
-                  <input matInput [formControlName]="param.name">
+                  <input matInput [formControlName]="param.name"
+                         [placeholder]="param.allowMultiple ? 'value1, value2, value3' : ''">
+                  <mat-hint *ngIf="param.allowMultiple">
+                    Enter multiple values separated by commas
+                  </mat-hint>
                   <mat-error *ngIf="form.get(param.name)?.hasError('required')">
                     {{ param.displayName }} is required
                   </mat-error>
@@ -397,6 +401,14 @@ export class QueryExecuteComponent implements OnInit {
         // Backend wire format is Record<string, string>; multi-select payloads
         // ride along as a JSON-array string and are parsed server-side.
         value = JSON.stringify(Array.isArray(value) ? value : []);
+      } else if (param.parameterType === ParameterType.String && param.allowMultiple) {
+        // Comma-separated textbox input — split, trim, drop empties, then send in the
+        // same JSON-array wire format as multi-select dropdowns.
+        const items = String(value ?? '')
+          .split(',')
+          .map(v => v.trim())
+          .filter(v => v.length > 0);
+        value = JSON.stringify(items);
       } else {
         value = String(value ?? '');
       }

@@ -1,8 +1,9 @@
-import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
@@ -65,9 +66,12 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
                     <span class="update-label old-label">
                       Before ({{ log.oldValues.length }} row{{ log.oldValues.length === 1 ? '' : 's' }}):
                     </span>
-                    <span class="parameters-cell old-values" [matTooltip]="formatRowsTooltip(log.oldValues)">
-                      {{ formatRowsSummary(log.oldValues) }}
-                    </span>
+                    <button type="button" class="old-rows-trigger"
+                            (click)="openOldRowsDialog(log)"
+                            matTooltip="Click to view affected rows">
+                      <span class="old-values">{{ formatRowsSummary(log.oldValues) }}</span>
+                      <mat-icon class="open-icon">open_in_new</mat-icon>
+                    </button>
                     <ng-container *ngIf="log.isUpdateQuery">
                       <span class="update-label new-label">After:</span>
                       <span class="parameters-cell new-values" [matTooltip]="formatParametersTooltip(log.parameters)">
@@ -163,6 +167,40 @@ import { ExecutionLog } from '@core/models/dynamic-query.model';
     .new-label { color: var(--new-label-color); }
     .old-values { color: var(--old-values-color); }
     .new-values { color: var(--new-values-color); }
+    .old-rows-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 250px;
+      padding: 2px 6px;
+      margin: 0;
+      background: transparent;
+      border: 1px dashed var(--border-color, #e2e8f0);
+      border-radius: 4px;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      color: inherit;
+    }
+    .old-rows-trigger:hover {
+      background: var(--bg-secondary, #f8fafc);
+      border-color: var(--accent-primary, #4f46e5);
+    }
+    .old-rows-trigger .old-values {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+    .old-rows-trigger .open-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: var(--accent-primary, #4f46e5);
+      flex-shrink: 0;
+    }
   `]
 })
 export class ExecutionLogsComponent implements OnInit {
@@ -178,7 +216,8 @@ export class ExecutionLogsComponent implements OnInit {
 
   constructor(
     private queryService: QueryService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -271,5 +310,80 @@ export class ExecutionLogsComponent implements OnInit {
     return rows
       .map((r, i) => `Row ${i + 1}:\n${this.formatParametersTooltip(r)}`)
       .join('\n\n');
+  }
+
+  openOldRowsDialog(log: ExecutionLog): void {
+    if (!this.hasOldRows(log)) return;
+    const rows = log.oldValues as Record<string, string>[];
+    const columns = Array.from(
+      rows.reduce<Set<string>>((set, row) => {
+        Object.keys(row || {}).forEach(k => set.add(k));
+        return set;
+      }, new Set<string>())
+    );
+    this.dialog.open(OldRowsDialogComponent, {
+      data: { queryName: log.queryName, rows, columns },
+      width: '720px',
+      maxWidth: '95vw',
+      autoFocus: false
+    });
+  }
+}
+
+interface OldRowsDialogData {
+  queryName: string;
+  rows: Record<string, string>[];
+  columns: string[];
+}
+
+@Component({
+  standalone: false,
+  selector: 'app-old-rows-dialog',
+  template: `
+    <h2 mat-dialog-title>Affected rows — {{ data.queryName }}</h2>
+    <mat-dialog-content>
+      <p class="dialog-subtitle">
+        {{ data.rows.length }} row{{ data.rows.length === 1 ? '' : 's' }} as they existed before the change.
+      </p>
+      <div class="rows-table-wrapper">
+        <table mat-table [dataSource]="data.rows" class="rows-table">
+          <ng-container *ngFor="let col of data.columns" [matColumnDef]="col">
+            <th mat-header-cell *matHeaderCellDef>{{ col }}</th>
+            <td mat-cell *matCellDef="let row">{{ row[col] }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="data.columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: data.columns;"></tr>
+        </table>
+      </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button (click)="close()">Close</button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    .dialog-subtitle { font-size: 13px; margin: 0 0 12px 0; color: var(--text-secondary); }
+    .rows-table-wrapper {
+      overflow-x: auto;
+      max-height: 60vh;
+      overflow-y: auto;
+      border: 1px solid var(--border-color, #e0e0e0);
+      border-radius: 4px;
+    }
+    .rows-table { width: 100%; font-size: 13px; }
+    .rows-table th {
+      font-weight: 600;
+      background: var(--bg-secondary, #fafafa);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+  `]
+})
+export class OldRowsDialogComponent {
+  readonly dialogRef = inject(MatDialogRef<OldRowsDialogComponent>);
+  readonly data = inject<OldRowsDialogData>(MAT_DIALOG_DATA);
+
+  close(): void {
+    this.dialogRef.close();
   }
 }

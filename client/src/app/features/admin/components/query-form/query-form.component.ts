@@ -108,17 +108,28 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                   </button>
                 </div>
 
-                <!-- Dropdown configuration section -->
-                <div *ngIf="getParamType(i) === ParameterType.Dropdown" class="dropdown-config">
-                  <h4>Dropdown Configuration</h4>
-
+                <!-- Multi-value toggle: enables IN-clause expansion for String and Dropdown params -->
+                <div *ngIf="getParamType(i) === ParameterType.String
+                         || getParamType(i) === ParameterType.Dropdown"
+                     class="multi-value-block">
                   <mat-slide-toggle formControlName="allowMultiple" class="allow-multiple-toggle">
-                    Allow multiple selections
+                    Allow multiple values
                   </mat-slide-toggle>
-                  <p *ngIf="isAllowMultiple(i)" class="hint">
+                  <p *ngIf="isAllowMultiple(i) && getParamType(i) === ParameterType.Dropdown" class="hint">
                     Selected values are expanded into <code>(&#64;name_0, &#64;name_1, ...)</code> at
                     execution time. Use <code>WHERE col IN (&#64;name)</code> in your SQL.
                   </p>
+                  <p *ngIf="isAllowMultiple(i) && getParamType(i) === ParameterType.String" class="hint">
+                    User enters comma-separated values (e.g. <code>value1, value2</code>); each is bound
+                    as a separate parameter and expanded into
+                    <code>(&#64;name_0, &#64;name_1, ...)</code>. Use <code>WHERE col IN (&#64;name)</code>
+                    in your SQL.
+                  </p>
+                </div>
+
+                <!-- Dropdown configuration section -->
+                <div *ngIf="getParamType(i) === ParameterType.Dropdown" class="dropdown-config">
+                  <h4>Dropdown Configuration</h4>
 
                   <mat-radio-group formControlName="dropdownSourceType" class="source-radio-group">
                     <mat-radio-button [value]="DropdownSourceType.Static">
@@ -222,6 +233,7 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
     .dropdown-config h4 { margin: 0 0 8px; font-size: 14px; color: var(--text-hint); }
     .source-radio-group { display: flex; gap: 24px; margin-bottom: 16px; }
     .allow-multiple-toggle { display: block; margin-bottom: 12px; }
+    .multi-value-block { margin: 8px 0 12px; }
     .hint { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
 
     .static-values-editor { margin-top: 8px; }
@@ -417,12 +429,14 @@ export class QueryFormComponent implements OnInit {
     this.saving = true;
     const value = this.form.value;
 
-    // For non-dropdown parameters, clear dropdown config + multi-select toggle before sending.
+    // For non-dropdown parameters, clear dropdown-only config before sending. allowMultiple
+    // is preserved for String (used to enable comma-separated IN-clause expansion) but cleared
+    // for Number/Date/Boolean where it has no meaning.
     const cleanedParams = value.parameters.map((p: any) => {
       if (p.parameterType !== ParameterType.Dropdown) {
         return {
           ...p,
-          allowMultiple: false,
+          allowMultiple: p.parameterType === ParameterType.String ? !!p.allowMultiple : false,
           dropdownSourceType: null,
           dropdownStaticValues: null,
           dropdownQueryId: null,

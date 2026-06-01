@@ -143,7 +143,10 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             if (paramDef.IsRequired && string.IsNullOrWhiteSpace(rawValue))
                 throw new DomainException($"Parameter '{paramDef.DisplayName}' is required.");
 
-            if (paramDef.ParameterType == ParameterType.Dropdown && paramDef.AllowMultiple)
+            // AllowMultiple expands into IN-clause bind variables. Supported for Dropdown
+            // (UI sends the selected values as a JSON array) and String (UI converts the
+            // user's "a, b, c" textbox input into the same JSON-array wire format).
+            if (paramDef.AllowMultiple)
             {
                 var items = ParseMultiSelectValue(rawValue, paramDef);
                 if (paramDef.IsRequired && items.Length == 0)
