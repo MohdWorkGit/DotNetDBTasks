@@ -1,6 +1,6 @@
 # DotNetDBTasks
 
-A production-ready dynamic database query execution platform built with .NET 8, Angular 18, SQL Server, and Docker.
+A production-ready dynamic database query execution platform built with .NET 10, Angular 21, Oracle, and Docker.
 
 ## Architecture
 
@@ -10,9 +10,9 @@ A production-ready dynamic database query execution platform built with .NET 8, 
 src/
 ├── DotNetDBTasks.Domain          # Entities, interfaces, enums, exceptions (zero dependencies)
 ├── DotNetDBTasks.Application     # CQRS commands/queries, DTOs, validators, mappings
-├── DotNetDBTasks.Infrastructure  # EF Core, repositories, JWT, password hashing, query executor
+├── DotNetDBTasks.Infrastructure  # EF Core, repositories, JWT, encryption, query executor
 └── DotNetDBTasks.API             # Controllers, middleware, DI configuration
-client/                           # Angular 18 SPA with Angular Material
+client/                           # Angular 21 SPA with Angular Material
 docker/                           # Dockerfiles and nginx config
 ```
 
@@ -24,20 +24,23 @@ docker/                           # Dockerfiles and nginx config
 |-------|------|
 | Create/edit/delete parameterized SQL queries | View queries assigned to their roles |
 | Define input parameters (string, number, date, boolean) | Fill dynamically generated forms |
-| Assign queries to roles | Execute queries with pagination |
-| Enable/disable queries | Export results to CSV |
-| View execution audit logs | View personal execution history |
+| Multi-value string parameters (comma-separated, `IN` support) | Execute queries with pagination |
+| Organize queries into folders | Export results to CSV |
+| Assign queries to roles | View personal execution history |
+| Enable/disable queries, configurable timeouts | |
+| View execution audit logs | |
 
 ## Security
 
+- LDAP / Active Directory authentication
 - JWT access + refresh token authentication
-- BCrypt password hashing (work factor 12)
+- AES-256 encryption of stored database credentials at rest
 - Role-based authorization (Admin, User)
 - Parameterized SQL only — no string concatenation
 - SQL query validation (SELECT-only, forbidden pattern detection)
 - FluentValidation on all inputs
 - Global exception handling middleware
-- Query execution timeout protection
+- Query execution timeout protection (supports unlimited/infinity)
 - Full execution audit logging
 
 ## Quick Start with Docker
@@ -56,7 +59,7 @@ cd DotNetDBTasks
 
 # 2. Create environment file
 cp .env.example .env
-# Edit .env and set a strong JWT_SECRET and DB_PASSWORD
+# Edit .env and set a strong JWT_SECRET, DB_PASSWORD, and ENCRYPTION_KEY
 
 # 3. Build and start all services
 docker compose build
@@ -67,79 +70,70 @@ docker compose up -d
 # API Swagger: http://localhost:5000/swagger
 ```
 
-### Default Credentials
+The Compose stack starts four services: **oracle** (Oracle XE 21c), **ldap** (OpenLDAP),
+**api** (.NET 10), and **client** (Angular served by nginx).
 
-| Username | Password | Role |
-|----------|----------|------|
-| admin | Admin@123 | Admin |
-| user | User@123 | User |
+## Local Development (without Docker)
 
-**Change these immediately in production.**
+### Prerequisites
+
+- .NET 10 SDK
+- Node.js 24.x and npm 10.x
+- A reachable database (Oracle, SQL Server, MySQL, or PostgreSQL)
+- A reachable LDAP/AD server for authentication
+
+### Run the API
+
+```bash
+dotnet restore DotNetDBTasks.sln
+dotnet run --project src/DotNetDBTasks.API
+# Listens on http://localhost:5000 (Swagger at /swagger)
+```
+
+### Run the frontend
+
+```bash
+cd client
+npm install
+npm start          # ng serve on http://localhost:4200, proxies /api to the .NET API
+```
 
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DB_PASSWORD` | SQL Server SA password | `YourStrong@Passw0rd` |
-| `DB_PORT` | SQL Server host port | `1433` |
+| `DB_PASSWORD` | Oracle database password | `YourStrong@Passw0rd` |
 | `JWT_SECRET` | JWT signing key (min 32 chars) | Must be changed |
 | `JWT_ISSUER` | JWT token issuer | `DotNetDBTasks` |
 | `JWT_AUDIENCE` | JWT token audience | `DotNetDBTasks` |
-| `API_PORT` | API host port | `5000` |
+| `ENCRYPTION_KEY` | Base64-encoded 32-byte AES-256 key for credential encryption | Must be changed |
+| `LDAP_ADMIN_PASSWORD` | LDAP admin bind password | `LdapAdmin@123` |
+| `APP_DOMAIN` | Public domain / allowed CORS origin | `https://tasks.example.com` |
 | `CLIENT_PORT` | Angular app host port | `80` |
 
-## Production Deployment
+Generate a key with `openssl rand -base64 32`.
 
-### Build and tag images
+## Deployment
 
-```bash
-# Build images
-docker compose build
-
-# Tag for private registry
-docker tag dotnetdbtasks-api:latest your-registry.com/dotnetdbtasks-api:1.0.0
-docker tag dotnetdbtasks-client:latest your-registry.com/dotnetdbtasks-client:1.0.0
-
-# Push to registry
-docker push your-registry.com/dotnetdbtasks-api:1.0.0
-docker push your-registry.com/dotnetdbtasks-client:1.0.0
-```
-
-### Deploy on remote server
-
-```bash
-# On the VPS:
-# 1. Pull the repository
-git clone <repository-url>
-cd DotNetDBTasks
-
-# 2. Configure environment
-cp .env.example .env
-nano .env  # Set production values
-
-# 3. Build and run
-docker compose build
-docker compose up -d
-
-# 4. Verify health
-docker compose ps
-docker compose logs -f api
-```
+- **Docker / internet-connected:** see the Quick Start above.
+- **Air-gapped (no Docker, no internet):** see [DEPLOY-AIRGAPPED.md](DEPLOY-AIRGAPPED.md) —
+  covers both deploying a pre-built release **and** setting up a machine to edit and rebuild offline.
 
 ### Production checklist
 
 - [ ] Set a strong, unique `JWT_SECRET` (minimum 32 random characters)
 - [ ] Set a strong `DB_PASSWORD`
-- [ ] Change default user passwords after first login
+- [ ] Set a unique `ENCRYPTION_KEY` (base64-encoded 32 bytes) — losing it makes stored credentials unrecoverable
+- [ ] Point `Ldap.Host` at the correct AD/LDAP server and verify a test login
 - [ ] Configure HTTPS (reverse proxy with TLS termination)
-- [ ] Set up log rotation for container logs
-- [ ] Configure backup for the `sqlserver_data` volume
+- [ ] Set up log rotation for the Serilog file sink
+- [ ] Configure backup for the database volume
 - [ ] Restrict exposed ports via firewall rules
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/login` — Authenticate and get tokens
+- `POST /api/auth/login` — Authenticate (via LDAP/AD) and get tokens
 - `POST /api/auth/refresh` — Refresh expired access token
 
 ### Admin (requires Admin role)
@@ -173,14 +167,15 @@ Roles ──┘               │
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | .NET 8 Web API |
-| Frontend | Angular 18 + Angular Material |
-| Database | SQL Server 2022 |
-| ORM | Entity Framework Core 8 |
+| Backend | .NET 10 Web API |
+| Frontend | Angular 21 + Angular Material |
+| Database | Oracle XE 21c (SQL Server, MySQL, PostgreSQL also supported) |
+| ORM | Entity Framework Core 10 |
+| DB drivers | Oracle.EntityFrameworkCore, EFCore.SqlServer, MySqlConnector, Npgsql |
 | CQRS | MediatR |
 | Validation | FluentValidation |
 | Mapping | AutoMapper |
 | Logging | Serilog |
-| Auth | JWT Bearer + BCrypt |
+| Auth | LDAP/AD + JWT Bearer; AES-256 credential encryption |
 | Containers | Docker + Docker Compose |
 | Web Server | nginx (Angular) + Kestrel (.NET) |
