@@ -163,10 +163,13 @@ export class ExecutionHistoryComponent implements OnInit {
     ).subscribe({
       next: (logs) => {
         this.dataSource.data = logs;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.loading = false;
         this.cdr.detectChanges();
+        // Bind paginator/sort after the *ngIf table has rendered
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+          this.dataSource.sort = this.sort;
+        });
       },
       error: (err) => {
         this.loading = false;

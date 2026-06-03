@@ -54,7 +54,7 @@ public class GetParameterDropdownOptionsQueryHandler
         if (!query.IsEnabled)
             throw new DomainException("This query is currently disabled.");
 
-        // Verify user access (same 3-tier check as execution)
+        // Verify user access (same 4-tier check as execution)
         var hasAccess = false;
 
         var userRoles = await _unitOfWork.UserRoles.FindAsync(
@@ -77,6 +77,30 @@ public class GetParameterDropdownOptionsQueryHandler
             hasAccess = await _unitOfWork.DynamicQueryUsers.ExistsAsync(
                 qu => qu.DynamicQueryId == request.QueryId && qu.UserId == _currentUser.UserId,
                 cancellationToken);
+        }
+
+        // Group-level access — any assignment on the parent group grants access to this query.
+        if (!hasAccess && query.QueryGroupId.HasValue)
+        {
+            var groupId = query.QueryGroupId.Value;
+
+            hasAccess = userRoleIds.Count > 0 && await _unitOfWork.QueryGroupRoles.ExistsAsync(
+                gr => gr.QueryGroupId == groupId && userRoleIds.Contains(gr.RoleId),
+                cancellationToken);
+
+            if (!hasAccess && !string.IsNullOrEmpty(_currentUser.Department))
+            {
+                hasAccess = await _unitOfWork.QueryGroupDepartments.ExistsAsync(
+                    gd => gd.QueryGroupId == groupId && gd.Department == _currentUser.Department,
+                    cancellationToken);
+            }
+
+            if (!hasAccess)
+            {
+                hasAccess = await _unitOfWork.QueryGroupUsers.ExistsAsync(
+                    gu => gu.QueryGroupId == groupId && gu.UserId == _currentUser.UserId,
+                    cancellationToken);
+            }
         }
 
         if (!hasAccess && !_currentUser.Roles.Contains("Admin"))

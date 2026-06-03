@@ -371,8 +371,6 @@ export class UserManagementComponent implements OnInit {
       next: (users) => {
         this.users = users;
         this.dataSource.data = users;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.dataSource.sortingDataAccessor = (item: SystemUser, property: string) => {
           switch (property) {
             case 'name': return `${item.firstName} ${item.lastName}`;
@@ -386,6 +384,11 @@ export class UserManagementComponent implements OnInit {
         };
         this.loading = false;
         this.cdr.detectChanges();
+        // Bind paginator/sort after the *ngIf table has rendered
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+          this.dataSource.sort = this.sort;
+        });
       },
       error: () => {
         this.snackBar.open('Failed to load users', 'Close', { duration: 5000 });

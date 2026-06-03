@@ -179,8 +179,6 @@ export class QueryListComponent implements OnInit {
     ).subscribe({
       next: (queries) => {
         this.dataSource.data = queries;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.dataSource.sortingDataAccessor = (item: DynamicQuery, property: string) => {
           switch (property) {
             case 'isEnabled': return item.isEnabled ? 1 : 0;
@@ -208,6 +206,11 @@ export class QueryListComponent implements OnInit {
         this.refreshFilter();
         this.loading = false;
         this.cdr.detectChanges();
+        // Bind paginator/sort after the *ngIf table has rendered
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+          this.dataSource.sort = this.sort;
+        });
       },
       error: () => {
         this.loading = false;

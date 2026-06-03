@@ -135,8 +135,6 @@ export class QueryGroupsListComponent implements OnInit {
     ).subscribe({
       next: (groups) => {
         this.dataSource.data = groups;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.dataSource.sortingDataAccessor = (item: QueryGroup, property: string) => {
           switch (property) {
             case 'name': return (item.name || '').toLowerCase();
@@ -152,6 +150,11 @@ export class QueryGroupsListComponent implements OnInit {
         };
         this.loading = false;
         this.cdr.detectChanges();
+        // Bind paginator/sort after the *ngIf table has rendered
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+          this.dataSource.sort = this.sort;
+        });
       },
       error: () => {
         this.loading = false;

@@ -238,8 +238,6 @@ export class ExecutionLogsComponent implements OnInit {
     ).subscribe({
       next: (logs) => {
         this.dataSource.data = logs;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.dataSource.sortingDataAccessor = (item: ExecutionLog, property: string) => {
           switch (property) {
             case 'queryName': return (item.queryName || '').toLowerCase();
@@ -266,6 +264,11 @@ export class ExecutionLogsComponent implements OnInit {
         this.refreshFilter();
         this.loading = false;
         this.cdr.detectChanges();
+        // Bind paginator/sort after the *ngIf table has rendered
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+          this.dataSource.sort = this.sort;
+        });
       },
       error: (err) => {
         this.loading = false;

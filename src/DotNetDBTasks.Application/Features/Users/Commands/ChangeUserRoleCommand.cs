@@ -45,6 +45,12 @@ public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleComman
                 throw new InvalidOperationException($"Role with ID '{roleId}' does not exist.");
         }
 
+        // Guard: never allow the last active administrator to lose the Admin role,
+        // otherwise the system could be left with no one able to manage it.
+        var adminRole = allRoles.FirstOrDefault(r => r.Name == "Admin");
+        if (adminRole is not null && !request.RoleIds.Contains(adminRole.Id))
+            await EnsureNotLastActiveAdminAsync(user, adminRole.Id, cancellationToken);
+
         // Remove existing roles
         var existingUserRoles = await _unitOfWork.UserRoles.FindAsync(
             ur => ur.UserId == request.UserId, cancellationToken);
@@ -64,5 +70,29 @@ public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleComman
         user.UpdatedAt = DateTime.UtcNow;
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Throws if <paramref name="user"/> is currently the only active administrator,
+    /// preventing a role change that would strip the system of its last admin.
+    /// </summary>
+    private async Task EnsureNotLastActiveAdminAsync(User user, Guid adminRoleId, CancellationToken cancellationToken)
+    {
+        var targetIsAdmin = await _unitOfWork.UserRoles.ExistsAsync(
+            ur => ur.UserId == user.Id && ur.RoleId == adminRoleId, cancellationToken);
+        if (!targetIsAdmin || !user.IsActive)
+            return;
+
+        var adminUserIds = (await _unitOfWork.UserRoles.FindAsync(
+                ur => ur.RoleId == adminRoleId, cancellationToken))
+            .Select(ur => ur.UserId)
+            .Where(id => id != user.Id)
+            .ToList();
+
+        var hasOtherActiveAdmin = adminUserIds.Count > 0 && await _unitOfWork.Users.ExistsAsync(
+            u => adminUserIds.Contains(u.Id) && u.IsActive, cancellationToken);
+
+        if (!hasOtherActiveAdmin)
+            throw new DomainException("Cannot remove the Admin role from the last active administrator.");
     }
 }
