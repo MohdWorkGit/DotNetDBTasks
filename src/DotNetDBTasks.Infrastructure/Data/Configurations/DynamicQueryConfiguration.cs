@@ -13,6 +13,7 @@ public class DynamicQueryConfiguration : IEntityTypeConfiguration<DynamicQuery>
         builder.Property(e => e.Description).HasMaxLength(1000).IsRequired();
         builder.Property(e => e.SqlQuery).HasColumnType("CLOB").IsRequired();
         builder.Property(e => e.TimeoutSeconds).HasDefaultValue(30);
+        builder.Property(e => e.IsLongRunning).HasDefaultValue(false);
 
         builder.HasMany(e => e.Parameters)
             .WithOne(p => p.DynamicQuery)

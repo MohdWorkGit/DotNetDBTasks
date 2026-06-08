@@ -16,6 +16,7 @@ public class CreateDynamicQueryCommand : IRequest<DynamicQueryDto>
     public string Description { get; set; } = string.Empty;
     public string SqlQuery { get; set; } = string.Empty;
     public int TimeoutSeconds { get; set; } = 30;
+    public bool IsLongRunning { get; set; }
     public Guid? DatabaseUserId { get; set; }
     public Guid? QueryGroupId { get; set; }
     public List<QueryParameterDto> Parameters { get; set; } = new();

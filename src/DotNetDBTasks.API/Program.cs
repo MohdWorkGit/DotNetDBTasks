@@ -1,3 +1,4 @@
+using DotNetDBTasks.API.BackgroundJobs;
 using DotNetDBTasks.API.Extensions;
 using DotNetDBTasks.API.Middleware;
 using DotNetDBTasks.Application;
@@ -27,6 +28,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // HTTP context accessor for current user service
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+// Background worker that executes submitted query jobs off the request thread
+builder.Services.AddHostedService<QueryJobWorker>();
 
 // Controllers
 builder.Services.AddControllers();

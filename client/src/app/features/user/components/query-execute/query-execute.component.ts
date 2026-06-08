@@ -1,12 +1,12 @@
-import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { forkJoin, of, throwError } from 'rxjs';
-import { catchError, timeout } from 'rxjs/operators';
+import { forkJoin, of, throwError, Subscription } from 'rxjs';
+import { catchError, switchMap, timeout } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
 import {
   DropdownOption,
@@ -116,7 +116,13 @@ import {
               <button mat-raised-button color="primary" type="submit"
                       [disabled]="form.invalid || executing || loadingDropdowns">
                 <mat-icon>play_arrow</mat-icon>
-                {{ executing ? 'Executing...' : 'Execute Query' }}
+                {{ executing
+                    ? (query.isLongRunning ? 'Executing… ' + formatElapsed(elapsedSeconds) : 'Executing…')
+                    : 'Execute Query' }}
+              </button>
+              <button mat-stroked-button color="warn" type="button"
+                      *ngIf="executing && query.isLongRunning" (click)="cancelExecution()">
+                <mat-icon>cancel</mat-icon> Cancel
               </button>
               <button mat-stroked-button type="button" *ngIf="result && result.columns.length > 0"
                       (click)="exportCsv()">
@@ -255,7 +261,7 @@ import {
     .preview-table th { font-weight: 600; background: var(--bg-secondary, #fafafa); position: sticky; top: 0; z-index: 1; }
   `]
 })
-export class QueryExecuteComponent implements OnInit {
+export class QueryExecuteComponent implements OnInit, OnDestroy {
   query?: DynamicQuery;
   form!: FormGroup;
   result?: QueryExecutionResult;
@@ -270,6 +276,13 @@ export class QueryExecuteComponent implements OnInit {
   queryError = '';
   columnFilters: Record<string, string> = {};
   filterColumns: string[] = [];
+
+  /** Seconds elapsed since the current execution started, shown on the button. */
+  elapsedSeconds = 0;
+  /** Job id of the in-flight execution, used to cancel it server-side. */
+  private currentJobId?: string;
+  private pollSub?: Subscription;
+  private timerHandle?: any;
 
   /** Maps param.name -> list of dropdown options */
   dropdownOptions: Record<string, DropdownOption[]> = {};
@@ -435,47 +448,115 @@ export class QueryExecuteComponent implements OnInit {
     if (!this.query) return;
 
     this.executing = true;
-    this.queryService.executeQuery(this.query.id, params, confirmed).subscribe({
-      next: (res) => {
-        this.executing = false;
 
-        if (res.requiresConfirmation && !confirmed) {
-          this.pendingPreview = res;
-          this.pendingParams = params;
-          this.result = undefined;
-          this.cdr.detectChanges();
-          return;
-        }
+    if (this.query.isLongRunning) {
+      // Long-running queries run as a background job the page polls for. Each request is short,
+      // so they are not cut off by proxy/edge timeouts. A timer and Cancel button are shown.
+      this.startTimer();
+      this.pollSub = this.queryService.submitQuery(this.query.id, params, confirmed).pipe(
+        switchMap(({ jobId }) => {
+          this.currentJobId = jobId;
+          return this.queryService.pollJobResult(jobId);
+        })
+      ).subscribe({
+        next: (res) => this.handleResult(res, params, confirmed),
+        error: (err) => this.handleError(err)
+      });
+    } else {
+      // Normal, quick queries run synchronously and return in a single request — no polling.
+      this.pollSub = this.queryService.executeQuery(this.query.id, params, confirmed).subscribe({
+        next: (res) => this.handleResult(res, params, confirmed),
+        error: (err) => this.handleError(err)
+      });
+    }
+  }
 
-        this.pendingPreview = undefined;
-        this.pendingParams = {};
-        this.result = res;
-        this.columnFilters = {};
-        this.filterColumns = res.columns.map(c => 'filter_' + c);
-        this.dataSource.filterPredicate = (row: Record<string, any>, filter: string) => {
-          const filters: Record<string, string> = JSON.parse(filter || '{}');
-          return Object.entries(filters).every(([col, val]) => {
-            if (!val) return true;
-            return String(row[col] ?? '').toLowerCase().includes(val.toLowerCase());
-          });
-        };
-        this.dataSource.data = res.rows;
-        this.dataSource.filter = '';
-        setTimeout(() => {
-          if (this.paginator) this.dataSource.paginator = this.paginator;
-          if (this.sort) this.dataSource.sort = this.sort;
-        });
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.executing = false;
-        this.snackBar.open(
-          err.error?.message || 'Query execution failed',
-          'Close', { duration: 5000 }
-        );
-        this.cdr.detectChanges();
-      }
+  private handleResult(res: QueryExecutionResult, params: Record<string, string>, confirmed: boolean): void {
+    this.stopExecuting();
+
+    if (res.requiresConfirmation && !confirmed) {
+      this.pendingPreview = res;
+      this.pendingParams = params;
+      this.result = undefined;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.pendingPreview = undefined;
+    this.pendingParams = {};
+    this.result = res;
+    this.columnFilters = {};
+    this.filterColumns = res.columns.map(c => 'filter_' + c);
+    this.dataSource.filterPredicate = (row: Record<string, any>, filter: string) => {
+      const filters: Record<string, string> = JSON.parse(filter || '{}');
+      return Object.entries(filters).every(([col, val]) => {
+        if (!val) return true;
+        return String(row[col] ?? '').toLowerCase().includes(val.toLowerCase());
+      });
+    };
+    this.dataSource.data = res.rows;
+    this.dataSource.filter = '';
+    setTimeout(() => {
+      if (this.paginator) this.dataSource.paginator = this.paginator;
+      if (this.sort) this.dataSource.sort = this.sort;
     });
+    this.cdr.detectChanges();
+  }
+
+  private handleError(err: any): void {
+    this.stopExecuting();
+    this.snackBar.open(
+      err.error?.message || 'Query execution failed',
+      'Close', { duration: 5000 }
+    );
+    this.cdr.detectChanges();
+  }
+
+  /** Cancels the in-flight execution: stops polling and aborts the query server-side. */
+  cancelExecution(): void {
+    const jobId = this.currentJobId;
+    this.pollSub?.unsubscribe();
+    this.stopExecuting();
+    if (jobId) {
+      this.queryService.cancelJob(jobId).subscribe({
+        next: () => this.snackBar.open('Query canceled', 'Close', { duration: 3000 }),
+        error: () => this.snackBar.open('Query canceled', 'Close', { duration: 3000 })
+      });
+    }
+    this.cdr.detectChanges();
+  }
+
+  private startTimer(): void {
+    this.elapsedSeconds = 0;
+    this.stopTimer();
+    this.timerHandle = setInterval(() => {
+      this.elapsedSeconds++;
+      this.cdr.detectChanges();
+    }, 1000);
+  }
+
+  private stopTimer(): void {
+    if (this.timerHandle) {
+      clearInterval(this.timerHandle);
+      this.timerHandle = undefined;
+    }
+  }
+
+  private stopExecuting(): void {
+    this.executing = false;
+    this.currentJobId = undefined;
+    this.stopTimer();
+  }
+
+  formatElapsed(totalSeconds: number): string {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  ngOnDestroy(): void {
+    this.pollSub?.unsubscribe();
+    this.stopTimer();
   }
 
   applyColumnFilter(event: Event, col: string): void {

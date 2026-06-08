@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, throwError, timer } from 'rxjs';
+import { first, switchMap } from 'rxjs/operators';
 import { environment } from '@env/environment';
 import {
   AssignDatabaseUserAccessRequest,
@@ -19,6 +20,7 @@ import {
   DynamicQuery,
   ExecutionLog,
   ImportedLdapUser,
+  JobStatusResponse,
   LdapUser,
   MyQueryGroup,
   QueryExecutionResult,
@@ -165,11 +167,49 @@ export class QueryService {
     return this.http.get<DynamicQuery>(`${this.userUrl}/${id}`);
   }
 
+  /**
+   * Executes a normal (quick) query synchronously and returns the result in one request.
+   * Used for queries not flagged as long-running.
+   */
   executeQuery(queryId: string, parameters: Record<string, string>, confirmed = false): Observable<QueryExecutionResult> {
     return this.http.post<QueryExecutionResult>(`${this.userUrl}/${queryId}/execute`, {
       parameters,
       confirmed
     });
+  }
+
+  /**
+   * Submits a long-running query for asynchronous execution. Returns the job id immediately;
+   * the actual query runs on the server's background worker. Poll {@link pollJobResult} for
+   * the result.
+   */
+  submitQuery(queryId: string, parameters: Record<string, string>, confirmed = false): Observable<{ jobId: string }> {
+    return this.http.post<{ jobId: string }>(`${this.userUrl}/${queryId}/execute-async`, {
+      parameters,
+      confirmed
+    });
+  }
+
+  /**
+   * Polls a submitted job every 2s until it reaches a terminal state, then emits the result
+   * (or errors with the server message). Each poll is a fast request, so long-running queries
+   * are never cut off by proxy/edge timeouts. Unsubscribe to stop polling.
+   */
+  pollJobResult(jobId: string): Observable<QueryExecutionResult> {
+    return timer(0, 2000).pipe(
+      switchMap(() => this.http.get<JobStatusResponse>(`${this.userUrl}/jobs/${jobId}`)),
+      first(res => res.status === 'Succeeded' || res.status === 'Failed' || res.status === 'Canceled'),
+      switchMap(res =>
+        res.status === 'Succeeded'
+          ? of(res.result!)
+          : throwError(() => ({ error: { message: res.error || 'Query was canceled' } }))
+      )
+    );
+  }
+
+  /** Cancels a running job, stopping the underlying database command server-side. */
+  cancelJob(jobId: string): Observable<void> {
+    return this.http.post<void>(`${this.userUrl}/jobs/${jobId}/cancel`, {});
   }
 
   getDropdownOptions(queryId: string, parameterId: string): Observable<DropdownOption[]> {

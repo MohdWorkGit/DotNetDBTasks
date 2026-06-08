@@ -4,39 +4,57 @@ using DotNetDBTasks.Application.Common.Interfaces;
 namespace DotNetDBTasks.API.Extensions;
 
 /// <summary>
-/// Extracts current user information from the HTTP context claims.
+/// Extracts current user information from the HTTP context claims. When there is no
+/// authenticated HTTP context (e.g. the background query worker running off-thread),
+/// it falls back to the ambient <see cref="IUserExecutionContext"/> snapshot.
 /// </summary>
 public class CurrentUserService : ICurrentUserService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IUserExecutionContext _userExecutionContext;
 
-    public CurrentUserService(IHttpContextAccessor httpContextAccessor)
+    public CurrentUserService(
+        IHttpContextAccessor httpContextAccessor,
+        IUserExecutionContext userExecutionContext)
     {
         _httpContextAccessor = httpContextAccessor;
+        _userExecutionContext = userExecutionContext;
+    }
+
+    private ClaimsPrincipal? HttpUser
+    {
+        get
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            return user?.Identity?.IsAuthenticated == true ? user : null;
+        }
     }
 
     public Guid UserId
     {
         get
         {
-            var claim = _httpContextAccessor.HttpContext?.User
-                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(claim, out var id) ? id : Guid.Empty;
+            var claim = HttpUser?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(claim, out var id))
+                return id;
+            return _userExecutionContext.Current?.UserId ?? Guid.Empty;
         }
     }
 
     public string Username =>
-        _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
+        HttpUser?.FindFirst(ClaimTypes.Name)?.Value
+        ?? _userExecutionContext.Current?.Username
+        ?? string.Empty;
 
     public string? Department =>
-        _httpContextAccessor.HttpContext?.User.FindFirst("Department")?.Value;
+        HttpUser?.FindFirst("Department")?.Value
+        ?? _userExecutionContext.Current?.Department;
 
     public IReadOnlyList<string> Roles =>
-        _httpContextAccessor.HttpContext?.User
-            .FindAll(ClaimTypes.Role)
-            .Select(c => c.Value)
-            .ToList() ?? new List<string>();
+        HttpUser?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList()
+        ?? _userExecutionContext.Current?.Roles
+        ?? new List<string>();
 
     public bool IsAuthenticated =>
-        _httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false;
+        HttpUser is not null || _userExecutionContext.Current is not null;
 }

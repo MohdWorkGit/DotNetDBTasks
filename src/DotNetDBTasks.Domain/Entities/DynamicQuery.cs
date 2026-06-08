@@ -22,6 +22,14 @@ public class DynamicQuery : BaseEntity
     /// </summary>
     public int TimeoutSeconds { get; set; } = 30;
 
+    /// <summary>
+    /// When true, this query is executed asynchronously as a background job that the
+    /// client polls for results — appropriate for slow queries that would otherwise be
+    /// killed by proxy/edge timeouts. When false, the query runs synchronously and the
+    /// result is returned in the same request (faster for normal, quick queries).
+    /// </summary>
+    public bool IsLongRunning { get; set; }
+
     public Guid CreatedByUserId { get; set; }
 
     /// <summary>

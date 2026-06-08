@@ -121,6 +121,7 @@ export interface DynamicQuery {
   sqlQuery: string;
   isEnabled: boolean;
   timeoutSeconds: number;
+  isLongRunning: boolean;
   databaseUserId?: string;
   databaseUserName?: string;
   queryGroupId?: string | null;
@@ -168,6 +169,7 @@ export interface CreateDynamicQueryRequest {
   description: string;
   sqlQuery: string;
   timeoutSeconds: number;
+  isLongRunning: boolean;
   databaseUserId?: string | null;
   queryGroupId?: string | null;
   parameters: QueryParameter[];
@@ -203,6 +205,13 @@ export interface QueryExecutionResult {
   /** For UPDATE/DELETE previews: the current rows that match the WHERE clause and will be affected. */
   previewColumns?: string[];
   previewRows?: Record<string, any>[];
+}
+
+/** Status of an async query job, returned while polling after a query is submitted. */
+export interface JobStatusResponse {
+  status: 'Queued' | 'Running' | 'Succeeded' | 'Failed' | 'Canceled';
+  result?: QueryExecutionResult;
+  error?: string;
 }
 
 export interface ExecutionLog {

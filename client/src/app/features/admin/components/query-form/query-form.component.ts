@@ -43,6 +43,15 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
               <mat-hint>Set to 0 for no timeout (query can run indefinitely).</mat-hint>
             </mat-form-field>
 
+            <mat-slide-toggle formControlName="isLongRunning" class="toggle">
+              Long-running query
+            </mat-slide-toggle>
+            <p class="field-hint">
+              Enable for slow queries. They run as a background job the page polls for, so they
+              are not cut off by proxy/gateway timeouts. Normal queries run instantly and should
+              leave this off.
+            </p>
+
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Database User</mat-label>
               <mat-select formControlName="databaseUserId">
@@ -221,7 +230,8 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
     .param-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
     .add-btn { margin: 16px 0; }
-    .toggle { margin: 16px 0; display: block; }
+    .toggle { margin: 16px 0 4px; display: block; }
+    .field-hint { font-size: 12px; color: var(--text-secondary); margin: 0 0 16px; max-width: 640px; }
 
     .dropdown-config {
       margin-top: 12px;
@@ -273,6 +283,7 @@ export class QueryFormComponent implements OnInit {
       description: ['', [Validators.required, Validators.maxLength(1000)]],
       sqlQuery: ['', [Validators.required, Validators.maxLength(4000)]],
       timeoutSeconds: [30, [Validators.min(0)]],
+      isLongRunning: [false],
       databaseUserId: [null],
       queryGroupId: [null],
       isEnabled: [true],
@@ -394,6 +405,7 @@ export class QueryFormComponent implements OnInit {
           description: query.description,
           sqlQuery: query.sqlQuery,
           timeoutSeconds: query.timeoutSeconds,
+          isLongRunning: !!query.isLongRunning,
           databaseUserId: query.databaseUserId || null,
           queryGroupId: query.queryGroupId || null,
           isEnabled: this.isCopy ? true : query.isEnabled

@@ -1,6 +1,7 @@
 using System.Text;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Domain.Interfaces;
+using DotNetDBTasks.Infrastructure.BackgroundJobs;
 using DotNetDBTasks.Infrastructure.Data;
 using DotNetDBTasks.Infrastructure.Identity;
 using DotNetDBTasks.Infrastructure.Repositories;
@@ -40,6 +41,12 @@ public static class DependencyInjection
         services.AddScoped<IDatabaseConnectionFactory, DatabaseConnectionFactory>();
         services.AddScoped<IEncryptionService, AesEncryptionService>();
         services.AddScoped<ILdapService, LdapService>();
+
+        // Async query execution: in-memory job store + queue + ambient user context.
+        // Singletons so they are shared across requests and the background worker.
+        services.AddSingleton<IQueryJobStore, InMemoryQueryJobStore>();
+        services.AddSingleton<IQueryJobQueue, QueryJobQueue>();
+        services.AddSingleton<IUserExecutionContext, UserExecutionContext>();
 
         // JWT Authentication
         var jwtSecret = configuration["Jwt:Secret"]
