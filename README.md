@@ -28,6 +28,7 @@ docker/                           # Dockerfiles and nginx config
 | Organize queries into folders | Export results to CSV |
 | Assign queries to roles | View personal execution history |
 | Enable/disable queries, configurable timeouts | |
+| Flag slow queries as long-running (async execution) | Long-running queries run as background jobs — live elapsed timer + cancel |
 | View execution audit logs | |
 
 ## Security
@@ -37,7 +38,9 @@ docker/                           # Dockerfiles and nginx config
 - AES-256 encryption of stored database credentials at rest
 - Role-based authorization (Admin, User)
 - Parameterized SQL only — no string concatenation
-- SQL query validation (SELECT-only, forbidden pattern detection)
+- SQL query validation (forbidden pattern detection: `XP_`, `SP_`, `--`, `;`, `DBMS_`, `UTL_`)
+- Write queries (INSERT/UPDATE/DELETE) run preview-and-confirm: previewed in a rolled-back
+  transaction before any commit (see [How Write Queries Work](#how-write-queries-work-insert--update--delete))
 - FluentValidation on all inputs
 - Global exception handling middleware
 - Query execution timeout protection (supports unlimited/infinity)
@@ -148,8 +151,121 @@ Generate a key with `openssl rand -base64 32`.
 
 ### User (requires authentication)
 - `GET /api/user/queries` — Get queries assigned to user
-- `POST /api/user/queries/{id}/execute` — Execute a query
+- `POST /api/user/queries/{id}/execute` — Execute a normal query synchronously (returns the result)
+- `POST /api/user/queries/{id}/execute-async` — Submit a long-running query as a background job (returns `{ jobId }`)
+- `GET /api/user/queries/jobs/{jobId}` — Poll an async job's status and result (owner/Admin only)
+- `POST /api/user/queries/jobs/{jobId}/cancel` — Cancel a running async job, stopping the query server-side (owner/Admin only)
 - `GET /api/user/queries/history` — Get execution history
+
+## How Long-Running Queries Work (Async Execution)
+
+A synchronous request holds the HTTP connection open for the entire query, so a slow query
+is killed by whatever proxy/edge timeout sits in front of the app (nginx `proxy_read_timeout`
+~120s, Cloudflare's edge cap ~100s) regardless of the query's own `TimeoutSeconds`. To avoid
+this, an admin can flag a query as **long-running**, which switches it to an asynchronous
+**submit-and-poll** flow where every HTTP request stays short.
+
+### Choosing the mode
+
+Each query has an `IsLongRunning` flag (a toggle on the admin query form; defaults to off):
+
+- **Off (default) — synchronous.** `POST /api/user/queries/{id}/execute` runs the query and
+  returns the result in the same response. Instant for normal, quick queries; no polling.
+- **On — asynchronous.** The client calls `POST /api/user/queries/{id}/execute-async`, which
+  enqueues a background job and returns `{ jobId }` immediately, then polls
+  `GET /api/user/queries/jobs/{jobId}` every 2s until the job reaches a terminal state.
+
+### Background execution
+
+- Submitted jobs are held in an in-memory store (results evicted after ~30 min) and drained
+  by a `QueryJobWorker` `BackgroundService` that runs up to **4 jobs in parallel**.
+- Each job executes on a fresh DI scope and **replays the same `ExecuteQueryCommand`** as the
+  synchronous path, so access control, the preview-and-confirm flow, and audit logging are
+  identical — only the thread it runs on differs. The submitting user's identity is carried
+  to the worker via an `AsyncLocal` snapshot.
+- Because the work runs off the request thread, no proxy/edge/browser timeout applies to the
+  query itself; the only effective limit is the query's own `TimeoutSeconds`.
+
+### Cancel & progress
+
+The client shows a **live elapsed timer** while polling and a **Cancel** button that calls
+`POST /api/user/queries/jobs/{jobId}/cancel`. Cancellation is real: a per-job cancellation
+token flows into the database command, stopping the query and freeing the connection (not just
+abandoning the poll). Only the job's owner (or an Admin) may poll or cancel it.
+
+> **Note:** the in-memory job store fits a single API instance. Running multiple API
+> containers would require a shared/persistent store (DB or Redis) so a poll can reach the
+> node holding the job.
+
+## How Write Queries Work (INSERT / UPDATE / DELETE)
+
+The platform executes more than read-only `SELECT`s. A stored query can be an `INSERT`,
+`UPDATE`, or `DELETE`, and these go through a deliberate **two-phase preview-and-confirm**
+flow so a user can review the impact before any data actually changes.
+
+### Statement classification
+
+Every statement is classified by its leading keyword (see `QueryExecutor` and
+`ExecuteQueryCommandHandler`):
+
+- `SELECT` / `WITH` → returns a result set (`Columns` + `Rows`), capped at `MaxQueryRows`
+  (default 10,000; the result sets `IsLimitReached` when truncated).
+- `INSERT` / `UPDATE` / `DELETE` → treated as a **write query**, run via
+  `ExecuteNonQuery`, and the number of affected rows is returned in `AffectedRows`.
+
+### Two-phase execution
+
+The execute request accepts a `Confirmed` flag (default `false`) — on either the synchronous
+`POST /api/user/queries/{id}/execute` or, for long-running queries, the async
+`POST /api/user/queries/{id}/execute-async` (see [How Long-Running Queries Work](#how-long-running-queries-work-async-execution)).
+For write queries the flow is:
+
+1. **Preview (`Confirmed = false`).** The statement is opened inside a database
+   transaction, executed to obtain the real affected-row count, and then **rolled back** —
+   nothing is committed (`QueryExecutor.ExecutePreviewAsync`). The response comes back with
+   `RequiresConfirmation = true` and `AffectedRows` set to the count that *would* change.
+   - For `UPDATE`/`DELETE`, the handler additionally parses the table name and `WHERE`
+     clause out of the statement and runs a derived `SELECT * FROM <table> WHERE <where>`
+     so the actual rows about to be modified/deleted are returned in
+     `PreviewColumns` / `PreviewRows`. (Parsing handles bare, `"quoted"`, and `[bracketed]`
+     identifiers plus optional table aliases; if it can't parse the SQL, it simply skips the
+     row preview rather than failing.)
+
+2. **Confirm (`Confirmed = true`).** The client re-submits the same query and parameters
+   with the confirm flag set. The statement now runs for real and **commits**.
+
+The Angular client uses phase 1 to show the user the affected-row count (and, for
+`UPDATE`/`DELETE`, the affected rows themselves) and asks for confirmation before
+re-submitting with `Confirmed = true`.
+
+### Strict parameterization
+
+No value is ever concatenated into SQL. Queries are authored with `@param` placeholders
+and `[bracket]`-quoted identifiers, then adapted to the target engine at execution time:
+
+| Server | Identifier quoting | Bind syntax |
+|--------|-------------------|-------------|
+| SQL Server | `[bracket]` (native) | `@param` (native) |
+| Oracle | `"double-quote"` | `:param` (bind-by-name) |
+| PostgreSQL | `"double-quote"` | `@param` |
+| MySQL | `` `backtick` `` | `@param` |
+
+All values are bound through the provider's `DbParameter` type. Multi-value parameters are
+expanded so `WHERE col IN (@names)` becomes `IN (@names_0, @names_1, …)`, with each item
+bound individually (an empty list expands to `IN (NULL)`, matching no rows).
+
+### Access control & auditing
+
+Before anything runs, the handler verifies the caller has access to the query (via role,
+department, direct user assignment, or parent query-group assignment; Admins bypass) and to
+the configured database user. Then:
+
+- **Old-value capture.** For `UPDATE`/`DELETE`, the rows currently matching the `WHERE`
+  clause are read and serialized into `OldValuesJson` on the execution log *before* the
+  change commits, preserving the pre-change state for the audit trail.
+- **Execution log.** Every execution — preview failures, successes, and errors — writes a
+  `QueryExecutionLog` row recording the user, parameters (JSON), duration, affected/returned
+  row count, success flag, and any error message.
 
 ## Database Schema
 
