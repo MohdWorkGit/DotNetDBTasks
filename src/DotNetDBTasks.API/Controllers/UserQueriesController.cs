@@ -27,17 +27,20 @@ public class UserQueriesController : ControllerBase
     private readonly IQueryJobStore _jobStore;
     private readonly IQueryJobQueue _jobQueue;
     private readonly ICurrentUserService _currentUser;
+    private readonly IExcelExporter _excelExporter;
 
     public UserQueriesController(
         IMediator mediator,
         IQueryJobStore jobStore,
         IQueryJobQueue jobQueue,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IExcelExporter excelExporter)
     {
         _mediator = mediator;
         _jobStore = jobStore;
         _jobQueue = jobQueue;
         _currentUser = currentUser;
+        _excelExporter = excelExporter;
     }
 
     /// <summary>
@@ -93,6 +96,65 @@ public class UserQueriesController : ControllerBase
     }
 
     /// <summary>
+    /// Submits an Excel export for asynchronous execution and returns a job id immediately.
+    /// The query runs on a background worker with no row cap so the export contains every
+    /// matching row (the on-screen results are capped at MaxQueryRows). The client polls
+    /// <see cref="GetJob"/> until the job succeeds, then downloads the file from
+    /// <see cref="ExportFile"/>. Running on the worker keeps every HTTP request short so large
+    /// exports are not killed by proxy/edge timeouts.
+    /// </summary>
+    [HttpPost("{id:guid}/export-async")]
+    public async Task<IActionResult> ExportAsync(
+        Guid id,
+        [FromBody] ExecuteQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new ExecuteQueryCommand
+        {
+            QueryId = id,
+            Parameters = request.Parameters ?? new(),
+            Unlimited = true
+        };
+
+        var snapshot = new UserContextSnapshot(
+            _currentUser.UserId,
+            _currentUser.Username,
+            _currentUser.Department,
+            _currentUser.Roles);
+
+        var job = _jobStore.Create(_currentUser.UserId, snapshot, command);
+        await _jobQueue.EnqueueAsync(job.Id, cancellationToken);
+
+        return Accepted(new { jobId = job.Id });
+    }
+
+    /// <summary>
+    /// Streams the completed export of a finished async export job as an Excel (.xlsx) file.
+    /// The job's full result set (built with no row cap) is converted to a workbook on demand.
+    /// Only the submitting user (or an Admin) may download a job; the job must have succeeded.
+    /// </summary>
+    [HttpGet("jobs/{jobId:guid}/export-file")]
+    public IActionResult ExportFile(Guid jobId)
+    {
+        var job = _jobStore.Get(jobId);
+        if (job is null)
+            return NotFound();
+
+        if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
+            return Forbid();
+
+        if (job.Status != QueryJobStatus.Succeeded || job.Result is null)
+            return Conflict(new { message = "The export is not ready." });
+
+        var bytes = _excelExporter.Export(job.Result.Columns, job.Result.Rows, "Results");
+        var fileName = $"query-export-{DateTime.Now:yyyyMMdd-HHmmss}.xlsx";
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileName);
+    }
+
+    /// <summary>
     /// Submits a dynamic query for asynchronous execution and returns a job id immediately.
     /// The query runs on a background worker; the client polls <see cref="GetJob"/> for the
     /// result. Used for queries flagged as long-running so every HTTP request stays short and
@@ -138,10 +200,15 @@ public class UserQueriesController : ControllerBase
         if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
             return Forbid();
 
+        // Export jobs carry a potentially huge result set that the client never reads as JSON —
+        // it downloads the .xlsx from the export-file endpoint instead. Omit the result here so
+        // polling stays lightweight.
+        var includeResult = job.Status == QueryJobStatus.Succeeded && !job.Command.Unlimited;
+
         return Ok(new
         {
             status = job.Status.ToString(),
-            result = job.Status == QueryJobStatus.Succeeded ? job.Result : null,
+            result = includeResult ? job.Result : null,
             error = job.Error
         });
     }

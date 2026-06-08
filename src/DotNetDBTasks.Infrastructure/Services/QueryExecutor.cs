@@ -56,6 +56,20 @@ public class QueryExecutor : IQueryExecutor
         return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, connectionString, serverType, _maxQueryRows, cancellationToken);
     }
 
+    public Task<QueryExecutionResult> ExecuteAsync(
+        string sqlQuery,
+        Dictionary<string, object?> parameters,
+        int timeoutSeconds,
+        string? connectionString,
+        DatabaseServerType? serverType,
+        int maxRows,
+        CancellationToken cancellationToken = default)
+    {
+        var cs = connectionString ?? _defaultConnectionString;
+        var st = serverType ?? _defaultServerType;
+        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, cs, st, maxRows, cancellationToken);
+    }
+
     public Task<QueryExecutionResult> ExecutePreviewAsync(
         string sqlQuery,
         Dictionary<string, object?> parameters,

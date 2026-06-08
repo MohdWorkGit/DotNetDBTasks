@@ -200,6 +200,9 @@ export interface QueryExecutionResult {
   totalRows: number;
   affectedRows: number;
   executionDurationMs: number;
+  /** True when the result was capped at the server's max display row count; the on-screen
+   * table is partial. Use the Excel export to get the complete result set. */
+  isLimitReached?: boolean;
   /** True when this is a preview of a write query — the change was rolled back. Re-submit with confirmed=true to commit. */
   requiresConfirmation?: boolean;
   /** For UPDATE/DELETE previews: the current rows that match the WHERE clause and will be affected. */

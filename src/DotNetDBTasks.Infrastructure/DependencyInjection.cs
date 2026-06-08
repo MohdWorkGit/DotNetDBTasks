@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IDatabaseConnectionFactory, DatabaseConnectionFactory>();
         services.AddScoped<IEncryptionService, AesEncryptionService>();
         services.AddScoped<ILdapService, LdapService>();
+        services.AddSingleton<IExcelExporter, ExcelExporter>();
 
         // Async query execution: in-memory job store + queue + ambient user context.
         // Singletons so they are shared across requests and the background worker.

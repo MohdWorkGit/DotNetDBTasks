@@ -28,6 +28,12 @@ public class ExecuteQueryCommand : IRequest<QueryExecutionResult>
     /// must re-submit with Confirmed=true to actually commit the change.
     /// </summary>
     public bool Confirmed { get; set; }
+
+    /// <summary>
+    /// When true, the query runs with no row cap so the full result set is returned (used by
+    /// the Excel export). Only valid for queries that return rows — write queries are rejected.
+    /// </summary>
+    public bool Unlimited { get; set; }
 }
 
 public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, QueryExecutionResult>
@@ -161,6 +167,11 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             typedParameters[paramDef.Name] = ConvertParameter(rawValue, paramDef.ParameterType);
         }
 
+        // Export runs the full result set with no row cap; it only makes sense for queries
+        // that return rows, so reject write queries up front.
+        if (request.Unlimited && IsWriteQuery(query.SqlQuery))
+            throw new DomainException("Export is only available for queries that return rows.");
+
         // Preview mode: for unconfirmed write queries (INSERT/UPDATE/DELETE), run inside
         // a transaction, capture the affected row count, then roll back. The client shows
         // the count to the user and re-submits with Confirmed=true to actually commit.
@@ -240,7 +251,13 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         try
         {
             QueryExecutionResult result;
-            if (connectionString != null && resolvedDbUser != null)
+            if (request.Unlimited)
+            {
+                // No row cap so the export contains the complete result set.
+                result = await _queryExecutor.ExecuteAsync(
+                    query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser?.ServerType, int.MaxValue, cancellationToken);
+            }
+            else if (connectionString != null && resolvedDbUser != null)
             {
                 result = await _queryExecutor.ExecuteAsync(
                     query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser.ServerType, cancellationToken);

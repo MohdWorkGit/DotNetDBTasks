@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError, timer } from 'rxjs';
-import { first, switchMap } from 'rxjs/operators';
+import { first, switchMap, tap } from 'rxjs/operators';
 import { environment } from '@env/environment';
 import {
   AssignDatabaseUserAccessRequest,
@@ -176,6 +176,52 @@ export class QueryService {
       parameters,
       confirmed
     });
+  }
+
+  /**
+   * Downloads the full result set of a query as an Excel (.xlsx) file. Unlike on-screen
+   * results, the export is not capped at the server's max display row count.
+   *
+   * Runs as a background job: submits the export, polls until it finishes, then downloads the
+   * generated file. Each request stays short, so large exports are not cut off by proxy/edge
+   * timeouts. The optional {@link onJobId} callback receives the job id as soon as it is created
+   * so the caller can cancel the export in progress.
+   */
+  exportQuery(
+    queryId: string,
+    parameters: Record<string, string>,
+    onJobId?: (jobId: string) => void
+  ): Observable<Blob> {
+    return this.http.post<{ jobId: string }>(`${this.userUrl}/${queryId}/export-async`, {
+      parameters
+    }).pipe(
+      tap(({ jobId }) => onJobId?.(jobId)),
+      switchMap(({ jobId }) =>
+        this.pollJobUntilComplete(jobId).pipe(
+          switchMap(() => this.http.get(`${this.userUrl}/jobs/${jobId}/export-file`, {
+            responseType: 'blob'
+          }))
+        )
+      )
+    );
+  }
+
+  /**
+   * Polls a submitted job every 2s until it reaches a terminal state. Completes when the job
+   * succeeds, or errors with the server message if it failed or was canceled. Unlike
+   * {@link pollJobResult} it does not emit the row result — used by exports, where the output
+   * is downloaded as a file rather than read as JSON.
+   */
+  private pollJobUntilComplete(jobId: string): Observable<void> {
+    return timer(0, 2000).pipe(
+      switchMap(() => this.http.get<JobStatusResponse>(`${this.userUrl}/jobs/${jobId}`)),
+      first(res => res.status === 'Succeeded' || res.status === 'Failed' || res.status === 'Canceled'),
+      switchMap(res =>
+        res.status === 'Succeeded'
+          ? of(void 0)
+          : throwError(() => ({ error: { message: res.error || 'Export was canceled' } }))
+      )
+    );
   }
 
   /**

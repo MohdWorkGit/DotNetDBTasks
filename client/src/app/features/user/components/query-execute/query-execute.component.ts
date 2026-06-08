@@ -125,8 +125,13 @@ import {
                 <mat-icon>cancel</mat-icon> Cancel
               </button>
               <button mat-stroked-button type="button" *ngIf="result && result.columns.length > 0"
-                      (click)="exportCsv()">
-                <mat-icon>download</mat-icon> Export CSV
+                      (click)="exportExcel()" [disabled]="exporting">
+                <mat-icon>download</mat-icon>
+                {{ exporting ? 'Exporting…' : 'Export Excel' }}
+              </button>
+              <button mat-stroked-button color="warn" type="button"
+                      *ngIf="exporting" (click)="cancelExport()">
+                <mat-icon>cancel</mat-icon> Cancel Export
               </button>
             </div>
           </form>
@@ -182,6 +187,14 @@ import {
           </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
+          <div *ngIf="result.isLimitReached" class="limit-warning">
+            <mat-icon>warning_amber</mat-icon>
+            <span>
+              Only the first {{ result.totalRows }} rows are shown (display limit reached).
+              Use <strong>Export Excel</strong> to download the complete result set.
+            </span>
+          </div>
+
           <div *ngIf="result.columns.length > 0" class="table-wrapper">
             <table mat-table [dataSource]="dataSource" matSort>
               <ng-container *ngFor="let col of result.columns" [matColumnDef]="col">
@@ -244,6 +257,16 @@ import {
     }
     .col-filter-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,.25); }
     .col-filter-input::placeholder { color: var(--text-hint, #999); }
+    .limit-warning {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; margin-bottom: 12px;
+      border-radius: 4px;
+      background: var(--status-warning-bg, #fff8e1);
+      border: 1px solid var(--status-warning, #f59e0b);
+      color: var(--status-warning-text, #92400e);
+      font-size: 13px;
+    }
+    .limit-warning mat-icon { color: var(--status-warning, #f59e0b); flex-shrink: 0; }
     .non-query-result { display: flex; align-items: center; gap: 8px; padding: 24px 0; color: var(--status-success); }
     .non-query-result mat-icon { font-size: 32px; width: 32px; height: 32px; }
     .non-query-result p { font-size: 16px; margin: 0; }
@@ -271,6 +294,9 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   private pendingParams: Record<string, string> = {};
   dataSource = new MatTableDataSource<Record<string, any>>();
   executing = false;
+  exporting = false;
+  /** Parameters that produced the currently displayed result, replayed for the Excel export. */
+  private lastResultParams: Record<string, string> = {};
   loadingQuery = true;
   loadingDropdowns = false;
   queryError = '';
@@ -281,7 +307,9 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   elapsedSeconds = 0;
   /** Job id of the in-flight execution, used to cancel it server-side. */
   private currentJobId?: string;
+  private currentExportJobId?: string;
   private pollSub?: Subscription;
+  private exportSub?: Subscription;
   private timerHandle?: any;
 
   /** Maps param.name -> list of dropdown options */
@@ -401,7 +429,14 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   execute(): void {
     if (this.form.invalid || !this.query) return;
 
+    this.pendingPreview = undefined;
+    this.runExecute(this.buildParams(), false);
+  }
+
+  /** Builds the backend wire-format parameter map from the current form values. */
+  private buildParams(): Record<string, string> {
     const params: Record<string, string> = {};
+    if (!this.query) return params;
 
     for (const param of this.query.parameters) {
       let value = this.form.get(param.name)?.value;
@@ -429,8 +464,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
       params[param.name] = value;
     }
 
-    this.pendingPreview = undefined;
-    this.runExecute(params, false);
+    return params;
   }
 
   confirmExecute(): void {
@@ -485,6 +519,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     this.pendingPreview = undefined;
     this.pendingParams = {};
     this.result = res;
+    this.lastResultParams = params;
     this.columnFilters = {};
     this.filterColumns = res.columns.map(c => 'filter_' + c);
     this.dataSource.filterPredicate = (row: Record<string, any>, filter: string) => {
@@ -556,6 +591,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.pollSub?.unsubscribe();
+    this.exportSub?.unsubscribe();
     this.stopTimer();
   }
 
@@ -568,28 +604,53 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     }
   }
 
-  exportCsv(): void {
-    if (!this.result) return;
+  /**
+   * Downloads the complete result set as an Excel (.xlsx) file. The export is generated
+   * server-side by re-running the query with no row cap, so it includes every matching row —
+   * not just the rows shown on screen.
+   */
+  exportExcel(): void {
+    if (!this.result || !this.query) return;
 
-    const escape = (val: string) => {
-      if (val.includes('"') || val.includes(',') || val.includes('\n') || val.includes('\r')) {
-        return `"${val.replace(/"/g, '""')}"`;
+    this.exporting = true;
+    this.currentExportJobId = undefined;
+    this.exportSub = this.queryService.exportQuery(
+      this.query.id,
+      this.lastResultParams,
+      (jobId) => { this.currentExportJobId = jobId; }
+    ).subscribe({
+      next: (blob) => {
+        this.exporting = false;
+        this.currentExportJobId = undefined;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${this.query?.name || 'results'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.exporting = false;
+        this.currentExportJobId = undefined;
+        this.snackBar.open('Export failed. Please try again.', 'Close', { duration: 5000 });
+        this.cdr.detectChanges();
       }
-      return val;
-    };
+    });
+  }
 
-    const headers = this.result.columns.map(escape).join(',');
-    const rows = this.result.rows.map(row =>
-      this.result!.columns.map(col => escape(String(row[col] ?? ''))).join(',')
-    );
-
-    const csv = [headers, ...rows].join('\r\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${this.query?.name || 'results'}_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+  /** Cancels an in-progress export: stops polling and aborts the export job server-side. */
+  cancelExport(): void {
+    const jobId = this.currentExportJobId;
+    this.exportSub?.unsubscribe();
+    this.exporting = false;
+    this.currentExportJobId = undefined;
+    if (jobId) {
+      this.queryService.cancelJob(jobId).subscribe({
+        next: () => this.snackBar.open('Export canceled', 'Close', { duration: 3000 }),
+        error: () => this.snackBar.open('Export canceled', 'Close', { duration: 3000 })
+      });
+    }
+    this.cdr.detectChanges();
   }
 }
