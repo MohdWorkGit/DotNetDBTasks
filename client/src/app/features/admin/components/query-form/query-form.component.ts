@@ -411,7 +411,7 @@ export class QueryFormComponent implements OnInit {
           isEnabled: this.isCopy ? true : query.isEnabled
         });
 
-        query.parameters.forEach(p => {
+        [...query.parameters].sort((a, b) => a.sortOrder - b.sortOrder).forEach(p => {
           this.parameters.push(this.fb.group({
             name: [p.name, Validators.required],
             displayName: [p.displayName, Validators.required],
@@ -444,11 +444,14 @@ export class QueryFormComponent implements OnInit {
     // For non-dropdown parameters, clear dropdown-only config before sending. allowMultiple
     // is preserved for String (used to enable comma-separated IN-clause expansion) but cleared
     // for Number/Date/Boolean where it has no meaning.
-    const cleanedParams = value.parameters.map((p: any) => {
-      if (p.parameterType !== ParameterType.Dropdown) {
+    const cleanedParams = value.parameters.map((p: any, i: number) => {
+      // Resequence sortOrder to the visible position so the stored order always matches
+      // what the admin sees here (and what the execution page renders by sortOrder).
+      const ordered = { ...p, sortOrder: i };
+      if (ordered.parameterType !== ParameterType.Dropdown) {
         return {
-          ...p,
-          allowMultiple: p.parameterType === ParameterType.String ? !!p.allowMultiple : false,
+          ...ordered,
+          allowMultiple: ordered.parameterType === ParameterType.String ? !!ordered.allowMultiple : false,
           dropdownSourceType: null,
           dropdownStaticValues: null,
           dropdownQueryId: null,
@@ -456,7 +459,7 @@ export class QueryFormComponent implements OnInit {
           dropdownQueryLabelColumn: null
         };
       }
-      return p;
+      return ordered;
     });
 
     const payload = { ...value, parameters: cleanedParams };

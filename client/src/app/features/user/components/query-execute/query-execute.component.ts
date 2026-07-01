@@ -12,7 +12,8 @@ import {
   DropdownOption,
   DynamicQuery,
   ParameterType,
-  QueryExecutionResult
+  QueryExecutionResult,
+  QueryParameter
 } from '@core/models/dynamic-query.model';
 
 @Component({
@@ -48,7 +49,7 @@ import {
 
           <form [formGroup]="form" (ngSubmit)="execute()">
             <div class="form-grid">
-              <ng-container *ngFor="let param of query.parameters">
+              <ng-container *ngFor="let param of sortedParameters">
                 <!-- String (single value, or comma-separated when allowMultiple) -->
                 <mat-form-field *ngIf="param.parameterType === 0" appearance="outline">
                   <mat-label>{{ param.displayName }}</mat-label>
@@ -314,6 +315,11 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
 
   /** Maps param.name -> list of dropdown options */
   dropdownOptions: Record<string, DropdownOption[]> = {};
+
+  /** Parameters in display order (by sortOrder), matching the admin settings page. */
+  get sortedParameters(): QueryParameter[] {
+    return [...(this.query?.parameters ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  }
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
