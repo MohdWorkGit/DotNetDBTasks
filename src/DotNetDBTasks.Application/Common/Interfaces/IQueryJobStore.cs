@@ -39,6 +39,13 @@ public class QueryJob
     public DateTime CreatedAt { get; init; }
 
     /// <summary>
+    /// Last time the job was read (polled, paged, or exported). Retention is sliding: a job is
+    /// evicted only after it has been idle — untouched — for the retention window, so a page that
+    /// is actively viewing/paging its result keeps it alive.
+    /// </summary>
+    public DateTime LastAccessedAt { get; set; }
+
+    /// <summary>
     /// Cancellation source for this job, triggered by the cancel endpoint. Never
     /// serialized — it lives only in the in-memory store.
     /// </summary>
@@ -54,6 +61,12 @@ public interface IQueryJobStore
     QueryJob Create(Guid userId, UserContextSnapshot snapshot, ExecuteQueryCommand command);
     QueryJob? Get(Guid id);
     void Update(Guid id, Action<QueryJob> mutate);
+
+    /// <summary>
+    /// Drops a job and its cached result immediately (used when the client leaves the results
+    /// page). No-op if the job does not exist.
+    /// </summary>
+    void Remove(Guid id);
 
     /// <summary>
     /// Signals cancellation for a running job and marks it Canceled. Returns false if

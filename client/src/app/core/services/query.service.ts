@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError, timer } from 'rxjs';
-import { first, switchMap, tap } from 'rxjs/operators';
+import { first, switchMap } from 'rxjs/operators';
 import { environment } from '@env/environment';
 import {
   AssignDatabaseUserAccessRequest,
@@ -18,12 +18,13 @@ import {
   DatabaseUser,
   DropdownOption,
   DynamicQuery,
+  ExecuteResult,
   ExecutionLog,
   ImportedLdapUser,
+  JobRowsResponse,
   JobStatusResponse,
   LdapUser,
   MyQueryGroup,
-  QueryExecutionResult,
   QueryGroup,
   ResetPasswordResult,
   Role,
@@ -34,6 +35,16 @@ import {
   UpdateDynamicQueryRequest,
   UpdateQueryGroupRequest
 } from '../models/dynamic-query.model';
+
+/** Grid paging/sort/filter parameters sent to the cached-rows endpoint. */
+export interface JobRowsQuery {
+  pageIndex: number;
+  pageSize: number;
+  sortColumn?: string;
+  sortDir?: string;
+  /** Column -> substring; empty entries are ignored server-side. */
+  filters?: Record<string, string>;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -168,60 +179,47 @@ export class QueryService {
   }
 
   /**
-   * Executes a normal (quick) query synchronously and returns the result in one request.
-   * Used for queries not flagged as long-running.
+   * Executes a normal (quick) query synchronously and returns the result metadata in one request.
+   * For read queries the full result is cached server-side (see {@link ExecuteResult.jobId}); rows
+   * are fetched a page at a time via {@link getJobRows} and export reuses the same cached result.
    */
-  executeQuery(queryId: string, parameters: Record<string, string>, confirmed = false): Observable<QueryExecutionResult> {
-    return this.http.post<QueryExecutionResult>(`${this.userUrl}/${queryId}/execute`, {
+  executeQuery(queryId: string, parameters: Record<string, string>, confirmed = false): Observable<ExecuteResult> {
+    return this.http.post<ExecuteResult>(`${this.userUrl}/${queryId}/execute`, {
       parameters,
       confirmed
     });
   }
 
   /**
-   * Downloads the full result set of a query as an Excel (.xlsx) file. Unlike on-screen
-   * results, the export is not capped at the server's max display row count.
-   *
-   * Runs as a background job: submits the export, polls until it finishes, then downloads the
-   * generated file. Each request stays short, so large exports are not cut off by proxy/edge
-   * timeouts. The optional {@link onJobId} callback receives the job id as soon as it is created
-   * so the caller can cancel the export in progress.
+   * Fetches a single page of a cached read result, applying server-side column filtering and
+   * sorting over the full set. Called on every page/sort/filter change so only one page crosses
+   * the wire while the underlying query ran only once.
    */
-  exportQuery(
-    queryId: string,
-    parameters: Record<string, string>,
-    onJobId?: (jobId: string) => void
-  ): Observable<Blob> {
-    return this.http.post<{ jobId: string }>(`${this.userUrl}/${queryId}/export-async`, {
-      parameters
-    }).pipe(
-      tap(({ jobId }) => onJobId?.(jobId)),
-      switchMap(({ jobId }) =>
-        this.pollJobUntilComplete(jobId).pipe(
-          switchMap(() => this.http.get(`${this.userUrl}/jobs/${jobId}/export-file`, {
-            responseType: 'blob'
-          }))
-        )
-      )
+  getJobRows(jobId: string, query: JobRowsQuery): Observable<JobRowsResponse> {
+    let params = new HttpParams()
+      .set('pageIndex', query.pageIndex)
+      .set('pageSize', query.pageSize);
+
+    if (query.sortColumn && query.sortDir) {
+      params = params.set('sortColumn', query.sortColumn).set('sortDir', query.sortDir);
+    }
+
+    const activeFilters = Object.fromEntries(
+      Object.entries(query.filters ?? {}).filter(([, v]) => !!v)
     );
+    if (Object.keys(activeFilters).length > 0) {
+      params = params.set('filters', JSON.stringify(activeFilters));
+    }
+
+    return this.http.get<JobRowsResponse>(`${this.userUrl}/jobs/${jobId}/rows`, { params });
   }
 
   /**
-   * Polls a submitted job every 2s until it reaches a terminal state. Completes when the job
-   * succeeds, or errors with the server message if it failed or was canceled. Unlike
-   * {@link pollJobResult} it does not emit the row result — used by exports, where the output
-   * is downloaded as a file rather than read as JSON.
+   * Downloads the complete result set of a cached read job as an Excel (.xlsx) file. No second
+   * query run — the workbook is built from the result cached during execution.
    */
-  private pollJobUntilComplete(jobId: string): Observable<void> {
-    return timer(0, 2000).pipe(
-      switchMap(() => this.http.get<JobStatusResponse>(`${this.userUrl}/jobs/${jobId}`)),
-      first(res => res.status === 'Succeeded' || res.status === 'Failed' || res.status === 'Canceled'),
-      switchMap(res =>
-        res.status === 'Succeeded'
-          ? of(void 0)
-          : throwError(() => ({ error: { message: res.error || 'Export was canceled' } }))
-      )
-    );
+  exportJob(jobId: string): Observable<Blob> {
+    return this.http.get(`${this.userUrl}/jobs/${jobId}/export-file`, { responseType: 'blob' });
   }
 
   /**
@@ -238,10 +236,10 @@ export class QueryService {
 
   /**
    * Polls a submitted job every 2s until it reaches a terminal state, then emits the result
-   * (or errors with the server message). Each poll is a fast request, so long-running queries
-   * are never cut off by proxy/edge timeouts. Unsubscribe to stop polling.
+   * metadata (or errors with the server message). Each poll is a fast request, so long-running
+   * queries are never cut off by proxy/edge timeouts. Unsubscribe to stop polling.
    */
-  pollJobResult(jobId: string): Observable<QueryExecutionResult> {
+  pollJobResult(jobId: string): Observable<ExecuteResult> {
     return timer(0, 2000).pipe(
       switchMap(() => this.http.get<JobStatusResponse>(`${this.userUrl}/jobs/${jobId}`)),
       first(res => res.status === 'Succeeded' || res.status === 'Failed' || res.status === 'Canceled'),
@@ -256,6 +254,14 @@ export class QueryService {
   /** Cancels a running job, stopping the underlying database command server-side. */
   cancelJob(jobId: string): Observable<void> {
     return this.http.post<void>(`${this.userUrl}/jobs/${jobId}/cancel`, {});
+  }
+
+  /**
+   * Releases a cached result immediately (frees its server memory). Called when leaving the
+   * results page; the result would otherwise expire on its own after the retention window.
+   */
+  releaseJob(jobId: string): Observable<void> {
+    return this.http.delete<void>(`${this.userUrl}/jobs/${jobId}`);
   }
 
   getDropdownOptions(queryId: string, parameterId: string): Observable<DropdownOption[]> {

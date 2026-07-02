@@ -210,10 +210,37 @@ export interface QueryExecutionResult {
   previewRows?: Record<string, any>[];
 }
 
+/**
+ * Lightweight result of executing a query. Read results are cached server-side: `jobId` points at
+ * the cached set and `rows` are fetched a page at a time via the rows endpoint (never inline here).
+ * Write results carry `affectedRows` and, for previews, `requiresConfirmation` + `previewRows`.
+ */
+export interface ExecuteResult {
+  /** Set for cached read results; used to page the grid and to export without re-running the query. */
+  jobId?: string | null;
+  requiresConfirmation?: boolean;
+  columns: string[];
+  totalRows: number;
+  affectedRows: number;
+  isLimitReached?: boolean;
+  executionDurationMs: number;
+  previewColumns?: string[];
+  previewRows?: Record<string, any>[];
+}
+
+/** One page of a cached read result, returned by the rows endpoint. */
+export interface JobRowsResponse {
+  rows: Record<string, any>[];
+  /** Total rows after the active column filters (drives the paginator length). */
+  filteredTotal: number;
+  /** Total rows in the unfiltered result set. */
+  totalRows: number;
+}
+
 /** Status of an async query job, returned while polling after a query is submitted. */
 export interface JobStatusResponse {
   status: 'Queued' | 'Running' | 'Succeeded' | 'Failed' | 'Canceled';
-  result?: QueryExecutionResult;
+  result?: ExecuteResult;
   error?: string;
 }
 

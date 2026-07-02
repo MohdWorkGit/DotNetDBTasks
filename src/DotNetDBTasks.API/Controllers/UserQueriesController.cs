@@ -1,4 +1,6 @@
+using System.Text.Json;
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Models;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Application.Features.QueryExecution.Commands;
 using DotNetDBTasks.Application.Features.QueryExecution.Queries;
@@ -79,6 +81,13 @@ public class UserQueriesController : ControllerBase
     /// Used for normal, quick queries (those not flagged as long-running) so there is no
     /// polling overhead.
     /// </summary>
+    /// <remarks>
+    /// Read queries run once with no row cap; the full result set is cached server-side and this
+    /// endpoint returns lightweight metadata plus a <c>jobId</c>. The grid then fetches pages via
+    /// <see cref="GetJobRows"/> and Excel export reuses the same cached result via
+    /// <see cref="ExportFile"/> — so the query executes only once for both. Write queries are
+    /// returned inline (preview/confirm) exactly as before and are not cached.
+    /// </remarks>
     [HttpPost("{id:guid}/execute")]
     public async Task<IActionResult> Execute(
         Guid id,
@@ -89,49 +98,78 @@ public class UserQueriesController : ControllerBase
         {
             QueryId = id,
             Parameters = request.Parameters ?? new(),
-            Confirmed = request.Confirmed
+            Confirmed = request.Confirmed,
+            CacheFullResult = true
         };
         var result = await _mediator.Send(command, cancellationToken);
-        return Ok(result);
+        return Ok(BuildExecuteResponse(result, command));
     }
 
     /// <summary>
-    /// Submits an Excel export for asynchronous execution and returns a job id immediately.
-    /// The query runs on a background worker with no row cap so the export contains every
-    /// matching row (the on-screen results are capped at MaxQueryRows). The client polls
-    /// <see cref="GetJob"/> until the job succeeds, then downloads the file from
-    /// <see cref="ExportFile"/>. Running on the worker keeps every HTTP request short so large
-    /// exports are not killed by proxy/edge timeouts.
+    /// Returns a single page of a completed read job's cached result, applying server-side column
+    /// filtering and sorting over the full result set. The grid calls this on every page/sort/filter
+    /// change so only one page of rows crosses the wire, while the underlying query ran just once.
+    /// Only the submitting user (or an Admin) may read a job.
     /// </summary>
-    [HttpPost("{id:guid}/export-async")]
-    public async Task<IActionResult> ExportAsync(
-        Guid id,
-        [FromBody] ExecuteQueryRequest request,
-        CancellationToken cancellationToken)
+    [HttpGet("jobs/{jobId:guid}/rows")]
+    public IActionResult GetJobRows(
+        Guid jobId,
+        int pageIndex = 0,
+        int pageSize = 25,
+        string? sortColumn = null,
+        string? sortDir = null,
+        string? filters = null)
     {
-        var command = new ExecuteQueryCommand
+        var job = _jobStore.Get(jobId);
+        if (job is null)
+            return NotFound();
+
+        if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
+            return Forbid();
+
+        if (job.Status != QueryJobStatus.Succeeded || job.Result is null)
+            return Conflict(new { message = "The result is not ready." });
+
+        var result = job.Result;
+        IEnumerable<Dictionary<string, object?>> rows = result.Rows;
+
+        // Per-column "contains" filter (case-insensitive) — mirrors the previous client-side filter.
+        var parsedFilters = ParseFilters(filters);
+        foreach (var (col, term) in parsedFilters)
         {
-            QueryId = id,
-            Parameters = request.Parameters ?? new(),
-            Unlimited = true
-        };
+            var needle = term;
+            rows = rows.Where(r =>
+                r.TryGetValue(col, out var v) &&
+                (v?.ToString() ?? string.Empty).Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
 
-        var snapshot = new UserContextSnapshot(
-            _currentUser.UserId,
-            _currentUser.Username,
-            _currentUser.Department,
-            _currentUser.Roles);
+        var filtered = rows.ToList();
+        var filteredTotal = filtered.Count;
 
-        var job = _jobStore.Create(_currentUser.UserId, snapshot, command);
-        await _jobQueue.EnqueueAsync(job.Id, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(sortColumn) && result.Columns.Contains(sortColumn))
+        {
+            var direction = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
+            filtered.Sort((a, b) =>
+                CompareCells(a.GetValueOrDefault(sortColumn!), b.GetValueOrDefault(sortColumn!)) * direction);
+        }
 
-        return Accepted(new { jobId = job.Id });
+        if (pageSize <= 0) pageSize = 25;
+        if (pageIndex < 0) pageIndex = 0;
+
+        var pageRows = filtered.Skip(pageIndex * pageSize).Take(pageSize).ToList();
+
+        return Ok(new
+        {
+            rows = pageRows,
+            filteredTotal,
+            totalRows = result.TotalRows
+        });
     }
 
     /// <summary>
-    /// Streams the completed export of a finished async export job as an Excel (.xlsx) file.
-    /// The job's full result set (built with no row cap) is converted to a workbook on demand.
-    /// Only the submitting user (or an Admin) may download a job; the job must have succeeded.
+    /// Streams a finished read job's cached result as an Excel (.xlsx) file. The full result set
+    /// (built with no row cap during execution) is converted to a workbook on demand — no second
+    /// query run. Only the submitting user (or an Admin) may download; the job must have succeeded.
     /// </summary>
     [HttpGet("jobs/{jobId:guid}/export-file")]
     public IActionResult ExportFile(Guid jobId)
@@ -170,7 +208,8 @@ public class UserQueriesController : ControllerBase
         {
             QueryId = id,
             Parameters = request.Parameters ?? new(),
-            Confirmed = request.Confirmed
+            Confirmed = request.Confirmed,
+            CacheFullResult = true
         };
 
         var snapshot = new UserContextSnapshot(
@@ -186,9 +225,11 @@ public class UserQueriesController : ControllerBase
     }
 
     /// <summary>
-    /// Returns the status of an async query job, including the result once it has succeeded
-    /// or the error message if it failed/was canceled. Only the submitting user (or an Admin)
-    /// may read a job.
+    /// Returns the status of an async query job. Once succeeded, it returns lightweight execution
+    /// metadata (columns, row count, and the jobId for paging/export) for a read result, or the
+    /// full inline result for a write preview/confirmation. The potentially huge read rows are
+    /// never sent here — the grid fetches them a page at a time from <see cref="GetJobRows"/>.
+    /// Only the submitting user (or an Admin) may read a job.
     /// </summary>
     [HttpGet("jobs/{jobId:guid}")]
     public IActionResult GetJob(Guid jobId)
@@ -200,15 +241,14 @@ public class UserQueriesController : ControllerBase
         if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
             return Forbid();
 
-        // Export jobs carry a potentially huge result set that the client never reads as JSON —
-        // it downloads the .xlsx from the export-file endpoint instead. Omit the result here so
-        // polling stays lightweight.
-        var includeResult = job.Status == QueryJobStatus.Succeeded && !job.Command.Unlimited;
+        object? payload = null;
+        if (job.Status == QueryJobStatus.Succeeded && job.Result is not null)
+            payload = ToExecuteDto(job.Result, job.Id);
 
         return Ok(new
         {
             status = job.Status.ToString(),
-            result = includeResult ? job.Result : null,
+            result = payload,
             error = job.Error
         });
     }
@@ -228,6 +268,25 @@ public class UserQueriesController : ControllerBase
             return Forbid();
 
         _jobStore.Cancel(jobId);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Releases a cached result immediately, freeing its memory. The client calls this when it
+    /// leaves the results page; otherwise the job expires on its own after the sliding retention
+    /// window. Only the submitting user (or an Admin) may release a job. Idempotent.
+    /// </summary>
+    [HttpDelete("jobs/{jobId:guid}")]
+    public IActionResult ReleaseJob(Guid jobId)
+    {
+        var job = _jobStore.Get(jobId);
+        if (job is null)
+            return NoContent();
+
+        if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
+            return Forbid();
+
+        _jobStore.Remove(jobId);
         return NoContent();
     }
 
@@ -255,6 +314,95 @@ public class UserQueriesController : ControllerBase
     {
         var result = await _mediator.Send(new GetMyExecutionHistoryQuery(), cancellationToken);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Caches a read result server-side (so the grid can page it and export can reuse it) and
+    /// returns the metadata envelope. Write/preview results are small and returned inline without
+    /// caching, so the confirm/commit flow is unchanged.
+    /// </summary>
+    private object BuildExecuteResponse(QueryExecutionResult result, ExecuteQueryCommand command)
+    {
+        var isReadResult = !result.RequiresConfirmation && result.Columns.Count > 0;
+        if (!isReadResult)
+            return ToExecuteDto(result, null);
+
+        var snapshot = new UserContextSnapshot(
+            _currentUser.UserId,
+            _currentUser.Username,
+            _currentUser.Department,
+            _currentUser.Roles);
+
+        var job = _jobStore.Create(_currentUser.UserId, snapshot, command);
+        _jobStore.Update(job.Id, j =>
+        {
+            j.Result = result;
+            j.Status = QueryJobStatus.Succeeded;
+        });
+
+        return ToExecuteDto(result, job.Id);
+    }
+
+    /// <summary>
+    /// Lightweight execution metadata sent to the client. Deliberately omits the read <c>Rows</c>
+    /// (fetched a page at a time via <see cref="GetJobRows"/>); <paramref name="jobId"/> is set only
+    /// for cached read results so the client can page and export them.
+    /// </summary>
+    private static object ToExecuteDto(QueryExecutionResult result, Guid? jobId)
+    {
+        var isReadResult = !result.RequiresConfirmation && result.Columns.Count > 0;
+        return new
+        {
+            jobId = isReadResult ? jobId : null,
+            requiresConfirmation = result.RequiresConfirmation,
+            columns = result.Columns,
+            totalRows = result.TotalRows,
+            affectedRows = result.AffectedRows,
+            isLimitReached = result.IsLimitReached,
+            executionDurationMs = result.ExecutionDurationMs,
+            previewColumns = result.PreviewColumns,
+            previewRows = result.PreviewRows
+        };
+    }
+
+    private static Dictionary<string, string> ParseFilters(string? filters)
+    {
+        if (string.IsNullOrWhiteSpace(filters))
+            return new Dictionary<string, string>();
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(filters);
+            return parsed is null
+                ? new Dictionary<string, string>()
+                : parsed
+                    .Where(kv => !string.IsNullOrEmpty(kv.Value))
+                    .ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, string>();
+        }
+    }
+
+    /// <summary>
+    /// Orders two cell values: same-typed comparables compare directly, otherwise fall back to a
+    /// numeric compare when both parse as numbers, and finally to a case-insensitive string compare.
+    /// Nulls sort first.
+    /// </summary>
+    private static int CompareCells(object? a, object? b)
+    {
+        if (a is null && b is null) return 0;
+        if (a is null) return -1;
+        if (b is null) return 1;
+
+        if (a.GetType() == b.GetType() && a is IComparable comparable)
+            return comparable.CompareTo(b);
+
+        if (decimal.TryParse(a.ToString(), out var da) && decimal.TryParse(b.ToString(), out var db))
+            return da.CompareTo(db);
+
+        return string.Compare(a.ToString(), b.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
 }

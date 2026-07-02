@@ -34,6 +34,14 @@ public class ExecuteQueryCommand : IRequest<QueryExecutionResult>
     /// the Excel export). Only valid for queries that return rows — write queries are rejected.
     /// </summary>
     public bool Unlimited { get; set; }
+
+    /// <summary>
+    /// When true, a read query runs with no row cap so the complete result set can be cached
+    /// server-side and served to the grid page-by-page (and reused for export) from a single
+    /// execution. Unlike <see cref="Unlimited"/>, write queries are not rejected — they fall
+    /// through to the normal preview/confirm path unchanged.
+    /// </summary>
+    public bool CacheFullResult { get; set; }
 }
 
 public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, QueryExecutionResult>
@@ -250,10 +258,17 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         var sw = Stopwatch.StartNew();
         try
         {
+            // No row cap when exporting, or when caching a read's full result set for paged
+            // display + export from a single run. For write queries CacheFullResult is a no-op
+            // here (they never reach this point unconfirmed, and a confirmed write returns a
+            // count, not rows).
+            var noRowCap = request.Unlimited
+                || (request.CacheFullResult && !IsWriteQuery(query.SqlQuery));
+
             QueryExecutionResult result;
-            if (request.Unlimited)
+            if (noRowCap)
             {
-                // No row cap so the export contains the complete result set.
+                // No row cap so the cached result / export contains the complete result set.
                 result = await _queryExecutor.ExecuteAsync(
                     query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser?.ServerType, int.MaxValue, cancellationToken);
             }

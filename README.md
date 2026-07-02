@@ -151,10 +151,13 @@ Generate a key with `openssl rand -base64 32`.
 
 ### User (requires authentication)
 - `GET /api/user/queries` — Get queries assigned to user
-- `POST /api/user/queries/{id}/execute` — Execute a normal query synchronously (returns the result)
+- `POST /api/user/queries/{id}/execute` — Execute a normal query synchronously. A read result is cached server-side and the response returns execution metadata plus a `jobId`; a write result is returned inline (preview/confirm).
 - `POST /api/user/queries/{id}/execute-async` — Submit a long-running query as a background job (returns `{ jobId }`)
-- `GET /api/user/queries/jobs/{jobId}` — Poll an async job's status and result (owner/Admin only)
+- `GET /api/user/queries/jobs/{jobId}` — Poll an async job's status and result metadata (owner/Admin only)
+- `GET /api/user/queries/jobs/{jobId}/rows` — Get one page of a cached read result with server-side `pageIndex`/`pageSize`/`sortColumn`/`sortDir`/`filters` (owner/Admin only)
+- `GET /api/user/queries/jobs/{jobId}/export-file` — Download the cached read result as an Excel (.xlsx) file — no re-run (owner/Admin only)
 - `POST /api/user/queries/jobs/{jobId}/cancel` — Cancel a running async job, stopping the query server-side (owner/Admin only)
+- `DELETE /api/user/queries/jobs/{jobId}` — Release a cached result immediately (called when leaving the results page; owner/Admin only)
 - `GET /api/user/queries/history` — Get execution history
 
 ## How Long-Running Queries Work (Async Execution)
@@ -177,8 +180,9 @@ Each query has an `IsLongRunning` flag (a toggle on the admin query form; defaul
 
 ### Background execution
 
-- Submitted jobs are held in an in-memory store (results evicted after ~30 min) and drained
-  by a `QueryJobWorker` `BackgroundService` that runs up to **4 jobs in parallel**.
+- Submitted jobs are held in an in-memory store (sliding retention — see
+  [Result Paging & Export](#how-result-paging--export-work)) and drained by a `QueryJobWorker`
+  `BackgroundService` that runs up to **4 jobs in parallel**.
 - Each job executes on a fresh DI scope and **replays the same `ExecuteQueryCommand`** as the
   synchronous path, so access control, the preview-and-confirm flow, and audit logging are
   identical — only the thread it runs on differs. The submitting user's identity is carried
@@ -197,6 +201,28 @@ abandoning the poll). Only the job's owner (or an Admin) may poll or cancel it.
 > containers would require a shared/persistent store (DB or Redis) so a poll can reach the
 > node holding the job.
 
+## How Result Paging & Export Work
+
+A read query runs **once**. The full, uncapped result set is cached server-side (in the same
+job store), and the execute/poll response returns only lightweight metadata plus the `jobId` —
+never the rows. From that single execution:
+
+- **The grid pages server-side.** On every page, sort, or column-filter change the client calls
+  `GET jobs/{jobId}/rows`, which filters (per-column, case-insensitive "contains"), sorts, and
+  slices the cached rows, returning just that page plus the filtered total. Only one page of data
+  ever crosses the wire, so a large result never has to be shipped to the browser.
+- **Export reuses the same cache.** `GET jobs/{jobId}/export-file` builds the workbook from the
+  cached rows — it does **not** re-run the query.
+
+This means viewing then exporting a slow query costs a single database execution, not two.
+
+**Retention.** A cached result lives until the client leaves the results page — the page issues
+`DELETE jobs/{jobId}` on navigation away, freeing the memory at once. As a fallback (missed signal,
+tab close, crash) the store keeps each result under a **sliding** window that resets on every
+poll/page/export and defaults to **1 day**, tunable via `ResultCache:RetentionMinutes`. The
+trade-off is memory: full result sets are held for that window, which suits a single API instance —
+a multi-instance deployment would move the cache to a shared/persistent store.
+
 ## How Write Queries Work (INSERT / UPDATE / DELETE)
 
 The platform executes more than read-only `SELECT`s. A stored query can be an `INSERT`,
@@ -208,8 +234,10 @@ flow so a user can review the impact before any data actually changes.
 Every statement is classified by its leading keyword (see `QueryExecutor` and
 `ExecuteQueryCommandHandler`):
 
-- `SELECT` / `WITH` → returns a result set (`Columns` + `Rows`), capped at `MaxQueryRows`
-  (default 10,000; the result sets `IsLimitReached` when truncated).
+- `SELECT` / `WITH` → returns a result set (`Columns` + `Rows`). User-facing execution runs the
+  read **once with no cap** and caches the full set server-side (see
+  [How Result Paging & Export Work](#how-result-paging--export-work)); `MaxQueryRows` (default
+  10,000) remains a safety cap for internal reads such as the write-preview `SELECT`.
 - `INSERT` / `UPDATE` / `DELETE` → treated as a **write query**, run via
   `ExecuteNonQuery`, and the number of affected rows is returned in `AffectedRows`.
 

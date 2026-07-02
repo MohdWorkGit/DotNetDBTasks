@@ -1,18 +1,17 @@
-import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { MatPaginator } from '@angular/material/paginator';
-import { MatSort } from '@angular/material/sort';
-import { MatTableDataSource } from '@angular/material/table';
+import { PageEvent } from '@angular/material/paginator';
+import { Sort } from '@angular/material/sort';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { forkJoin, of, throwError, Subscription } from 'rxjs';
-import { catchError, switchMap, timeout } from 'rxjs/operators';
+import { forkJoin, of, throwError, Subject, Subscription } from 'rxjs';
+import { catchError, debounceTime, switchMap, timeout } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
 import {
   DropdownOption,
   DynamicQuery,
+  ExecuteResult,
   ParameterType,
-  QueryExecutionResult,
   QueryParameter
 } from '@core/models/dynamic-query.model';
 
@@ -125,14 +124,11 @@ import {
                       *ngIf="executing && query.isLongRunning" (click)="cancelExecution()">
                 <mat-icon>cancel</mat-icon> Cancel
               </button>
-              <button mat-stroked-button type="button" *ngIf="result && result.columns.length > 0"
+              <button mat-stroked-button type="button"
+                      *ngIf="result && result.columns.length > 0 && result.jobId"
                       (click)="exportExcel()" [disabled]="exporting">
                 <mat-icon>download</mat-icon>
                 {{ exporting ? 'Exporting…' : 'Export Excel' }}
-              </button>
-              <button mat-stroked-button color="warn" type="button"
-                      *ngIf="exporting" (click)="cancelExport()">
-                <mat-icon>cancel</mat-icon> Cancel Export
               </button>
             </div>
           </form>
@@ -180,7 +176,8 @@ import {
           <mat-card-title>Results</mat-card-title>
           <mat-card-subtitle>
             <span *ngIf="result.columns.length > 0">
-              {{ result.totalRows }} rows returned in {{ result.executionDurationMs }}ms
+              {{ result.totalRows }} rows returned in {{ result.executionDurationMs }}ms<span
+                *ngIf="filteredTotal !== result.totalRows"> · {{ filteredTotal }} match the filter</span>
             </span>
             <span *ngIf="result.columns.length === 0">
               {{ result.affectedRows }} rows affected in {{ result.executionDurationMs }}ms
@@ -196,8 +193,10 @@ import {
             </span>
           </div>
 
+          <mat-progress-bar *ngIf="loadingRows" mode="indeterminate"></mat-progress-bar>
+
           <div *ngIf="result.columns.length > 0" class="table-wrapper">
-            <table mat-table [dataSource]="dataSource" matSort>
+            <table mat-table [dataSource]="pageRows" matSort (matSortChange)="onSortChange($event)">
               <ng-container *ngFor="let col of result.columns" [matColumnDef]="col">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ col }}</th>
                 <td mat-cell *matCellDef="let row">{{ row[col] }}</td>
@@ -223,7 +222,13 @@ import {
             <p>Query executed successfully. {{ result.affectedRows }} rows affected.</p>
           </div>
 
-          <mat-paginator *ngIf="result.columns.length > 0" [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons>
+          <mat-paginator *ngIf="result.columns.length > 0"
+                         [length]="filteredTotal"
+                         [pageIndex]="pageIndex"
+                         [pageSize]="pageSize"
+                         [pageSizeOptions]="[10, 25, 50, 100]"
+                         (page)="onPage($event)"
+                         showFirstLastButtons>
           </mat-paginator>
         </mat-card-content>
       </mat-card>
@@ -288,29 +293,43 @@ import {
 export class QueryExecuteComponent implements OnInit, OnDestroy {
   query?: DynamicQuery;
   form!: FormGroup;
-  result?: QueryExecutionResult;
+  /** Execution metadata for the current result (columns, totals, jobId); rows are paged separately. */
+  result?: ExecuteResult;
   /** Preview returned by the backend for a write query awaiting user confirmation. */
-  pendingPreview?: QueryExecutionResult;
+  pendingPreview?: ExecuteResult;
   /** Parameters used for the pending preview, replayed on confirm. */
   private pendingParams: Record<string, string> = {};
-  dataSource = new MatTableDataSource<Record<string, any>>();
+
+  /** The current page of rows for the results grid, fetched from the cached job server-side. */
+  pageRows: Record<string, any>[] = [];
+  /** Job id of the cached read result currently displayed; drives paging and export. */
+  private resultJobId?: string;
+  pageIndex = 0;
+  pageSize = 25;
+  /** Rows matching the active filters (paginator length). Equals totalRows when unfiltered. */
+  filteredTotal = 0;
+  private sortColumn?: string;
+  private sortDir = '';
+  loadingRows = false;
+
   executing = false;
   exporting = false;
-  /** Parameters that produced the currently displayed result, replayed for the Excel export. */
-  private lastResultParams: Record<string, string> = {};
   loadingQuery = true;
   loadingDropdowns = false;
   queryError = '';
   columnFilters: Record<string, string> = {};
   filterColumns: string[] = [];
+  /** Debounces column-filter keystrokes into a single paged request. */
+  private filterChange$ = new Subject<void>();
 
   /** Seconds elapsed since the current execution started, shown on the button. */
   elapsedSeconds = 0;
   /** Job id of the in-flight execution, used to cancel it server-side. */
   private currentJobId?: string;
-  private currentExportJobId?: string;
   private pollSub?: Subscription;
   private exportSub?: Subscription;
+  private rowsSub?: Subscription;
+  private filterSub?: Subscription;
   private timerHandle?: any;
 
   /** Maps param.name -> list of dropdown options */
@@ -320,9 +339,6 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   get sortedParameters(): QueryParameter[] {
     return [...(this.query?.parameters ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
   }
-
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
 
   private queryId = '';
 
@@ -337,6 +353,11 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.form = this.fb.group({});
     this.queryId = this.route.snapshot.params['id'];
+    // Coalesce filter keystrokes: reset to the first page and reload once typing settles.
+    this.filterSub = this.filterChange$.pipe(debounceTime(300)).subscribe(() => {
+      this.pageIndex = 0;
+      this.loadPage();
+    });
     this.loadQuery();
   }
 
@@ -511,7 +532,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     }
   }
 
-  private handleResult(res: QueryExecutionResult, params: Record<string, string>, confirmed: boolean): void {
+  private handleResult(res: ExecuteResult, params: Record<string, string>, confirmed: boolean): void {
     this.stopExecuting();
 
     if (res.requiresConfirmation && !confirmed) {
@@ -525,23 +546,68 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     this.pendingPreview = undefined;
     this.pendingParams = {};
     this.result = res;
-    this.lastResultParams = params;
+
+    // Reset grid state for the new result.
     this.columnFilters = {};
     this.filterColumns = res.columns.map(c => 'filter_' + c);
-    this.dataSource.filterPredicate = (row: Record<string, any>, filter: string) => {
-      const filters: Record<string, string> = JSON.parse(filter || '{}');
-      return Object.entries(filters).every(([col, val]) => {
-        if (!val) return true;
-        return String(row[col] ?? '').toLowerCase().includes(val.toLowerCase());
-      });
-    };
-    this.dataSource.data = res.rows;
-    this.dataSource.filter = '';
-    setTimeout(() => {
-      if (this.paginator) this.dataSource.paginator = this.paginator;
-      if (this.sort) this.dataSource.sort = this.sort;
-    });
+    this.pageIndex = 0;
+    this.sortColumn = undefined;
+    this.sortDir = '';
+    this.pageRows = [];
+    this.filteredTotal = res.totalRows;
+
+    // A new result supersedes the previous cached one — free the old one server-side.
+    const previousJobId = this.resultJobId;
+    this.resultJobId = res.jobId ?? undefined;
+    if (previousJobId && previousJobId !== this.resultJobId) {
+      this.queryService.releaseJob(previousJobId).subscribe({ error: () => {} });
+    }
+
+    // Read results are cached server-side — load the first page. Non-query results have no rows.
+    if (res.columns.length > 0 && this.resultJobId) {
+      this.loadPage();
+    }
     this.cdr.detectChanges();
+  }
+
+  /** Fetches the current page of the cached result with the active sort and column filters. */
+  private loadPage(): void {
+    if (!this.resultJobId) return;
+
+    this.loadingRows = true;
+    this.rowsSub?.unsubscribe();
+    this.rowsSub = this.queryService.getJobRows(this.resultJobId, {
+      pageIndex: this.pageIndex,
+      pageSize: this.pageSize,
+      sortColumn: this.sortColumn,
+      sortDir: this.sortDir,
+      filters: this.columnFilters
+    }).subscribe({
+      next: (page) => {
+        this.pageRows = page.rows;
+        this.filteredTotal = page.filteredTotal;
+        this.loadingRows = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loadingRows = false;
+        this.snackBar.open('Failed to load results. The result may have expired — re-run the query.', 'Close', { duration: 6000 });
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onPage(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.loadPage();
+  }
+
+  onSortChange(sort: Sort): void {
+    this.sortColumn = sort.direction ? sort.active : undefined;
+    this.sortDir = sort.direction;
+    this.pageIndex = 0;
+    this.loadPage();
   }
 
   private handleError(err: any): void {
@@ -598,36 +664,33 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.pollSub?.unsubscribe();
     this.exportSub?.unsubscribe();
+    this.rowsSub?.unsubscribe();
+    this.filterSub?.unsubscribe();
+    this.filterChange$.complete();
+    // Leaving the page: free the cached result now instead of waiting for it to expire.
+    if (this.resultJobId) {
+      this.queryService.releaseJob(this.resultJobId).subscribe({ error: () => {} });
+    }
     this.stopTimer();
   }
 
   applyColumnFilter(event: Event, col: string): void {
-    const value = (event.target as HTMLInputElement).value.trim();
-    this.columnFilters[col] = value;
-    this.dataSource.filter = JSON.stringify(this.columnFilters);
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
+    this.columnFilters[col] = (event.target as HTMLInputElement).value.trim();
+    // Debounced: pageIndex reset + reload happen once typing settles (see ngOnInit).
+    this.filterChange$.next();
   }
 
   /**
-   * Downloads the complete result set as an Excel (.xlsx) file. The export is generated
-   * server-side by re-running the query with no row cap, so it includes every matching row —
-   * not just the rows shown on screen.
+   * Downloads the complete result set as an Excel (.xlsx) file, reusing the result cached during
+   * execution — no second query run. Includes every matching row, not just the current page.
    */
   exportExcel(): void {
-    if (!this.result || !this.query) return;
+    if (!this.result || !this.query || !this.resultJobId) return;
 
     this.exporting = true;
-    this.currentExportJobId = undefined;
-    this.exportSub = this.queryService.exportQuery(
-      this.query.id,
-      this.lastResultParams,
-      (jobId) => { this.currentExportJobId = jobId; }
-    ).subscribe({
+    this.exportSub = this.queryService.exportJob(this.resultJobId).subscribe({
       next: (blob) => {
         this.exporting = false;
-        this.currentExportJobId = undefined;
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -638,25 +701,9 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.exporting = false;
-        this.currentExportJobId = undefined;
-        this.snackBar.open('Export failed. Please try again.', 'Close', { duration: 5000 });
+        this.snackBar.open('Export failed. The result may have expired — re-run the query.', 'Close', { duration: 6000 });
         this.cdr.detectChanges();
       }
     });
-  }
-
-  /** Cancels an in-progress export: stops polling and aborts the export job server-side. */
-  cancelExport(): void {
-    const jobId = this.currentExportJobId;
-    this.exportSub?.unsubscribe();
-    this.exporting = false;
-    this.currentExportJobId = undefined;
-    if (jobId) {
-      this.queryService.cancelJob(jobId).subscribe({
-        next: () => this.snackBar.open('Export canceled', 'Close', { duration: 3000 }),
-        error: () => this.snackBar.open('Export canceled', 'Close', { duration: 3000 })
-      });
-    }
-    this.cdr.detectChanges();
   }
 }
