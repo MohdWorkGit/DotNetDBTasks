@@ -97,6 +97,11 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 
+// Serve the Angular SPA from wwwroot (single-site IIS hosting). Static assets are
+// served directly; unmatched non-API routes fall back to index.html further below.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 // Global exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -108,6 +113,10 @@ app.UseCors("AllowAngular");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// SPA fallback: any request that isn't an API route or a physical file returns
+// index.html so Angular client-side routing (deep links, refresh) works.
+app.MapFallbackToFile("index.html");
 
 // Database migration and seeding
 await DatabaseSeeder.SeedAsync(app.Services);

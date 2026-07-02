@@ -344,6 +344,87 @@ Then redeploy the outputs as in Part A, Step 5.
 
 ---
 
+# Part C — Host on IIS (Single Site, with Windows SSO)
+
+An alternative to nginx. In this model **one IIS site serves everything**: the API (`Program.cs`
+calls `UseStaticFiles` + `MapFallbackToFile("index.html")`) hosts the Angular build from its own
+`wwwroot`, so `/api/*` hits the controllers and every other path returns the SPA. No reverse proxy,
+no CORS (same origin), and Windows SSO works through IIS.
+
+## C1 — Server Prerequisites
+
+1. Enable the **IIS** role, including the **Windows Authentication** feature (needed for SSO).
+2. Install the **.NET 10 ASP.NET Core Hosting Bundle** (`dotnet-hosting-10.0.x-win.exe`). This
+   provides the ASP.NET Core Module (ANCM) that IIS uses to run the app — required even for a
+   self-contained publish. Then restart IIS: `net stop was /y & net start w3svc`.
+
+## C2 — Build and Assemble the Publish Folder
+
+```powershell
+# Angular
+cd client; npm run build:prod        # -> client/dist/dotnet-db-tasks-client/browser/
+
+# API (self-contained)
+dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
+
+# Merge the SPA into the API's wwwroot
+New-Item -ItemType Directory -Force .\api-publish\wwwroot | Out-Null
+Copy-Item .\client\dist\dotnet-db-tasks-client\browser\* .\api-publish\wwwroot\ -Recurse -Force
+```
+
+`dotnet publish` emits a `web.config` based on the one in `src/DotNetDBTasks.API/`, so the published
+site already carries the Windows/Anonymous authentication block. Edit `api-publish\appsettings.json`
+as in Part A, Step 3 (the `Cors:AllowedOrigins` value is unused here — same origin).
+
+## C3 — Create the IIS Site
+
+```powershell
+Import-Module WebAdministration
+New-WebAppPool -Name "DotNetDBTasks"
+# No Managed Code: ANCM runs the .NET process, not the IIS CLR.
+Set-ItemProperty IIS:\AppPools\DotNetDBTasks -Name managedRuntimeVersion -Value ""
+New-Website -Name "DotNetDBTasks" -Port 80 -PhysicalPath "C:\inetpub\DotNetDBTasks" -ApplicationPool "DotNetDBTasks"
+# The app writes logs\ and reads wwwroot — grant the pool identity write access.
+icacls "C:\inetpub\DotNetDBTasks" /grant "IIS AppPool\DotNetDBTasks:(OI)(CI)M" /T
+```
+
+(Copy `api-publish\` to `C:\inetpub\DotNetDBTasks` first.)
+
+## C4 — Windows SSO
+
+The app exposes `GET /api/auth/sso`: a domain-joined browser sends the user's Kerberos/NTLM ticket
+automatically, the endpoint auto-provisions/syncs the user from AD via LDAP, then issues the app's
+own JWT. Every later `/api/*` call uses that JWT (Bearer). The endpoint is authorized with
+`IISDefaults.AuthenticationScheme`, so **IIS** performs Windows auth (correct for in-process hosting).
+
+1. **Unlock the auth sections** (they are locked at the server level by default, else IIS returns
+   HTTP 500.19). Run once per server, as admin:
+   ```powershell
+   & "$env:windir\system32\inetsrv\appcmd.exe" unlock config /section:windowsAuthentication
+   & "$env:windir\system32\inetsrv\appcmd.exe" unlock config /section:anonymousAuthentication
+   ```
+   The shipped `web.config` then enables **both** Anonymous (keeps the SPA + JWT endpoints open) and
+   Windows (lets `/api/auth/sso` challenge on demand). Or skip the unlock and enable both in IIS
+   Manager → the site → *Authentication*.
+2. **Silent login prerequisites:**
+   - Users reach the site by **hostname** (e.g. `http://dbtasks.corp.local`), and that host is in the
+     browser's **Local Intranet** zone — otherwise the browser prompts instead of logging in silently.
+   - If the app pool runs under a **custom domain account**, register an SPN:
+     `setspn -S HTTP/dbtasks.corp.local DOMAIN\svc-account`. Under `ApplicationPoolIdentity`/`NetworkService`
+     the machine account already covers the host's own name.
+   - Keep `Ldap:*` valid — SSO supplies the username; the profile lookup still goes through AD.
+   - Prefer HTTPS in production.
+
+## C5 — Verify
+
+- `http://SERVER/` loads the SPA; refreshing a deep link (e.g. `/admin/queries`) still works (fallback).
+- `http://SERVER/api/...` responds; `http://SERVER/swagger` shows the API docs.
+- `http://SERVER/api/auth/sso` from a domain-joined machine returns a token without prompting.
+- ANCM startup failures surface in **Event Viewer → Windows Logs → Application**; app logs are in
+  `logs\log-*.txt`.
+
+---
+
 ## Troubleshooting
 
 | Problem | Check |
@@ -356,3 +437,6 @@ Then redeploy the outputs as in Part A, Step 5.
 | CORS errors | `Cors.AllowedOrigins` in `appsettings.json` matches the exact URL you're using |
 | `dotnet restore` fails offline | Global cache not copied to `%USERPROFILE%\.nuget\packages`, or `nuget.config` not pointing at the offline feed |
 | `npm` tries to reach the network | Missing `--offline`, wrong `--cache` path, or `node_modules` was built for a different OS/arch |
+| IIS: HTTP 500.19 (config locked) | `windowsAuthentication`/`anonymousAuthentication` not unlocked — run the `appcmd unlock` commands in Part C4, or set auth in IIS Manager instead |
+| IIS: HTTP 500.30 / 502.5 on start | Hosting Bundle not installed, app pool not set to *No Managed Code*, or app crashed on startup — see Event Viewer → Application and `logs\` |
+| IIS: SSO prompts for credentials | Site reached by IP not hostname, host not in the browser's Local Intranet zone, or missing SPN for a custom app-pool account |

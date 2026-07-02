@@ -5,8 +5,8 @@ using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
-using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotNetDBTasks.API.Controllers;
@@ -40,8 +40,13 @@ public class AuthController : ControllerBase
     /// The browser negotiates credentials automatically for domain-joined machines.
     /// If the user does not exist locally, they are auto-provisioned from Active Directory.
     /// </summary>
+    /// <remarks>
+    /// Uses the IIS-provided Windows scheme so SSO works under IIS in-process hosting,
+    /// where IIS (not the Negotiate handler) performs Windows Authentication. Requires
+    /// Windows Authentication enabled on the IIS site (see DEPLOY-AIRGAPPED.md).
+    /// </remarks>
     [HttpGet("sso")]
-    [Authorize(AuthenticationSchemes = NegotiateDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = IISDefaults.AuthenticationScheme)]
     public async Task<IActionResult> Sso(CancellationToken cancellationToken)
     {
         var windowsIdentity = User.Identity;
