@@ -5,6 +5,8 @@ using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.AspNetCore.Mvc;
@@ -22,17 +24,23 @@ public class AuthController : ControllerBase
     private readonly IUnitOfWork _unitOfWork;
     private readonly ITokenService _tokenService;
     private readonly ILdapService _ldapService;
+    private readonly IConfiguration _configuration;
+    private readonly IAuthenticationSchemeProvider _schemeProvider;
 
     public AuthController(
         IMediator mediator,
         IUnitOfWork unitOfWork,
         ITokenService tokenService,
-        ILdapService ldapService)
+        ILdapService ldapService,
+        IConfiguration configuration,
+        IAuthenticationSchemeProvider schemeProvider)
     {
         _mediator = mediator;
         _unitOfWork = unitOfWork;
         _tokenService = tokenService;
         _ldapService = ldapService;
+        _configuration = configuration;
+        _schemeProvider = schemeProvider;
     }
 
     /// <summary>
@@ -41,15 +49,29 @@ public class AuthController : ControllerBase
     /// If the user does not exist locally, they are auto-provisioned from Active Directory.
     /// </summary>
     /// <remarks>
-    /// Uses the IIS-provided Windows scheme so SSO works under IIS in-process hosting,
-    /// where IIS (not the Negotiate handler) performs Windows Authentication. Requires
-    /// Windows Authentication enabled on the IIS site (see DEPLOY-AIRGAPPED.md).
+    /// Disabled unless Auth:EnableSso is true — deployments using form-based AD login
+    /// (e.g. Kestrel behind nginx) don't carry a half-configured Windows-auth endpoint.
+    /// When enabled, the Windows handshake uses the IIS-provided scheme under IIS
+    /// in-process hosting (where IIS performs Windows Authentication) and falls back to
+    /// the Negotiate handler when self-hosted on Kestrel/HTTP.sys.
     /// </remarks>
     [HttpGet("sso")]
-    [Authorize(AuthenticationSchemes = IISDefaults.AuthenticationScheme)]
+    [AllowAnonymous]
     public async Task<IActionResult> Sso(CancellationToken cancellationToken)
     {
-        var windowsIdentity = User.Identity;
+        if (!_configuration.GetValue("Auth:EnableSso", false))
+            return NotFound();
+
+        // IIS in-process registers the "Windows" scheme; anywhere else use Negotiate.
+        var scheme = await _schemeProvider.GetSchemeAsync(IISDefaults.AuthenticationScheme) is not null
+            ? IISDefaults.AuthenticationScheme
+            : NegotiateDefaults.AuthenticationScheme;
+
+        var auth = await HttpContext.AuthenticateAsync(scheme);
+        if (!auth.Succeeded)
+            return Challenge(scheme);
+
+        var windowsIdentity = auth.Principal.Identity;
         if (windowsIdentity is null || !windowsIdentity.IsAuthenticated)
             return Unauthorized("Windows authentication failed.");
 

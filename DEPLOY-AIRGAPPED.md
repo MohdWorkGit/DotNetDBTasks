@@ -390,7 +390,35 @@ icacls "C:\inetpub\DotNetDBTasks" /grant "IIS AppPool\DotNetDBTasks:(OI)(CI)M" /
 
 (Copy `api-publish\` to `C:\inetpub\DotNetDBTasks` first.)
 
+## C3.5 — Keep the Background Scheduler Alive
+
+Scheduled export tasks run inside the app's worker process. By default IIS stops an idle
+app pool after 20 minutes and only restarts the app on the next HTTP request — so overnight
+schedules would silently never fire. Configure the pool/site to run permanently:
+
+1. Install the IIS **Application Initialization** feature (Server Manager → Web Server →
+   Application Development, or `dism /online /enable-feature /featurename:IIS-ApplicationInit`).
+2. Configure the pool and site:
+   ```powershell
+   Import-Module WebAdministration
+   # Never stop when idle; start with Windows instead of on first request.
+   Set-ItemProperty IIS:\AppPools\DotNetDBTasks -Name processModel.idleTimeout -Value "00:00:00"
+   Set-ItemProperty IIS:\AppPools\DotNetDBTasks -Name startMode -Value AlwaysRunning
+   # Warm the app immediately after any recycle/restart, without waiting for a visitor.
+   Set-ItemProperty "IIS:\Sites\DotNetDBTasks" -Name applicationDefaults.preloadEnabled -Value $true
+   ```
+3. Optional: disable the daily scheduled recycle, or move it to a quiet hour
+   (`Set-ItemProperty IIS:\AppPools\DotNetDBTasks -Name recycling.periodicRestart.time -Value "00:00:00"`).
+   A recycle during a running export fails that run; it is retried-safe (incremental
+   checkpoints only advance on success) but the run shows as failed.
+4. Grant the pool identity **write access to every scheduled task output folder** (same
+   `icacls` pattern as C3) — the folders in `OutputFolder` of your scheduled tasks.
+
 ## C4 — Windows SSO
+
+> **SSO is off by default.** Set `"Auth": { "EnableSso": true }` in `appsettings.json` to enable
+> the endpoint; while disabled it returns 404 and users sign in with their AD username/password
+> on the login form (validated by a live LDAP bind — no IIS Windows-auth setup needed at all).
 
 The app exposes `GET /api/auth/sso`: a domain-joined browser sends the user's Kerberos/NTLM ticket
 automatically, the endpoint auto-provisions/syncs the user from AD via LDAP, then issues the app's

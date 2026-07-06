@@ -2,6 +2,7 @@ using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -19,6 +20,14 @@ public static class DatabaseSeeder
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
 
+        // The drop-all-and-recreate fallback below destroys every table and all data. It is
+        // only acceptable on a disposable dev database, so it must be enabled explicitly via
+        // Database:AllowDestructiveRepair — production/isolated machines keep the default (off)
+        // and fail loudly instead, leaving the schema for a manual/DBA repair.
+        var allowDestructiveRepair = scope.ServiceProvider
+            .GetRequiredService<IConfiguration>()
+            .GetValue("Database:AllowDestructiveRepair", false);
+
         try
         {
             try
@@ -27,7 +36,18 @@ public static class DatabaseSeeder
             }
             catch (Exception ex) when (ContainsOracleError(ex, "ORA-00955", "ORA-01430"))
             {
-                logger.LogWarning("Database objects already exist (ORA-00955/ORA-01430). Dropping all tables and recreating schema...");
+                if (!allowDestructiveRepair)
+                {
+                    logger.LogError(ex,
+                        "Migration failed because database objects already exist (ORA-00955/ORA-01430), " +
+                        "usually after a partially applied migration. Destructive repair is disabled " +
+                        "(Database:AllowDestructiveRepair=false); repair the schema manually — e.g. apply " +
+                        "the idempotent script from 'dotnet ef migrations script --idempotent' — and restart.");
+                    throw;
+                }
+
+                logger.LogWarning("Database objects already exist (ORA-00955/ORA-01430). " +
+                    "Database:AllowDestructiveRepair is enabled — dropping all tables and recreating schema...");
                 await DropAllTablesAsync(context);
                 await context.Database.MigrateAsync();
             }
