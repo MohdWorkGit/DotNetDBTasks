@@ -21,6 +21,11 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+// No-op when run from a console or under IIS; when installed as a Windows service
+// (sc.exe create ... binPath=DotNetDBTasks.API.exe) it wires up service lifetime
+// events and sets the working directory so relative paths (logs/, wwwroot) resolve.
+builder.Host.UseWindowsService();
+
 // Clean Architecture layer registration
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -31,6 +36,9 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // Background worker that executes submitted query jobs off the request thread
 builder.Services.AddHostedService<QueryJobWorker>();
+
+// Background worker that triggers scheduled export tasks and manual "run now" requests
+builder.Services.AddHostedService<ScheduledTaskWorker>();
 
 // Controllers
 builder.Services.AddControllers();

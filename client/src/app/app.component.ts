@@ -16,7 +16,13 @@ import { ThemeService } from './core/services/theme.service';
       <button mat-button routerLink="/user/history">
         <mat-icon>history</mat-icon> History
       </button>
+      <button mat-button routerLink="/user/schedules" *ngIf="!authService.isAdmin()">
+        <mat-icon>schedule</mat-icon> Schedules
+      </button>
 
+      <button mat-button routerLink="/admin/scheduled-tasks" *ngIf="authService.isAdmin()">
+        <mat-icon>schedule</mat-icon> Schedules
+      </button>
       <button mat-button routerLink="/admin/queries" *ngIf="authService.isAdminOrAuditor()">
         <mat-icon>dashboard</mat-icon> Manage Queries
       </button>

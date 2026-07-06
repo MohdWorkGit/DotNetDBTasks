@@ -24,12 +24,14 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MyQueriesComponent } from './components/my-queries/my-queries.component';
 import { QueryExecuteComponent } from './components/query-execute/query-execute.component';
 import { ExecutionHistoryComponent } from './components/execution-history/execution-history.component';
+import { ScheduleStatusComponent } from './components/schedule-status/schedule-status.component';
 
 @NgModule({
   declarations: [
     MyQueriesComponent,
     QueryExecuteComponent,
-    ExecutionHistoryComponent
+    ExecutionHistoryComponent,
+    ScheduleStatusComponent
   ],
   imports: [
     CommonModule,
@@ -56,6 +58,7 @@ import { ExecutionHistoryComponent } from './components/execution-history/execut
       { path: 'queries', component: MyQueriesComponent },
       { path: 'queries/:id/execute', component: QueryExecuteComponent },
       { path: 'history', component: ExecutionHistoryComponent },
+      { path: 'schedules', component: ScheduleStatusComponent },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])
   ]

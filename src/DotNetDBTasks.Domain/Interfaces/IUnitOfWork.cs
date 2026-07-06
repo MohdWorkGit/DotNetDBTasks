@@ -22,5 +22,9 @@ public interface IUnitOfWork : IDisposable
     IRepository<QueryGroupUser> QueryGroupUsers { get; }
     IRepository<DatabaseUser> DatabaseUsers { get; }
     IRepository<DatabaseUserRoleAccess> DatabaseUserRoleAccess { get; }
+    IRepository<ScheduledTask> ScheduledTasks { get; }
+    IRepository<ScheduledTaskItem> ScheduledTaskItems { get; }
+    IRepository<ScheduledTaskRun> ScheduledTaskRuns { get; }
+    IRepository<ScheduledTaskViewer> ScheduledTaskViewers { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

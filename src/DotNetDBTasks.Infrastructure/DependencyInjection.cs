@@ -42,6 +42,12 @@ public static class DependencyInjection
         services.AddScoped<IEncryptionService, AesEncryptionService>();
         services.AddScoped<ILdapService, LdapService>();
         services.AddSingleton<IExcelExporter, ExcelExporter>();
+        services.AddSingleton<IResultFileExporter, ResultFileExporter>();
+
+        // Scheduled export tasks: manual/scheduled runs flow through a shared queue
+        // drained by the ScheduledTaskWorker; each run executes on a scoped runner.
+        services.AddSingleton<IScheduledTaskRunQueue, ScheduledTaskRunQueue>();
+        services.AddScoped<IScheduledTaskRunner, ScheduledTaskRunner>();
 
         // Async query execution: in-memory job store + queue + ambient user context.
         // Singletons so they are shared across requests and the background worker.

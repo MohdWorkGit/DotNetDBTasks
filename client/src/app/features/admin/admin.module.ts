@@ -31,7 +31,11 @@ import { DatabaseUsersComponent } from './components/database-users/database-use
 import { QueryGroupsListComponent } from './components/query-groups/query-groups-list.component';
 import { QueryGroupFormComponent } from './components/query-groups/query-group-form.component';
 import { QueryGroupAccessComponent } from './components/query-groups/query-group-access.component';
+import { ScheduledTasksListComponent } from './components/scheduled-tasks/scheduled-tasks-list.component';
+import { ScheduledTaskFormComponent } from './components/scheduled-tasks/scheduled-task-form.component';
+import { ScheduledTaskRunsComponent } from './components/scheduled-tasks/scheduled-task-runs.component';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatExpansionModule } from '@angular/material/expansion';
 
 @NgModule({
   declarations: [
@@ -45,7 +49,10 @@ import { MatMenuModule } from '@angular/material/menu';
     DatabaseUsersComponent,
     QueryGroupsListComponent,
     QueryGroupFormComponent,
-    QueryGroupAccessComponent
+    QueryGroupAccessComponent,
+    ScheduledTasksListComponent,
+    ScheduledTaskFormComponent,
+    ScheduledTaskRunsComponent
   ],
   imports: [
     CommonModule,
@@ -70,6 +77,7 @@ import { MatMenuModule } from '@angular/material/menu';
     MatCheckboxModule,
     MatRadioModule,
     MatMenuModule,
+    MatExpansionModule,
     RouterModule.forChild([
       { path: 'queries', component: QueryListComponent },
       { path: 'queries/create', component: QueryFormComponent },
@@ -79,6 +87,10 @@ import { MatMenuModule } from '@angular/material/menu';
       { path: 'query-groups/create', component: QueryGroupFormComponent },
       { path: 'query-groups/edit/:id', component: QueryGroupFormComponent },
       { path: 'query-groups/:id/access', component: QueryGroupAccessComponent },
+      { path: 'scheduled-tasks', component: ScheduledTasksListComponent },
+      { path: 'scheduled-tasks/create', component: ScheduledTaskFormComponent },
+      { path: 'scheduled-tasks/edit/:id', component: ScheduledTaskFormComponent },
+      { path: 'scheduled-tasks/:id/runs', component: ScheduledTaskRunsComponent },
       { path: 'logs', component: ExecutionLogsComponent },
       { path: 'ad-users', component: AdUsersComponent },
       { path: 'users', component: UserManagementComponent },

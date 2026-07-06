@@ -430,6 +430,188 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.ToTable("Roles");
                 });
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int?>("DayOfMonth")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int?>("DayOfWeek")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("NVARCHAR2(1000)");
+
+                    b.Property<int>("Frequency")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int?>("IntervalMinutes")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<short>("IsEnabled")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<DateTime?>("NextRunAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("OutputFolder")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("NVARCHAR2(500)");
+
+                    b.Property<string>("TimeOfDay")
+                        .HasMaxLength(5)
+                        .HasColumnType("NVARCHAR2(5)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("NextRunAt");
+
+                    b.ToTable("ScheduledTasks");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<short>("AppendTimestamp")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid>("DynamicQueryId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("ExportFormat")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("FileNamePrefix")
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<string>("InitialKey")
+                        .HasMaxLength(500)
+                        .HasColumnType("NVARCHAR2(500)");
+
+                    b.Property<string>("KeyColumn")
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<string>("KeyParameter")
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<string>("LastKeyValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("NVARCHAR2(500)");
+
+                    b.Property<string>("ParametersJson")
+                        .HasColumnType("CLOB");
+
+                    b.Property<Guid>("ScheduledTaskId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DynamicQueryId");
+
+                    b.HasIndex("ScheduledTaskId");
+
+                    b.ToTable("ScheduledTaskItems");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("NVARCHAR2(2000)");
+
+                    b.Property<string>("ItemResultsJson")
+                        .HasColumnType("CLOB");
+
+                    b.Property<Guid>("ScheduledTaskId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<Guid?>("TriggeredByUserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("TriggeredByUsername")
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScheduledTaskId");
+
+                    b.HasIndex("StartedAt");
+
+                    b.ToTable("ScheduledTaskRuns");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskViewer", b =>
+                {
+                    b.Property<Guid>("ScheduledTaskId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("ScheduledTaskId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ScheduledTaskViewers");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -676,6 +858,55 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("DynamicQuery");
                 });
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskItem", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DynamicQuery")
+                        .WithMany()
+                        .HasForeignKey("DynamicQueryId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("DotNetDBTasks.Domain.Entities.ScheduledTask", "ScheduledTask")
+                        .WithMany("Items")
+                        .HasForeignKey("ScheduledTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DynamicQuery");
+
+                    b.Navigation("ScheduledTask");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskRun", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.ScheduledTask", "ScheduledTask")
+                        .WithMany("Runs")
+                        .HasForeignKey("ScheduledTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ScheduledTask");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskViewer", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.ScheduledTask", "ScheduledTask")
+                        .WithMany("Viewers")
+                        .HasForeignKey("ScheduledTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DotNetDBTasks.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ScheduledTask");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserRole", b =>
                 {
                     b.HasOne("DotNetDBTasks.Domain.Entities.Role", "Role")
@@ -733,6 +964,15 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("DynamicQueryRoles");
 
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTask", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("Runs");
+
+                    b.Navigation("Viewers");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.User", b =>
