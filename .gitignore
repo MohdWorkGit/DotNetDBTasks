@@ -32,3 +32,4 @@ offline-bundle/
 # OS
 .DS_Store
 Thumbs.db
+queryrunner-publish/
