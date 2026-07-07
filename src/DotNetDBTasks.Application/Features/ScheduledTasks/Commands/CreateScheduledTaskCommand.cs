@@ -17,6 +17,10 @@ public class ScheduledTaskItemInput
     public Guid DynamicQueryId { get; set; }
     public Dictionary<string, string> Parameters { get; set; } = new();
     public ExportFileFormat ExportFormat { get; set; }
+
+    /// <summary>CSV only: field separator text (null/empty = comma), e.g. ";" or ";;". Also accepts "tab", "semicolon", "pipe".</summary>
+    public string? CsvSeparator { get; set; }
+
     public string? FileNamePrefix { get; set; }
     public bool AppendTimestamp { get; set; } = true;
     public int SortOrder { get; set; }
@@ -43,6 +47,28 @@ public class CreateScheduledTaskCommand : IRequest<ScheduledTaskDto>
     public string Description { get; set; } = string.Empty;
     public bool IsEnabled { get; set; } = true;
     public string OutputFolder { get; set; } = string.Empty;
+
+    /// <summary>Optional second absolute folder that receives a copy of every export file.</summary>
+    public string? ArchiveFolder { get; set; }
+
+    /// <summary>When true, all read-query results are appended into one output file in item order.</summary>
+    public bool CombineOutput { get; set; }
+
+    /// <summary>When false, CSV/Excel exports contain data rows only (no header row).</summary>
+    public bool IncludeHeaders { get; set; } = true;
+
+    /// <summary>Combined mode: base file name without extension (null/empty = task name).</summary>
+    public string? CombinedFileName { get; set; }
+
+    /// <summary>Combined mode: format of the single output file.</summary>
+    public ExportFileFormat CombinedFormat { get; set; } = ExportFileFormat.Csv;
+
+    /// <summary>Combined mode, CSV only: field separator text (null/empty = comma).</summary>
+    public string? CombinedCsvSeparator { get; set; }
+
+    /// <summary>Combined mode: append a run timestamp to the file name (default true).</summary>
+    public bool CombinedAppendTimestamp { get; set; } = true;
+
     public ScheduleFrequency Frequency { get; set; }
     public int? IntervalMinutes { get; set; }
     public string? TimeOfDay { get; set; }
@@ -69,6 +95,9 @@ public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduled
             _unitOfWork,
             request.Name,
             request.OutputFolder,
+            request.ArchiveFolder,
+            request.CombineOutput,
+            request.CombinedCsvSeparator,
             request.Frequency,
             request.IntervalMinutes,
             request.TimeOfDay,
@@ -87,6 +116,13 @@ public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduled
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description,
             IsEnabled = request.IsEnabled,
             OutputFolder = request.OutputFolder.Trim(),
+            ArchiveFolder = string.IsNullOrWhiteSpace(request.ArchiveFolder) ? null : request.ArchiveFolder.Trim(),
+            CombineOutput = request.CombineOutput,
+            IncludeHeaders = request.IncludeHeaders,
+            CombinedFileName = string.IsNullOrWhiteSpace(request.CombinedFileName) ? null : request.CombinedFileName.Trim(),
+            CombinedFormat = request.CombinedFormat,
+            CombinedCsvSeparator = ScheduledTaskInputValidator.NormalizeSeparator(request.CombinedCsvSeparator, request.CombinedFormat),
+            CombinedAppendTimestamp = request.CombinedAppendTimestamp,
             Frequency = request.Frequency,
             IntervalMinutes = request.IntervalMinutes,
             TimeOfDay = request.TimeOfDay,
@@ -123,6 +159,9 @@ public static class ScheduledTaskInputValidator
         IUnitOfWork unitOfWork,
         string name,
         string outputFolder,
+        string? archiveFolder,
+        bool combineOutput,
+        string? combinedCsvSeparator,
         ScheduleFrequency frequency,
         int? intervalMinutes,
         string? timeOfDay,
@@ -146,6 +185,13 @@ public static class ScheduledTaskInputValidator
         if (string.IsNullOrWhiteSpace(outputFolder) || !Path.IsPathRooted(outputFolder.Trim()))
             throw new DomainException("Output folder must be an absolute path on the server (e.g. D:\\Exports\\Sales).");
 
+        if (!string.IsNullOrWhiteSpace(archiveFolder) && !Path.IsPathRooted(archiveFolder.Trim()))
+            throw new DomainException("Archive folder must be an absolute path on the server (e.g. D:\\Exports\\Archive).");
+
+        if (combineOutput && !Common.Models.CsvSeparator.TryParse(combinedCsvSeparator, out _))
+            throw new DomainException(
+                $"The combined file's CSV separator must be 1–{Common.Models.CsvSeparator.MaxLength} characters and cannot contain quotes or line breaks.");
+
         switch (frequency)
         {
             case ScheduleFrequency.EveryNMinutes when intervalMinutes is null or < 1:
@@ -166,6 +212,10 @@ public static class ScheduledTaskInputValidator
         {
             var query = await unitOfWork.DynamicQueries.GetByIdAsync(item.DynamicQueryId, cancellationToken)
                 ?? throw new DomainException("One of the selected queries no longer exists.");
+
+            if (!Common.Models.CsvSeparator.TryParse(item.CsvSeparator, out _))
+                throw new DomainException(
+                    $"Query '{query.Name}': the CSV separator must be 1–{Common.Models.CsvSeparator.MaxLength} characters and cannot contain quotes or line breaks.");
 
             // Write queries are allowed (they commit and record affected rows, no file),
             // but an incremental checkpoint only makes sense for a query that returns rows.
@@ -215,6 +265,7 @@ public static class ScheduledTaskInputValidator
             DynamicQueryId = input.DynamicQueryId,
             ParametersJson = JsonSerializer.Serialize(input.Parameters ?? new Dictionary<string, string>()),
             ExportFormat = input.ExportFormat,
+            CsvSeparator = NormalizeSeparator(input.CsvSeparator, input.ExportFormat),
             FileNamePrefix = string.IsNullOrWhiteSpace(input.FileNamePrefix) ? null : input.FileNamePrefix.Trim(),
             AppendTimestamp = input.AppendTimestamp,
             SortOrder = input.SortOrder,
@@ -238,6 +289,17 @@ public static class ScheduledTaskInputValidator
 
     private static string? Clean(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>
+    /// A separator is stored only for CSV output and only when it differs from the
+    /// default comma. Compared without trimming — a tab separator is itself whitespace.
+    /// </summary>
+    public static string? NormalizeSeparator(string? separator, ExportFileFormat format) =>
+        format == ExportFileFormat.Csv
+            && !string.IsNullOrEmpty(separator)
+            && Common.Models.CsvSeparator.Parse(separator) != Common.Models.CsvSeparator.Default
+                ? separator
+                : null;
 
     private static bool IsWriteQuery(string sql)
     {

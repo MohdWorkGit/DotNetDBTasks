@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Security;
 using System.Text;
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Models;
 
 namespace DotNetDBTasks.Infrastructure.Services;
 
@@ -38,7 +39,13 @@ public class ExcelExporter : IExcelExporter
     public byte[] Export(
         IReadOnlyList<string> columns,
         IReadOnlyList<IReadOnlyDictionary<string, object?>> rows,
-        string sheetName)
+        string sheetName) =>
+        Export(new[] { new ExportResultSet(columns, rows) }, sheetName, includeHeaders: true);
+
+    public byte[] Export(
+        IReadOnlyList<ExportResultSet> results,
+        string sheetName,
+        bool includeHeaders)
     {
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
@@ -47,7 +54,7 @@ public class ExcelExporter : IExcelExporter
             WriteTextEntry(zip, "_rels/.rels", RootRelsXml);
             WriteTextEntry(zip, "xl/workbook.xml", BuildWorkbookXml(sheetName));
             WriteTextEntry(zip, "xl/_rels/workbook.xml.rels", WorkbookRelsXml);
-            WriteSheet(zip, columns, rows);
+            WriteSheet(zip, results, includeHeaders);
         }
         return ms.ToArray();
     }
@@ -69,8 +76,8 @@ public class ExcelExporter : IExcelExporter
 
     private static void WriteSheet(
         ZipArchive zip,
-        IReadOnlyList<string> columns,
-        IReadOnlyList<IReadOnlyDictionary<string, object?>> rows)
+        IReadOnlyList<ExportResultSet> results,
+        bool includeHeaders)
     {
         var entry = zip.CreateEntry("xl/worksheets/sheet1.xml", CompressionLevel.Optimal);
         using var stream = entry.Open();
@@ -79,26 +86,32 @@ public class ExcelExporter : IExcelExporter
         w.Write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
         w.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>");
 
-        // Header row
-        w.Write("<row r=\"1\">");
-        for (int c = 0; c < columns.Count; c++)
-            WriteInlineStringCell(w, CellRef(c, 1), columns[c]);
-        w.Write("</row>");
-
-        // Data rows
-        int rowNumber = 2;
-        foreach (var row in rows)
+        int rowNumber = 1;
+        if (includeHeaders && results.Count > 0)
         {
-            w.Write("<row r=\"");
-            w.Write(rowNumber);
-            w.Write("\">");
+            var columns = results[0].Columns;
+            w.Write("<row r=\"1\">");
             for (int c = 0; c < columns.Count; c++)
-            {
-                row.TryGetValue(columns[c], out var value);
-                WriteValueCell(w, CellRef(c, rowNumber), value);
-            }
+                WriteInlineStringCell(w, CellRef(c, 1), columns[c]);
             w.Write("</row>");
-            rowNumber++;
+            rowNumber = 2;
+        }
+
+        foreach (var result in results)
+        {
+            foreach (var row in result.Rows)
+            {
+                w.Write("<row r=\"");
+                w.Write(rowNumber);
+                w.Write("\">");
+                for (int c = 0; c < result.Columns.Count; c++)
+                {
+                    row.TryGetValue(result.Columns[c], out var value);
+                    WriteValueCell(w, CellRef(c, rowNumber), value);
+                }
+                w.Write("</row>");
+                rowNumber++;
+            }
         }
 
         w.Write("</sheetData></worksheet>");

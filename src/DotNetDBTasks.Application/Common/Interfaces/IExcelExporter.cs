@@ -1,3 +1,5 @@
+using DotNetDBTasks.Application.Common.Models;
+
 namespace DotNetDBTasks.Application.Common.Interfaces;
 
 /// <summary>
@@ -14,4 +16,13 @@ public interface IExcelExporter
         IReadOnlyList<string> columns,
         IReadOnlyList<IReadOnlyDictionary<string, object?>> rows,
         string sheetName);
+
+    /// <summary>
+    /// Writes several result sets into one sheet, in list order. The header row, when
+    /// enabled, comes from the first set's columns.
+    /// </summary>
+    byte[] Export(
+        IReadOnlyList<ExportResultSet> results,
+        string sheetName,
+        bool includeHeaders);
 }

@@ -78,9 +78,19 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             _userContext.Current = await BuildCreatorSnapshotAsync(task.CreatedByUserId, cancellationToken);
 
             Directory.CreateDirectory(task.OutputFolder);
+            if (!string.IsNullOrWhiteSpace(task.ArchiveFolder))
+                Directory.CreateDirectory(task.ArchiveFolder);
 
-            foreach (var item in task.Items.OrderBy(i => i.SortOrder))
-                results.Add(await RunItemAsync(task, item, cancellationToken));
+            var orderedItems = task.Items.OrderBy(i => i.SortOrder).ToList();
+            if (task.CombineOutput)
+            {
+                results.AddRange(await RunCombinedAsync(task, orderedItems, cancellationToken));
+            }
+            else
+            {
+                foreach (var item in orderedItems)
+                    results.Add(await RunItemAsync(task, item, cancellationToken));
+            }
 
             run.Status = results.All(r => r.Success) ? ScheduledTaskRunStatus.Succeeded
                 : results.Any(r => r.Success) ? ScheduledTaskRunStatus.PartiallySucceeded
@@ -113,25 +123,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         var sw = Stopwatch.StartNew();
         try
         {
-            var parameters = string.IsNullOrWhiteSpace(item.ParametersJson)
-                ? new Dictionary<string, string>()
-                : JsonSerializer.Deserialize<Dictionary<string, string>>(item.ParametersJson) ?? new();
-
-            // Incremental read item: the saved checkpoint (or the initial key before the
-            // first run) is injected as the configured query parameter's value.
-            if (!isWrite && !string.IsNullOrWhiteSpace(item.KeyColumn) && !string.IsNullOrWhiteSpace(item.KeyParameter))
-                parameters[item.KeyParameter] = item.LastKeyValue ?? item.InitialKey ?? string.Empty;
-
-            // Reads run Unlimited so exports contain the complete result set. Writes run
-            // Confirmed so the change actually commits (the interactive preview/confirm
-            // handshake has no place in an unattended scheduled run).
-            var execution = await _mediator.Send(new ExecuteQueryCommand
-            {
-                QueryId = item.DynamicQueryId,
-                Parameters = parameters,
-                Unlimited = !isWrite,
-                Confirmed = isWrite
-            }, cancellationToken);
+            var execution = await ExecuteItemQueryAsync(item, isWrite, cancellationToken);
 
             if (isWrite)
             {
@@ -140,9 +132,11 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             }
             else
             {
-                var bytes = _exporter.Export(item.ExportFormat, execution.Columns, execution.Rows, queryName);
+                var bytes = _exporter.Export(
+                    item.ExportFormat, execution.Columns, execution.Rows, queryName,
+                    CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders);
                 var fileName = BuildFileName(item, queryName);
-                await File.WriteAllBytesAsync(Path.Combine(task.OutputFolder, fileName), bytes, cancellationToken);
+                await WriteOutputAsync(task, fileName, bytes, cancellationToken);
 
                 result.FileName = fileName;
                 result.RowCount = execution.TotalRows;
@@ -172,6 +166,139 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             result.DurationMs = sw.ElapsedMilliseconds;
         }
         return result;
+    }
+
+    /// <summary>
+    /// Combined mode: write queries commit as usual, and every read query's rows are
+    /// collected and written into ONE file in item order — the same behaviour as the
+    /// standalone QueryRunner. Read items only succeed (and only advance their
+    /// checkpoints) once the combined file has been written, so a failed write means
+    /// the next run re-exports everything.
+    /// </summary>
+    private async Task<List<ScheduledTaskItemResult>> RunCombinedAsync(
+        ScheduledTask task,
+        IReadOnlyList<ScheduledTaskItem> items,
+        CancellationToken cancellationToken)
+    {
+        var results = new List<ScheduledTaskItemResult>();
+        var collected = new List<(ScheduledTaskItem Item, ScheduledTaskItemResult Result, ExportResultSet Set, string? NextKey)>();
+
+        foreach (var item in items)
+        {
+            var queryName = item.DynamicQuery?.Name ?? item.DynamicQueryId.ToString();
+            var isWrite = IsWriteQuery(item.DynamicQuery?.SqlQuery ?? string.Empty);
+            var result = new ScheduledTaskItemResult { QueryName = queryName, IsWrite = isWrite };
+            results.Add(result);
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                var execution = await ExecuteItemQueryAsync(item, isWrite, cancellationToken);
+                if (isWrite)
+                {
+                    result.RowCount = execution.AffectedRows;
+                    result.Success = true;
+                }
+                else
+                {
+                    result.RowCount = execution.TotalRows;
+                    collected.Add((item, result,
+                        new ExportResultSet(execution.Columns, execution.Rows),
+                        ExtractNextKey(item, execution)));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Scheduled task {TaskName}: item {QueryName} failed", task.Name, queryName);
+                result.Error = Truncate(ex.Message, 2000);
+            }
+            finally
+            {
+                sw.Stop();
+                result.DurationMs = sw.ElapsedMilliseconds;
+            }
+        }
+
+        if (collected.Count == 0)
+            return results;
+
+        try
+        {
+            var bytes = _exporter.Export(
+                task.CombinedFormat,
+                collected.Select(c => c.Set).ToList(),
+                string.IsNullOrWhiteSpace(task.CombinedFileName) ? task.Name : task.CombinedFileName,
+                CsvSeparator.Parse(task.CombinedCsvSeparator),
+                task.IncludeHeaders);
+            var fileName = BuildCombinedFileName(task);
+            await WriteOutputAsync(task, fileName, bytes, cancellationToken);
+
+            foreach (var (item, result, _, nextKey) in collected)
+            {
+                result.FileName = fileName;
+                result.Success = true;
+                if (nextKey is not null)
+                {
+                    item.LastKeyValue = nextKey;
+                    _unitOfWork.ScheduledTaskItems.Update(item);
+                    result.LastKey = nextKey;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Scheduled task {TaskName}: writing the combined output file failed", task.Name);
+            foreach (var (_, result, _, _) in collected)
+                result.Error = Truncate("Combined output file could not be written: " + ex.Message, 2000);
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Runs the item's query through the regular pipeline. Reads run Unlimited so
+    /// exports contain the complete result set; writes run Confirmed so the change
+    /// actually commits (the interactive preview/confirm handshake has no place in
+    /// an unattended scheduled run).
+    /// </summary>
+    private async Task<QueryExecutionResult> ExecuteItemQueryAsync(
+        ScheduledTaskItem item,
+        bool isWrite,
+        CancellationToken cancellationToken)
+    {
+        var parameters = string.IsNullOrWhiteSpace(item.ParametersJson)
+            ? new Dictionary<string, string>()
+            : JsonSerializer.Deserialize<Dictionary<string, string>>(item.ParametersJson) ?? new();
+
+        // Incremental read item: the saved checkpoint (or the initial key before the
+        // first run) is injected as the configured query parameter's value.
+        if (!isWrite && !string.IsNullOrWhiteSpace(item.KeyColumn) && !string.IsNullOrWhiteSpace(item.KeyParameter))
+            parameters[item.KeyParameter] = item.LastKeyValue ?? item.InitialKey ?? string.Empty;
+
+        return await _mediator.Send(new ExecuteQueryCommand
+        {
+            QueryId = item.DynamicQueryId,
+            Parameters = parameters,
+            Unlimited = !isWrite,
+            Confirmed = isWrite
+        }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Writes the file into the task's output folder and, when configured, the archive
+    /// folder. A failed archive copy fails the item (and keeps its checkpoint), so the
+    /// next run re-exports rather than silently leaving a gap there.
+    /// </summary>
+    private static async Task WriteOutputAsync(
+        ScheduledTask task,
+        string fileName,
+        byte[] bytes,
+        CancellationToken cancellationToken)
+    {
+        await File.WriteAllBytesAsync(Path.Combine(task.OutputFolder, fileName), bytes, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(task.ArchiveFolder))
+            await File.WriteAllBytesAsync(Path.Combine(task.ArchiveFolder, fileName), bytes, cancellationToken);
     }
 
     /// <summary>
@@ -214,6 +341,15 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         if (item.AppendTimestamp)
             baseName += DateTime.Now.ToString("_yyyyMMdd-HHmmss");
         return baseName + "." + _exporter.GetExtension(item.ExportFormat);
+    }
+
+    private string BuildCombinedFileName(ScheduledTask task)
+    {
+        var baseName = SanitizeFileName(
+            string.IsNullOrWhiteSpace(task.CombinedFileName) ? task.Name : task.CombinedFileName);
+        if (task.CombinedAppendTimestamp)
+            baseName += DateTime.Now.ToString("_yyyyMMdd-HHmmss");
+        return baseName + "." + _exporter.GetExtension(task.CombinedFormat);
     }
 
     private static string SanitizeFileName(string name)

@@ -20,6 +20,35 @@ public class ScheduledTask : BaseEntity
     /// <summary>Absolute server-side folder the export files are written to.</summary>
     public string OutputFolder { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Optional second absolute folder that receives a copy of every export file
+    /// (e.g. a feed folder consumers empty, plus a permanent archive).
+    /// </summary>
+    public string? ArchiveFolder { get; set; }
+
+    /// <summary>
+    /// When true, all read-query results are appended into ONE output file in item
+    /// order (like the standalone QueryRunner) instead of one file per query. The
+    /// header row comes from the first query, so the queries should return
+    /// compatible columns. Write queries are unaffected — they still just commit.
+    /// </summary>
+    public bool CombineOutput { get; set; }
+
+    /// <summary>When false, CSV/Excel exports contain data rows only (no header row).</summary>
+    public bool IncludeHeaders { get; set; } = true;
+
+    /// <summary>Combined mode: base file name without extension (null/empty = task name).</summary>
+    public string? CombinedFileName { get; set; }
+
+    /// <summary>Combined mode: format of the single output file.</summary>
+    public ExportFileFormat CombinedFormat { get; set; } = ExportFileFormat.Csv;
+
+    /// <summary>Combined mode, CSV only: field separator text (null/empty = comma).</summary>
+    public string? CombinedCsvSeparator { get; set; }
+
+    /// <summary>Combined mode: append a run timestamp to the file name (default true).</summary>
+    public bool CombinedAppendTimestamp { get; set; } = true;
+
     public ScheduleFrequency Frequency { get; set; }
 
     /// <summary>Minutes between runs. Used when <see cref="Frequency"/> is EveryNMinutes.</summary>

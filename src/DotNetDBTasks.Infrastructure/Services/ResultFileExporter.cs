@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Models;
 using DotNetDBTasks.Domain.Enums;
 
 namespace DotNetDBTasks.Infrastructure.Services;
@@ -10,6 +11,8 @@ namespace DotNetDBTasks.Infrastructure.Services;
 /// Format-dispatching result exporter. Excel delegates to the existing
 /// <see cref="IExcelExporter"/>; CSV and JSON are generated here with only the
 /// base class library, keeping the air-gapped offline bundle dependency-free.
+/// Several result sets can be written into one file (combined scheduled-task
+/// output); the header row, when enabled, comes from the first set.
 /// </summary>
 public class ResultFileExporter : IResultFileExporter
 {
@@ -24,13 +27,23 @@ public class ResultFileExporter : IResultFileExporter
         ExportFileFormat format,
         IReadOnlyList<string> columns,
         IReadOnlyList<IReadOnlyDictionary<string, object?>> rows,
-        string name)
+        string name,
+        string csvSeparator = ",",
+        bool includeHeaders = true) =>
+        Export(format, new[] { new ExportResultSet(columns, rows) }, name, csvSeparator, includeHeaders);
+
+    public byte[] Export(
+        ExportFileFormat format,
+        IReadOnlyList<ExportResultSet> results,
+        string name,
+        string csvSeparator = ",",
+        bool includeHeaders = true)
     {
         return format switch
         {
-            ExportFileFormat.Excel => _excelExporter.Export(columns, rows, name),
-            ExportFileFormat.Csv => ExportCsv(columns, rows),
-            ExportFileFormat.Json => ExportJson(columns, rows),
+            ExportFileFormat.Excel => _excelExporter.Export(results, name, includeHeaders),
+            ExportFileFormat.Csv => ExportCsv(results, csvSeparator, includeHeaders),
+            ExportFileFormat.Json => ExportJson(results),
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.")
         };
     }
@@ -43,32 +56,36 @@ public class ResultFileExporter : IResultFileExporter
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.")
     };
 
-    /// <summary>RFC 4180 CSV, UTF-8 with BOM so Excel detects the encoding when opening it.</summary>
+    /// <summary>RFC 4180-style CSV, UTF-8 with BOM so Excel detects the encoding when opening it.</summary>
     private static byte[] ExportCsv(
-        IReadOnlyList<string> columns,
-        IReadOnlyList<IReadOnlyDictionary<string, object?>> rows)
+        IReadOnlyList<ExportResultSet> results,
+        string separator,
+        bool includeHeaders)
     {
         using var ms = new MemoryStream();
         using (var w = new StreamWriter(ms, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), leaveOpen: true))
         {
-            WriteCsvRow(w, columns.Select(c => (object?)c));
-            foreach (var row in rows)
+            if (includeHeaders && results.Count > 0)
+                WriteCsvRow(w, results[0].Columns.Select(c => (object?)c), separator);
+
+            foreach (var result in results)
             {
-                WriteCsvRow(w, columns.Select(c => row.TryGetValue(c, out var v) ? v : null));
+                foreach (var row in result.Rows)
+                    WriteCsvRow(w, result.Columns.Select(c => row.TryGetValue(c, out var v) ? v : null), separator);
             }
         }
         return ms.ToArray();
     }
 
-    private static void WriteCsvRow(StreamWriter w, IEnumerable<object?> values)
+    private static void WriteCsvRow(StreamWriter w, IEnumerable<object?> values, string separator)
     {
         var first = true;
         foreach (var value in values)
         {
             if (!first)
-                w.Write(',');
+                w.Write(separator);
             first = false;
-            w.Write(EscapeCsv(FormatValue(value)));
+            w.Write(EscapeCsv(FormatValue(value), separator));
         }
         w.Write("\r\n");
     }
@@ -83,31 +100,38 @@ public class ResultFileExporter : IResultFileExporter
         _ => value.ToString() ?? string.Empty
     };
 
-    private static string EscapeCsv(string value)
+    /// <summary>
+    /// Quotes a value containing quote/line-break characters or any character of the
+    /// separator. Checking per character (not the full separator string) keeps
+    /// multi-character separators unambiguous — e.g. with ";;" a value ending in ";"
+    /// followed by a field starting with ";" would otherwise fabricate a separator.
+    /// </summary>
+    private static string EscapeCsv(string value, string separator)
     {
-        if (value.IndexOfAny(new[] { ',', '"', '\r', '\n' }) < 0)
+        if (value.IndexOfAny(new[] { '"', '\r', '\n' }) < 0 && value.IndexOfAny(separator.ToCharArray()) < 0)
             return value;
         return "\"" + value.Replace("\"", "\"\"") + "\"";
     }
 
-    /// <summary>JSON array of objects, one per row, preserving column order.</summary>
-    private static byte[] ExportJson(
-        IReadOnlyList<string> columns,
-        IReadOnlyList<IReadOnlyDictionary<string, object?>> rows)
+    /// <summary>JSON array of objects, one per row across all result sets, preserving column order.</summary>
+    private static byte[] ExportJson(IReadOnlyList<ExportResultSet> results)
     {
         using var ms = new MemoryStream();
         using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
         {
             writer.WriteStartArray();
-            foreach (var row in rows)
+            foreach (var result in results)
             {
-                writer.WriteStartObject();
-                foreach (var column in columns)
+                foreach (var row in result.Rows)
                 {
-                    row.TryGetValue(column, out var value);
-                    WriteJsonValue(writer, column, value);
+                    writer.WriteStartObject();
+                    foreach (var column in result.Columns)
+                    {
+                        row.TryGetValue(column, out var value);
+                        WriteJsonValue(writer, column, value);
+                    }
+                    writer.WriteEndObject();
                 }
-                writer.WriteEndObject();
             }
             writer.WriteEndArray();
         }

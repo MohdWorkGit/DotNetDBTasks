@@ -35,6 +35,8 @@ Edit `appsettings.json` next to the exe (see the sample in this folder):
 | `Output.FileName` | Base file name without extension |
 | `Output.Format` | `Excel`, `Csv`, or `Json` |
 | `Output.IncludeHeaders` | `false`: no header row in Csv/Excel output (default `true`) |
+| `Output.Separator` | Csv only: field separator — any text (`";"`, `";;"`, `"|,"`, …) or `comma`, `semicolon`, `pipe`, `tab` (default comma) |
+| `Output.ArchiveFolder` | Optional second folder that receives a copy of the output file (appended independently in append mode) |
 | `Output.AppendTimestamp` | `true`: new `name_yyyyMMdd-HHmmss.ext` per run; `false`: fixed file name |
 | `Output.AppendToExisting` | Csv only: append rows to the existing file instead of replacing it (requires `AppendTimestamp: false`) |
 | `Output.LogFile` | Optional; appends one line per run (result or error) |

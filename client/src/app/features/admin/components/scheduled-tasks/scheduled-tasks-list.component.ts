@@ -26,7 +26,7 @@ import { ScheduledTask, describeSchedule, utcDate } from '@core/models/scheduled
               <th mat-header-cell *matHeaderCellDef>Name</th>
               <td mat-cell *matCellDef="let t">
                 <div class="task-name">{{ t.name }}</div>
-                <div class="task-sub">{{ t.items.length }} quer{{ t.items.length === 1 ? 'y' : 'ies' }} → {{ t.outputFolder }}</div>
+                <div class="task-sub">{{ t.items.length }} quer{{ t.items.length === 1 ? 'y' : 'ies' }} → {{ t.outputFolder }}<span *ngIf="t.archiveFolder"> (+ {{ t.archiveFolder }})</span></div>
               </td>
             </ng-container>
 

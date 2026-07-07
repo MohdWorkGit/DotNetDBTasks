@@ -52,25 +52,39 @@ public static class Program
 
             var format = ParseFormat(config.Output.Format);
             Directory.CreateDirectory(config.Output.Folder);
+            if (config.Output.ArchiveFolder is not null)
+                Directory.CreateDirectory(config.Output.ArchiveFolder);
 
             var fileName = config.Output.FileName
                 + (config.Output.AppendTimestamp ? DateTime.Now.ToString("_yyyyMMdd-HHmmss") : string.Empty)
                 + "." + FileExporter.GetExtension(format);
             var filePath = Path.Combine(config.Output.Folder, fileName);
 
-            var appending = config.Output.AppendToExisting && File.Exists(filePath);
-            var bytes = FileExporter.Export(
-                format,
-                results,
-                config.Output.FileName,
-                // An appended chunk must never repeat the header (or the BOM).
-                includeHeaders: config.Output.IncludeHeaders && !appending,
-                emitBom: !appending);
+            var destinations = new List<string> { filePath };
+            if (config.Output.ArchiveFolder is not null)
+                destinations.Add(Path.Combine(config.Output.ArchiveFolder, fileName));
 
-            if (appending)
-                await AppendBytesAsync(filePath, bytes);
-            else
-                await File.WriteAllBytesAsync(filePath, bytes);
+            var primaryAppended = config.Output.AppendToExisting && File.Exists(filePath);
+
+            foreach (var destination in destinations)
+            {
+                // Appending is decided per destination: a brand-new archive copy still
+                // gets its own header row and BOM even while the main file is appended.
+                var appending = config.Output.AppendToExisting && File.Exists(destination);
+                var bytes = FileExporter.Export(
+                    format,
+                    results,
+                    config.Output.FileName,
+                    // An appended chunk must never repeat the header (or the BOM).
+                    includeHeaders: config.Output.IncludeHeaders && !appending,
+                    emitBom: !appending,
+                    separator: config.Output.SeparatorText);
+
+                if (appending)
+                    await AppendBytesAsync(destination, bytes);
+                else
+                    await File.WriteAllBytesAsync(destination, bytes);
+            }
 
             // Export succeeded — persist where each incremental query stopped.
             if (newKeys.Count > 0)
@@ -82,7 +96,8 @@ public static class Program
 
             var perQuery = string.Join(", ", results.Select(r => $"{r.QueryName}={r.Rows.Count}"));
             Log(config, $"OK    | {results.Sum(r => r.Rows.Count)} row(s) ({perQuery}) -> {filePath}"
-                + (appending ? " (appended)" : string.Empty));
+                + (primaryAppended ? " (appended)" : string.Empty)
+                + (config.Output.ArchiveFolder is not null ? $" (+ copy in {config.Output.ArchiveFolder})" : string.Empty));
             return 0;
         }
         catch (Exception ex)

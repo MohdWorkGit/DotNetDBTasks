@@ -27,6 +27,8 @@ export interface ScheduledTaskItem {
   queryName: string;
   parameters: Record<string, string>;
   exportFormat: ExportFileFormat;
+  /** CSV only: field separator text (null = comma), e.g. ";" or ";;". */
+  csvSeparator?: string | null;
   fileNamePrefix?: string | null;
   appendTimestamp: boolean;
   sortOrder: number;
@@ -74,6 +76,16 @@ export interface ScheduledTask {
   description: string;
   isEnabled: boolean;
   outputFolder: string;
+  /** Optional second folder that receives a copy of every export file. */
+  archiveFolder?: string | null;
+  /** When true, all read-query results are appended into one output file in item order. */
+  combineOutput: boolean;
+  /** When false, CSV/Excel exports contain data rows only (no header row). */
+  includeHeaders: boolean;
+  combinedFileName?: string | null;
+  combinedFormat: ExportFileFormat;
+  combinedCsvSeparator?: string | null;
+  combinedAppendTimestamp: boolean;
   frequency: ScheduleFrequency;
   intervalMinutes?: number | null;
   timeOfDay?: string | null;
@@ -90,6 +102,8 @@ export interface ScheduledTaskItemInput {
   dynamicQueryId: string;
   parameters: Record<string, string>;
   exportFormat: ExportFileFormat;
+  /** CSV only: field separator text (null = comma), e.g. ";" or ";;". */
+  csvSeparator?: string | null;
   fileNamePrefix?: string | null;
   appendTimestamp: boolean;
   sortOrder: number;
@@ -105,6 +119,16 @@ export interface SaveScheduledTaskRequest {
   description: string;
   isEnabled: boolean;
   outputFolder: string;
+  /** Optional second folder that receives a copy of every export file. */
+  archiveFolder?: string | null;
+  /** When true, all read-query results are appended into one output file in item order. */
+  combineOutput: boolean;
+  /** When false, CSV/Excel exports contain data rows only (no header row). */
+  includeHeaders: boolean;
+  combinedFileName?: string | null;
+  combinedFormat: ExportFileFormat;
+  combinedCsvSeparator?: string | null;
+  combinedAppendTimestamp: boolean;
   frequency: ScheduleFrequency;
   intervalMinutes?: number | null;
   timeOfDay?: string | null;

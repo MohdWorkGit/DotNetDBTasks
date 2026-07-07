@@ -11,6 +11,7 @@ public class ScheduledTaskItemConfiguration : IEntityTypeConfiguration<Scheduled
         builder.HasKey(e => e.Id);
         builder.Property(e => e.ParametersJson).HasColumnType("CLOB");
         builder.Property(e => e.FileNamePrefix).HasMaxLength(200);
+        builder.Property(e => e.CsvSeparator).HasMaxLength(8);
         builder.Property(e => e.KeyColumn).HasMaxLength(128);
         builder.Property(e => e.KeyParameter).HasMaxLength(128);
         builder.Property(e => e.InitialKey).HasMaxLength(500);

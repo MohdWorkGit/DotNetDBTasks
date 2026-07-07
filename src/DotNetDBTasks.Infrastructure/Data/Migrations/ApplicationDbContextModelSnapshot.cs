@@ -436,6 +436,27 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("RAW(16)");
 
+                    b.Property<string>("ArchiveFolder")
+                        .HasMaxLength(500)
+                        .HasColumnType("NVARCHAR2(500)");
+
+                    b.Property<short>("CombineOutput")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<short>("CombinedAppendTimestamp")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<string>("CombinedCsvSeparator")
+                        .HasMaxLength(8)
+                        .HasColumnType("NVARCHAR2(8)");
+
+                    b.Property<string>("CombinedFileName")
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<int>("CombinedFormat")
+                        .HasColumnType("NUMBER(10)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TIMESTAMP(7)");
 
@@ -454,6 +475,9 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
 
                     b.Property<int>("Frequency")
                         .HasColumnType("NUMBER(10)");
+
+                    b.Property<short>("IncludeHeaders")
+                        .HasColumnType("NUMBER(5)");
 
                     b.Property<int?>("IntervalMinutes")
                         .HasColumnType("NUMBER(10)");
@@ -502,6 +526,10 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("CsvSeparator")
+                        .HasMaxLength(8)
+                        .HasColumnType("NVARCHAR2(8)");
 
                     b.Property<Guid>("DynamicQueryId")
                         .HasColumnType("RAW(16)");

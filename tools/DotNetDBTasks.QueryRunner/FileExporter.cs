@@ -34,15 +34,17 @@ public static class FileExporter
     /// CSV only: write the UTF-8 BOM at the start. Pass false when the bytes will be
     /// appended to an existing file (a BOM belongs only at the very beginning).
     /// </param>
+    /// <param name="separator">CSV only: the field separator text (default comma), e.g. ";" or ";;".</param>
     public static byte[] Export(
         ExportFormat format,
         IReadOnlyList<QueryResult> results,
         string name,
         bool includeHeaders,
-        bool emitBom = true) => format switch
+        bool emitBom = true,
+        string separator = ",") => format switch
     {
         ExportFormat.Excel => ExportExcel(results, name, includeHeaders),
-        ExportFormat.Csv => ExportCsv(results, includeHeaders, emitBom),
+        ExportFormat.Csv => ExportCsv(results, includeHeaders, emitBom, separator),
         ExportFormat.Json => ExportJson(results),
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
@@ -57,32 +59,32 @@ public static class FileExporter
 
     // ---------------------------------------------------------------- CSV
 
-    private static byte[] ExportCsv(IReadOnlyList<QueryResult> results, bool includeHeaders, bool emitBom)
+    private static byte[] ExportCsv(IReadOnlyList<QueryResult> results, bool includeHeaders, bool emitBom, string separator)
     {
         using var ms = new MemoryStream();
         using (var w = new StreamWriter(ms, new UTF8Encoding(encoderShouldEmitUTF8Identifier: emitBom), leaveOpen: true))
         {
             if (includeHeaders && results.Count > 0)
-                WriteCsvRow(w, results[0].Columns.Select(c => (object?)c));
+                WriteCsvRow(w, results[0].Columns.Select(c => (object?)c), separator);
 
             foreach (var result in results)
             {
                 foreach (var row in result.Rows)
-                    WriteCsvRow(w, result.Columns.Select(c => row.TryGetValue(c, out var v) ? v : null));
+                    WriteCsvRow(w, result.Columns.Select(c => row.TryGetValue(c, out var v) ? v : null), separator);
             }
         }
         return ms.ToArray();
     }
 
-    private static void WriteCsvRow(StreamWriter w, IEnumerable<object?> values)
+    private static void WriteCsvRow(StreamWriter w, IEnumerable<object?> values, string separator)
     {
         var first = true;
         foreach (var value in values)
         {
             if (!first)
-                w.Write(',');
+                w.Write(separator);
             first = false;
-            w.Write(EscapeCsv(FormatValue(value)));
+            w.Write(EscapeCsv(FormatValue(value), separator));
         }
         w.Write("\r\n");
     }
@@ -97,9 +99,15 @@ public static class FileExporter
         _ => value.ToString() ?? string.Empty
     };
 
-    private static string EscapeCsv(string value)
+    /// <summary>
+    /// Quotes a value containing quote/line-break characters or any character of the
+    /// separator. Checking per character (not the full separator string) keeps
+    /// multi-character separators unambiguous — e.g. with ";;" a value ending in ";"
+    /// followed by a field starting with ";" would otherwise fabricate a separator.
+    /// </summary>
+    private static string EscapeCsv(string value, string separator)
     {
-        if (value.IndexOfAny(new[] { ',', '"', '\r', '\n' }) < 0)
+        if (value.IndexOfAny(new[] { '"', '\r', '\n' }) < 0 && value.IndexOfAny(separator.ToCharArray()) < 0)
             return value;
         return "\"" + value.Replace("\"", "\"\"") + "\"";
     }

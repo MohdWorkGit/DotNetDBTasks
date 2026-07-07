@@ -12,6 +12,21 @@ public class ScheduledTaskDto
     public string Description { get; set; } = string.Empty;
     public bool IsEnabled { get; set; }
     public string OutputFolder { get; set; } = string.Empty;
+
+    /// <summary>Optional second folder that receives a copy of every export file.</summary>
+    public string? ArchiveFolder { get; set; }
+
+    /// <summary>When true, all read-query results are appended into one output file in item order.</summary>
+    public bool CombineOutput { get; set; }
+
+    /// <summary>When false, CSV/Excel exports contain data rows only (no header row).</summary>
+    public bool IncludeHeaders { get; set; } = true;
+
+    public string? CombinedFileName { get; set; }
+    public ExportFileFormat CombinedFormat { get; set; }
+    public string? CombinedCsvSeparator { get; set; }
+    public bool CombinedAppendTimestamp { get; set; }
+
     public ScheduleFrequency Frequency { get; set; }
     public int? IntervalMinutes { get; set; }
     public string? TimeOfDay { get; set; }
@@ -31,6 +46,10 @@ public class ScheduledTaskItemDto
     public string QueryName { get; set; } = string.Empty;
     public Dictionary<string, string> Parameters { get; set; } = new();
     public ExportFileFormat ExportFormat { get; set; }
+
+    /// <summary>CSV only: field separator character (null = comma).</summary>
+    public string? CsvSeparator { get; set; }
+
     public string? FileNamePrefix { get; set; }
     public bool AppendTimestamp { get; set; }
     public int SortOrder { get; set; }
@@ -81,6 +100,13 @@ public static class ScheduledTaskMapper
         Description = task.Description ?? string.Empty,
         IsEnabled = task.IsEnabled,
         OutputFolder = task.OutputFolder,
+        ArchiveFolder = task.ArchiveFolder,
+        CombineOutput = task.CombineOutput,
+        IncludeHeaders = task.IncludeHeaders,
+        CombinedFileName = task.CombinedFileName,
+        CombinedFormat = task.CombinedFormat,
+        CombinedCsvSeparator = task.CombinedCsvSeparator,
+        CombinedAppendTimestamp = task.CombinedAppendTimestamp,
         Frequency = task.Frequency,
         IntervalMinutes = task.IntervalMinutes,
         TimeOfDay = task.TimeOfDay,
@@ -97,6 +123,7 @@ public static class ScheduledTaskMapper
                 QueryName = i.DynamicQuery?.Name ?? string.Empty,
                 Parameters = ParseParameters(i.ParametersJson),
                 ExportFormat = i.ExportFormat,
+                CsvSeparator = i.CsvSeparator,
                 FileNamePrefix = i.FileNamePrefix,
                 AppendTimestamp = i.AppendTimestamp,
                 SortOrder = i.SortOrder,

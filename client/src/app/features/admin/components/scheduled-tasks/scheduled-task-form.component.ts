@@ -53,6 +53,52 @@ import {
                      placeholder="D:\\Exports\\Sales" required>
               <mat-hint>Absolute path; it is created automatically if missing.</mat-hint>
             </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Archive folder (optional)</mat-label>
+              <input matInput formControlName="archiveFolder" maxlength="500"
+                     placeholder="D:\\Exports\\Archive">
+              <mat-hint>A copy of every export file is also written here.</mat-hint>
+            </mat-form-field>
+
+            <div class="row output-options">
+              <mat-slide-toggle formControlName="combineOutput"
+                                matTooltip="All query results are appended into one file, in query order">
+                Combine all results into one file
+              </mat-slide-toggle>
+              <mat-slide-toggle formControlName="includeHeaders"
+                                matTooltip="Off: CSV/Excel files contain data rows only">
+                Include header row
+              </mat-slide-toggle>
+            </div>
+
+            <div class="row wrap" *ngIf="combineOutput">
+              <mat-form-field appearance="outline">
+                <mat-label>Format</mat-label>
+                <mat-select formControlName="combinedFormat" required>
+                  <mat-option *ngFor="let f of formats" [value]="f">{{ formatLabels[f] }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="separator"
+                              *ngIf="form.get('combinedFormat')?.value === Format.Csv">
+                <mat-label>Separator</mat-label>
+                <input matInput formControlName="combinedCsvSeparator" maxlength="8" placeholder=",">
+                <mat-hint>e.g. ; or ;; ("tab" = tab)</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>File name (optional)</mat-label>
+                <input matInput formControlName="combinedFileName" maxlength="200"
+                       placeholder="Defaults to the task name">
+              </mat-form-field>
+              <mat-slide-toggle formControlName="combinedAppendTimestamp" class="toggle"
+                                matTooltip="Off: the same file is overwritten on every run">
+                Append timestamp
+              </mat-slide-toggle>
+            </div>
+            <p class="hint" *ngIf="combineOutput">
+              The header row (when enabled) comes from the first query, so the queries
+              should return the same columns.
+            </p>
           </mat-card-content>
         </mat-card>
 
@@ -119,11 +165,18 @@ import {
                   </mat-select>
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" *ngIf="!itemMeta[i]?.isWrite">
+                <mat-form-field appearance="outline" *ngIf="!itemMeta[i]?.isWrite && !combineOutput">
                   <mat-label>Format</mat-label>
                   <mat-select formControlName="exportFormat" required>
                     <mat-option *ngFor="let f of formats" [value]="f">{{ formatLabels[f] }}</mat-option>
                   </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="separator"
+                                *ngIf="!itemMeta[i]?.isWrite && !combineOutput && isCsv(i)">
+                  <mat-label>Separator</mat-label>
+                  <input matInput formControlName="csvSeparator" maxlength="8" placeholder=",">
+                  <mat-hint>e.g. ; or ;; ("tab" = tab)</mat-hint>
                 </mat-form-field>
 
                 <button mat-icon-button type="button" color="warn" matTooltip="Remove query"
@@ -138,7 +191,7 @@ import {
                 file, only the affected-row count in the run status.
               </p>
 
-              <div class="row" *ngIf="!itemMeta[i]?.isWrite">
+              <div class="row" *ngIf="!itemMeta[i]?.isWrite && !combineOutput">
                 <mat-form-field appearance="outline" class="grow">
                   <mat-label>File name (optional)</mat-label>
                   <input matInput formControlName="fileNamePrefix" maxlength="200"
@@ -253,6 +306,9 @@ import {
       margin: 0 0 12px;
     }
     .checkpoint { margin-bottom: 12px; }
+    /* Wide enough for its hint text; without this the hint runs under the next control. */
+    .separator { width: 220px; }
+    .output-options { gap: 24px; margin-bottom: 20px; align-items: center; }
     .saved-key { align-self: center; color: var(--text-secondary); }
     .saved-key code { font-weight: 600; }
     .remove-item { align-self: center; }
@@ -263,6 +319,7 @@ import {
 })
 export class ScheduledTaskFormComponent implements OnInit {
   Frequency = ScheduleFrequency;
+  Format = ExportFileFormat;
   formats = [ExportFileFormat.Excel, ExportFileFormat.Csv, ExportFileFormat.Json];
   formatLabels = EXPORT_FORMAT_LABELS;
   dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -298,9 +355,17 @@ export class ScheduledTaskFormComponent implements OnInit {
     return this.form.get('frequency')!.value;
   }
 
+  get combineOutput(): boolean {
+    return !!this.form.get('combineOutput')!.value;
+  }
+
   /** All enabled queries can be scheduled: reads export a file, writes commit and report affected rows. */
   get selectableQueries(): DynamicQuery[] {
     return this.queries;
+  }
+
+  isCsv(index: number): boolean {
+    return this.items.at(index).get('exportFormat')?.value === ExportFileFormat.Csv;
   }
 
   isWriteSql(sql: string | undefined): boolean {
@@ -314,6 +379,13 @@ export class ScheduledTaskFormComponent implements OnInit {
       description: [''],
       isEnabled: [true],
       outputFolder: ['', Validators.required],
+      archiveFolder: [''],
+      combineOutput: [false],
+      includeHeaders: [true],
+      combinedFileName: [''],
+      combinedFormat: [ExportFileFormat.Csv],
+      combinedCsvSeparator: [','],
+      combinedAppendTimestamp: [true],
       frequency: [ScheduleFrequency.Daily, Validators.required],
       intervalMinutes: [60],
       timeOfDay: ['07:00'],
@@ -357,6 +429,13 @@ export class ScheduledTaskFormComponent implements OnInit {
           description: task.description,
           isEnabled: task.isEnabled,
           outputFolder: task.outputFolder,
+          archiveFolder: task.archiveFolder || '',
+          combineOutput: !!task.combineOutput,
+          includeHeaders: task.includeHeaders !== false,
+          combinedFileName: task.combinedFileName || '',
+          combinedFormat: task.combinedFormat ?? ExportFileFormat.Csv,
+          combinedCsvSeparator: task.combinedCsvSeparator === '\t' ? 'tab' : (task.combinedCsvSeparator || ','),
+          combinedAppendTimestamp: task.combinedAppendTimestamp !== false,
           frequency: task.frequency,
           intervalMinutes: task.intervalMinutes ?? 60,
           timeOfDay: task.timeOfDay || '07:00',
@@ -371,6 +450,8 @@ export class ScheduledTaskFormComponent implements OnInit {
           group.patchValue({
             dynamicQueryId: item.dynamicQueryId,
             exportFormat: item.exportFormat,
+            // A stored tab character is shown as the word "tab" (the backend accepts both).
+            csvSeparator: item.csvSeparator === '\t' ? 'tab' : (item.csvSeparator || ','),
             fileNamePrefix: item.fileNamePrefix || '',
             appendTimestamp: item.appendTimestamp,
             keyColumn: item.keyColumn || '',
@@ -400,6 +481,7 @@ export class ScheduledTaskFormComponent implements OnInit {
     this.items.push(this.fb.group({
       dynamicQueryId: ['', Validators.required],
       exportFormat: [ExportFileFormat.Excel, Validators.required],
+      csvSeparator: [','],
       fileNamePrefix: [''],
       appendTimestamp: [true],
       keyColumn: [''],
@@ -499,6 +581,15 @@ export class ScheduledTaskFormComponent implements OnInit {
       description: value.description || '',
       isEnabled: value.isEnabled,
       outputFolder: value.outputFolder,
+      archiveFolder: value.archiveFolder || null,
+      combineOutput: !!value.combineOutput,
+      includeHeaders: !!value.includeHeaders,
+      combinedFileName: value.combineOutput ? (value.combinedFileName || null) : null,
+      combinedFormat: value.combinedFormat ?? ExportFileFormat.Csv,
+      combinedCsvSeparator: value.combineOutput && value.combinedFormat === ExportFileFormat.Csv
+        ? (value.combinedCsvSeparator || null)
+        : null,
+      combinedAppendTimestamp: !!value.combinedAppendTimestamp,
       frequency: value.frequency,
       intervalMinutes: value.frequency === ScheduleFrequency.EveryNMinutes ? value.intervalMinutes : null,
       timeOfDay: value.frequency === ScheduleFrequency.EveryNMinutes ? null : value.timeOfDay,
@@ -508,6 +599,7 @@ export class ScheduledTaskFormComponent implements OnInit {
         dynamicQueryId: item.dynamicQueryId,
         parameters: this.toWireParameters(i, item.parameters || {}),
         exportFormat: item.exportFormat,
+        csvSeparator: item.exportFormat === ExportFileFormat.Csv ? (item.csvSeparator || null) : null,
         fileNamePrefix: item.fileNamePrefix || null,
         appendTimestamp: item.appendTimestamp,
         sortOrder: i,

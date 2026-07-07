@@ -83,8 +83,15 @@ public class RunnerConfig
             throw new InvalidOperationException("Output.Folder is required.");
         Output.Folder = Path.GetFullPath(Output.Folder, ConfigDirectory);
 
+        if (!string.IsNullOrWhiteSpace(Output.ArchiveFolder))
+            Output.ArchiveFolder = Path.GetFullPath(Output.ArchiveFolder, ConfigDirectory);
+        else
+            Output.ArchiveFolder = null;
+
         if (!string.IsNullOrWhiteSpace(Output.LogFile))
             Output.LogFile = Path.GetFullPath(Output.LogFile, ConfigDirectory);
+
+        Output.SeparatorText = ParseSeparator(Output.Separator);
 
         if (Output.AppendToExisting)
         {
@@ -99,6 +106,31 @@ public class RunnerConfig
         StateFilePath = string.IsNullOrWhiteSpace(Output.StateFile)
             ? Path.Combine(ConfigDirectory, Path.GetFileNameWithoutExtension(configPath) + ".state.json")
             : Path.GetFullPath(Output.StateFile, ConfigDirectory);
+    }
+
+    /// <summary>
+    /// Resolves Output.Separator to the CSV field-separator text. Accepts any literal
+    /// text (e.g. ";", ";;", "|,") or the names comma/semicolon/pipe/tab (and "\t");
+    /// quote and line-break characters are rejected because they collide with CSV quoting.
+    /// </summary>
+    private static string ParseSeparator(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return ",";
+
+        switch (value.Trim().ToLowerInvariant())
+        {
+            case "comma": return ",";
+            case "semicolon": return ";";
+            case "pipe": return "|";
+            case "tab" or "\\t": return "\t";
+        }
+
+        if (value.IndexOfAny(new[] { '"', '\r', '\n' }) >= 0)
+            throw new InvalidOperationException(
+                $"Output.Separator '{value}' is invalid: it cannot contain quote or line-break characters.");
+
+        return value;
     }
 }
 
@@ -158,6 +190,15 @@ public class OutputConfig
     /// <summary>When false, Csv/Excel output contains data rows only (no header row). Default true.</summary>
     public bool IncludeHeaders { get; set; } = true;
 
+    /// <summary>
+    /// Csv only: the field separator. Any text (e.g. ";", ";;", "|,") or one of the
+    /// names "comma", "semicolon", "pipe", "tab" (also "\t"). Default: comma.
+    /// </summary>
+    public string Separator { get; set; } = ",";
+
+    /// <summary>Parsed form of <see cref="Separator"/>, resolved during config validation.</summary>
+    public string SeparatorText { get; internal set; } = ",";
+
     /// <summary>When true (default) a _yyyyMMdd-HHmmss suffix keeps every run's file; when false the file is overwritten.</summary>
     public bool AppendTimestamp { get; set; } = true;
 
@@ -167,6 +208,14 @@ public class OutputConfig
     /// with KeyColumn checkpoints for a rolling incremental feed file.
     /// </summary>
     public bool AppendToExisting { get; set; }
+
+    /// <summary>
+    /// Optional second folder that receives a copy of the output file (e.g. a feed
+    /// folder consumers empty, plus a permanent archive). With AppendToExisting each
+    /// copy is appended independently, so a freshly created archive file still starts
+    /// with its own header/BOM.
+    /// </summary>
+    public string? ArchiveFolder { get; set; }
 
     /// <summary>Optional log file; one line is appended per run (handy under Task Scheduler).</summary>
     public string? LogFile { get; set; }

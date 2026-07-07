@@ -21,6 +21,12 @@ public class ScheduledTaskItem : BaseEntity
 
     public ExportFileFormat ExportFormat { get; set; }
 
+    /// <summary>
+    /// CSV only: the field separator character (e.g. ";", "|", or a tab). Null/empty
+    /// means the default comma.
+    /// </summary>
+    public string? CsvSeparator { get; set; }
+
     /// <summary>Base file name (without extension). Null/empty falls back to the query name.</summary>
     public string? FileNamePrefix { get; set; }
 
