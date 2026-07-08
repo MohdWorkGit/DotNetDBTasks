@@ -9,7 +9,16 @@
       "PowerShell($f='c:\\\\Users\\\\msm508\\\\Desktop\\\\DBTasks\\\\DotNetDBTasks\\\\scripts\\\\prepare-offline-bundle.ps1'; $errs=$null; $null=[System.Management.Automation.Language.Parser]::ParseFile\\($f,[ref]$null,[ref]$errs\\); if\\($errs\\){$errs|Select-Object -First 5|ForEach-Object{ \"Line $\\($_.Extent.StartLineNumber\\): $\\($_.Message\\)\" }}else{'Parse OK'}; \"--- node_modules state ---\"; $nm='c:\\\\Users\\\\msm508\\\\Desktop\\\\DBTasks\\\\DotNetDBTasks\\\\client\\\\node_modules'; if\\(Test-Path $nm\\){ \"node_modules exists, top-level entries: \" + \\(Get-ChildItem $nm -Force | Measure-Object\\).Count } else { \"node_modules MISSING - npm ci deleted it before failing\" })",
       "PowerShell(Get-Process -Name esbuild,node -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, @{n='Path';e={$_.Path}}, @{n='StartTime';e={$_.StartTime}} | Format-Table -AutoSize | Out-String; \"--- what's left in node_modules ---\"; $nm='c:\\\\Users\\\\msm508\\\\Desktop\\\\DBTasks\\\\DotNetDBTasks\\\\client\\\\node_modules'; Get-ChildItem $nm -Force -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)",
       "PowerShell(Stop-Process -Id 135888 -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500; $nm='c:\\\\Users\\\\msm508\\\\Desktop\\\\DBTasks\\\\DotNetDBTasks\\\\client\\\\node_modules'; Remove-Item -Recurse -Force $nm -ErrorAction SilentlyContinue; if\\(Test-Path $nm\\){ \"STILL EXISTS - remaining: \" + \\(\\(Get-ChildItem $nm -Force -ErrorAction SilentlyContinue\\).Name -join ', '\\) } else { \"node_modules cleared\" })",
-      "PowerShell(dotnet build src/DotNetDBTasks.Application/DotNetDBTasks.Application.csproj -clp:ErrorsOnly --nologo)"
+      "PowerShell(dotnet build src/DotNetDBTasks.Application/DotNetDBTasks.Application.csproj -clp:ErrorsOnly --nologo)",
+      "Bash(git push *)",
+      "PowerShell(dotnet build DotNetDBTasks.sln --nologo -v minimal 2>$null)",
+      "PowerShell(dotnet build DotNetDBTasks.sln --nologo -v quiet 2>$null)",
+      "PowerShell(dotnet ef --version 2>$null)",
+      "PowerShell(dotnet ef migrations list --no-connect --project src\\\\DotNetDBTasks.Infrastructure --startup-project src\\\\DotNetDBTasks.API 2>$null)",
+      "PowerShell($login = Invoke-RestMethod -Uri \"http://localhost:60187/api/auth/login\" -Method Post -ContentType \"application/json\" -Body '{\"username\":\"admin\",\"password\":\"Admin@123\"}'; $token = $login.accessToken; if \\(-not $token\\) { $login | ConvertTo-Json -Depth 4 } else { \"login OK\" })",
+      "PowerShell($deadline = \\(Get-Date\\).AddSeconds\\(120\\); $ok = $false; do { try { $r = Invoke-RestMethod -Uri \"http://localhost:60187/api/auth/login\" -Method Post -ContentType \"application/json\" -Body '{\"username\":\"admin\",\"password\":\"Admin@123\"}' -TimeoutSec 3; $ok = $true; break } catch { Start-Sleep 3 } } while \\(\\(Get-Date\\) -lt $deadline\\); if \\($ok\\) { \"API is up\" } else { \"API NOT responding\" })",
+      "PowerShell(cd C:\\\\Users\\\\msm508\\\\Desktop\\\\DBTasks\\\\DotNetDBTasks; dotnet ef migrations script --idempotent -o .\\\\api-publish\\\\upgrade.sql --project src\\\\DotNetDBTasks.Infrastructure --startup-project src\\\\DotNetDBTasks.API 2>$null | Select-Object -Last 1; \"script size: $\\(\\(Get-Item .\\\\api-publish\\\\upgrade.sql\\).Length\\) bytes\")",
+      "PowerShell(git add .claude/settings.local.json)"
     ]
   }
 }
