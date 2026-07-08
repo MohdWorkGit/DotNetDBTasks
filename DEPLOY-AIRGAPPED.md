@@ -52,6 +52,25 @@ dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj \
 > `Oracle.ManagedDataAccess.Core` (and the MySQL/PostgreSQL/SQL Server drivers) are fully managed
 > and are bundled into the publish output. No separate database client installation is needed on the target.
 
+### QueryRunner console tool (optional)
+
+`tools/DotNetDBTasks.QueryRunner` is a standalone console app that runs SELECT queries from a JSON
+config and exports the results (Excel/CSV/JSON, with incremental checkpoints) — made to be driven by
+Windows Task Scheduler with no API, app database, or login. Publish it self-contained too if the
+target has no .NET runtime:
+
+```powershell
+dotnet publish tools/DotNetDBTasks.QueryRunner `
+  -c Release `
+  -r win-x64 `
+  --self-contained `
+  -o ./queryrunner-publish
+```
+
+See [tools/DotNetDBTasks.QueryRunner/README.md](tools/DotNetDBTasks.QueryRunner/README.md) for
+configuration (`appsettings.json` next to the exe, or a config path per scheduled job) and the
+Task Scheduler setup.
+
 ### Angular Frontend
 
 Run from the `client/` directory:
@@ -75,6 +94,7 @@ Output: `client/dist/dotnet-db-tasks-client/browser/`
 | nginx portable zip | [nginx.org/en/download.html](https://nginx.org/en/download.html) | Windows: `nginx/Windows-x.x.x`, no install needed |
 | `nginx.conf` | See Step 4 | Custom config for this app |
 | `appsettings.json` | `src/DotNetDBTasks.API/` | Edit before going — see Step 3 |
+| `queryrunner-publish/` (optional) | Built in Step 1 | Only if using the standalone QueryRunner with Task Scheduler |
 | `docker/ldap/bootstrap.ldif` | Repo | Only needed if setting up a fresh OpenLDAP server |
 
 ---
@@ -192,6 +212,14 @@ sc.exe create DotNetDBTasks binPath="C:\deploy\api\DotNetDBTasks.API.exe"
 sc.exe start DotNetDBTasks
 ```
 
+> Scheduled export tasks run inside this process, so it must stay running for schedules to fire —
+> a service (not a console window someone closes) is the right choice when you use them. The service
+> account needs **write access to every task's `OutputFolder` and `ArchiveFolder`**.
+>
+> If you copied the QueryRunner tool, place it anywhere (e.g. `C:\deploy\queryrunner\`), edit its
+> `appsettings.json`, and wire it to Windows Task Scheduler per its README — it runs independently
+> of the API and nginx.
+
 The API listens on port `5000` by default. To change it, add to `appsettings.json`:
 ```json
 "Urls": "http://localhost:5000"
@@ -252,6 +280,10 @@ Restore will fail offline unless these are present locally.
 ```powershell
 # Populate the global cache with this solution's full dependency closure
 dotnet restore DotNetDBTasks.sln
+
+# The QueryRunner tool is NOT in the solution — restore it separately or its
+# packages will be missing from the cache:
+dotnet restore tools/DotNetDBTasks.QueryRunner
 
 # The cache lives here:
 #   %USERPROFILE%\.nuget\packages
@@ -319,6 +351,9 @@ Prove the caches are complete by simulating offline on the prep machine (disable
 # API — clean restore + build with no network
 dotnet build DotNetDBTasks.sln -c Release
 
+# QueryRunner tool (not in the solution)
+dotnet build tools/DotNetDBTasks.QueryRunner -c Release
+
 # Frontend — clean install from cache only
 cd client
 npm ci --offline --cache ./npm-cache   # or: rebuild against the copied node_modules
@@ -334,6 +369,9 @@ If both succeed with the network off, the air-gapped machine has everything it n
 dotnet build DotNetDBTasks.sln -c Release
 # or produce a fresh self-contained deploy:
 dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
+
+# After editing the QueryRunner tool:
+dotnet publish tools/DotNetDBTasks.QueryRunner -c Release -r win-x64 --self-contained -o ./queryrunner-publish
 
 # After editing frontend code:
 cd client
@@ -412,7 +450,8 @@ schedules would silently never fire. Configure the pool/site to run permanently:
    A recycle during a running export fails that run; it is retried-safe (incremental
    checkpoints only advance on success) but the run shows as failed.
 4. Grant the pool identity **write access to every scheduled task output folder** (same
-   `icacls` pattern as C3) — the folders in `OutputFolder` of your scheduled tasks.
+   `icacls` pattern as C3) — the folders in `OutputFolder` **and** `ArchiveFolder` of your
+   scheduled tasks.
 
 ## C4 — Windows SSO
 

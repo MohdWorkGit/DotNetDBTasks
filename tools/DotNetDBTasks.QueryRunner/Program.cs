@@ -19,6 +19,8 @@ public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
+        var startedAt = DateTime.Now;
+
         // Default to the config next to the exe, not the working directory —
         // Task Scheduler starts processes with cwd C:\Windows\System32.
         var configPath = args.Length > 0
@@ -55,35 +57,63 @@ public static class Program
             if (config.Output.ArchiveFolder is not null)
                 Directory.CreateDirectory(config.Output.ArchiveFolder);
 
-            var fileName = config.Output.FileName
-                + (config.Output.AppendTimestamp ? DateTime.Now.ToString("_yyyyMMdd-HHmmss") : string.Empty)
-                + "." + FileExporter.GetExtension(format);
-            var filePath = Path.Combine(config.Output.Folder, fileName);
-
-            var destinations = new List<string> { filePath };
-            if (config.Output.ArchiveFolder is not null)
-                destinations.Add(Path.Combine(config.Output.ArchiveFolder, fileName));
-
-            var primaryAppended = config.Output.AppendToExisting && File.Exists(filePath);
-
-            foreach (var destination in destinations)
+            // One export per output file: everything combined (default), or one file
+            // per query named "<FileName>_<QueryName>" when SeparateFiles is on.
+            var exports = new List<(string BaseName, IReadOnlyList<QueryResult> Results)>();
+            if (config.Output.SeparateFiles)
             {
-                // Appending is decided per destination: a brand-new archive copy still
-                // gets its own header row and BOM even while the main file is appended.
-                var appending = config.Output.AppendToExisting && File.Exists(destination);
-                var bytes = FileExporter.Export(
-                    format,
-                    results,
-                    config.Output.FileName,
-                    // An appended chunk must never repeat the header (or the BOM).
-                    includeHeaders: config.Output.IncludeHeaders && !appending,
-                    emitBom: !appending,
-                    separator: config.Output.SeparatorText);
+                foreach (var result in results)
+                    exports.Add((SanitizeFileName(config.Output.FileName + "_" + result.QueryName), new[] { result }));
 
-                if (appending)
-                    await AppendBytesAsync(destination, bytes);
-                else
-                    await File.WriteAllBytesAsync(destination, bytes);
+                var clash = exports.GroupBy(e => e.BaseName, StringComparer.OrdinalIgnoreCase)
+                    .FirstOrDefault(g => g.Count() > 1);
+                if (clash is not null)
+                    throw new InvalidOperationException(
+                        $"Output.SeparateFiles: queries {string.Join(" and ", clash.Select(e => $"'{e.Results[0].QueryName}'"))}"
+                        + $" both map to the file name '{clash.Key}'; rename one of them.");
+            }
+            else
+            {
+                exports.Add((config.Output.FileName, results));
+            }
+
+            // Every file of one run gets the same timestamp suffix.
+            var suffix = (config.Output.AppendTimestamp ? DateTime.Now.ToString("_yyyyMMdd-HHmmss") : string.Empty)
+                + "." + FileExporter.GetExtension(format);
+
+            var writtenFiles = new List<string>();
+            foreach (var (baseName, exportResults) in exports)
+            {
+                var fileName = baseName + suffix;
+                var filePath = Path.Combine(config.Output.Folder, fileName);
+
+                var destinations = new List<string> { filePath };
+                if (config.Output.ArchiveFolder is not null)
+                    destinations.Add(Path.Combine(config.Output.ArchiveFolder, fileName));
+
+                var primaryAppended = config.Output.AppendToExisting && File.Exists(filePath);
+
+                foreach (var destination in destinations)
+                {
+                    // Appending is decided per destination: a brand-new archive copy still
+                    // gets its own header row and BOM even while the main file is appended.
+                    var appending = config.Output.AppendToExisting && File.Exists(destination);
+                    var bytes = FileExporter.Export(
+                        format,
+                        exportResults,
+                        baseName,
+                        // An appended chunk must never repeat the header (or the BOM).
+                        includeHeaders: config.Output.IncludeHeaders && !appending,
+                        emitBom: !appending,
+                        separator: config.Output.SeparatorText);
+
+                    if (appending)
+                        await AppendBytesAsync(destination, bytes);
+                    else
+                        await File.WriteAllBytesAsync(destination, bytes);
+                }
+
+                writtenFiles.Add(filePath + (primaryAppended ? " (appended)" : string.Empty));
             }
 
             // Export succeeded — persist where each incremental query stopped.
@@ -95,15 +125,14 @@ public static class Program
             }
 
             var perQuery = string.Join(", ", results.Select(r => $"{r.QueryName}={r.Rows.Count}"));
-            Log(config, $"OK    | {results.Sum(r => r.Rows.Count)} row(s) ({perQuery}) -> {filePath}"
-                + (primaryAppended ? " (appended)" : string.Empty)
+            Log(config, startedAt, $"OK    | {results.Sum(r => r.Rows.Count)} row(s) ({perQuery}) -> {string.Join(", ", writtenFiles)}"
                 + (config.Output.ArchiveFolder is not null ? $" (+ copy in {config.Output.ArchiveFolder})" : string.Empty));
             return 0;
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"ERROR: {ex.Message}");
-            Log(config, $"ERROR | {ex.Message}", toConsole: false);
+            Log(config, startedAt, $"ERROR | {ex.Message}", toConsole: false);
             return 1;
         }
     }
@@ -190,6 +219,14 @@ public static class Program
             _ => key
         };
 
+    /// <summary>Replaces characters that are invalid in a Windows file name with '_'.</summary>
+    private static string SanitizeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var cleaned = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray());
+        return string.IsNullOrWhiteSpace(cleaned) ? "export" : cleaned;
+    }
+
     private static async Task AppendBytesAsync(string filePath, byte[] bytes)
     {
         await using var stream = new FileStream(filePath, FileMode.Append, FileAccess.Write, FileShare.None);
@@ -213,9 +250,11 @@ public static class Program
             : throw new InvalidOperationException(
                 $"Unknown Output.Format '{format}'. Use Excel, Csv, or Json.");
 
-    private static void Log(RunnerConfig? config, string message, bool toConsole = true)
+    private static void Log(RunnerConfig? config, DateTime startedAt, string message, bool toConsole = true)
     {
-        var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {message}";
+        var endedAt = DateTime.Now;
+        var line = $"start {startedAt:yyyy-MM-dd HH:mm:ss} | end {endedAt:yyyy-MM-dd HH:mm:ss}"
+            + $" | took {FormatDuration(endedAt - startedAt)} | {message}";
         if (toConsole)
             Console.WriteLine(line);
 
@@ -225,11 +264,54 @@ public static class Program
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(logFile)!);
+            RotateLogIfNeeded(config!.Output, logFile);
             File.AppendAllText(logFile, line + Environment.NewLine);
         }
         catch
         {
             // Logging must never turn a successful export into a failed run.
         }
+    }
+
+    private static string FormatDuration(TimeSpan elapsed)
+    {
+        if (elapsed.TotalSeconds < 60)
+            return $"{elapsed.TotalSeconds:0.0}s";
+        if (elapsed.TotalMinutes < 60)
+            return $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+        return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m {elapsed.Seconds}s";
+    }
+
+    /// <summary>
+    /// Size-based rotation, checked before each append: when the log reaches
+    /// LogMaxSizeKB it is renamed to "&lt;name&gt;.1" (older files shift to .2, .3, …,
+    /// the one past LogMaxFiles is deleted) and a fresh log is started.
+    /// </summary>
+    private static void RotateLogIfNeeded(OutputConfig output, string logFile)
+    {
+        var maxBytes = (long)output.LogMaxSizeKB * 1024;
+        if (maxBytes <= 0)
+            return;
+
+        var info = new FileInfo(logFile);
+        if (!info.Exists || info.Length < maxBytes)
+            return;
+
+        if (output.LogMaxFiles < 1)
+        {
+            File.Delete(logFile);
+            return;
+        }
+
+        var oldest = $"{logFile}.{output.LogMaxFiles}";
+        if (File.Exists(oldest))
+            File.Delete(oldest);
+        for (int i = output.LogMaxFiles - 1; i >= 1; i--)
+        {
+            var source = $"{logFile}.{i}";
+            if (File.Exists(source))
+                File.Move(source, $"{logFile}.{i + 1}");
+        }
+        File.Move(logFile, $"{logFile}.1");
     }
 }

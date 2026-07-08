@@ -1,7 +1,8 @@
 # DotNetDBTasks.QueryRunner
 
-A tiny standalone console app that runs one or more SELECT queries and writes all
-result sets into a single file (Excel `.xlsx`, CSV, or JSON). Everything —
+A tiny standalone console app that runs one or more SELECT queries and writes the
+result sets into a single file — or one file per query — as Excel `.xlsx`, CSV,
+or JSON. Everything —
 connection, queries, and output — comes from a JSON config file, so it can be
 scheduled with Windows Task Scheduler with no user interaction. Queries can be
 incremental: a per-query checkpoint remembers where the last run stopped, and the
@@ -26,7 +27,7 @@ Edit `appsettings.json` next to the exe (see the sample in this folder):
 |---|---|
 | `Database.Provider` | `Oracle` (default), `SqlServer`, `PostgreSql`, or `MySql` |
 | `Database.ConnectionString` | Full ADO.NET connection string |
-| `Queries` | List of queries, run in order; all rows land in the same output file (first query's rows first) |
+| `Queries` | List of queries, run in order; all rows land in the same output file (first query's rows first) unless `SeparateFiles` is on |
 | `Queries[].Name` | Identifies the query in logs and checkpoints (defaults to `query1`, `query2`, …) |
 | `Queries[].Sql` / `SqlFile` | The SELECT statement inline, or a path to a `.sql` file |
 | `Queries[].Parameters` | Bind-variable values by name (`:name` in Oracle SQL, `@name` otherwise) |
@@ -34,12 +35,15 @@ Edit `appsettings.json` next to the exe (see the sample in this folder):
 | `Output.Folder` | Folder for the export file (created if missing) |
 | `Output.FileName` | Base file name without extension |
 | `Output.Format` | `Excel`, `Csv`, or `Json` |
+| `Output.SeparateFiles` | `true`: one file per query, named `<FileName>_<QueryName>`; default `false`: all result sets in one combined file |
 | `Output.IncludeHeaders` | `false`: no header row in Csv/Excel output (default `true`) |
 | `Output.Separator` | Csv only: field separator — any text (`";"`, `";;"`, `"|,"`, …) or `comma`, `semicolon`, `pipe`, `tab` (default comma) |
 | `Output.ArchiveFolder` | Optional second folder that receives a copy of the output file (appended independently in append mode) |
 | `Output.AppendTimestamp` | `true`: new `name_yyyyMMdd-HHmmss.ext` per run; `false`: fixed file name |
 | `Output.AppendToExisting` | Csv only: append rows to the existing file instead of replacing it (requires `AppendTimestamp: false`) |
-| `Output.LogFile` | Optional; appends one line per run (result or error) |
+| `Output.LogFile` | Optional; appends one line per run with start/end time, duration, and the result (or error) |
+| `Output.LogMaxSizeKB` | Rotate the log once it reaches this size in KB (`0` = never rotate; default `1024`) |
+| `Output.LogMaxFiles` | Rotated logs kept as `<name>.1` … `<name>.N`, oldest deleted (default `3`) |
 | `Output.StateFile` | Optional checkpoint file path (default `<config name>.state.json` next to the config) |
 
 ## Incremental queries (checkpoints)

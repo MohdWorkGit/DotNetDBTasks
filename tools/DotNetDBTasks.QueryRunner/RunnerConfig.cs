@@ -91,6 +91,11 @@ public class RunnerConfig
         if (!string.IsNullOrWhiteSpace(Output.LogFile))
             Output.LogFile = Path.GetFullPath(Output.LogFile, ConfigDirectory);
 
+        if (Output.LogMaxSizeKB < 0)
+            throw new InvalidOperationException("Output.LogMaxSizeKB cannot be negative (use 0 to disable rotation).");
+        if (Output.LogMaxFiles < 0)
+            throw new InvalidOperationException("Output.LogMaxFiles cannot be negative (use 0 to keep no rotated files).");
+
         Output.SeparatorText = ParseSeparator(Output.Separator);
 
         if (Output.AppendToExisting)
@@ -199,6 +204,14 @@ public class OutputConfig
     /// <summary>Parsed form of <see cref="Separator"/>, resolved during config validation.</summary>
     public string SeparatorText { get; internal set; } = ",";
 
+    /// <summary>
+    /// When true, each query's result set is written to its own file named
+    /// "&lt;FileName&gt;_&lt;QueryName&gt;" (timestamp and extension added as usual); all other
+    /// output options (format, headers, append mode, archive copy, …) apply to every
+    /// file. Default false: all result sets go into one combined file.
+    /// </summary>
+    public bool SeparateFiles { get; set; }
+
     /// <summary>When true (default) a _yyyyMMdd-HHmmss suffix keeps every run's file; when false the file is overwritten.</summary>
     public bool AppendTimestamp { get; set; } = true;
 
@@ -219,6 +232,19 @@ public class OutputConfig
 
     /// <summary>Optional log file; one line is appended per run (handy under Task Scheduler).</summary>
     public string? LogFile { get; set; }
+
+    /// <summary>
+    /// Rotate the log when it reaches this size in KB: the current file is renamed to
+    /// "&lt;name&gt;.1" (older rotations shift up) and a fresh log is started. 0 disables
+    /// rotation and lets the file grow forever. Default 1024 (1 MB).
+    /// </summary>
+    public int LogMaxSizeKB { get; set; } = 1024;
+
+    /// <summary>
+    /// How many rotated log files to keep ("&lt;name&gt;.1" … "&lt;name&gt;.N"); the oldest is
+    /// deleted on each rotation. 0 discards the old log instead of keeping it. Default 3.
+    /// </summary>
+    public int LogMaxFiles { get; set; } = 3;
 
     /// <summary>
     /// Optional path of the checkpoint state file. Default: "&lt;config name&gt;.state.json"
