@@ -15,10 +15,14 @@ public class ScheduledTaskConfiguration : IEntityTypeConfiguration<ScheduledTask
         builder.Property(e => e.ArchiveFolder).HasMaxLength(500);
         builder.Property(e => e.CombinedFileName).HasMaxLength(200);
         builder.Property(e => e.CombinedCsvSeparator).HasMaxLength(8);
-        builder.Property(e => e.TimeOfDay).HasMaxLength(5);
 
         builder.HasIndex(e => e.Name).IsUnique();
         builder.HasIndex(e => e.NextRunAt);
+
+        builder.HasMany(e => e.Triggers)
+            .WithOne(t => t.ScheduledTask)
+            .HasForeignKey(t => t.ScheduledTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(e => e.Items)
             .WithOne(i => i.ScheduledTask)

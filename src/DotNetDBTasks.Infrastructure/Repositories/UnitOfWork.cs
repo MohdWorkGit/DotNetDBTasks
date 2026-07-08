@@ -28,6 +28,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<DatabaseUser> DatabaseUsers { get; }
     public IRepository<DatabaseUserRoleAccess> DatabaseUserRoleAccess { get; }
     public IRepository<ScheduledTask> ScheduledTasks { get; }
+    public IRepository<ScheduledTaskTrigger> ScheduledTaskTriggers { get; }
     public IRepository<ScheduledTaskItem> ScheduledTaskItems { get; }
     public IRepository<ScheduledTaskRun> ScheduledTaskRuns { get; }
     public IRepository<ScheduledTaskViewer> ScheduledTaskViewers { get; }
@@ -51,6 +52,7 @@ public class UnitOfWork : IUnitOfWork
         DatabaseUsers = new Repository<DatabaseUser>(context);
         DatabaseUserRoleAccess = new Repository<DatabaseUserRoleAccess>(context);
         ScheduledTasks = new Repository<ScheduledTask>(context);
+        ScheduledTaskTriggers = new Repository<ScheduledTaskTrigger>(context);
         ScheduledTaskItems = new Repository<ScheduledTaskItem>(context);
         ScheduledTaskRuns = new Repository<ScheduledTaskRun>(context);
         ScheduledTaskViewers = new Repository<ScheduledTaskViewer>(context);

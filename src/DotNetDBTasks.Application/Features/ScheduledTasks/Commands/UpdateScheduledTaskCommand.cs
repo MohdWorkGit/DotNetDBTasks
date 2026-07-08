@@ -42,11 +42,7 @@ public class UpdateScheduledTaskCommand : IRequest<ScheduledTaskDto>
     /// <summary>Combined mode: append a run timestamp to the file name (default true).</summary>
     public bool CombinedAppendTimestamp { get; set; } = true;
 
-    public ScheduleFrequency Frequency { get; set; }
-    public int? IntervalMinutes { get; set; }
-    public string? TimeOfDay { get; set; }
-    public int? DayOfWeek { get; set; }
-    public int? DayOfMonth { get; set; }
+    public List<ScheduledTaskTriggerInput> Triggers { get; set; } = new();
     public List<ScheduledTaskItemInput> Items { get; set; } = new();
     public List<Guid> ViewerUserIds { get; set; } = new();
 }
@@ -63,7 +59,7 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
     public async Task<ScheduledTaskDto> Handle(UpdateScheduledTaskCommand request, CancellationToken cancellationToken)
     {
         var task = (await _unitOfWork.ScheduledTasks.FindAsync(
-            t => t.Id == request.Id, cancellationToken, "Items", "Viewers")).FirstOrDefault()
+            t => t.Id == request.Id, cancellationToken, "Triggers", "Items", "Viewers")).FirstOrDefault()
             ?? throw new NotFoundException(nameof(ScheduledTask), request.Id);
 
         await ScheduledTaskInputValidator.ValidateAsync(
@@ -73,11 +69,7 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
             request.ArchiveFolder,
             request.CombineOutput,
             request.CombinedCsvSeparator,
-            request.Frequency,
-            request.IntervalMinutes,
-            request.TimeOfDay,
-            request.DayOfWeek,
-            request.DayOfMonth,
+            request.Triggers,
             request.Items,
             request.ViewerUserIds,
             excludeTaskId: task.Id,
@@ -95,13 +87,16 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
         task.CombinedFormat = request.CombinedFormat;
         task.CombinedCsvSeparator = ScheduledTaskInputValidator.NormalizeSeparator(request.CombinedCsvSeparator, request.CombinedFormat);
         task.CombinedAppendTimestamp = request.CombinedAppendTimestamp;
-        task.Frequency = request.Frequency;
-        task.IntervalMinutes = request.IntervalMinutes;
-        task.TimeOfDay = request.TimeOfDay;
-        task.DayOfWeek = request.DayOfWeek;
-        task.DayOfMonth = request.DayOfMonth;
         task.UpdatedAt = DateTime.UtcNow;
-        task.NextRunAt = ScheduleCalculator.ComputeNextRunUtc(task, DateTime.Now);
+
+        // Triggers are replaced wholesale; the next run is the earliest occurrence
+        // across the new set.
+        var newTriggers = ScheduledTaskInputValidator.BuildTriggers(task.Id, request.Triggers).ToList();
+        foreach (var trigger in task.Triggers.ToList())
+            _unitOfWork.ScheduledTaskTriggers.Delete(trigger);
+        foreach (var trigger in newTriggers)
+            await _unitOfWork.ScheduledTaskTriggers.AddAsync(trigger, cancellationToken);
+        task.NextRunAt = ScheduleCalculator.ComputeNextRunUtc(task.IsEnabled, newTriggers, DateTime.Now);
 
         // Items are replaced wholesale; carry saved checkpoints over to the new items
         // (matched by query + key config) so an edit doesn't restart incremental runs.
@@ -128,7 +123,7 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
 
         var updated = (await _unitOfWork.ScheduledTasks.FindAsync(
             t => t.Id == task.Id, cancellationToken,
-            "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")).First();
+            "Triggers", "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")).First();
         return ScheduledTaskMapper.ToDto(updated);
     }
 }

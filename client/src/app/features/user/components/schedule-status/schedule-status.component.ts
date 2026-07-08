@@ -4,7 +4,7 @@ import { ScheduledTaskService } from '@core/services/scheduled-task.service';
 import {
   ScheduledTask,
   ScheduledTaskRun,
-  describeSchedule,
+  describeTriggers,
   utcDate
 } from '@core/models/scheduled-task.model';
 
@@ -153,7 +153,7 @@ export class ScheduleStatusComponent implements OnInit {
   }
 
   describe(task: ScheduledTask): string {
-    return describeSchedule(task);
+    return describeTriggers(task.triggers);
   }
 
   asDate(value: string): Date {

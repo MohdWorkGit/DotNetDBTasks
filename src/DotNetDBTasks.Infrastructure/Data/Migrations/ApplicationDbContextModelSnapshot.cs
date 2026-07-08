@@ -463,24 +463,12 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("RAW(16)");
 
-                    b.Property<int?>("DayOfMonth")
-                        .HasColumnType("NUMBER(10)");
-
-                    b.Property<int?>("DayOfWeek")
-                        .HasColumnType("NUMBER(10)");
-
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("NVARCHAR2(1000)");
 
-                    b.Property<int>("Frequency")
-                        .HasColumnType("NUMBER(10)");
-
                     b.Property<short>("IncludeHeaders")
                         .HasColumnType("NUMBER(5)");
-
-                    b.Property<int?>("IntervalMinutes")
-                        .HasColumnType("NUMBER(10)");
 
                     b.Property<short>("IsEnabled")
                         .HasColumnType("NUMBER(5)");
@@ -497,10 +485,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)");
-
-                    b.Property<string>("TimeOfDay")
-                        .HasMaxLength(5)
-                        .HasColumnType("NVARCHAR2(5)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TIMESTAMP(7)");
@@ -623,6 +607,47 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.HasIndex("StartedAt");
 
                     b.ToTable("ScheduledTaskRuns");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskTrigger", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<int?>("DayOfMonth")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int?>("DayOfWeek")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int>("Frequency")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int?>("IntervalMinutes")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<Guid>("ScheduledTaskId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("TimeOfDay")
+                        .HasMaxLength(5)
+                        .HasColumnType("NVARCHAR2(5)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScheduledTaskId");
+
+                    b.ToTable("ScheduledTaskTriggers");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskViewer", b =>
@@ -916,6 +941,17 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("ScheduledTask");
                 });
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskTrigger", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.ScheduledTask", "ScheduledTask")
+                        .WithMany("Triggers")
+                        .HasForeignKey("ScheduledTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ScheduledTask");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskViewer", b =>
                 {
                     b.HasOne("DotNetDBTasks.Domain.Entities.ScheduledTask", "ScheduledTask")
@@ -999,6 +1035,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("Runs");
+
+                    b.Navigation("Triggers");
 
                     b.Navigation("Viewers");
                 });

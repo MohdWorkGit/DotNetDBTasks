@@ -27,16 +27,24 @@ public class ScheduledTaskDto
     public string? CombinedCsvSeparator { get; set; }
     public bool CombinedAppendTimestamp { get; set; }
 
-    public ScheduleFrequency Frequency { get; set; }
-    public int? IntervalMinutes { get; set; }
-    public string? TimeOfDay { get; set; }
-    public int? DayOfWeek { get; set; }
-    public int? DayOfMonth { get; set; }
+    /// <summary>The task's recurrence rules; it fires on the earliest upcoming occurrence across all of them.</summary>
+    public List<ScheduledTaskTriggerDto> Triggers { get; set; } = new();
+
     public DateTime? NextRunAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<ScheduledTaskItemDto> Items { get; set; } = new();
     public List<ScheduledTaskViewerDto> Viewers { get; set; } = new();
     public ScheduledTaskRunDto? LastRun { get; set; }
+}
+
+public class ScheduledTaskTriggerDto
+{
+    public ScheduleFrequency Frequency { get; set; }
+    public int? IntervalMinutes { get; set; }
+    public string? TimeOfDay { get; set; }
+    public int? DayOfWeek { get; set; }
+    public int? DayOfMonth { get; set; }
+    public int SortOrder { get; set; }
 }
 
 public class ScheduledTaskItemDto
@@ -84,7 +92,7 @@ public class ScheduledTaskRunDto
 
 /// <summary>
 /// Shared entity → DTO mapping for scheduled tasks. Callers must have loaded the
-/// task with its Items (incl. DynamicQuery) and Viewers (incl. User) navigations.
+/// task with its Triggers, Items (incl. DynamicQuery) and Viewers (incl. User) navigations.
 /// </summary>
 public static class ScheduledTaskMapper
 {
@@ -107,11 +115,18 @@ public static class ScheduledTaskMapper
         CombinedFormat = task.CombinedFormat,
         CombinedCsvSeparator = task.CombinedCsvSeparator,
         CombinedAppendTimestamp = task.CombinedAppendTimestamp,
-        Frequency = task.Frequency,
-        IntervalMinutes = task.IntervalMinutes,
-        TimeOfDay = task.TimeOfDay,
-        DayOfWeek = task.DayOfWeek,
-        DayOfMonth = task.DayOfMonth,
+        Triggers = task.Triggers
+            .OrderBy(t => t.SortOrder)
+            .Select(t => new ScheduledTaskTriggerDto
+            {
+                Frequency = t.Frequency,
+                IntervalMinutes = t.IntervalMinutes,
+                TimeOfDay = t.TimeOfDay,
+                DayOfWeek = t.DayOfWeek,
+                DayOfMonth = t.DayOfMonth,
+                SortOrder = t.SortOrder
+            })
+            .ToList(),
         NextRunAt = task.NextRunAt,
         CreatedAt = task.CreatedAt,
         Items = task.Items

@@ -11,21 +11,39 @@ namespace DotNetDBTasks.Domain.Services;
 public static class ScheduleCalculator
 {
     /// <summary>
-    /// Returns the next occurrence strictly after <paramref name="afterLocal"/> (local time),
-    /// as a UTC timestamp. Returns null when the task is disabled.
+    /// Returns the earliest next occurrence across all of a task's triggers, strictly
+    /// after <paramref name="afterLocal"/> (local time), as a UTC timestamp. Returns
+    /// null when the task is disabled or has no triggers.
     /// </summary>
-    public static DateTime? ComputeNextRunUtc(ScheduledTask task, DateTime afterLocal)
+    public static DateTime? ComputeNextRunUtc(
+        bool isEnabled, IEnumerable<ScheduledTaskTrigger> triggers, DateTime afterLocal)
     {
-        if (!task.IsEnabled)
+        if (!isEnabled)
             return null;
 
-        var time = ParseTimeOfDay(task.TimeOfDay);
+        DateTime? earliest = null;
+        foreach (var trigger in triggers)
+        {
+            var next = ComputeNextRunUtc(trigger, afterLocal);
+            if (next is not null && (earliest is null || next < earliest))
+                earliest = next;
+        }
+        return earliest;
+    }
+
+    /// <summary>
+    /// Returns the trigger's next occurrence strictly after <paramref name="afterLocal"/>
+    /// (local time), as a UTC timestamp.
+    /// </summary>
+    public static DateTime? ComputeNextRunUtc(ScheduledTaskTrigger trigger, DateTime afterLocal)
+    {
+        var time = ParseTimeOfDay(trigger.TimeOfDay);
 
         DateTime nextLocal;
-        switch (task.Frequency)
+        switch (trigger.Frequency)
         {
             case ScheduleFrequency.EveryNMinutes:
-                var interval = Math.Max(1, task.IntervalMinutes ?? 60);
+                var interval = Math.Max(1, trigger.IntervalMinutes ?? 60);
                 nextLocal = afterLocal.AddMinutes(interval);
                 break;
 
@@ -36,7 +54,7 @@ public static class ScheduleCalculator
                 break;
 
             case ScheduleFrequency.Weekly:
-                var targetDay = (DayOfWeek)Math.Clamp(task.DayOfWeek ?? 1, 0, 6);
+                var targetDay = (DayOfWeek)Math.Clamp(trigger.DayOfWeek ?? 1, 0, 6);
                 var daysAhead = ((int)targetDay - (int)afterLocal.DayOfWeek + 7) % 7;
                 nextLocal = afterLocal.Date.AddDays(daysAhead) + time;
                 if (nextLocal <= afterLocal)
@@ -44,7 +62,7 @@ public static class ScheduleCalculator
                 break;
 
             case ScheduleFrequency.Monthly:
-                var day = Math.Clamp(task.DayOfMonth ?? 1, 1, 31);
+                var day = Math.Clamp(trigger.DayOfMonth ?? 1, 1, 31);
                 nextLocal = MonthlyOccurrence(afterLocal.Year, afterLocal.Month, day, time);
                 if (nextLocal <= afterLocal)
                 {

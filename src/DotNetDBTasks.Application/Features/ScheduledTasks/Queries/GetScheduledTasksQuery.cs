@@ -28,10 +28,10 @@ public class GetScheduledTasksQueryHandler : IRequestHandler<GetScheduledTasksQu
 
         var tasks = seesAll
             ? await _unitOfWork.ScheduledTasks.GetAllAsync(
-                cancellationToken, "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")
+                cancellationToken, "Triggers", "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")
             : await _unitOfWork.ScheduledTasks.FindAsync(
                 t => t.Viewers.Any(v => v.UserId == _currentUser.UserId),
-                cancellationToken, "Items", "Items.DynamicQuery", "Viewers", "Viewers.User");
+                cancellationToken, "Triggers", "Items", "Items.DynamicQuery", "Viewers", "Viewers.User");
 
         var taskIds = tasks.Select(t => t.Id).ToHashSet();
         var runs = taskIds.Count == 0

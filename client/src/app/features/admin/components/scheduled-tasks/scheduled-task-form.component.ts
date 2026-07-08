@@ -103,9 +103,19 @@ import {
         </mat-card>
 
         <mat-card class="section">
-          <mat-card-title>Schedule</mat-card-title>
-          <mat-card-content>
-            <div class="row">
+          <mat-card-title>
+            Schedule
+            <button mat-stroked-button type="button" color="primary" class="add-item" (click)="addTrigger()">
+              <mat-icon>add</mat-icon> Add trigger
+            </button>
+          </mat-card-title>
+          <mat-card-content formArrayName="triggers">
+            <p class="hint">
+              The task runs on every trigger below — e.g. daily at 03:00 plus monthly on
+              day 14 plus daily at 14:00.
+            </p>
+
+            <div class="row" *ngFor="let trigger of triggers.controls; let i = index" [formGroupName]="i">
               <mat-form-field appearance="outline">
                 <mat-label>Frequency</mat-label>
                 <mat-select formControlName="frequency" required>
@@ -116,27 +126,32 @@ import {
                 </mat-select>
               </mat-form-field>
 
-              <mat-form-field appearance="outline" *ngIf="frequency === Frequency.EveryNMinutes">
+              <mat-form-field appearance="outline" *ngIf="triggerFrequency(i) === Frequency.EveryNMinutes">
                 <mat-label>Interval (minutes)</mat-label>
                 <input matInput type="number" formControlName="intervalMinutes" min="1">
               </mat-form-field>
 
-              <mat-form-field appearance="outline" *ngIf="frequency === Frequency.Weekly">
+              <mat-form-field appearance="outline" *ngIf="triggerFrequency(i) === Frequency.Weekly">
                 <mat-label>Day of week</mat-label>
                 <mat-select formControlName="dayOfWeek">
-                  <mat-option *ngFor="let d of dayNames; let i = index" [value]="i">{{ d }}</mat-option>
+                  <mat-option *ngFor="let d of dayNames; let di = index" [value]="di">{{ d }}</mat-option>
                 </mat-select>
               </mat-form-field>
 
-              <mat-form-field appearance="outline" *ngIf="frequency === Frequency.Monthly">
+              <mat-form-field appearance="outline" *ngIf="triggerFrequency(i) === Frequency.Monthly">
                 <mat-label>Day of month</mat-label>
                 <input matInput type="number" formControlName="dayOfMonth" min="1" max="31">
               </mat-form-field>
 
-              <mat-form-field appearance="outline" *ngIf="frequency !== Frequency.EveryNMinutes">
+              <mat-form-field appearance="outline" *ngIf="triggerFrequency(i) !== Frequency.EveryNMinutes">
                 <mat-label>Time of day</mat-label>
                 <input matInput type="time" formControlName="timeOfDay">
               </mat-form-field>
+
+              <button mat-icon-button type="button" color="warn" matTooltip="Remove trigger"
+                      class="remove-item" *ngIf="triggers.length > 1" (click)="removeTrigger(i)">
+                <mat-icon>close</mat-icon>
+              </button>
             </div>
           </mat-card-content>
         </mat-card>
@@ -351,8 +366,12 @@ export class ScheduledTaskFormComponent implements OnInit {
     return this.form.get('items') as FormArray;
   }
 
-  get frequency(): ScheduleFrequency {
-    return this.form.get('frequency')!.value;
+  get triggers(): FormArray {
+    return this.form.get('triggers') as FormArray;
+  }
+
+  triggerFrequency(index: number): ScheduleFrequency {
+    return this.triggers.at(index).get('frequency')!.value;
   }
 
   get combineOutput(): boolean {
@@ -386,11 +405,7 @@ export class ScheduledTaskFormComponent implements OnInit {
       combinedFormat: [ExportFileFormat.Csv],
       combinedCsvSeparator: [','],
       combinedAppendTimestamp: [true],
-      frequency: [ScheduleFrequency.Daily, Validators.required],
-      intervalMinutes: [60],
-      timeOfDay: ['07:00'],
-      dayOfWeek: [1],
-      dayOfMonth: [1],
+      triggers: this.fb.array([]),
       items: this.fb.array([]),
       viewerUserIds: [[] as string[]]
     });
@@ -408,6 +423,7 @@ export class ScheduledTaskFormComponent implements OnInit {
         if (this.taskId) {
           this.loadTask(this.taskId);
         } else {
+          this.addTrigger();
           this.addItem();
           this.loading = false;
           this.cdr.detectChanges();
@@ -436,13 +452,20 @@ export class ScheduledTaskFormComponent implements OnInit {
           combinedFormat: task.combinedFormat ?? ExportFileFormat.Csv,
           combinedCsvSeparator: task.combinedCsvSeparator === '\t' ? 'tab' : (task.combinedCsvSeparator || ','),
           combinedAppendTimestamp: task.combinedAppendTimestamp !== false,
-          frequency: task.frequency,
-          intervalMinutes: task.intervalMinutes ?? 60,
-          timeOfDay: task.timeOfDay || '07:00',
-          dayOfWeek: task.dayOfWeek ?? 1,
-          dayOfMonth: task.dayOfMonth ?? 1,
           viewerUserIds: task.viewers.map(v => v.userId)
         });
+        for (const trigger of (task.triggers?.length ? task.triggers : [null])) {
+          this.addTrigger();
+          if (trigger) {
+            this.triggers.at(this.triggers.length - 1).patchValue({
+              frequency: trigger.frequency,
+              intervalMinutes: trigger.intervalMinutes ?? 60,
+              timeOfDay: trigger.timeOfDay || '07:00',
+              dayOfWeek: trigger.dayOfWeek ?? 1,
+              dayOfMonth: trigger.dayOfMonth ?? 1
+            });
+          }
+        }
         for (const item of task.items) {
           this.addItem();
           const index = this.items.length - 1;
@@ -475,6 +498,20 @@ export class ScheduledTaskFormComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  addTrigger(): void {
+    this.triggers.push(this.fb.group({
+      frequency: [ScheduleFrequency.Daily, Validators.required],
+      intervalMinutes: [60],
+      timeOfDay: ['07:00'],
+      dayOfWeek: [1],
+      dayOfMonth: [1]
+    }));
+  }
+
+  removeTrigger(index: number): void {
+    this.triggers.removeAt(index);
   }
 
   addItem(): void {
@@ -590,11 +627,14 @@ export class ScheduledTaskFormComponent implements OnInit {
         ? (value.combinedCsvSeparator || null)
         : null,
       combinedAppendTimestamp: !!value.combinedAppendTimestamp,
-      frequency: value.frequency,
-      intervalMinutes: value.frequency === ScheduleFrequency.EveryNMinutes ? value.intervalMinutes : null,
-      timeOfDay: value.frequency === ScheduleFrequency.EveryNMinutes ? null : value.timeOfDay,
-      dayOfWeek: value.frequency === ScheduleFrequency.Weekly ? value.dayOfWeek : null,
-      dayOfMonth: value.frequency === ScheduleFrequency.Monthly ? value.dayOfMonth : null,
+      triggers: (value.triggers as any[]).map((trigger, i) => ({
+        frequency: trigger.frequency,
+        intervalMinutes: trigger.frequency === ScheduleFrequency.EveryNMinutes ? trigger.intervalMinutes : null,
+        timeOfDay: trigger.frequency === ScheduleFrequency.EveryNMinutes ? null : trigger.timeOfDay,
+        dayOfWeek: trigger.frequency === ScheduleFrequency.Weekly ? trigger.dayOfWeek : null,
+        dayOfMonth: trigger.frequency === ScheduleFrequency.Monthly ? trigger.dayOfMonth : null,
+        sortOrder: i
+      })),
       items: (value.items as any[]).map((item, i) => ({
         dynamicQueryId: item.dynamicQueryId,
         parameters: this.toWireParameters(i, item.parameters || {}),

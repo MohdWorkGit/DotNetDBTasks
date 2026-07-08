@@ -39,6 +39,20 @@ public class ScheduledTaskItemInput
 }
 
 /// <summary>
+/// One recurrence rule of a scheduled task, as sent by the admin form. A task can
+/// have several (e.g. daily at 03:00 + monthly on day 14 + daily at 14:00).
+/// </summary>
+public class ScheduledTaskTriggerInput
+{
+    public ScheduleFrequency Frequency { get; set; }
+    public int? IntervalMinutes { get; set; }
+    public string? TimeOfDay { get; set; }
+    public int? DayOfWeek { get; set; }
+    public int? DayOfMonth { get; set; }
+    public int SortOrder { get; set; }
+}
+
+/// <summary>
 /// Creates a scheduled export task (Admin only — enforced at the controller).
 /// </summary>
 public class CreateScheduledTaskCommand : IRequest<ScheduledTaskDto>
@@ -69,11 +83,7 @@ public class CreateScheduledTaskCommand : IRequest<ScheduledTaskDto>
     /// <summary>Combined mode: append a run timestamp to the file name (default true).</summary>
     public bool CombinedAppendTimestamp { get; set; } = true;
 
-    public ScheduleFrequency Frequency { get; set; }
-    public int? IntervalMinutes { get; set; }
-    public string? TimeOfDay { get; set; }
-    public int? DayOfWeek { get; set; }
-    public int? DayOfMonth { get; set; }
+    public List<ScheduledTaskTriggerInput> Triggers { get; set; } = new();
     public List<ScheduledTaskItemInput> Items { get; set; } = new();
     public List<Guid> ViewerUserIds { get; set; } = new();
 }
@@ -98,11 +108,7 @@ public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduled
             request.ArchiveFolder,
             request.CombineOutput,
             request.CombinedCsvSeparator,
-            request.Frequency,
-            request.IntervalMinutes,
-            request.TimeOfDay,
-            request.DayOfWeek,
-            request.DayOfMonth,
+            request.Triggers,
             request.Items,
             request.ViewerUserIds,
             excludeTaskId: null,
@@ -123,15 +129,13 @@ public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduled
             CombinedFormat = request.CombinedFormat,
             CombinedCsvSeparator = ScheduledTaskInputValidator.NormalizeSeparator(request.CombinedCsvSeparator, request.CombinedFormat),
             CombinedAppendTimestamp = request.CombinedAppendTimestamp,
-            Frequency = request.Frequency,
-            IntervalMinutes = request.IntervalMinutes,
-            TimeOfDay = request.TimeOfDay,
-            DayOfWeek = request.DayOfWeek,
-            DayOfMonth = request.DayOfMonth,
             CreatedByUserId = _currentUser.UserId,
             CreatedAt = DateTime.UtcNow
         };
-        task.NextRunAt = ScheduleCalculator.ComputeNextRunUtc(task, DateTime.Now);
+
+        foreach (var trigger in ScheduledTaskInputValidator.BuildTriggers(task.Id, request.Triggers))
+            task.Triggers.Add(trigger);
+        task.NextRunAt = ScheduleCalculator.ComputeNextRunUtc(task.IsEnabled, task.Triggers, DateTime.Now);
 
         foreach (var item in ScheduledTaskInputValidator.BuildItems(task.Id, request.Items))
             task.Items.Add(item);
@@ -144,7 +148,7 @@ public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduled
 
         var created = (await _unitOfWork.ScheduledTasks.FindAsync(
             t => t.Id == task.Id, cancellationToken,
-            "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")).First();
+            "Triggers", "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")).First();
         return ScheduledTaskMapper.ToDto(created);
     }
 }
@@ -162,11 +166,7 @@ public static class ScheduledTaskInputValidator
         string? archiveFolder,
         bool combineOutput,
         string? combinedCsvSeparator,
-        ScheduleFrequency frequency,
-        int? intervalMinutes,
-        string? timeOfDay,
-        int? dayOfWeek,
-        int? dayOfMonth,
+        List<ScheduledTaskTriggerInput> triggers,
         List<ScheduledTaskItemInput> items,
         List<Guid> viewerUserIds,
         Guid? excludeTaskId,
@@ -192,17 +192,23 @@ public static class ScheduledTaskInputValidator
             throw new DomainException(
                 $"The combined file's CSV separator must be 1–{Common.Models.CsvSeparator.MaxLength} characters and cannot contain quotes or line breaks.");
 
-        switch (frequency)
+        if (triggers.Count == 0)
+            throw new DomainException("A scheduled task must have at least one trigger.");
+
+        foreach (var trigger in triggers)
         {
-            case ScheduleFrequency.EveryNMinutes when intervalMinutes is null or < 1:
-                throw new DomainException("Interval (minutes) must be at least 1.");
-            case ScheduleFrequency.Daily or ScheduleFrequency.Weekly or ScheduleFrequency.Monthly
-                when !TimeSpan.TryParse(timeOfDay, out _):
-                throw new DomainException("Time of day must be in HH:mm format.");
-            case ScheduleFrequency.Weekly when dayOfWeek is null or < 0 or > 6:
-                throw new DomainException("Day of week must be between 0 (Sunday) and 6 (Saturday).");
-            case ScheduleFrequency.Monthly when dayOfMonth is null or < 1 or > 31:
-                throw new DomainException("Day of month must be between 1 and 31.");
+            switch (trigger.Frequency)
+            {
+                case ScheduleFrequency.EveryNMinutes when trigger.IntervalMinutes is null or < 1:
+                    throw new DomainException("Interval (minutes) must be at least 1.");
+                case ScheduleFrequency.Daily or ScheduleFrequency.Weekly or ScheduleFrequency.Monthly
+                    when !TimeSpan.TryParse(trigger.TimeOfDay, out _):
+                    throw new DomainException("Time of day must be in HH:mm format.");
+                case ScheduleFrequency.Weekly when trigger.DayOfWeek is null or < 0 or > 6:
+                    throw new DomainException("Day of week must be between 0 (Sunday) and 6 (Saturday).");
+                case ScheduleFrequency.Monthly when trigger.DayOfMonth is null or < 1 or > 31:
+                    throw new DomainException("Day of month must be between 1 and 31.");
+            }
         }
 
         if (items.Count == 0)
@@ -248,6 +254,25 @@ public static class ScheduledTaskInputValidator
                 throw new DomainException("One of the selected viewer users no longer exists.");
         }
     }
+
+    /// <summary>
+    /// Builds trigger entities from the form input. Fields that don't apply to a
+    /// trigger's frequency are stored as null regardless of what the form sent.
+    /// </summary>
+    public static IEnumerable<ScheduledTaskTrigger> BuildTriggers(
+        Guid taskId, List<ScheduledTaskTriggerInput> triggers) =>
+        triggers.Select(input => new ScheduledTaskTrigger
+        {
+            Id = Guid.NewGuid(),
+            ScheduledTaskId = taskId,
+            Frequency = input.Frequency,
+            IntervalMinutes = input.Frequency == ScheduleFrequency.EveryNMinutes ? input.IntervalMinutes : null,
+            TimeOfDay = input.Frequency == ScheduleFrequency.EveryNMinutes ? null : input.TimeOfDay,
+            DayOfWeek = input.Frequency == ScheduleFrequency.Weekly ? input.DayOfWeek : null,
+            DayOfMonth = input.Frequency == ScheduleFrequency.Monthly ? input.DayOfMonth : null,
+            SortOrder = input.SortOrder,
+            CreatedAt = DateTime.UtcNow
+        });
 
     /// <summary>
     /// Builds item entities from the form input. <paramref name="previousKeys"/> carries the

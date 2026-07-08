@@ -26,6 +26,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<DatabaseUser> DatabaseUsers => Set<DatabaseUser>();
     public DbSet<DatabaseUserRoleAccess> DatabaseUserRoleAccess => Set<DatabaseUserRoleAccess>();
     public DbSet<ScheduledTask> ScheduledTasks => Set<ScheduledTask>();
+    public DbSet<ScheduledTaskTrigger> ScheduledTaskTriggers => Set<ScheduledTaskTrigger>();
     public DbSet<ScheduledTaskItem> ScheduledTaskItems => Set<ScheduledTaskItem>();
     public DbSet<ScheduledTaskRun> ScheduledTaskRuns => Set<ScheduledTaskRun>();
     public DbSet<ScheduledTaskViewer> ScheduledTaskViewers => Set<ScheduledTaskViewer>();

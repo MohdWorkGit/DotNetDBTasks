@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
-import { ScheduledTask, describeSchedule, utcDate } from '@core/models/scheduled-task.model';
+import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled-task.model';
 
 @Component({
   standalone: false,
@@ -153,7 +153,7 @@ export class ScheduledTasksListComponent implements OnInit {
   }
 
   describe(task: ScheduledTask): string {
-    return describeSchedule(task);
+    return describeTriggers(task.triggers);
   }
 
   asDate(value: string): Date {

@@ -48,13 +48,13 @@ public class ScheduledTaskWorker : BackgroundService
 
                 var now = DateTime.UtcNow;
                 var dueTasks = await unitOfWork.ScheduledTasks.FindAsync(
-                    t => t.IsEnabled && t.NextRunAt != null && t.NextRunAt <= now, stoppingToken);
+                    t => t.IsEnabled && t.NextRunAt != null && t.NextRunAt <= now, stoppingToken, "Triggers");
 
                 foreach (var task in dueTasks)
                 {
                     // Advance NextRunAt before enqueueing so the next poll cannot
                     // re-trigger the same occurrence while this run is queued.
-                    task.NextRunAt = ScheduleCalculator.ComputeNextRunUtc(task, DateTime.Now);
+                    task.NextRunAt = ScheduleCalculator.ComputeNextRunUtc(task.IsEnabled, task.Triggers, DateTime.Now);
                     unitOfWork.ScheduledTasks.Update(task);
                     await unitOfWork.SaveChangesAsync(stoppingToken);
 

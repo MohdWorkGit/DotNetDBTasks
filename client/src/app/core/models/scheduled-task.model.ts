@@ -21,6 +21,16 @@ export const EXPORT_FORMAT_LABELS: Record<ExportFileFormat, string> = {
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+/** One recurrence rule of a task; the task fires on the earliest upcoming occurrence across all of its triggers. */
+export interface ScheduleTrigger {
+  frequency: ScheduleFrequency;
+  intervalMinutes?: number | null;
+  timeOfDay?: string | null;
+  dayOfWeek?: number | null;
+  dayOfMonth?: number | null;
+  sortOrder: number;
+}
+
 export interface ScheduledTaskItem {
   id: string;
   dynamicQueryId: string;
@@ -86,11 +96,7 @@ export interface ScheduledTask {
   combinedFormat: ExportFileFormat;
   combinedCsvSeparator?: string | null;
   combinedAppendTimestamp: boolean;
-  frequency: ScheduleFrequency;
-  intervalMinutes?: number | null;
-  timeOfDay?: string | null;
-  dayOfWeek?: number | null;
-  dayOfMonth?: number | null;
+  triggers: ScheduleTrigger[];
   nextRunAt?: string | null;
   createdAt: string;
   items: ScheduledTaskItem[];
@@ -129,11 +135,7 @@ export interface SaveScheduledTaskRequest {
   combinedFormat: ExportFileFormat;
   combinedCsvSeparator?: string | null;
   combinedAppendTimestamp: boolean;
-  frequency: ScheduleFrequency;
-  intervalMinutes?: number | null;
-  timeOfDay?: string | null;
-  dayOfWeek?: number | null;
-  dayOfMonth?: number | null;
+  triggers: ScheduleTrigger[];
   items: ScheduledTaskItemInput[];
   viewerUserIds: string[];
 }
@@ -146,24 +148,29 @@ export function utcDate(value: string): Date {
   return new Date(/[zZ]$|[+-]\d{2}:\d{2}$/.test(value) ? value : value + 'Z');
 }
 
-/** Human-readable one-liner for a task's recurrence, e.g. "Weekly on Monday at 07:00". */
-export function describeSchedule(task: {
+/** Human-readable one-liner for a single trigger, e.g. "Weekly on Monday at 07:00". */
+export function describeSchedule(trigger: {
   frequency: ScheduleFrequency;
   intervalMinutes?: number | null;
   timeOfDay?: string | null;
   dayOfWeek?: number | null;
   dayOfMonth?: number | null;
 }): string {
-  switch (task.frequency) {
+  switch (trigger.frequency) {
     case ScheduleFrequency.EveryNMinutes:
-      return `Every ${task.intervalMinutes ?? '?'} minute(s)`;
+      return `Every ${trigger.intervalMinutes ?? '?'} minute(s)`;
     case ScheduleFrequency.Daily:
-      return `Daily at ${task.timeOfDay || '00:00'}`;
+      return `Daily at ${trigger.timeOfDay || '00:00'}`;
     case ScheduleFrequency.Weekly:
-      return `Weekly on ${DAY_NAMES[task.dayOfWeek ?? 1] || '?'} at ${task.timeOfDay || '00:00'}`;
+      return `Weekly on ${DAY_NAMES[trigger.dayOfWeek ?? 1] || '?'} at ${trigger.timeOfDay || '00:00'}`;
     case ScheduleFrequency.Monthly:
-      return `Monthly on day ${task.dayOfMonth ?? '?'} at ${task.timeOfDay || '00:00'}`;
+      return `Monthly on day ${trigger.dayOfMonth ?? '?'} at ${trigger.timeOfDay || '00:00'}`;
     default:
       return '';
   }
+}
+
+/** All of a task's triggers as one line, e.g. "Daily at 03:00 · Monthly on day 14 at 09:00". */
+export function describeTriggers(triggers: ScheduleTrigger[] | undefined): string {
+  return (triggers || []).map(describeSchedule).join(' · ');
 }

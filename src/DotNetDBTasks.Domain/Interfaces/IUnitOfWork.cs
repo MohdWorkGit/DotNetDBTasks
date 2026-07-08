@@ -23,6 +23,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<DatabaseUser> DatabaseUsers { get; }
     IRepository<DatabaseUserRoleAccess> DatabaseUserRoleAccess { get; }
     IRepository<ScheduledTask> ScheduledTasks { get; }
+    IRepository<ScheduledTaskTrigger> ScheduledTaskTriggers { get; }
     IRepository<ScheduledTaskItem> ScheduledTaskItems { get; }
     IRepository<ScheduledTaskRun> ScheduledTaskRuns { get; }
     IRepository<ScheduledTaskViewer> ScheduledTaskViewers { get; }

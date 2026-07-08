@@ -49,21 +49,8 @@ public class ScheduledTask : BaseEntity
     /// <summary>Combined mode: append a run timestamp to the file name (default true).</summary>
     public bool CombinedAppendTimestamp { get; set; } = true;
 
-    public ScheduleFrequency Frequency { get; set; }
-
-    /// <summary>Minutes between runs. Used when <see cref="Frequency"/> is EveryNMinutes.</summary>
-    public int? IntervalMinutes { get; set; }
-
-    /// <summary>Local time of day in "HH:mm". Used for Daily/Weekly/Monthly frequencies.</summary>
-    public string? TimeOfDay { get; set; }
-
-    /// <summary>0 = Sunday … 6 = Saturday. Used when <see cref="Frequency"/> is Weekly.</summary>
-    public int? DayOfWeek { get; set; }
-
-    /// <summary>1–31, clamped to the month's length. Used when <see cref="Frequency"/> is Monthly.</summary>
-    public int? DayOfMonth { get; set; }
-
-    /// <summary>Next scheduled trigger, UTC. Null while the task is disabled.</summary>
+    /// <summary>Next scheduled trigger, UTC — the earliest upcoming occurrence across
+    /// all <see cref="Triggers"/>. Null while the task is disabled.</summary>
     public DateTime? NextRunAt { get; set; }
 
     /// <summary>
@@ -72,6 +59,7 @@ public class ScheduledTask : BaseEntity
     /// </summary>
     public Guid CreatedByUserId { get; set; }
 
+    public ICollection<ScheduledTaskTrigger> Triggers { get; set; } = new List<ScheduledTaskTrigger>();
     public ICollection<ScheduledTaskItem> Items { get; set; } = new List<ScheduledTaskItem>();
     public ICollection<ScheduledTaskRun> Runs { get; set; } = new List<ScheduledTaskRun>();
     public ICollection<ScheduledTaskViewer> Viewers { get; set; } = new List<ScheduledTaskViewer>();
