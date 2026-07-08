@@ -3,7 +3,7 @@ import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
@@ -38,10 +38,27 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
 
             <mat-form-field appearance="outline" class="status-filter">
               <mat-label>Status</mat-label>
-              <mat-select [(value)]="statusFilter" (selectionChange)="applyStatusFilter()">
+              <mat-select [(value)]="statusFilter" (selectionChange)="refreshFilter()">
                 <mat-option value="all">All</mat-option>
                 <mat-option value="active">Active</mat-option>
                 <mat-option value="disabled">Disabled</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="select-filter">
+              <mat-label>Group</mat-label>
+              <mat-select [(value)]="groupFilter" (selectionChange)="refreshFilter()">
+                <mat-option value="all">All</mat-option>
+                <mat-option [value]="UNGROUPED">Ungrouped</mat-option>
+                <mat-option *ngFor="let g of groupOptions" [value]="g">{{ g }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="select-filter">
+              <mat-label>DB User</mat-label>
+              <mat-select [(value)]="dbUserFilter" (selectionChange)="refreshFilter()">
+                <mat-option value="all">All</mat-option>
+                <mat-option *ngFor="let u of dbUserOptions" [value]="u">{{ u }}</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
@@ -134,9 +151,10 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
       margin-bottom: 16px;
     }
     .loading { display: flex; justify-content: center; padding: 40px; }
-    .table-toolbar { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+    .table-toolbar { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; }
     .filter-field { flex: 1; min-width: 240px; }
     .status-filter { width: 160px; }
+    .select-filter { width: 200px; }
     .status-active { color: var(--status-active); font-weight: 500; }
     .status-inactive { color: var(--status-inactive); font-weight: 500; }
     .no-data-row { height: 56px; }
@@ -149,6 +167,12 @@ export class QueryListComponent implements OnInit {
   dataSource = new MatTableDataSource<DynamicQuery>();
   loading = true;
   statusFilter: 'all' | 'active' | 'disabled' = 'all';
+  /// Sentinel that cannot collide with a real group name.
+  readonly UNGROUPED = '__ungrouped__';
+  groupFilter = 'all';
+  dbUserFilter = 'all';
+  groupOptions: string[] = [];
+  dbUserOptions: string[] = [];
   private textFilter = '';
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -159,10 +183,14 @@ export class QueryListComponent implements OnInit {
     public authService: AuthService,
     private snackBar: MatSnackBar,
     private router: Router,
+    private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    // Deep link from the groups list: /admin/queries?group=<name> (or "ungrouped").
+    const group = this.route.snapshot.queryParamMap.get('group');
+    if (group) this.groupFilter = group.toLowerCase() === 'ungrouped' ? this.UNGROUPED : group;
     this.loadQueries();
   }
 
@@ -179,6 +207,10 @@ export class QueryListComponent implements OnInit {
     ).subscribe({
       next: (queries) => {
         this.dataSource.data = queries;
+        this.groupOptions = [...new Set(queries.map(q => q.queryGroupName).filter((g): g is string => !!g))]
+          .sort((a, b) => a.localeCompare(b));
+        this.dbUserOptions = [...new Set(queries.map(q => q.databaseUserName || 'Default'))]
+          .sort((a, b) => a.localeCompare(b));
         this.dataSource.sortingDataAccessor = (item: DynamicQuery, property: string) => {
           switch (property) {
             case 'isEnabled': return item.isEnabled ? 1 : 0;
@@ -191,9 +223,19 @@ export class QueryListComponent implements OnInit {
           }
         };
         this.dataSource.filterPredicate = (data: DynamicQuery, filter: string) => {
-          const f = JSON.parse(filter) as { text: string; status: 'all' | 'active' | 'disabled' };
+          const f = JSON.parse(filter) as {
+            text: string; status: 'all' | 'active' | 'disabled'; group: string; dbUser: string;
+          };
           if (f.status === 'active' && !data.isEnabled) return false;
           if (f.status === 'disabled' && data.isEnabled) return false;
+          if (f.group !== 'all') {
+            if (f.group === this.UNGROUPED) {
+              if (data.queryGroupName) return false;
+            } else if (data.queryGroupName !== f.group) {
+              return false;
+            }
+          }
+          if (f.dbUser !== 'all' && (data.databaseUserName || 'Default') !== f.dbUser) return false;
           if (!f.text) return true;
           const haystack = [
             data.name,
@@ -225,12 +267,13 @@ export class QueryListComponent implements OnInit {
     this.refreshFilter();
   }
 
-  applyStatusFilter(): void {
-    this.refreshFilter();
-  }
-
-  private refreshFilter(): void {
-    this.dataSource.filter = JSON.stringify({ text: this.textFilter, status: this.statusFilter });
+  refreshFilter(): void {
+    this.dataSource.filter = JSON.stringify({
+      text: this.textFilter,
+      status: this.statusFilter,
+      group: this.groupFilter,
+      dbUser: this.dbUserFilter
+    });
     if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 

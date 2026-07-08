@@ -49,7 +49,10 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
 
             <ng-container matColumnDef="queryCount">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Queries</th>
-              <td mat-cell *matCellDef="let g">{{ g.queryCount }}</td>
+              <td mat-cell *matCellDef="let g">
+                <a class="count-link" [routerLink]="['/admin/queries']" [queryParams]="{ group: g.name }"
+                   matTooltip="View this group's queries">{{ g.queryCount }}</a>
+              </td>
             </ng-container>
 
             <ng-container matColumnDef="actions">
@@ -100,6 +103,7 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
     .filter-field { width: 100%; max-width: 480px; }
     .no-data-row { height: 56px; }
     .no-data-cell { text-align: center; color: var(--text-secondary); padding: 16px; }
+    .count-link { color: inherit; text-decoration: underline; cursor: pointer; }
     table { width: 100%; }
   `]
 })
