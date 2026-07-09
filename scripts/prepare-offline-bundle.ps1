@@ -98,6 +98,11 @@ $null = New-Item -ItemType Directory -Force -Path $NugetDir
 # transitive closure (build + the win-x64/linux-x64 runtime assets).
 & dotnet restore $Solution --packages $NugetDir --runtime $Runtime
 & dotnet restore $Solution --packages $NugetDir   # also the no-RID graph, for editing
+# The QueryRunner tool is deliberately NOT in the solution — restore it too, or
+# its packages (and any version it pins that the solution doesn't) are missing.
+$QueryRunnerCsproj = Join-Path $RepoRoot 'tools/DotNetDBTasks.QueryRunner/DotNetDBTasks.QueryRunner.csproj'
+& dotnet restore $QueryRunnerCsproj --packages $NugetDir --runtime $Runtime
+& dotnet restore $QueryRunnerCsproj --packages $NugetDir
 $nupkgCount = (Get-ChildItem -Path $NugetDir -Recurse -Filter *.nupkg -ErrorAction SilentlyContinue).Count
 Write-Ok "$nupkgCount .nupkg files cached"
 

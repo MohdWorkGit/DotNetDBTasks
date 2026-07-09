@@ -282,7 +282,8 @@ Restore will fail offline unless these are present locally.
 dotnet restore DotNetDBTasks.sln
 
 # The QueryRunner tool is NOT in the solution — restore it separately or its
-# packages will be missing from the cache:
+# packages will be missing from the cache (scripts/prepare-offline-bundle.ps1
+# already does both restores for you):
 dotnet restore tools/DotNetDBTasks.QueryRunner
 
 # The cache lives here:
