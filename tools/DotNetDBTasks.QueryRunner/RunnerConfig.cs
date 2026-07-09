@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace DotNetDBTasks.QueryRunner;
@@ -82,6 +83,34 @@ public class RunnerConfig
         if (string.IsNullOrWhiteSpace(Output.Folder))
             throw new InvalidOperationException("Output.Folder is required.");
         Output.Folder = Path.GetFullPath(Output.Folder, ConfigDirectory);
+
+        if (string.IsNullOrWhiteSpace(Output.FileName) && !Output.SeparateFiles)
+            throw new InvalidOperationException(
+                "Output.FileName can be empty only when SeparateFiles is true (each file is then named after its query).");
+
+        if (Output.AppendTimestamp)
+        {
+            if (string.IsNullOrEmpty(Output.TimestampFormat))
+                throw new InvalidOperationException(
+                    "Output.TimestampFormat cannot be empty; set AppendTimestamp to false to drop the suffix entirely.");
+            string sample;
+            try
+            {
+                sample = DateTime.Now.ToString(Output.TimestampFormat, CultureInfo.InvariantCulture);
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidOperationException(
+                    $"Output.TimestampFormat '{Output.TimestampFormat}' is not a valid .NET date format: {ex.Message}");
+            }
+            if (sample.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                throw new InvalidOperationException(
+                    $"Output.TimestampFormat '{Output.TimestampFormat}' produces '{sample}', which contains characters not allowed in file names.");
+        }
+
+        if (Output.QueryNameSeparator.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            throw new InvalidOperationException(
+                "Output.QueryNameSeparator contains characters not allowed in file names.");
 
         if (!string.IsNullOrWhiteSpace(Output.ArchiveFolder))
             Output.ArchiveFolder = Path.GetFullPath(Output.ArchiveFolder, ConfigDirectory);
@@ -212,8 +241,22 @@ public class OutputConfig
     /// </summary>
     public bool SeparateFiles { get; set; }
 
-    /// <summary>When true (default) a _yyyyMMdd-HHmmss suffix keeps every run's file; when false the file is overwritten.</summary>
+    /// <summary>When true (default) a timestamp suffix keeps every run's file; when false the file is overwritten.</summary>
     public bool AppendTimestamp { get; set; } = true;
+
+    /// <summary>
+    /// .NET date format for the timestamp suffix (used when <see cref="AppendTimestamp"/>
+    /// is true). Literal text is allowed, so the leading separator is part of the format:
+    /// default "_yyyyMMdd-HHmmss" → "name_20260709-070000.csv"; "-yyyy-MM-dd" → "name-2026-07-09.csv".
+    /// </summary>
+    public string TimestampFormat { get; set; } = "_yyyyMMdd-HHmmss";
+
+    /// <summary>
+    /// SeparateFiles only: the text between FileName and the query name (default "_").
+    /// May be empty ("feedorders"); with an empty FileName the file is named after the
+    /// query alone ("orders_20260709.csv").
+    /// </summary>
+    public string QueryNameSeparator { get; set; } = "_";
 
     /// <summary>
     /// Csv only: when true, new rows are appended to the existing output file instead of

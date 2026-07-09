@@ -63,7 +63,13 @@ public static class Program
             if (config.Output.SeparateFiles)
             {
                 foreach (var result in results)
-                    exports.Add((SanitizeFileName(config.Output.FileName + "_" + result.QueryName), new[] { result }));
+                {
+                    // Empty FileName: each file is named after its query alone.
+                    var baseName = string.IsNullOrWhiteSpace(config.Output.FileName)
+                        ? result.QueryName
+                        : config.Output.FileName + config.Output.QueryNameSeparator + result.QueryName;
+                    exports.Add((SanitizeFileName(baseName), new[] { result }));
+                }
 
                 var clash = exports.GroupBy(e => e.BaseName, StringComparer.OrdinalIgnoreCase)
                     .FirstOrDefault(g => g.Count() > 1);
@@ -78,7 +84,9 @@ public static class Program
             }
 
             // Every file of one run gets the same timestamp suffix.
-            var suffix = (config.Output.AppendTimestamp ? DateTime.Now.ToString("_yyyyMMdd-HHmmss") : string.Empty)
+            var suffix = (config.Output.AppendTimestamp
+                    ? DateTime.Now.ToString(config.Output.TimestampFormat, CultureInfo.InvariantCulture)
+                    : string.Empty)
                 + "." + FileExporter.GetExtension(format);
 
             var writtenFiles = new List<string>();

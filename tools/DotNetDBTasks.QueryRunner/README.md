@@ -33,13 +33,15 @@ Edit `appsettings.json` next to the exe (see the sample in this folder):
 | `Queries[].Parameters` | Bind-variable values by name (`:name` in Oracle SQL, `@name` otherwise) |
 | `Queries[].TimeoutSeconds` | Command timeout (default 60) |
 | `Output.Folder` | Folder for the export file (created if missing) |
-| `Output.FileName` | Base file name without extension |
+| `Output.FileName` | Base file name without extension; may be `""` with `SeparateFiles` (files are then named after the query alone) |
 | `Output.Format` | `Excel`, `Csv`, or `Json` |
-| `Output.SeparateFiles` | `true`: one file per query, named `<FileName>_<QueryName>`; default `false`: all result sets in one combined file |
+| `Output.SeparateFiles` | `true`: one file per query, named `<FileName><QueryNameSeparator><QueryName>`; default `false`: all result sets in one combined file |
+| `Output.QueryNameSeparator` | `SeparateFiles` only: text between `FileName` and the query name (default `_`; `""` gives `feedorders.csv`) |
 | `Output.IncludeHeaders` | `false`: no header row in Csv/Excel output (default `true`) |
 | `Output.Separator` | Csv only: field separator — any text (`";"`, `";;"`, `"|,"`, …) or `comma`, `semicolon`, `pipe`, `tab` (default comma) |
 | `Output.ArchiveFolder` | Optional second folder that receives a copy of the output file (appended independently in append mode) |
-| `Output.AppendTimestamp` | `true`: new `name_yyyyMMdd-HHmmss.ext` per run; `false`: fixed file name |
+| `Output.AppendTimestamp` | `true`: a timestamp suffix gives a new file per run; `false`: fixed file name |
+| `Output.TimestampFormat` | .NET date format for the suffix, literal text allowed (default `_yyyyMMdd-HHmmss`, e.g. `-yyyy-MM-dd` → `name-2026-07-09.csv`) |
 | `Output.AppendToExisting` | Csv only: append rows to the existing file instead of replacing it (requires `AppendTimestamp: false`) |
 | `Output.LogFile` | Optional; appends one line per run with start/end time, duration, and the result (or error) |
 | `Output.LogMaxSizeKB` | Rotate the log once it reaches this size in KB (`0` = never rotate; default `1024`) |
