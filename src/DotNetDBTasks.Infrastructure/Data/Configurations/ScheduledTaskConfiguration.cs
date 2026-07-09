@@ -15,6 +15,7 @@ public class ScheduledTaskConfiguration : IEntityTypeConfiguration<ScheduledTask
         builder.Property(e => e.ArchiveFolder).HasMaxLength(500);
         builder.Property(e => e.CombinedFileName).HasMaxLength(200);
         builder.Property(e => e.CombinedCsvSeparator).HasMaxLength(8);
+        builder.Property(e => e.TimestampFormat).HasMaxLength(50);
 
         builder.HasIndex(e => e.Name).IsUnique();
         builder.HasIndex(e => e.NextRunAt);

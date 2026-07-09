@@ -70,6 +70,12 @@ import {
                                 matTooltip="Off: CSV/Excel files contain data rows only">
                 Include header row
               </mat-slide-toggle>
+              <mat-form-field appearance="outline" class="timestamp-format">
+                <mat-label>Timestamp format (optional)</mat-label>
+                <input matInput formControlName="timestampFormat" maxlength="50"
+                       placeholder="_yyyyMMdd-HHmmss">
+                <mat-hint>.NET date format for the file-name suffix, e.g. -yyyy-MM-dd</mat-hint>
+              </mat-form-field>
             </div>
 
             <div class="row wrap" *ngIf="combineOutput">
@@ -323,7 +329,8 @@ import {
     .checkpoint { margin-bottom: 12px; }
     /* Wide enough for its hint text; without this the hint runs under the next control. */
     .separator { width: 220px; }
-    .output-options { gap: 24px; margin-bottom: 20px; align-items: center; }
+    .output-options { gap: 24px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+    .timestamp-format { width: 280px; }
     .saved-key { align-self: center; color: var(--text-secondary); }
     .saved-key code { font-weight: 600; }
     .remove-item { align-self: center; }
@@ -405,6 +412,7 @@ export class ScheduledTaskFormComponent implements OnInit {
       combinedFormat: [ExportFileFormat.Csv],
       combinedCsvSeparator: [','],
       combinedAppendTimestamp: [true],
+      timestampFormat: [''],
       triggers: this.fb.array([]),
       items: this.fb.array([]),
       viewerUserIds: [[] as string[]]
@@ -452,6 +460,7 @@ export class ScheduledTaskFormComponent implements OnInit {
           combinedFormat: task.combinedFormat ?? ExportFileFormat.Csv,
           combinedCsvSeparator: task.combinedCsvSeparator === '\t' ? 'tab' : (task.combinedCsvSeparator || ','),
           combinedAppendTimestamp: task.combinedAppendTimestamp !== false,
+          timestampFormat: task.timestampFormat || '',
           viewerUserIds: task.viewers.map(v => v.userId)
         });
         for (const trigger of (task.triggers?.length ? task.triggers : [null])) {
@@ -627,6 +636,7 @@ export class ScheduledTaskFormComponent implements OnInit {
         ? (value.combinedCsvSeparator || null)
         : null,
       combinedAppendTimestamp: !!value.combinedAppendTimestamp,
+      timestampFormat: value.timestampFormat?.trim() || null,
       triggers: (value.triggers as any[]).map((trigger, i) => ({
         frequency: trigger.frequency,
         intervalMinutes: trigger.frequency === ScheduleFrequency.EveryNMinutes ? trigger.intervalMinutes : null,

@@ -83,6 +83,9 @@ public class CreateScheduledTaskCommand : IRequest<ScheduledTaskDto>
     /// <summary>Combined mode: append a run timestamp to the file name (default true).</summary>
     public bool CombinedAppendTimestamp { get; set; } = true;
 
+    /// <summary>.NET date format for the file-name timestamp suffix (null/empty = "_yyyyMMdd-HHmmss").</summary>
+    public string? TimestampFormat { get; set; }
+
     public List<ScheduledTaskTriggerInput> Triggers { get; set; } = new();
     public List<ScheduledTaskItemInput> Items { get; set; } = new();
     public List<Guid> ViewerUserIds { get; set; } = new();
@@ -108,6 +111,7 @@ public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduled
             request.ArchiveFolder,
             request.CombineOutput,
             request.CombinedCsvSeparator,
+            request.TimestampFormat,
             request.Triggers,
             request.Items,
             request.ViewerUserIds,
@@ -129,6 +133,7 @@ public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduled
             CombinedFormat = request.CombinedFormat,
             CombinedCsvSeparator = ScheduledTaskInputValidator.NormalizeSeparator(request.CombinedCsvSeparator, request.CombinedFormat),
             CombinedAppendTimestamp = request.CombinedAppendTimestamp,
+            TimestampFormat = string.IsNullOrWhiteSpace(request.TimestampFormat) ? null : request.TimestampFormat.Trim(),
             CreatedByUserId = _currentUser.UserId,
             CreatedAt = DateTime.UtcNow
         };
@@ -166,6 +171,7 @@ public static class ScheduledTaskInputValidator
         string? archiveFolder,
         bool combineOutput,
         string? combinedCsvSeparator,
+        string? timestampFormat,
         List<ScheduledTaskTriggerInput> triggers,
         List<ScheduledTaskItemInput> items,
         List<Guid> viewerUserIds,
@@ -191,6 +197,25 @@ public static class ScheduledTaskInputValidator
         if (combineOutput && !Common.Models.CsvSeparator.TryParse(combinedCsvSeparator, out _))
             throw new DomainException(
                 $"The combined file's CSV separator must be 1–{Common.Models.CsvSeparator.MaxLength} characters and cannot contain quotes or line breaks.");
+
+        if (!string.IsNullOrWhiteSpace(timestampFormat))
+        {
+            var format = timestampFormat.Trim();
+            if (format.Length > 50)
+                throw new DomainException("The timestamp format cannot exceed 50 characters.");
+            string sample;
+            try
+            {
+                sample = DateTime.Now.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
+            }
+            catch (FormatException)
+            {
+                throw new DomainException($"'{format}' is not a valid .NET date format for the file-name timestamp.");
+            }
+            if (sample.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                throw new DomainException(
+                    $"The timestamp format produces '{sample}', which contains characters not allowed in file names.");
+        }
 
         if (triggers.Count == 0)
             throw new DomainException("A scheduled task must have at least one trigger.");

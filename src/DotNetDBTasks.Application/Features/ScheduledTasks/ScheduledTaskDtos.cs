@@ -27,6 +27,9 @@ public class ScheduledTaskDto
     public string? CombinedCsvSeparator { get; set; }
     public bool CombinedAppendTimestamp { get; set; }
 
+    /// <summary>.NET date format for the file-name timestamp suffix (null = "_yyyyMMdd-HHmmss").</summary>
+    public string? TimestampFormat { get; set; }
+
     /// <summary>The task's recurrence rules; it fires on the earliest upcoming occurrence across all of them.</summary>
     public List<ScheduledTaskTriggerDto> Triggers { get; set; } = new();
 
@@ -115,6 +118,7 @@ public static class ScheduledTaskMapper
         CombinedFormat = task.CombinedFormat,
         CombinedCsvSeparator = task.CombinedCsvSeparator,
         CombinedAppendTimestamp = task.CombinedAppendTimestamp,
+        TimestampFormat = task.TimestampFormat,
         Triggers = task.Triggers
             .OrderBy(t => t.SortOrder)
             .Select(t => new ScheduledTaskTriggerDto

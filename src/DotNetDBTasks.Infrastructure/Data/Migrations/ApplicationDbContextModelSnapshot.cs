@@ -486,6 +486,10 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)");
 
+                    b.Property<string>("TimestampFormat")
+                        .HasMaxLength(50)
+                        .HasColumnType("NVARCHAR2(50)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TIMESTAMP(7)");
 

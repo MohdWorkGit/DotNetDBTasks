@@ -135,7 +135,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
                 var bytes = _exporter.Export(
                     item.ExportFormat, execution.Columns, execution.Rows, queryName,
                     CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders);
-                var fileName = BuildFileName(item, queryName);
+                var fileName = BuildFileName(task, item, queryName);
                 await WriteOutputAsync(task, fileName, bytes, cancellationToken);
 
                 result.FileName = fileName;
@@ -334,12 +334,14 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             || trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase);
     }
 
-    private string BuildFileName(ScheduledTaskItem item, string queryName)
+    private const string DefaultTimestampFormat = "_yyyyMMdd-HHmmss";
+
+    private string BuildFileName(ScheduledTask task, ScheduledTaskItem item, string queryName)
     {
         var baseName = SanitizeFileName(
             string.IsNullOrWhiteSpace(item.FileNamePrefix) ? queryName : item.FileNamePrefix);
         if (item.AppendTimestamp)
-            baseName += DateTime.Now.ToString("_yyyyMMdd-HHmmss");
+            baseName += FormatTimestamp(task);
         return baseName + "." + _exporter.GetExtension(item.ExportFormat);
     }
 
@@ -348,9 +350,14 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         var baseName = SanitizeFileName(
             string.IsNullOrWhiteSpace(task.CombinedFileName) ? task.Name : task.CombinedFileName);
         if (task.CombinedAppendTimestamp)
-            baseName += DateTime.Now.ToString("_yyyyMMdd-HHmmss");
+            baseName += FormatTimestamp(task);
         return baseName + "." + _exporter.GetExtension(task.CombinedFormat);
     }
+
+    private static string FormatTimestamp(ScheduledTask task) =>
+        DateTime.Now.ToString(
+            string.IsNullOrWhiteSpace(task.TimestampFormat) ? DefaultTimestampFormat : task.TimestampFormat,
+            CultureInfo.InvariantCulture);
 
     private static string SanitizeFileName(string name)
     {

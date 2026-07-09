@@ -49,6 +49,13 @@ public class ScheduledTask : BaseEntity
     /// <summary>Combined mode: append a run timestamp to the file name (default true).</summary>
     public bool CombinedAppendTimestamp { get; set; } = true;
 
+    /// <summary>
+    /// .NET date format for the timestamp suffix of every output file (per-query and
+    /// combined). Literal text is allowed, so the leading separator is part of the
+    /// format (e.g. "-yyyy-MM-dd"). Null = the default "_yyyyMMdd-HHmmss".
+    /// </summary>
+    public string? TimestampFormat { get; set; }
+
     /// <summary>Next scheduled trigger, UTC — the earliest upcoming occurrence across
     /// all <see cref="Triggers"/>. Null while the task is disabled.</summary>
     public DateTime? NextRunAt { get; set; }

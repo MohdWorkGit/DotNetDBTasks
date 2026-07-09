@@ -96,6 +96,8 @@ export interface ScheduledTask {
   combinedFormat: ExportFileFormat;
   combinedCsvSeparator?: string | null;
   combinedAppendTimestamp: boolean;
+  /** .NET date format for the file-name timestamp suffix (null = "_yyyyMMdd-HHmmss"). */
+  timestampFormat?: string | null;
   triggers: ScheduleTrigger[];
   nextRunAt?: string | null;
   createdAt: string;
@@ -135,6 +137,8 @@ export interface SaveScheduledTaskRequest {
   combinedFormat: ExportFileFormat;
   combinedCsvSeparator?: string | null;
   combinedAppendTimestamp: boolean;
+  /** .NET date format for the file-name timestamp suffix (null = "_yyyyMMdd-HHmmss"). */
+  timestampFormat?: string | null;
   triggers: ScheduleTrigger[];
   items: ScheduledTaskItemInput[];
   viewerUserIds: string[];

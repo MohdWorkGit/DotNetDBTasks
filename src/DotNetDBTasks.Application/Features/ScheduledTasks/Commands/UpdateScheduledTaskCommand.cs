@@ -42,6 +42,9 @@ public class UpdateScheduledTaskCommand : IRequest<ScheduledTaskDto>
     /// <summary>Combined mode: append a run timestamp to the file name (default true).</summary>
     public bool CombinedAppendTimestamp { get; set; } = true;
 
+    /// <summary>.NET date format for the file-name timestamp suffix (null/empty = "_yyyyMMdd-HHmmss").</summary>
+    public string? TimestampFormat { get; set; }
+
     public List<ScheduledTaskTriggerInput> Triggers { get; set; } = new();
     public List<ScheduledTaskItemInput> Items { get; set; } = new();
     public List<Guid> ViewerUserIds { get; set; } = new();
@@ -69,6 +72,7 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
             request.ArchiveFolder,
             request.CombineOutput,
             request.CombinedCsvSeparator,
+            request.TimestampFormat,
             request.Triggers,
             request.Items,
             request.ViewerUserIds,
@@ -87,6 +91,7 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
         task.CombinedFormat = request.CombinedFormat;
         task.CombinedCsvSeparator = ScheduledTaskInputValidator.NormalizeSeparator(request.CombinedCsvSeparator, request.CombinedFormat);
         task.CombinedAppendTimestamp = request.CombinedAppendTimestamp;
+        task.TimestampFormat = string.IsNullOrWhiteSpace(request.TimestampFormat) ? null : request.TimestampFormat.Trim();
         task.UpdatedAt = DateTime.UtcNow;
 
         // Triggers are replaced wholesale; the next run is the earliest occurrence
