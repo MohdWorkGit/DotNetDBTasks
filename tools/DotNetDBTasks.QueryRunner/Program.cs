@@ -167,35 +167,62 @@ public static class Program
             AddParameter(command, query.KeyParameter, ConvertKey(query, lastKey));
         }
 
-        await using var reader = await command.ExecuteReaderAsync();
-
-        // Duplicate column names get a positional suffix so no value is silently dropped.
-        var columns = new List<string>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (int i = 0; i < reader.FieldCount; i++)
+        try
         {
-            var name = reader.GetName(i);
-            columns.Add(seen.Add(name) ? name : $"{name}_{i + 1}");
-        }
+            await using var reader = await command.ExecuteReaderAsync();
 
-        if (!string.IsNullOrWhiteSpace(query.KeyColumn)
-            && !columns.Contains(query.KeyColumn, StringComparer.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                $"Query '{query.Name}': KeyColumn '{query.KeyColumn}' is not in the result set. Select it explicitly.");
-        }
-
-        var rows = new List<Dictionary<string, object?>>();
-        while (await reader.ReadAsync())
-        {
-            var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            // Duplicate column names get a positional suffix so no value is silently dropped.
+            var columns = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < reader.FieldCount; i++)
-                row[columns[i]] = reader.IsDBNull(i) ? null : reader.GetValue(i);
-            rows.Add(row);
-        }
+            {
+                var name = reader.GetName(i);
+                columns.Add(seen.Add(name) ? name : $"{name}_{i + 1}");
+            }
 
-        return new QueryResult(query.Name, columns, rows);
+            if (!string.IsNullOrWhiteSpace(query.KeyColumn)
+                && !columns.Contains(query.KeyColumn, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Query '{query.Name}': KeyColumn '{query.KeyColumn}' is not in the result set. Select it explicitly.");
+            }
+
+            var rows = new List<Dictionary<string, object?>>();
+            while (await reader.ReadAsync())
+            {
+                var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < reader.FieldCount; i++)
+                    row[columns[i]] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                rows.Add(row);
+            }
+
+            return new QueryResult(query.Name, columns, rows);
+        }
+        catch (Exception ex) when (IsCommandTimeout(ex))
+        {
+            throw new TimeoutException(
+                $"Query '{query.Name}' timed out: execution exceeded TimeoutSeconds={Math.Max(1, query.TimeoutSeconds)}.", ex);
+        }
     }
+
+    /// <summary>
+    /// True when the exception is how the database driver reports an expired
+    /// CommandTimeout. Drivers surface it as a generic cancellation (Oracle raises
+    /// ORA-01013 or a bare "task was canceled"); without this the log line reads as
+    /// if someone cancelled the run instead of naming the timeout. Nothing here
+    /// cancels commands by hand, so any cancellation is the driver's timeout.
+    /// </summary>
+    private static bool IsCommandTimeout(Exception ex) =>
+        ex switch
+        {
+            OperationCanceledException => true,
+            TimeoutException => true,
+            OracleException oracleEx => oracleEx.Number == 1013,  // ORA-01013: operation cancelled (timeout)
+            SqlException sqlEx => sqlEx.Number == -2,             // execution timeout expired
+            MySqlException mySqlEx => mySqlEx.ErrorCode == MySqlErrorCode.CommandTimeoutExpired,
+            NpgsqlException npgsqlEx => npgsqlEx.InnerException is TimeoutException,
+            _ => false
+        };
 
     private static void AddParameter(DbCommand command, string name, object value)
     {

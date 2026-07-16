@@ -20,11 +20,14 @@ import {
   DynamicQuery,
   ExecuteResult,
   ExecutionLog,
+  ExecutionLogListRequest,
   ImportedLdapUser,
   JobRowsResponse,
   JobStatusResponse,
   LdapUser,
   MyQueryGroup,
+  OldValuesPage,
+  PagedResult,
   QueryGroup,
   ResetPasswordResult,
   Role,
@@ -92,11 +95,30 @@ export class QueryService {
     return this.http.post<void>(`${this.adminUrl}/${queryId}/users`, request);
   }
 
-  getExecutionLogs(queryId?: string, userId?: string): Observable<ExecutionLog[]> {
-    let params: any = {};
-    if (queryId) params.queryId = queryId;
-    if (userId) params.userId = userId;
-    return this.http.get<ExecutionLog[]>(`${this.adminUrl}/logs`, { params });
+  getExecutionLogs(request: ExecutionLogListRequest = {}): Observable<PagedResult<ExecutionLog>> {
+    return this.http.get<PagedResult<ExecutionLog>>(`${this.adminUrl}/logs`, {
+      params: this.buildLogListParams(request)
+    });
+  }
+
+  /** Fetches one page of an execution log's pre-change row snapshots (admin/auditor). */
+  getExecutionLogOldValues(logId: string, pageNumber: number, pageSize: number): Observable<OldValuesPage> {
+    return this.http.get<OldValuesPage>(`${this.adminUrl}/logs/${logId}/old-values`, {
+      params: { pageNumber, pageSize }
+    });
+  }
+
+  private buildLogListParams(request: ExecutionLogListRequest): { [param: string]: string | number | boolean } {
+    const params: { [param: string]: string | number | boolean } = {};
+    if (request.queryId) params['queryId'] = request.queryId;
+    if (request.userId) params['userId'] = request.userId;
+    if (request.isSuccess !== undefined) params['isSuccess'] = request.isSuccess;
+    if (request.search) params['search'] = request.search;
+    if (request.sortBy) params['sortBy'] = request.sortBy;
+    if (request.sortDescending !== undefined) params['sortDescending'] = request.sortDescending;
+    if (request.pageNumber !== undefined) params['pageNumber'] = request.pageNumber;
+    if (request.pageSize !== undefined) params['pageSize'] = request.pageSize;
+    return params;
   }
 
   getRoles(): Observable<Role[]> {
@@ -270,8 +292,17 @@ export class QueryService {
     );
   }
 
-  getMyHistory(): Observable<ExecutionLog[]> {
-    return this.http.get<ExecutionLog[]>(`${this.userUrl}/history`);
+  getMyHistory(request: ExecutionLogListRequest = {}): Observable<PagedResult<ExecutionLog>> {
+    return this.http.get<PagedResult<ExecutionLog>>(`${this.userUrl}/history`, {
+      params: this.buildLogListParams(request)
+    });
+  }
+
+  /** Fetches one page of one of the current user's logs' pre-change row snapshots. */
+  getMyHistoryOldValues(logId: string, pageNumber: number, pageSize: number): Observable<OldValuesPage> {
+    return this.http.get<OldValuesPage>(`${this.userUrl}/history/${logId}/old-values`, {
+      params: { pageNumber, pageSize }
+    });
   }
 
   // LDAP / Active Directory operations

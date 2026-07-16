@@ -57,13 +57,18 @@ public class ExceptionHandlingMiddleware
                 HttpStatusCode.Unauthorized,
                 new ErrorResponse { Message = unauthorizedEx.Message }),
 
+            // Before DomainException: timeouts are DomainExceptions but map to 408, not 400.
+            QueryTimeoutException timeoutEx => (
+                HttpStatusCode.RequestTimeout,
+                new ErrorResponse { Message = timeoutEx.Message }),
+
             DomainException domainEx => (
                 HttpStatusCode.BadRequest,
                 new ErrorResponse { Message = domainEx.Message }),
 
             OperationCanceledException => (
                 HttpStatusCode.RequestTimeout,
-                new ErrorResponse { Message = "The operation was cancelled or timed out." }),
+                new ErrorResponse { Message = "The operation was cancelled." }),
 
             DbException dbEx => (
                 HttpStatusCode.BadRequest,

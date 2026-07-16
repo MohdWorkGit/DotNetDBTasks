@@ -1,41 +1,59 @@
-using AutoMapper;
+using System.Linq.Expressions;
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Models;
+using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
 
 namespace DotNetDBTasks.Application.Features.QueryExecution.Queries;
 
 /// <summary>
-/// Retrieves the current user's query execution history.
+/// Retrieves one page of the current user's query execution history. Paging and sorting run
+/// in the database, and the projection never touches OldValuesJson.
 /// </summary>
-public record GetMyExecutionHistoryQuery : IRequest<IReadOnlyList<ExecutionLogDto>>;
+public class GetMyExecutionHistoryQuery : IRequest<PaginatedList<ExecutionLogDto>>
+{
+    public string? SortBy { get; set; }
+    public bool SortDescending { get; set; } = true;
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+}
 
 public class GetMyExecutionHistoryQueryHandler
-    : IRequestHandler<GetMyExecutionHistoryQuery, IReadOnlyList<ExecutionLogDto>>
+    : IRequestHandler<GetMyExecutionHistoryQuery, PaginatedList<ExecutionLogDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
 
     public GetMyExecutionHistoryQueryHandler(
         IUnitOfWork unitOfWork,
-        IMapper mapper,
         ICurrentUserService currentUser)
     {
         _unitOfWork = unitOfWork;
-        _mapper = mapper;
         _currentUser = currentUser;
     }
 
-    public async Task<IReadOnlyList<ExecutionLogDto>> Handle(
+    public async Task<PaginatedList<ExecutionLogDto>> Handle(
         GetMyExecutionHistoryQuery request,
         CancellationToken cancellationToken)
     {
-        var logs = await _unitOfWork.QueryExecutionLogs.FindAsync(
-            l => l.UserId == _currentUser.UserId, cancellationToken,
-            "DynamicQuery", "User");
+        var userId = _currentUser.UserId;
+        Expression<Func<QueryExecutionLog, bool>> predicate = l => l.UserId == userId;
 
-        return _mapper.Map<IReadOnlyList<ExecutionLogDto>>(
-            logs.OrderByDescending(l => l.ExecutedAt).ToList());
+        var pageNumber = ExecutionLogQueryHelper.ClampPageNumber(request.PageNumber);
+        var pageSize = ExecutionLogQueryHelper.ClampPageSize(request.PageSize);
+
+        var (rows, totalCount) = await _unitOfWork.QueryExecutionLogs.GetPagedAsync(
+            predicate,
+            ExecutionLogQueryHelper.GetOrderBy(request.SortBy),
+            request.SortDescending,
+            pageNumber,
+            pageSize,
+            ExecutionLogQueryHelper.Projection,
+            cancellationToken);
+
+        return new PaginatedList<ExecutionLogDto>(
+            rows.Select(ExecutionLogQueryHelper.ToDto).ToList(),
+            totalCount, pageNumber, pageSize);
     }
 }

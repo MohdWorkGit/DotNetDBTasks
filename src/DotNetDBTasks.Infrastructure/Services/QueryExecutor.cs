@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Common.Models;
 using DotNetDBTasks.Domain.Enums;
+using DotNetDBTasks.Domain.Exceptions;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using MySqlConnector;
@@ -115,8 +116,15 @@ public class QueryExecutor : IQueryExecutor
 
             AddParameters(command, expandedParameters, serverType);
 
-            var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
-            result.AffectedRows = affectedRows;
+            try
+            {
+                var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
+                result.AffectedRows = affectedRows;
+            }
+            catch (Exception ex) when (IsCommandTimeout(ex, cancellationToken))
+            {
+                throw new QueryTimeoutException(timeoutSeconds, ex);
+            }
         }
         finally
         {
@@ -160,44 +168,76 @@ public class QueryExecutor : IQueryExecutor
 
         AddParameters(command, expandedParameters, serverType);
 
-        if (IsSelectQuery(sqlQuery))
+        try
         {
-            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-            for (int i = 0; i < reader.FieldCount; i++)
+            if (IsSelectQuery(sqlQuery))
             {
-                result.Columns.Add(reader.GetName(i));
-            }
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-            while (await reader.ReadAsync(cancellationToken))
-            {
-                if (result.Rows.Count >= maxQueryRows)
-                {
-                    result.IsLimitReached = true;
-                    break;
-                }
-
-                var row = new Dictionary<string, object?>();
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
-                    var value = reader.GetValue(i);
-                    row[result.Columns[i]] = value == DBNull.Value ? null : value;
+                    result.Columns.Add(reader.GetName(i));
                 }
-                result.Rows.Add(row);
-            }
 
-            result.TotalRows = result.Rows.Count;
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    if (result.Rows.Count >= maxQueryRows)
+                    {
+                        result.IsLimitReached = true;
+                        break;
+                    }
+
+                    var row = new Dictionary<string, object?>();
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        var value = reader.GetValue(i);
+                        row[result.Columns[i]] = value == DBNull.Value ? null : value;
+                    }
+                    result.Rows.Add(row);
+                }
+
+                result.TotalRows = result.Rows.Count;
+            }
+            else
+            {
+                var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
+                result.AffectedRows = affectedRows;
+            }
         }
-        else
+        catch (Exception ex) when (IsCommandTimeout(ex, cancellationToken))
         {
-            var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
-            result.AffectedRows = affectedRows;
+            throw new QueryTimeoutException(timeoutSeconds, ex);
         }
 
         sw.Stop();
         result.ExecutionDurationMs = sw.ElapsedMilliseconds;
 
         return result;
+    }
+
+    /// <summary>
+    /// True when the exception is how the database driver reports an expired
+    /// CommandTimeout. Drivers surface it as a generic cancellation (Oracle raises
+    /// ORA-01013 or a bare "task was canceled"), which reads as if someone cancelled
+    /// the query. A genuine cancellation — the caller's token actually fired — is
+    /// never classified as a timeout.
+    /// </summary>
+    private static bool IsCommandTimeout(Exception ex, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+            return false;
+
+        return ex switch
+        {
+            // The token didn't fire, so the only thing that cancelled is the driver's timeout.
+            OperationCanceledException => true,
+            TimeoutException => true,
+            OracleException oracleEx => oracleEx.Number == 1013,  // ORA-01013: operation cancelled (timeout)
+            SqlException sqlEx => sqlEx.Number == -2,             // execution timeout expired
+            MySqlException mySqlEx => mySqlEx.ErrorCode == MySqlErrorCode.CommandTimeoutExpired,
+            NpgsqlException npgsqlEx => npgsqlEx.InnerException is TimeoutException,
+            _ => false
+        };
     }
 
     /// <summary>

@@ -251,8 +251,12 @@ export interface ExecutionLog {
   userId: string;
   username: string;
   parameters: Record<string, string>;
-  /** For UPDATE/DELETE queries: every affected row as it existed before the change. */
-  oldValues?: Record<string, string>[] | null;
+  /**
+   * True when pre-change row snapshots were recorded for this log (UPDATE/DELETE).
+   * The rows themselves are fetched on demand, one page at a time, via the
+   * old-values endpoint — they are never part of list responses.
+   */
+  hasOldValues: boolean;
   /** True when the SQL query is a DML UPDATE statement. */
   isUpdateQuery: boolean;
   /** True when the SQL query is a DML DELETE statement. */
@@ -262,6 +266,37 @@ export interface ExecutionLog {
   rowsReturned: number;
   isSuccess: boolean;
   errorMessage?: string;
+}
+
+/** Generic server-side pagination envelope (mirrors PaginatedList<T> on the API). */
+export interface PagedResult<T> {
+  items: T[];
+  pageNumber: number;
+  totalPages: number;
+  totalCount: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+/** Paging/sort/filter parameters for the execution-log list endpoints. */
+export interface ExecutionLogListRequest {
+  queryId?: string;
+  userId?: string;
+  isSuccess?: boolean;
+  search?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+/** One page of pre-change row snapshots for a single execution log. */
+export interface OldValuesPage {
+  totalRows: number;
+  pageNumber: number;
+  pageSize: number;
+  columns: string[];
+  rows: Record<string, string>[];
 }
 
 export interface Role {

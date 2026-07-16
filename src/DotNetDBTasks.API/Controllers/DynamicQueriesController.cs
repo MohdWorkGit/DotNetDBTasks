@@ -126,16 +126,53 @@ public class DynamicQueriesController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves execution logs with optional filters.
+    /// Retrieves one page of execution logs with optional filters.
     /// </summary>
     [HttpGet("logs")]
     public async Task<IActionResult> GetLogs(
         [FromQuery] Guid? queryId,
         [FromQuery] Guid? userId,
-        CancellationToken cancellationToken)
+        [FromQuery] bool? isSuccess,
+        [FromQuery] string? search,
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(
-            new GetExecutionLogsQuery { QueryId = queryId, UserId = userId },
+            new GetExecutionLogsQuery
+            {
+                QueryId = queryId,
+                UserId = userId,
+                IsSuccess = isSuccess,
+                Search = search,
+                SortBy = sortBy,
+                SortDescending = sortDescending,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            },
+            cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Retrieves one page of the pre-change row snapshots recorded for an execution log.
+    /// </summary>
+    [HttpGet("logs/{id:guid}/old-values")]
+    public async Task<IActionResult> GetLogOldValues(
+        Guid id,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetExecutionLogOldValuesQuery
+            {
+                LogId = id,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            },
             cancellationToken);
         return Ok(result);
     }

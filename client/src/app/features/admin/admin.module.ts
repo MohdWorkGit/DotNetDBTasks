@@ -24,7 +24,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { QueryListComponent } from './components/query-list/query-list.component';
 import { QueryFormComponent } from './components/query-form/query-form.component';
 import { RoleAssignmentComponent } from './components/role-assignment/role-assignment.component';
-import { ExecutionLogsComponent, OldRowsDialogComponent } from './components/execution-logs/execution-logs.component';
+import { ExecutionLogsComponent } from './components/execution-logs/execution-logs.component';
 import { AdUsersComponent } from './components/ad-users/ad-users.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
 import { DatabaseUsersComponent } from './components/database-users/database-users.component';
@@ -43,7 +43,6 @@ import { MatExpansionModule } from '@angular/material/expansion';
     QueryFormComponent,
     RoleAssignmentComponent,
     ExecutionLogsComponent,
-    OldRowsDialogComponent,
     AdUsersComponent,
     UserManagementComponent,
     DatabaseUsersComponent,

@@ -68,6 +68,31 @@ public class Repository<T> : IRepository<T> where T : class
         return await query.FirstOrDefaultAsync(e => EF.Property<Guid>(e, "Id") == id, cancellationToken);
     }
 
+    public async Task<(IReadOnlyList<TResult> Items, int TotalCount)> GetPagedAsync<TResult>(
+        Expression<Func<T, bool>>? predicate,
+        Expression<Func<T, object>> orderBy,
+        bool descending,
+        int pageNumber,
+        int pageSize,
+        Expression<Func<T, TResult>> selector,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<T> query = _dbSet;
+        if (predicate is not null)
+            query = query.Where(predicate);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var ordered = descending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
+        var items = await ordered
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(selector)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
     public async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
     {
         await _dbSet.AddAsync(entity, cancellationToken);

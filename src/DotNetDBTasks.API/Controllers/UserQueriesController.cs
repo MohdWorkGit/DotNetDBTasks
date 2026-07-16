@@ -307,12 +307,48 @@ public class UserQueriesController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves the current user's query execution history.
+    /// Retrieves one page of the current user's query execution history.
     /// </summary>
     [HttpGet("history")]
-    public async Task<IActionResult> GetMyHistory(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetMyHistory(
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new GetMyExecutionHistoryQuery(), cancellationToken);
+        var result = await _mediator.Send(
+            new GetMyExecutionHistoryQuery
+            {
+                SortBy = sortBy,
+                SortDescending = sortDescending,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            },
+            cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Retrieves one page of the pre-change row snapshots recorded for one of the current
+    /// user's execution logs.
+    /// </summary>
+    [HttpGet("history/{id:guid}/old-values")]
+    public async Task<IActionResult> GetMyHistoryOldValues(
+        Guid id,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetExecutionLogOldValuesQuery
+            {
+                LogId = id,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                RestrictToCurrentUser = true
+            },
+            cancellationToken);
         return Ok(result);
     }
 

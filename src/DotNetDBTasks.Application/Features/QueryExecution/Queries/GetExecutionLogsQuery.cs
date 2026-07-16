@@ -1,46 +1,74 @@
-using AutoMapper;
+using System.Linq.Expressions;
+using DotNetDBTasks.Application.Common.Models;
+using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
 
 namespace DotNetDBTasks.Application.Features.QueryExecution.Queries;
 
 /// <summary>
-/// Retrieves execution logs. Admin sees all; user sees own.
+/// Retrieves one page of execution logs for the admin/auditor view. Filtering, sorting and
+/// paging all run in the database, and the projection never touches OldValuesJson.
 /// </summary>
-public class GetExecutionLogsQuery : IRequest<IReadOnlyList<ExecutionLogDto>>
+public class GetExecutionLogsQuery : IRequest<PaginatedList<ExecutionLogDto>>
 {
     public Guid? QueryId { get; set; }
     public Guid? UserId { get; set; }
+    /// <summary>Optional status filter: true = success only, false = failed only.</summary>
+    public bool? IsSuccess { get; set; }
+    /// <summary>Case-insensitive text filter over query name, username, parameters and error.</summary>
+    public string? Search { get; set; }
+    public string? SortBy { get; set; }
+    public bool SortDescending { get; set; } = true;
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
 }
 
 public class GetExecutionLogsQueryHandler
-    : IRequestHandler<GetExecutionLogsQuery, IReadOnlyList<ExecutionLogDto>>
+    : IRequestHandler<GetExecutionLogsQuery, PaginatedList<ExecutionLogDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
 
-    public GetExecutionLogsQueryHandler(IUnitOfWork unitOfWork, IMapper mapper)
+    public GetExecutionLogsQueryHandler(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
-        _mapper = mapper;
     }
 
-    public async Task<IReadOnlyList<ExecutionLogDto>> Handle(
+    public async Task<PaginatedList<ExecutionLogDto>> Handle(
         GetExecutionLogsQuery request,
         CancellationToken cancellationToken)
     {
-        var logs = await _unitOfWork.QueryExecutionLogs.GetAllAsync(cancellationToken,
-            "DynamicQuery", "User");
+        var queryId = request.QueryId;
+        var userId = request.UserId;
+        var isSuccess = request.IsSuccess;
+        var search = string.IsNullOrWhiteSpace(request.Search)
+            ? null
+            : request.Search.Trim().ToUpperInvariant();
 
-        var filtered = logs.AsEnumerable();
+        Expression<Func<QueryExecutionLog, bool>> predicate = l =>
+            (queryId == null || l.DynamicQueryId == queryId) &&
+            (userId == null || l.UserId == userId) &&
+            (isSuccess == null || l.IsSuccess == isSuccess) &&
+            (search == null ||
+                l.DynamicQuery.Name.ToUpper().Contains(search) ||
+                l.User.Username.ToUpper().Contains(search) ||
+                (l.ErrorMessage != null && l.ErrorMessage.ToUpper().Contains(search)) ||
+                (l.ParametersJson != null && l.ParametersJson.ToUpper().Contains(search)));
 
-        if (request.QueryId.HasValue)
-            filtered = filtered.Where(l => l.DynamicQueryId == request.QueryId.Value);
+        var pageNumber = ExecutionLogQueryHelper.ClampPageNumber(request.PageNumber);
+        var pageSize = ExecutionLogQueryHelper.ClampPageSize(request.PageSize);
 
-        if (request.UserId.HasValue)
-            filtered = filtered.Where(l => l.UserId == request.UserId.Value);
+        var (rows, totalCount) = await _unitOfWork.QueryExecutionLogs.GetPagedAsync(
+            predicate,
+            ExecutionLogQueryHelper.GetOrderBy(request.SortBy),
+            request.SortDescending,
+            pageNumber,
+            pageSize,
+            ExecutionLogQueryHelper.Projection,
+            cancellationToken);
 
-        return _mapper.Map<IReadOnlyList<ExecutionLogDto>>(
-            filtered.OrderByDescending(l => l.ExecutedAt).ToList());
+        return new PaginatedList<ExecutionLogDto>(
+            rows.Select(ExecutionLogQueryHelper.ToDto).ToList(),
+            totalCount, pageNumber, pageSize);
     }
 }
