@@ -9,18 +9,21 @@ namespace DotNetDBTasks.Infrastructure.Services;
 
 /// <summary>
 /// Format-dispatching result exporter. Excel delegates to the existing
-/// <see cref="IExcelExporter"/>; CSV and JSON are generated here with only the
-/// base class library, keeping the air-gapped offline bundle dependency-free.
+/// <see cref="IExcelExporter"/> and PDF to <see cref="PdfExporter"/>; CSV and JSON are
+/// generated here with only the base class library, keeping the air-gapped offline
+/// bundle dependency-free.
 /// Several result sets can be written into one file (combined scheduled-task
 /// output); the header row, when enabled, comes from the first set.
 /// </summary>
 public class ResultFileExporter : IResultFileExporter
 {
     private readonly IExcelExporter _excelExporter;
+    private readonly IDocxToPdfConverter _docxToPdfConverter;
 
-    public ResultFileExporter(IExcelExporter excelExporter)
+    public ResultFileExporter(IExcelExporter excelExporter, IDocxToPdfConverter docxToPdfConverter)
     {
         _excelExporter = excelExporter;
+        _docxToPdfConverter = docxToPdfConverter;
     }
 
     public byte[] Export(
@@ -29,21 +32,25 @@ public class ResultFileExporter : IResultFileExporter
         IReadOnlyList<IReadOnlyDictionary<string, object?>> rows,
         string name,
         string csvSeparator = ",",
-        bool includeHeaders = true) =>
-        Export(format, new[] { new ExportResultSet(columns, rows) }, name, csvSeparator, includeHeaders);
+        bool includeHeaders = true,
+        byte[]? wordTemplate = null) =>
+        Export(format, new[] { new ExportResultSet(columns, rows) }, name, csvSeparator, includeHeaders, wordTemplate);
 
     public byte[] Export(
         ExportFileFormat format,
         IReadOnlyList<ExportResultSet> results,
         string name,
         string csvSeparator = ",",
-        bool includeHeaders = true)
+        bool includeHeaders = true,
+        byte[]? wordTemplate = null)
     {
         return format switch
         {
             ExportFileFormat.Excel => _excelExporter.Export(results, name, includeHeaders),
             ExportFileFormat.Csv => ExportCsv(results, csvSeparator, includeHeaders),
             ExportFileFormat.Json => ExportJson(results),
+            ExportFileFormat.Pdf => ExportPdf(results, name, includeHeaders, wordTemplate),
+            ExportFileFormat.Word => WordExporter.Export(results, name, includeHeaders, wordTemplate),
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.")
         };
     }
@@ -53,8 +60,34 @@ public class ResultFileExporter : IResultFileExporter
         ExportFileFormat.Excel => "xlsx",
         ExportFileFormat.Csv => "csv",
         ExportFileFormat.Json => "json",
+        ExportFileFormat.Pdf => "pdf",
+        ExportFileFormat.Word => "docx",
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.")
     };
+
+    public byte[] GetStarterWordTemplate() => WordExporter.BuildStarterTemplate();
+
+    /// <summary>
+    /// PDF export: when a DOCX->PDF engine is installed, the PDF is the Word-template
+    /// output converted — so it carries the same template styling as the Word export
+    /// (per-query template, system default, or built-in starter). Without an engine, or
+    /// when conversion fails, the built-in table layout is used.
+    /// </summary>
+    private byte[] ExportPdf(
+        IReadOnlyList<ExportResultSet> results,
+        string name,
+        bool includeHeaders,
+        byte[]? wordTemplate)
+    {
+        if (_docxToPdfConverter.IsAvailable)
+        {
+            var docx = WordExporter.Export(results, name, includeHeaders, wordTemplate);
+            var pdf = _docxToPdfConverter.TryConvert(docx);
+            if (pdf is not null)
+                return pdf;
+        }
+        return PdfExporter.Export(results, name, includeHeaders);
+    }
 
     /// <summary>RFC 4180-style CSV, UTF-8 with BOM so Excel detects the encoding when opening it.</summary>
     private static byte[] ExportCsv(
@@ -90,7 +123,7 @@ public class ResultFileExporter : IResultFileExporter
         w.Write("\r\n");
     }
 
-    private static string FormatValue(object? value) => value switch
+    internal static string FormatValue(object? value) => value switch
     {
         null or DBNull => string.Empty,
         DateTime dt => dt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),

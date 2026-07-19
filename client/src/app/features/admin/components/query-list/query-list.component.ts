@@ -17,10 +17,39 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
     <div class="container">
       <div class="header">
         <h2>Dynamic Queries</h2>
-        <button mat-raised-button color="primary" routerLink="/admin/queries/create"
-                *ngIf="authService.isAdmin()">
-          <mat-icon>add</mat-icon> Create Query
-        </button>
+        <div class="header-actions">
+          <input #defaultTplInput type="file" accept=".docx" hidden
+                 (change)="onDefaultTemplateSelected($event)">
+          <button mat-stroked-button [matMenuTriggerFor]="defaultTplMenu"
+                  *ngIf="authService.isAdmin()"
+                  matTooltip="The Word document layout used by exports when a query has no template of its own">
+            <mat-icon>article</mat-icon>
+            Default Word Template
+            <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
+          </button>
+          <mat-menu #defaultTplMenu="matMenu">
+            <div class="tpl-menu-status" (click)="$event.stopPropagation()">
+              {{ defaultTemplateInfo?.isBuiltIn
+                  ? 'Using the built-in layout'
+                  : 'Custom: ' + defaultTemplateInfo?.fileName }}
+            </div>
+            <button mat-menu-item (click)="downloadDefaultTemplate()">
+              <mat-icon>download</mat-icon>
+              Download {{ defaultTemplateInfo?.isBuiltIn ? 'starter template (edit and re-upload)' : 'current template' }}
+            </button>
+            <button mat-menu-item (click)="defaultTplInput.click()">
+              <mat-icon>upload_file</mat-icon> Upload new default
+            </button>
+            <button mat-menu-item (click)="resetDefaultTemplate()"
+                    [disabled]="defaultTemplateInfo?.isBuiltIn">
+              <mat-icon>restart_alt</mat-icon> Reset to built-in layout
+            </button>
+          </mat-menu>
+          <button mat-raised-button color="primary" routerLink="/admin/queries/create"
+                  *ngIf="authService.isAdmin()">
+            <mat-icon>add</mat-icon> Create Query
+          </button>
+        </div>
       </div>
 
       <mat-card>
@@ -151,6 +180,14 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
       margin-bottom: 16px;
     }
     .loading { display: flex; justify-content: center; padding: 40px; }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .tpl-menu-status {
+      padding: 8px 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-color);
+      cursor: default;
+    }
     .table-toolbar { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; }
     .filter-field { flex: 1; min-width: 240px; }
     .status-filter { width: 160px; }
@@ -173,6 +210,7 @@ export class QueryListComponent implements OnInit {
   dbUserFilter = 'all';
   groupOptions: string[] = [];
   dbUserOptions: string[] = [];
+  defaultTemplateInfo: { fileName: string | null; isBuiltIn: boolean } | null = null;
   private textFilter = '';
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -192,6 +230,60 @@ export class QueryListComponent implements OnInit {
     const group = this.route.snapshot.queryParamMap.get('group');
     if (group) this.groupFilter = group.toLowerCase() === 'ungrouped' ? this.UNGROUPED : group;
     this.loadQueries();
+    if (this.authService.isAdmin()) this.loadDefaultTemplateInfo();
+  }
+
+  // ---- Default Word template ----
+
+  private loadDefaultTemplateInfo(): void {
+    this.queryService.getDefaultWordTemplateInfo().subscribe({
+      next: (info) => { this.defaultTemplateInfo = info; this.cdr.detectChanges(); },
+      error: () => {}
+    });
+  }
+
+  downloadDefaultTemplate(): void {
+    this.queryService.downloadDefaultWordTemplate().subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = this.defaultTemplateInfo?.fileName || 'default-word-template.docx';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => this.snackBar.open('Failed to download template', 'Close', { duration: 5000 })
+    });
+  }
+
+  onDefaultTemplateSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.queryService.uploadDefaultWordTemplate(file).subscribe({
+      next: () => {
+        this.snackBar.open('Default Word template updated', 'Close', { duration: 3000 });
+        this.loadDefaultTemplateInfo();
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.message || 'Failed to upload template', 'Close', { duration: 5000 });
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  resetDefaultTemplate(): void {
+    this.queryService.deleteDefaultWordTemplate().subscribe({
+      next: () => {
+        this.snackBar.open('Default template reset to the built-in layout', 'Close', { duration: 3000 });
+        this.loadDefaultTemplateInfo();
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.message || 'Failed to reset template', 'Close', { duration: 5000 });
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   loadQueries(): void {

@@ -15,6 +15,8 @@ public class DynamicQueryDto
     public string? DatabaseUserName { get; set; }
     public Guid? QueryGroupId { get; set; }
     public string? QueryGroupName { get; set; }
+    /// <summary>File name of the uploaded Word export template; null when none (default layout is used).</summary>
+    public string? WordTemplateFileName { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<QueryParameterDto> Parameters { get; set; } = new();
     public List<RoleAssignmentDto> AssignedRoles { get; set; } = new();

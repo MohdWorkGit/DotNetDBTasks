@@ -45,6 +45,17 @@ public class DynamicQuery : BaseEntity
     public Guid? QueryGroupId { get; set; }
     public QueryGroup? QueryGroup { get; set; }
 
+    /// <summary>
+    /// Optional Word (.docx) template used by the Word export of this query's results.
+    /// The template may contain {{RESULTS}} (replaced by the result table) and
+    /// {{QUERY_NAME}}/{{GENERATED_AT}}/{{ROW_COUNT}} text placeholders. Null means the
+    /// built-in default document layout is used.
+    /// </summary>
+    public byte[]? WordTemplate { get; set; }
+
+    /// <summary>Original file name of the uploaded template, shown in the admin UI.</summary>
+    public string? WordTemplateFileName { get; set; }
+
     public ICollection<QueryParameter> Parameters { get; set; } = new List<QueryParameter>();
     public ICollection<DynamicQueryRole> DynamicQueryRoles { get; set; } = new List<DynamicQueryRole>();
     public ICollection<DynamicQueryDepartment> DynamicQueryDepartments { get; set; } = new List<DynamicQueryDepartment>();

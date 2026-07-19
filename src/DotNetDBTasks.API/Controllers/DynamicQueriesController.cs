@@ -1,3 +1,4 @@
+using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Features.DynamicQueries.Commands;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Application.Features.QueryExecution.Queries;
@@ -17,10 +18,12 @@ namespace DotNetDBTasks.API.Controllers;
 public class DynamicQueriesController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IResultFileExporter _resultFileExporter;
 
-    public DynamicQueriesController(IMediator mediator)
+    public DynamicQueriesController(IMediator mediator, IResultFileExporter resultFileExporter)
     {
         _mediator = mediator;
+        _resultFileExporter = resultFileExporter;
     }
 
     /// <summary>
@@ -80,6 +83,157 @@ public class DynamicQueriesController : ControllerBase
     {
         await _mediator.Send(new DeleteDynamicQueryCommand(id), cancellationToken);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Uploads (or replaces) the Word (.docx) template used when this query's results are
+    /// exported as Word. The template may contain {{RESULTS}} (replaced by the result table)
+    /// and {{QUERY_NAME}}/{{GENERATED_AT}}/{{ROW_COUNT}} text placeholders. Requires Admin role.
+    /// </summary>
+    [HttpPost("{id:guid}/word-template")]
+    [Authorize(Roles = "Admin")]
+    [RequestSizeLimit(MaxTemplateBytes + 1024)]
+    public async Task<IActionResult> UploadWordTemplate(
+        Guid id,
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "No file was uploaded." });
+        if (file.Length > MaxTemplateBytes)
+            return BadRequest(new { message = "The template must be 5 MB or smaller." });
+        if (!Path.GetExtension(file.FileName).Equals(".docx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "The template must be a Word .docx file." });
+
+        byte[] content;
+        using (var ms = new MemoryStream())
+        {
+            await file.CopyToAsync(ms, cancellationToken);
+            content = ms.ToArray();
+        }
+
+        if (!LooksLikeDocx(content))
+            return BadRequest(new { message = "The file is not a valid .docx document." });
+
+        await _mediator.Send(
+            new SetQueryWordTemplateCommand(id, Path.GetFileName(file.FileName), content),
+            cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Downloads the query's current Word export template. 404 when none is uploaded.
+    /// </summary>
+    [HttpGet("{id:guid}/word-template")]
+    public async Task<IActionResult> DownloadWordTemplate(Guid id, CancellationToken cancellationToken)
+    {
+        var template = await _mediator.Send(new GetQueryWordTemplateQuery(id), cancellationToken);
+        if (template is null)
+            return NotFound();
+        return File(
+            template.Content,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            template.FileName);
+    }
+
+    /// <summary>
+    /// Removes the query's Word export template; Word exports fall back to the built-in
+    /// default layout. Requires Admin role.
+    /// </summary>
+    [HttpDelete("{id:guid}/word-template")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteWordTemplate(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteQueryWordTemplateCommand(id), cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Uploads (or replaces) the system-wide default Word export template, used whenever a
+    /// query has no template of its own. Requires Admin role.
+    /// </summary>
+    [HttpPost("default-word-template")]
+    [Authorize(Roles = "Admin")]
+    [RequestSizeLimit(MaxTemplateBytes + 1024)]
+    public async Task<IActionResult> UploadDefaultWordTemplate(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "No file was uploaded." });
+        if (file.Length > MaxTemplateBytes)
+            return BadRequest(new { message = "The template must be 5 MB or smaller." });
+        if (!Path.GetExtension(file.FileName).Equals(".docx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "The template must be a Word .docx file." });
+
+        byte[] content;
+        using (var ms = new MemoryStream())
+        {
+            await file.CopyToAsync(ms, cancellationToken);
+            content = ms.ToArray();
+        }
+
+        if (!LooksLikeDocx(content))
+            return BadRequest(new { message = "The file is not a valid .docx document." });
+
+        await _mediator.Send(
+            new SetDefaultWordTemplateCommand(Path.GetFileName(file.FileName), content),
+            cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Downloads the current default Word export template. When none has been uploaded,
+    /// returns the built-in starter template — edit it in Word and upload it back to
+    /// customize the default look of Word exports.
+    /// </summary>
+    [HttpGet("default-word-template")]
+    public async Task<IActionResult> DownloadDefaultWordTemplate(CancellationToken cancellationToken)
+    {
+        var stored = await _mediator.Send(new GetDefaultWordTemplateQuery(), cancellationToken);
+        var (bytes, name) = stored is null
+            ? (_resultFileExporter.GetStarterWordTemplate(), "default-word-template.docx")
+            : (stored.Content, stored.FileName);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", name);
+    }
+
+    /// <summary>
+    /// Reports whether a custom default Word template is stored, and its file name.
+    /// </summary>
+    [HttpGet("default-word-template/info")]
+    public async Task<IActionResult> GetDefaultWordTemplateInfo(CancellationToken cancellationToken)
+    {
+        var stored = await _mediator.Send(new GetDefaultWordTemplateQuery(), cancellationToken);
+        return Ok(new { fileName = stored?.FileName, isBuiltIn = stored is null });
+    }
+
+    /// <summary>
+    /// Removes the custom default template; Word exports without a per-query template fall
+    /// back to the built-in starter layout. Requires Admin role.
+    /// </summary>
+    [HttpDelete("default-word-template")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteDefaultWordTemplate(CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteDefaultWordTemplateCommand(), cancellationToken);
+        return NoContent();
+    }
+
+    private const int MaxTemplateBytes = 5 * 1024 * 1024;
+
+    /// <summary>A .docx is a zip (PK signature) containing word/document.xml.</summary>
+    private static bool LooksLikeDocx(byte[] content)
+    {
+        if (content.Length < 4 || content[0] != 0x50 || content[1] != 0x4B)
+            return false;
+        try
+        {
+            using var zip = new System.IO.Compression.ZipArchive(
+                new MemoryStream(content), System.IO.Compression.ZipArchiveMode.Read);
+            return zip.GetEntry("word/document.xml") is not null;
+        }
+        catch (InvalidDataException)
+        {
+            return false;
+        }
     }
 
     /// <summary>

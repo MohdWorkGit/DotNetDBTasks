@@ -39,6 +39,9 @@ import {
   UpdateQueryGroupRequest
 } from '../models/dynamic-query.model';
 
+/** Download format accepted by the export-file endpoint. */
+export type ExportFormat = 'xlsx' | 'csv' | 'json' | 'pdf' | 'docx';
+
 /** Grid paging/sort/filter parameters sent to the cached-rows endpoint. */
 export interface JobRowsQuery {
   pageIndex: number;
@@ -237,11 +240,53 @@ export class QueryService {
   }
 
   /**
-   * Downloads the complete result set of a cached read job as an Excel (.xlsx) file. No second
-   * query run — the workbook is built from the result cached during execution.
+   * Downloads the complete result set of a cached read job in the requested format
+   * (xlsx/csv/json/pdf). No second query run — the file is built from the result cached
+   * during execution.
    */
-  exportJob(jobId: string): Observable<Blob> {
-    return this.http.get(`${this.userUrl}/jobs/${jobId}/export-file`, { responseType: 'blob' });
+  exportJob(jobId: string, format: ExportFormat = 'xlsx'): Observable<Blob> {
+    const params = new HttpParams().set('format', format);
+    return this.http.get(`${this.userUrl}/jobs/${jobId}/export-file`, { params, responseType: 'blob' });
+  }
+
+  /**
+   * Uploads (or replaces) a query's Word export template — a .docx whose {{RESULTS}},
+   * {{QUERY_NAME}}, {{GENERATED_AT}} and {{ROW_COUNT}} placeholders are filled at export time.
+   */
+  uploadWordTemplate(queryId: string, file: File): Observable<void> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<void>(`${this.adminUrl}/${queryId}/word-template`, form);
+  }
+
+  downloadWordTemplate(queryId: string): Observable<Blob> {
+    return this.http.get(`${this.adminUrl}/${queryId}/word-template`, { responseType: 'blob' });
+  }
+
+  deleteWordTemplate(queryId: string): Observable<void> {
+    return this.http.delete<void>(`${this.adminUrl}/${queryId}/word-template`);
+  }
+
+  /** Info about the system default Word template (isBuiltIn = no custom default uploaded). */
+  getDefaultWordTemplateInfo(): Observable<{ fileName: string | null; isBuiltIn: boolean }> {
+    return this.http.get<{ fileName: string | null; isBuiltIn: boolean }>(
+      `${this.adminUrl}/default-word-template/info`);
+  }
+
+  /** Downloads the stored default template, or the built-in starter when none is stored. */
+  downloadDefaultWordTemplate(): Observable<Blob> {
+    return this.http.get(`${this.adminUrl}/default-word-template`, { responseType: 'blob' });
+  }
+
+  uploadDefaultWordTemplate(file: File): Observable<void> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<void>(`${this.adminUrl}/default-word-template`, form);
+  }
+
+  /** Removes the custom default; exports fall back to the built-in starter layout. */
+  deleteDefaultWordTemplate(): Observable<void> {
+    return this.http.delete<void>(`${this.adminUrl}/default-word-template`);
   }
 
   /**

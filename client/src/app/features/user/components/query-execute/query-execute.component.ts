@@ -6,7 +6,7 @@ import { Sort } from '@angular/material/sort';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { forkJoin, of, throwError, Subject, Subscription } from 'rxjs';
 import { catchError, debounceTime, switchMap, timeout } from 'rxjs/operators';
-import { QueryService } from '@core/services/query.service';
+import { ExportFormat, QueryService } from '@core/services/query.service';
 import {
   DropdownOption,
   DynamicQuery,
@@ -126,10 +126,28 @@ import {
               </button>
               <button mat-stroked-button type="button"
                       *ngIf="result && result.columns.length > 0 && result.jobId"
-                      (click)="exportExcel()" [disabled]="exporting">
+                      [matMenuTriggerFor]="exportMenu" [disabled]="exporting">
                 <mat-icon>download</mat-icon>
-                {{ exporting ? 'Exporting…' : 'Export Excel' }}
+                {{ exporting ? 'Exporting…' : 'Export' }}
+                <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
               </button>
+              <mat-menu #exportMenu="matMenu">
+                <button mat-menu-item (click)="exportResults('xlsx')">
+                  <mat-icon>table_view</mat-icon> Excel (.xlsx)
+                </button>
+                <button mat-menu-item (click)="exportResults('csv')">
+                  <mat-icon>description</mat-icon> CSV (.csv)
+                </button>
+                <button mat-menu-item (click)="exportResults('pdf')">
+                  <mat-icon>picture_as_pdf</mat-icon> PDF (.pdf)
+                </button>
+                <button mat-menu-item (click)="exportResults('docx')">
+                  <mat-icon>article</mat-icon> Word (.docx)
+                </button>
+                <button mat-menu-item (click)="exportResults('json')">
+                  <mat-icon>data_object</mat-icon> JSON (.json)
+                </button>
+              </mat-menu>
             </div>
           </form>
         </mat-card-content>
@@ -681,20 +699,21 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Downloads the complete result set as an Excel (.xlsx) file, reusing the result cached during
-   * execution — no second query run. Includes every matching row, not just the current page.
+   * Downloads the complete result set in the chosen format (Excel/CSV/PDF/JSON), reusing the
+   * result cached during execution — no second query run. Includes every matching row, not
+   * just the current page.
    */
-  exportExcel(): void {
+  exportResults(format: ExportFormat): void {
     if (!this.result || !this.query || !this.resultJobId) return;
 
     this.exporting = true;
-    this.exportSub = this.queryService.exportJob(this.resultJobId).subscribe({
+    this.exportSub = this.queryService.exportJob(this.resultJobId, format).subscribe({
       next: (blob) => {
         this.exporting = false;
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${this.query?.name || 'results'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        a.download = `${this.query?.name || 'results'}_${new Date().toISOString().slice(0, 10)}.${format}`;
         a.click();
         window.URL.revokeObjectURL(url);
         this.cdr.detectChanges();

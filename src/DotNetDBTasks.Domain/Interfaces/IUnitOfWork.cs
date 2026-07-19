@@ -27,5 +27,6 @@ public interface IUnitOfWork : IDisposable
     IRepository<ScheduledTaskItem> ScheduledTaskItems { get; }
     IRepository<ScheduledTaskRun> ScheduledTaskRuns { get; }
     IRepository<ScheduledTaskViewer> ScheduledTaskViewers { get; }
+    IRepository<SystemTemplate> SystemTemplates { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

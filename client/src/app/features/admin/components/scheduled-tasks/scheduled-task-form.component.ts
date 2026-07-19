@@ -91,6 +91,11 @@ import {
                 <input matInput formControlName="combinedCsvSeparator" maxlength="8" placeholder=",">
                 <mat-hint>e.g. ; or ;; ("tab" = tab)</mat-hint>
               </mat-form-field>
+              <p class="word-note" *ngIf="form.get('combinedFormat')?.value === Format.Word">
+                <mat-icon inline>article</mat-icon>
+                Combined Word output merges several queries, so it always uses the system
+                default Word template (managed on the Dynamic Queries page).
+              </p>
               <mat-form-field appearance="outline" class="grow">
                 <mat-label>File name (optional)</mat-label>
                 <input matInput formControlName="combinedFileName" maxlength="200"
@@ -212,6 +217,18 @@ import {
                 file, only the affected-row count in the run status.
               </p>
 
+              <p class="word-note" *ngIf="!itemMeta[i]?.isWrite && !combineOutput && isWord(i)">
+                <mat-icon inline>article</mat-icon>
+                <ng-container *ngIf="itemTemplateName(i); else defaultWordTpl">
+                  Word export uses this query's template: <b>{{ itemTemplateName(i) }}</b>
+                </ng-container>
+                <ng-template #defaultWordTpl>
+                  This query has no Word template — the system default template is used.
+                  Upload one in the query's edit form, or manage the default on the
+                  Dynamic Queries page.
+                </ng-template>
+              </p>
+
               <div class="row" *ngIf="!itemMeta[i]?.isWrite && !combineOutput">
                 <mat-form-field appearance="outline" class="grow">
                   <mat-label>File name (optional)</mat-label>
@@ -326,6 +343,14 @@ import {
       gap: 6px;
       margin: 0 0 12px;
     }
+    .word-note {
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0 0 12px;
+      font-size: 13px;
+    }
     .checkpoint { margin-bottom: 12px; }
     /* Wide enough for its hint text; without this the hint runs under the next control. */
     .separator { width: 220px; }
@@ -342,7 +367,7 @@ import {
 export class ScheduledTaskFormComponent implements OnInit {
   Frequency = ScheduleFrequency;
   Format = ExportFileFormat;
-  formats = [ExportFileFormat.Excel, ExportFileFormat.Csv, ExportFileFormat.Json];
+  formats = [ExportFileFormat.Excel, ExportFileFormat.Csv, ExportFileFormat.Json, ExportFileFormat.Pdf, ExportFileFormat.Word];
   formatLabels = EXPORT_FORMAT_LABELS;
   dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -388,6 +413,17 @@ export class ScheduledTaskFormComponent implements OnInit {
   /** All enabled queries can be scheduled: reads export a file, writes commit and report affected rows. */
   get selectableQueries(): DynamicQuery[] {
     return this.queries;
+  }
+
+  isWord(index: number): boolean {
+    return this.items.at(index).get('exportFormat')?.value === ExportFileFormat.Word;
+  }
+
+  /** File name of the selected query's Word template, or null when it has none. */
+  itemTemplateName(index: number): string | null {
+    const id = this.items.at(index).get('dynamicQueryId')?.value;
+    if (!id) return null;
+    return this.queries.find(q => q.id === id)?.wordTemplateFileName || null;
   }
 
   isCsv(index: number): boolean {

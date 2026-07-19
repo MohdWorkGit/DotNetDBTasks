@@ -18,7 +18,20 @@
       "PowerShell($login = Invoke-RestMethod -Uri \"http://localhost:60187/api/auth/login\" -Method Post -ContentType \"application/json\" -Body '{\"username\":\"admin\",\"password\":\"Admin@123\"}'; $token = $login.accessToken; if \\(-not $token\\) { $login | ConvertTo-Json -Depth 4 } else { \"login OK\" })",
       "PowerShell($deadline = \\(Get-Date\\).AddSeconds\\(120\\); $ok = $false; do { try { $r = Invoke-RestMethod -Uri \"http://localhost:60187/api/auth/login\" -Method Post -ContentType \"application/json\" -Body '{\"username\":\"admin\",\"password\":\"Admin@123\"}' -TimeoutSec 3; $ok = $true; break } catch { Start-Sleep 3 } } while \\(\\(Get-Date\\) -lt $deadline\\); if \\($ok\\) { \"API is up\" } else { \"API NOT responding\" })",
       "PowerShell(cd C:\\\\Users\\\\msm508\\\\Desktop\\\\DBTasks\\\\DotNetDBTasks; dotnet ef migrations script --idempotent -o .\\\\api-publish\\\\upgrade.sql --project src\\\\DotNetDBTasks.Infrastructure --startup-project src\\\\DotNetDBTasks.API 2>$null | Select-Object -Last 1; \"script size: $\\(\\(Get-Item .\\\\api-publish\\\\upgrade.sql\\).Length\\) bytes\")",
-      "PowerShell(git add .claude/settings.local.json)"
+      "PowerShell(git add .claude/settings.local.json)",
+      "PowerShell(dotnet run --project \"C:\\\\Users\\\\msm508\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-msm508-Desktop-DBTasks-DotNetDBTasks\\\\e05b0a2a-5efd-44c0-ab65-d57ecccbaa60\\\\scratchpad\\\\pdftest\\\\pdftest.csproj\" -v q --nologo 2>$null)",
+      "Bash(node ui-word-test.mjs)",
+      "Bash(python -c ' *)",
+      "Bash(node ui-default-tpl-test.mjs)",
+      "Bash(python -)",
+      "PowerShell(dotnet build DotNetDBTasks.sln -v q --nologo 2>$null)",
+      "Bash(node render-docx.mjs word-styled.docx)",
+      "Bash(node render-docx.mjs word-default.docx)",
+      "Bash(rm -f pdftest/user-template.docx)",
+      "Bash(curl -s http://localhost:60187/api/admin/dynamicqueries -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(curl -s -o pdftest/user-template.docx -w 'download: %{http_code}\\\\n' http://localhost:60187/api/admin/dynamicqueries/44392008-766f-410d-9fac-275a77b24c60/word-template -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(cp e2e-wordpdf.pdf pdftest/sample.pdf)",
+      "Bash(node render-pdf.mjs)"
     ]
   }
 }

@@ -126,6 +126,8 @@ export interface DynamicQuery {
   databaseUserName?: string;
   queryGroupId?: string | null;
   queryGroupName?: string | null;
+  /** File name of the uploaded Word export template; null/absent when none. */
+  wordTemplateFileName?: string | null;
   createdAt: string;
   parameters: QueryParameter[];
   assignedRoles: RoleAssignment[];

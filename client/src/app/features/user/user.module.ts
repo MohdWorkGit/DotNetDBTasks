@@ -21,6 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDialogModule } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { MyQueriesComponent } from './components/my-queries/my-queries.component';
 import { QueryExecuteComponent } from './components/query-execute/query-execute.component';
@@ -56,6 +57,7 @@ import { ScheduleStatusComponent } from './components/schedule-status/schedule-s
     MatProgressBarModule,
     MatExpansionModule,
     MatDialogModule,
+    MatMenuModule,
     RouterModule.forChild([
       { path: 'queries', component: MyQueriesComponent },
       { path: 'queries/:id/execute', component: QueryExecuteComponent },

@@ -5,6 +5,7 @@ using DotNetDBTasks.Application;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Infrastructure;
 using DotNetDBTasks.Infrastructure.Data;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -55,6 +56,38 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
             .AllowCredentials();
     });
+});
+
+// Rate limiting — throttles password-based login to blunt brute-force / credential-stuffing.
+// Partitioned by client IP (the real caller once ForwardedHeaders has run), so an attacker
+// hammering the endpoint from one source is capped while normal users are unaffected.
+var loginPermitLimit = builder.Configuration.GetValue("Auth:Login:PermitLimit", 10);
+var loginWindowSeconds = builder.Configuration.GetValue("Auth:Login:WindowSeconds", 60);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("login", httpContext =>
+    {
+        var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = loginPermitLimit,
+            Window = TimeSpan.FromSeconds(loginWindowSeconds),
+            QueueLimit = 0
+        });
+    });
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+            context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds).ToString();
+
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"message\":\"Too many login attempts. Please wait and try again.\"}", cancellationToken);
+    };
 });
 
 // Swagger
@@ -113,10 +146,16 @@ app.UseStaticFiles();
 // Global exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Swagger (available in all environments for API documentation)
-app.UseSwagger();
-app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "DotNetDBTasks API v1"));
+// Swagger documents the entire API surface, so it is only served outside Production
+// (local dev/testing). In Production these endpoints return 404.
+if (!app.Environment.IsProduction())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "DotNetDBTasks API v1"));
+}
 
+app.UseRouting();
+app.UseRateLimiter();
 app.UseCors("AllowAngular");
 app.UseAuthentication();
 app.UseAuthorization();

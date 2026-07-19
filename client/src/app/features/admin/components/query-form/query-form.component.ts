@@ -78,6 +78,43 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
               Enabled
             </mat-slide-toggle>
 
+            <div *ngIf="isEdit" class="template-section">
+              <h3>Word Export Template</h3>
+              <p class="field-hint">
+                Optional .docx used when this query's results are exported as Word. Put
+                {{ '{{RESULTS}}' }} where the result table should go; {{ '{{QUERY_NAME}}' }},
+                {{ '{{GENERATED_AT}}' }} and {{ '{{ROW_COUNT}}' }} are also replaced (including
+                in headers/footers). To style the result table, put {{ '{{RESULTS}}' }} inside a
+                table: its first row styles the header, the marker's row styles the data rows,
+                and an optional row below it styles alternating rows. Without a template, the
+                system default Word template is used (managed on the Dynamic Queries page).
+              </p>
+              <div class="template-row">
+                <input #tplInput type="file" accept=".docx" hidden (change)="onTemplateSelected($event)">
+                <button mat-stroked-button type="button" (click)="tplInput.click()"
+                        [disabled]="uploadingTemplate">
+                  <mat-icon>upload_file</mat-icon>
+                  {{ uploadingTemplate ? 'Uploading…' : (templateFileName ? 'Replace Template' : 'Upload Template') }}
+                </button>
+                <ng-container *ngIf="templateFileName">
+                  <span class="template-name">
+                    <mat-icon>description</mat-icon> {{ templateFileName }}
+                  </span>
+                  <button mat-icon-button type="button" matTooltip="Download template"
+                          (click)="downloadTemplate()">
+                    <mat-icon>download</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" type="button" matTooltip="Remove template"
+                          (click)="removeTemplate()">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </ng-container>
+                <span *ngIf="!templateFileName" class="template-name none">
+                  No template — the default layout is used
+                </span>
+              </div>
+            </div>
+
             <h3>Parameters</h3>
             <div formArrayName="parameters">
               <mat-card *ngFor="let param of parameters.controls; let i = index"
@@ -253,6 +290,12 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
     .query-config { margin-top: 8px; }
     .column-row { display: flex; gap: 16px; }
     .full-width { width: 100%; }
+
+    .template-section { margin: 16px 0; }
+    .template-section h3 { margin-bottom: 4px; }
+    .template-row { display: flex; align-items: center; gap: 8px; }
+    .template-name { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+    .template-name.none { color: var(--text-secondary); }
   `]
 })
 export class QueryFormComponent implements OnInit {
@@ -261,6 +304,8 @@ export class QueryFormComponent implements OnInit {
   isCopy = false;
   queryId?: string;
   saving = false;
+  templateFileName: string | null = null;
+  uploadingTemplate = false;
   availableQueries: DynamicQuery[] = [];
   availableDbUsers: DatabaseUser[] = [];
   availableGroups: QueryGroup[] = [];
@@ -389,6 +434,60 @@ export class QueryFormComponent implements OnInit {
     this.parameters.removeAt(index);
   }
 
+  // ---- Word export template ----
+
+  onTemplateSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || !this.queryId) return;
+
+    this.uploadingTemplate = true;
+    this.queryService.uploadWordTemplate(this.queryId, file).subscribe({
+      next: () => {
+        this.uploadingTemplate = false;
+        this.templateFileName = file.name;
+        this.snackBar.open('Template uploaded', 'Close', { duration: 3000 });
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.uploadingTemplate = false;
+        this.snackBar.open(err.error?.message || 'Failed to upload template', 'Close', { duration: 5000 });
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  downloadTemplate(): void {
+    if (!this.queryId) return;
+    this.queryService.downloadWordTemplate(this.queryId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = this.templateFileName || 'template.docx';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => this.snackBar.open('Failed to download template', 'Close', { duration: 5000 })
+    });
+  }
+
+  removeTemplate(): void {
+    if (!this.queryId) return;
+    this.queryService.deleteWordTemplate(this.queryId).subscribe({
+      next: () => {
+        this.templateFileName = null;
+        this.snackBar.open('Template removed', 'Close', { duration: 3000 });
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.message || 'Failed to remove template', 'Close', { duration: 5000 });
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   loadQuery(id: string): void {
     this.queryService.getQueryById(id).pipe(
       timeout(30000),
@@ -410,6 +509,9 @@ export class QueryFormComponent implements OnInit {
           queryGroupId: query.queryGroupId || null,
           isEnabled: this.isCopy ? true : query.isEnabled
         });
+
+        // Templates are not copied — a copy starts without one.
+        this.templateFileName = this.isCopy ? null : (query.wordTemplateFileName || null);
 
         [...query.parameters].sort((a, b) => a.sortOrder - b.sortOrder).forEach(p => {
           this.parameters.push(this.fb.group({

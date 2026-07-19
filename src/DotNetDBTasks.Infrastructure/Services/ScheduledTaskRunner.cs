@@ -32,6 +32,12 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
     private readonly IResultFileExporter _exporter;
     private readonly ILogger<ScheduledTaskRunner> _logger;
 
+    /// <summary>
+    /// System default Word template for the current run, used when a Word-exporting item's
+    /// query has no template of its own (and for combined Word output). Loaded once per run.
+    /// </summary>
+    private byte[]? _defaultWordTemplate;
+
     public ScheduledTaskRunner(
         IUnitOfWork unitOfWork,
         IMediator mediator,
@@ -82,6 +88,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
                 Directory.CreateDirectory(task.ArchiveFolder);
 
             var orderedItems = task.Items.OrderBy(i => i.SortOrder).ToList();
+            _defaultWordTemplate = await LoadDefaultWordTemplateAsync(task, orderedItems, cancellationToken);
             if (task.CombineOutput)
             {
                 results.AddRange(await RunCombinedAsync(task, orderedItems, cancellationToken));
@@ -112,6 +119,24 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         }
     }
 
+    private async Task<byte[]?> LoadDefaultWordTemplateAsync(
+        ScheduledTask task,
+        IReadOnlyList<ScheduledTaskItem> items,
+        CancellationToken cancellationToken)
+    {
+        // PDF counts too: with a DOCX->PDF engine installed, PDF exports are rendered
+        // from the same Word template (the exporter ignores it otherwise).
+        static bool UsesTemplate(ExportFileFormat f) => f is ExportFileFormat.Word or ExportFileFormat.Pdf;
+        var anyWord = (task.CombineOutput && UsesTemplate(task.CombinedFormat))
+            || (!task.CombineOutput && items.Any(i => UsesTemplate(i.ExportFormat)));
+        if (!anyWord)
+            return null;
+
+        var stored = (await _unitOfWork.SystemTemplates.FindAsync(
+            t => t.Key == SystemTemplate.WordDefaultKey, cancellationToken)).FirstOrDefault();
+        return stored?.Content;
+    }
+
     private async Task<ScheduledTaskItemResult> RunItemAsync(
         ScheduledTask task,
         ScheduledTaskItem item,
@@ -134,7 +159,8 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             {
                 var bytes = _exporter.Export(
                     item.ExportFormat, execution.Columns, execution.Rows, queryName,
-                    CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders);
+                    CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders,
+                    item.DynamicQuery?.WordTemplate ?? _defaultWordTemplate);
                 var fileName = BuildFileName(task, item, queryName);
                 await WriteOutputAsync(task, fileName, bytes, cancellationToken);
 
@@ -229,7 +255,9 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
                 collected.Select(c => c.Set).ToList(),
                 string.IsNullOrWhiteSpace(task.CombinedFileName) ? task.Name : task.CombinedFileName,
                 CsvSeparator.Parse(task.CombinedCsvSeparator),
-                task.IncludeHeaders);
+                task.IncludeHeaders,
+                // Combined output merges several queries, so only the system default applies.
+                _defaultWordTemplate);
             var fileName = BuildCombinedFileName(task);
             await WriteOutputAsync(task, fileName, bytes, cancellationToken);
 

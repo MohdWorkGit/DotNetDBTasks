@@ -10,13 +10,17 @@ export enum ScheduleFrequency {
 export enum ExportFileFormat {
   Excel = 0,
   Csv = 1,
-  Json = 2
+  Json = 2,
+  Pdf = 3,
+  Word = 4
 }
 
 export const EXPORT_FORMAT_LABELS: Record<ExportFileFormat, string> = {
   [ExportFileFormat.Excel]: 'Excel (.xlsx)',
   [ExportFileFormat.Csv]: 'CSV (.csv)',
-  [ExportFileFormat.Json]: 'JSON (.json)'
+  [ExportFileFormat.Json]: 'JSON (.json)',
+  [ExportFileFormat.Pdf]: 'PDF (.pdf)',
+  [ExportFileFormat.Word]: 'Word (.docx)'
 };
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

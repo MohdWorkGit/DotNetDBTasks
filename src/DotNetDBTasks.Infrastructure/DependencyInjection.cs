@@ -42,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<IEncryptionService, AesEncryptionService>();
         services.AddScoped<ILdapService, LdapService>();
         services.AddSingleton<IExcelExporter, ExcelExporter>();
+        services.AddSingleton<IDocxToPdfConverter, DocxToPdfConverter>();
         services.AddSingleton<IResultFileExporter, ResultFileExporter>();
 
         // Scheduled export tasks: manual/scheduled runs flow through a shared queue

@@ -5,6 +5,7 @@ using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Application.Features.QueryExecution.Commands;
 using DotNetDBTasks.Application.Features.QueryExecution.Queries;
 using DotNetDBTasks.Application.Features.QueryGroups.Queries;
+using DotNetDBTasks.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,20 +30,23 @@ public class UserQueriesController : ControllerBase
     private readonly IQueryJobStore _jobStore;
     private readonly IQueryJobQueue _jobQueue;
     private readonly ICurrentUserService _currentUser;
-    private readonly IExcelExporter _excelExporter;
+    private readonly IResultFileExporter _resultFileExporter;
+    private readonly IDocxToPdfConverter _docxToPdfConverter;
 
     public UserQueriesController(
         IMediator mediator,
         IQueryJobStore jobStore,
         IQueryJobQueue jobQueue,
         ICurrentUserService currentUser,
-        IExcelExporter excelExporter)
+        IResultFileExporter resultFileExporter,
+        IDocxToPdfConverter docxToPdfConverter)
     {
         _mediator = mediator;
         _jobStore = jobStore;
         _jobQueue = jobQueue;
         _currentUser = currentUser;
-        _excelExporter = excelExporter;
+        _resultFileExporter = resultFileExporter;
+        _docxToPdfConverter = docxToPdfConverter;
     }
 
     /// <summary>
@@ -167,12 +171,18 @@ public class UserQueriesController : ControllerBase
     }
 
     /// <summary>
-    /// Streams a finished read job's cached result as an Excel (.xlsx) file. The full result set
-    /// (built with no row cap during execution) is converted to a workbook on demand — no second
-    /// query run. Only the submitting user (or an Admin) may download; the job must have succeeded.
+    /// Streams a finished read job's cached result as a downloadable file in the requested
+    /// format — Excel (.xlsx, default), CSV, JSON, PDF or Word (.docx). The full result set
+    /// (built with no row cap during execution) is converted on demand — no second query run.
+    /// Word exports use the query's uploaded template when one exists, otherwise the built-in
+    /// default layout. Only the submitting user (or an Admin) may download; the job must have
+    /// succeeded.
     /// </summary>
     [HttpGet("jobs/{jobId:guid}/export-file")]
-    public IActionResult ExportFile(Guid jobId)
+    public async Task<IActionResult> ExportFile(
+        Guid jobId,
+        [FromQuery] string? format,
+        CancellationToken cancellationToken)
     {
         var job = _jobStore.Get(jobId);
         if (job is null)
@@ -184,12 +194,49 @@ public class UserQueriesController : ControllerBase
         if (job.Status != QueryJobStatus.Succeeded || job.Result is null)
             return Conflict(new { message = "The export is not ready." });
 
-        var bytes = _excelExporter.Export(job.Result.Columns, job.Result.Rows, "Results");
-        var fileName = $"query-export-{DateTime.Now:yyyyMMdd-HHmmss}.xlsx";
-        return File(
-            bytes,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            fileName);
+        var fileFormat = (format ?? "").Trim().ToLowerInvariant() switch
+        {
+            "" or "xlsx" or "excel" => ExportFileFormat.Excel,
+            "csv" => ExportFileFormat.Csv,
+            "json" => ExportFileFormat.Json,
+            "pdf" => ExportFileFormat.Pdf,
+            "docx" or "word" => ExportFileFormat.Word,
+            _ => (ExportFileFormat?)null
+        };
+        if (fileFormat is null)
+            return BadRequest(new { message = $"Unsupported export format '{format}'. Use xlsx, csv, json, pdf or docx." });
+
+        byte[]? wordTemplate = null;
+        var exportName = "Results";
+        // PDF exports are rendered from the Word template too when a DOCX->PDF engine is
+        // installed, so both formats need the effective template and the query name.
+        var usesWordTemplate = fileFormat == ExportFileFormat.Word ||
+            (fileFormat == ExportFileFormat.Pdf && _docxToPdfConverter.IsAvailable);
+        if (usesWordTemplate)
+        {
+            var query = await _mediator.Send(
+                new GetDynamicQueryByIdQuery(job.Command.QueryId), cancellationToken);
+            exportName = query.Name;
+            // Per-query template, else the system default; null falls back to the built-in starter.
+            wordTemplate = await _mediator.Send(
+                new GetEffectiveWordTemplateQuery(job.Command.QueryId), cancellationToken);
+        }
+
+        var bytes = _resultFileExporter.Export(
+            fileFormat.Value, job.Result.Columns, job.Result.Rows, exportName,
+            wordTemplate: wordTemplate);
+        var extension = _resultFileExporter.GetExtension(fileFormat.Value);
+        var contentType = fileFormat.Value switch
+        {
+            ExportFileFormat.Excel => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ExportFileFormat.Csv => "text/csv",
+            ExportFileFormat.Json => "application/json",
+            ExportFileFormat.Pdf => "application/pdf",
+            ExportFileFormat.Word => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            _ => "application/octet-stream"
+        };
+        var fileName = $"query-export-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}";
+        return File(bytes, contentType, fileName);
     }
 
     /// <summary>

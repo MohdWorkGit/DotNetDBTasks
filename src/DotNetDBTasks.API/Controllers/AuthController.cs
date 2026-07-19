@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.AspNetCore.Mvc;
 
@@ -164,6 +165,7 @@ public class AuthController : ControllerBase
     /// Use this for admin login or when SSO is not available.
     /// </summary>
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login(
         [FromBody] LoginCommand command,
         CancellationToken cancellationToken)

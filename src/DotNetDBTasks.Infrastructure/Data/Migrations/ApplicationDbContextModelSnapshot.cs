@@ -151,6 +151,13 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TIMESTAMP(7)");
 
+                    b.Property<byte[]>("WordTemplate")
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("WordTemplateFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("NVARCHAR2(255)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DatabaseUserId");
@@ -667,6 +674,40 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("ScheduledTaskViewers");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.SystemTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("NVARCHAR2(255)");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("NVARCHAR2(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("SystemTemplates");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.User", b =>
