@@ -48,6 +48,10 @@ public class UpdateScheduledTaskCommand : IRequest<ScheduledTaskDto>
     public List<ScheduledTaskTriggerInput> Triggers { get; set; } = new();
     public List<ScheduledTaskItemInput> Items { get; set; } = new();
     public List<Guid> ViewerUserIds { get; set; } = new();
+
+    /// <summary>Viewers who may also download the run's export files. Ids not present
+    /// in <see cref="ViewerUserIds"/> are ignored (download implies view).</summary>
+    public List<Guid> DownloadUserIds { get; set; } = new();
 }
 
 public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduledTaskCommand, ScheduledTaskDto>
@@ -117,10 +121,16 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
 
         foreach (var viewer in task.Viewers.ToList())
             _unitOfWork.ScheduledTaskViewers.Delete(viewer);
+        var downloadUserIds = request.DownloadUserIds.ToHashSet();
         foreach (var userId in request.ViewerUserIds.Distinct())
         {
             await _unitOfWork.ScheduledTaskViewers.AddAsync(
-                new ScheduledTaskViewer { ScheduledTaskId = task.Id, UserId = userId }, cancellationToken);
+                new ScheduledTaskViewer
+                {
+                    ScheduledTaskId = task.Id,
+                    UserId = userId,
+                    CanDownloadFiles = downloadUserIds.Contains(userId)
+                }, cancellationToken);
         }
 
         _unitOfWork.ScheduledTasks.Update(task);

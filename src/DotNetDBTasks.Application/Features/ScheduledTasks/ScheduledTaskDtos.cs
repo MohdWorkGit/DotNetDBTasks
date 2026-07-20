@@ -38,6 +38,11 @@ public class ScheduledTaskDto
     public List<ScheduledTaskItemDto> Items { get; set; } = new();
     public List<ScheduledTaskViewerDto> Viewers { get; set; } = new();
     public ScheduledTaskRunDto? LastRun { get; set; }
+
+    /// <summary>Whether the CURRENT user may download this task's export files
+    /// (Admin/Auditor, or a viewer granted the download permission). Set by the
+    /// query handlers, not the mapper.</summary>
+    public bool CanDownloadFiles { get; set; }
 }
 
 public class ScheduledTaskTriggerDto
@@ -80,6 +85,9 @@ public class ScheduledTaskViewerDto
 {
     public Guid UserId { get; set; }
     public string Username { get; set; } = string.Empty;
+
+    /// <summary>When true the viewer may also download the run's export files.</summary>
+    public bool CanDownloadFiles { get; set; }
 }
 
 public class ScheduledTaskRunDto
@@ -157,7 +165,8 @@ public static class ScheduledTaskMapper
             .Select(v => new ScheduledTaskViewerDto
             {
                 UserId = v.UserId,
-                Username = v.User?.Username ?? string.Empty
+                Username = v.User?.Username ?? string.Empty,
+                CanDownloadFiles = v.CanDownloadFiles
             })
             .OrderBy(v => v.Username)
             .ToList(),

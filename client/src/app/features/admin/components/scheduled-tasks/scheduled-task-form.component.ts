@@ -290,12 +290,22 @@ import {
           <mat-card-content>
             <mat-form-field appearance="outline" class="full">
               <mat-label>Users who can view this task's status</mat-label>
-              <mat-select formControlName="viewerUserIds" multiple>
+              <mat-select formControlName="viewerUserIds" multiple (selectionChange)="pruneDownloadUsers()">
                 <mat-option *ngFor="let u of users" [value]="u.id">
                   {{ u.username }}<span *ngIf="u.firstName || u.lastName"> — {{ u.firstName }} {{ u.lastName }}</span>
                 </mat-option>
               </mat-select>
               <mat-hint>Admins and Auditors always see every task.</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Viewers who can also download the output files</mat-label>
+              <mat-select formControlName="downloadUserIds" multiple>
+                <mat-option *ngFor="let u of viewerUsers" [value]="u.id">
+                  {{ u.username }}<span *ngIf="u.firstName || u.lastName"> — {{ u.firstName }} {{ u.lastName }}</span>
+                </mat-option>
+              </mat-select>
+              <mat-hint>Pick from the viewers above. Admins and Auditors can always download.</mat-hint>
             </mat-form-field>
           </mat-card-content>
         </mat-card>
@@ -415,6 +425,22 @@ export class ScheduledTaskFormComponent implements OnInit {
     return this.queries;
   }
 
+  /** Only granted viewers can be offered the extra download permission. */
+  get viewerUsers() {
+    const viewerIds: string[] = this.form.get('viewerUserIds')?.value || [];
+    return this.users.filter(u => viewerIds.includes(u.id));
+  }
+
+  /** Removing a viewer also revokes their download grant. */
+  pruneDownloadUsers(): void {
+    const viewerIds: string[] = this.form.get('viewerUserIds')?.value || [];
+    const download: string[] = this.form.get('downloadUserIds')?.value || [];
+    const pruned = download.filter(id => viewerIds.includes(id));
+    if (pruned.length !== download.length) {
+      this.form.get('downloadUserIds')?.setValue(pruned);
+    }
+  }
+
   isWord(index: number): boolean {
     return this.items.at(index).get('exportFormat')?.value === ExportFileFormat.Word;
   }
@@ -451,7 +477,8 @@ export class ScheduledTaskFormComponent implements OnInit {
       timestampFormat: [''],
       triggers: this.fb.array([]),
       items: this.fb.array([]),
-      viewerUserIds: [[] as string[]]
+      viewerUserIds: [[] as string[]],
+      downloadUserIds: [[] as string[]]
     });
 
     this.taskId = this.route.snapshot.paramMap.get('id');
@@ -497,7 +524,8 @@ export class ScheduledTaskFormComponent implements OnInit {
           combinedCsvSeparator: task.combinedCsvSeparator === '\t' ? 'tab' : (task.combinedCsvSeparator || ','),
           combinedAppendTimestamp: task.combinedAppendTimestamp !== false,
           timestampFormat: task.timestampFormat || '',
-          viewerUserIds: task.viewers.map(v => v.userId)
+          viewerUserIds: task.viewers.map(v => v.userId),
+          downloadUserIds: task.viewers.filter(v => v.canDownloadFiles).map(v => v.userId)
         });
         for (const trigger of (task.triggers?.length ? task.triggers : [null])) {
           this.addTrigger();
@@ -694,7 +722,9 @@ export class ScheduledTaskFormComponent implements OnInit {
         initialKey: this.itemMeta[i]?.isWrite ? null : (item.initialKey || null),
         resetKey: !!item.resetKey
       })),
-      viewerUserIds: value.viewerUserIds || []
+      viewerUserIds: value.viewerUserIds || [],
+      downloadUserIds: (value.downloadUserIds || [])
+        .filter((id: string) => (value.viewerUserIds || []).includes(id))
     };
 
     const call = this.isEdit && this.taskId

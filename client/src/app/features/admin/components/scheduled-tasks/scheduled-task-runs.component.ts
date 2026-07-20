@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
-import { ScheduledTask, ScheduledTaskRun, utcDate } from '@core/models/scheduled-task.model';
+import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '@core/models/scheduled-task.model';
 
 @Component({
   standalone: false,
@@ -53,7 +53,17 @@ import { ScheduledTask, ScheduledTaskRun, utcDate } from '@core/models/scheduled
             </tr>
             <tr *ngFor="let item of run.items">
               <td>{{ item.queryName }}<span class="muted" *ngIf="item.isWrite"> (data change)</span></td>
-              <td>{{ item.fileName || (item.isWrite ? 'no file' : '—') }}</td>
+              <td>
+                <a *ngIf="item.fileName && item.success && task?.canDownloadFiles" class="file-link"
+                   href="javascript:void(0)"
+                   matTooltip="Download"
+                   (click)="download(run, item)">
+                  <mat-icon class="file-icon" inline>download</mat-icon>{{ item.fileName }}
+                </a>
+                <ng-container *ngIf="!(item.fileName && item.success && task?.canDownloadFiles)">
+                  {{ item.fileName || (item.isWrite ? 'no file' : '—') }}
+                </ng-container>
+              </td>
               <td>{{ item.success ? item.rowCount + (item.isWrite ? ' affected' : '') : '—' }}</td>
               <td>{{ item.lastKey || '—' }}</td>
               <td>{{ item.durationMs }} ms</td>
@@ -92,6 +102,16 @@ import { ScheduledTask, ScheduledTaskRun, utcDate } from '@core/models/scheduled
     }
     table.items th { color: var(--text-secondary); font-weight: 500; }
     .muted { color: var(--text-secondary); font-size: 12px; }
+    .file-link {
+      color: #2196f3;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .file-link:hover { text-decoration: underline; }
+    .file-icon { font-size: 16px; }
   `]
 })
 export class ScheduledTaskRunsComponent implements OnInit {
@@ -130,6 +150,26 @@ export class ScheduledTaskRunsComponent implements OnInit {
         this.loading = false;
         this.snackBar.open('Failed to load run history', 'Close', { duration: 5000 });
         this.cdr.detectChanges();
+      }
+    });
+  }
+
+  download(run: ScheduledTaskRun, item: ScheduledTaskRunItem): void {
+    const fileName = item.fileName!;
+    this.scheduledTaskService.downloadRunFile(this.taskId, run.id, fileName).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        const message = err?.status === 404
+          ? 'The file is no longer available on the server (it may have been moved, deleted or overwritten by a newer run).'
+          : 'Failed to download the file';
+        this.snackBar.open(message, 'Close', { duration: 6000 });
       }
     });
   }

@@ -37,13 +37,16 @@ public class GetScheduledTaskByIdQueryHandler : IRequestHandler<GetScheduledTask
             .OrderByDescending(r => r.StartedAt)
             .FirstOrDefault();
 
-        return ScheduledTaskMapper.ToDto(task, lastRun);
+        var dto = ScheduledTaskMapper.ToDto(task, lastRun);
+        dto.CanDownloadFiles = ScheduledTaskAccess.CanDownloadFiles(task, _currentUser);
+        return dto;
     }
 }
 
 /// <summary>
 /// Shared read-permission rule: Admins and Auditors see every scheduled task;
-/// everyone else needs an explicit viewer grant.
+/// everyone else needs an explicit viewer grant. Downloading a run's export files
+/// additionally requires the viewer's CanDownloadFiles permission.
 /// </summary>
 public static class ScheduledTaskAccess
 {
@@ -52,5 +55,18 @@ public static class ScheduledTaskAccess
         var seesAll = currentUser.Roles.Contains("Admin") || currentUser.Roles.Contains("Auditor");
         if (!seesAll && task.Viewers.All(v => v.UserId != currentUser.UserId))
             throw new ForbiddenAccessException("You do not have access to this scheduled task.");
+    }
+
+    /// <summary>Requires the task's Viewers navigation to be loaded.</summary>
+    public static bool CanDownloadFiles(ScheduledTask task, ICurrentUserService currentUser) =>
+        currentUser.Roles.Contains("Admin")
+        || currentUser.Roles.Contains("Auditor")
+        || task.Viewers.Any(v => v.UserId == currentUser.UserId && v.CanDownloadFiles);
+
+    public static void EnsureCanDownloadFiles(ScheduledTask task, ICurrentUserService currentUser)
+    {
+        EnsureCanView(task, currentUser);
+        if (!CanDownloadFiles(task, currentUser))
+            throw new ForbiddenAccessException("You do not have permission to download this task's files.");
     }
 }

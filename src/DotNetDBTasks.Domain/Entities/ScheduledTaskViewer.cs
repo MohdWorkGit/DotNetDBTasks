@@ -11,4 +11,10 @@ public class ScheduledTaskViewer
 
     public Guid UserId { get; set; }
     public User User { get; set; } = null!;
+
+    /// <summary>
+    /// When true the viewer may also download the run's export files; plain viewers
+    /// only see statuses and file names. Admins and Auditors can always download.
+    /// </summary>
+    public bool CanDownloadFiles { get; set; }
 }

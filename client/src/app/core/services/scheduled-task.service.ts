@@ -30,6 +30,15 @@ export class ScheduledTaskService {
     return this.http.get<ScheduledTaskRun[]>(`${this.baseUrl}/${id}/runs`, { params });
   }
 
+  /** Downloads an export file recorded in a run's item results (404 if it was since removed). */
+  downloadRunFile(taskId: string, runId: string, fileName: string): Observable<Blob> {
+    const params = new HttpParams().set('fileName', fileName);
+    return this.http.get(`${this.baseUrl}/${taskId}/runs/${runId}/file`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
   create(request: SaveScheduledTaskRequest): Observable<ScheduledTask> {
     return this.http.post<ScheduledTask>(this.baseUrl, request);
   }

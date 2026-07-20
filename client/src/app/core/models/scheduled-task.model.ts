@@ -58,6 +58,8 @@ export interface ScheduledTaskItem {
 export interface ScheduledTaskViewer {
   userId: string;
   username: string;
+  /** When true the viewer may also download the run's export files. */
+  canDownloadFiles: boolean;
 }
 
 export interface ScheduledTaskRunItem {
@@ -108,6 +110,8 @@ export interface ScheduledTask {
   items: ScheduledTaskItem[];
   viewers: ScheduledTaskViewer[];
   lastRun?: ScheduledTaskRun | null;
+  /** Whether the CURRENT user may download this task's export files. */
+  canDownloadFiles?: boolean;
 }
 
 export interface ScheduledTaskItemInput {
@@ -146,6 +150,8 @@ export interface SaveScheduledTaskRequest {
   triggers: ScheduleTrigger[];
   items: ScheduledTaskItemInput[];
   viewerUserIds: string[];
+  /** Viewers who may also download the run's export files (subset of viewerUserIds). */
+  downloadUserIds: string[];
 }
 
 /**

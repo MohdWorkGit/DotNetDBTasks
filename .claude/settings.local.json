@@ -31,7 +31,13 @@
       "Bash(curl -s http://localhost:60187/api/admin/dynamicqueries -H 'Authorization: Bearer __TRACKED_VAR__')",
       "Bash(curl -s -o pdftest/user-template.docx -w 'download: %{http_code}\\\\n' http://localhost:60187/api/admin/dynamicqueries/44392008-766f-410d-9fac-275a77b24c60/word-template -H 'Authorization: Bearer __TRACKED_VAR__')",
       "Bash(cp e2e-wordpdf.pdf pdftest/sample.pdf)",
-      "Bash(node render-pdf.mjs)"
+      "Bash(node render-pdf.mjs)",
+      "PowerShell(dotnet build src\\\\DotNetDBTasks.API\\\\DotNetDBTasks.API.csproj --nologo -v q -p:OutputPath=\"C:\\\\Users\\\\msm508\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-msm508-Desktop-DBTasks-DotNetDBTasks\\\\19469397-8e00-49bf-9b52-4249bd3e7632\\\\scratchpad\\\\apibuild\\\\\")",
+      "Bash(npm i *)",
+      "Bash(npx playwright *)",
+      "Bash(node darkshots.js)"
     ]
-  }
+  },
+  "includeCoAuthoredBy": false,
+  "gitAttribution": false
 }

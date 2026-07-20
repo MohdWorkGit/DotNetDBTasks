@@ -68,7 +68,17 @@ import {
                 <span class="status" [ngClass]="'status-' + run.status">{{ statusLabel(run.status) }}</span>
               </td>
               <td>{{ run.triggeredByUsername ? 'manual' : 'scheduled' }}</td>
-              <td>{{ fileSummary(run) }}</td>
+              <td>
+                <ng-container *ngIf="task.canDownloadFiles && runFiles(run).length; else summary">
+                  <a *ngFor="let f of runFiles(run)" class="file-link"
+                     href="javascript:void(0)"
+                     matTooltip="Download"
+                     (click)="download(task, run, f)">
+                    <mat-icon class="file-icon" inline>download</mat-icon>{{ f }}
+                  </a>
+                </ng-container>
+                <ng-template #summary>{{ fileSummary(run) }}</ng-template>
+              </td>
             </tr>
           </table>
           <p class="hint" *ngIf="runs[task.id] && runs[task.id].length === 0">
@@ -100,6 +110,17 @@ import {
       font-size: 13px;
     }
     table.runs th { color: var(--text-secondary); font-weight: 500; }
+    .file-link {
+      color: #2196f3;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-right: 12px;
+    }
+    .file-link:hover { text-decoration: underline; }
+    .file-icon { font-size: 16px; }
   `]
 })
 export class ScheduleStatusComponent implements OnInit {
@@ -167,5 +188,29 @@ export class ScheduleStatusComponent implements OnInit {
   fileSummary(run: ScheduledTaskRun): string {
     const ok = run.items.filter(i => i.success).length;
     return `${ok}/${run.items.length} succeeded`;
+  }
+
+  /** Distinct export files of a run (combined-output runs record the same file on every item). */
+  runFiles(run: ScheduledTaskRun): string[] {
+    return [...new Set(run.items.filter(i => i.success && i.fileName).map(i => i.fileName!))];
+  }
+
+  download(task: ScheduledTask, run: ScheduledTaskRun, fileName: string): void {
+    this.scheduledTaskService.downloadRunFile(task.id, run.id, fileName).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        const message = err?.status === 404
+          ? 'The file is no longer available on the server (it may have been moved, deleted or overwritten by a newer run).'
+          : 'Failed to download the file';
+        this.snackBar.open(message, 'Close', { duration: 6000 });
+      }
+    });
   }
 }

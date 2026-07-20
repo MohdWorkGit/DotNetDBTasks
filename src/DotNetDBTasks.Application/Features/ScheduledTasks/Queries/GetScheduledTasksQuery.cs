@@ -44,7 +44,12 @@ public class GetScheduledTasksQueryHandler : IRequestHandler<GetScheduledTasksQu
 
         return tasks
             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(t => ScheduledTaskMapper.ToDto(t, lastRuns.GetValueOrDefault(t.Id)))
+            .Select(t =>
+            {
+                var dto = ScheduledTaskMapper.ToDto(t, lastRuns.GetValueOrDefault(t.Id));
+                dto.CanDownloadFiles = ScheduledTaskAccess.CanDownloadFiles(t, _currentUser);
+                return dto;
+            })
             .ToList();
     }
 }

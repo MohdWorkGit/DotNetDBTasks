@@ -669,6 +669,9 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("RAW(16)");
 
+                    b.Property<short>("CanDownloadFiles")
+                        .HasColumnType("NUMBER(5)");
+
                     b.HasKey("ScheduledTaskId", "UserId");
 
                     b.HasIndex("UserId");

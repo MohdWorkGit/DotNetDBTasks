@@ -44,6 +44,23 @@ public class ScheduledTasksController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Downloads an export file recorded in a run's item results, served from the
+    /// task's output folder (or the archive copy). 404 when the file no longer
+    /// exists on the server.
+    /// </summary>
+    [HttpGet("{id:guid}/runs/{runId:guid}/file")]
+    public async Task<IActionResult> DownloadRunFile(
+        Guid id,
+        Guid runId,
+        [FromQuery] string fileName,
+        CancellationToken cancellationToken)
+    {
+        var file = await _mediator.Send(
+            new DownloadScheduledTaskRunFileQuery(id, runId, fileName), cancellationToken);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
+
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(
