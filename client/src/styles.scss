@@ -80,6 +80,27 @@ body.dark-theme {
   --accent-primary: #818cf8;
   --accent-hover: #6366f1;
 
+  // ── Angular Material M3 system tokens ──
+  // The azure-blue prebuilt theme defines --mat-sys-* on <html> with LIGHT values.
+  // Many M3 components (mat-card, mat-expansion-panel, mat-tabs labels, filled
+  // form fields, menus, dialogs, select panels) read these directly and ignore the
+  // older component tokens patched below, so they render light in dark mode.
+  // Remap the surface/on-surface family to the dark palette to fix them at the root.
+  --mat-sys-background: var(--bg-primary);
+  --mat-sys-on-background: var(--text-primary);
+  --mat-sys-surface: var(--bg-primary);
+  --mat-sys-surface-dim: var(--bg-primary);
+  --mat-sys-surface-bright: var(--bg-surface);
+  --mat-sys-surface-container-lowest: var(--bg-primary);
+  --mat-sys-surface-container-low: var(--bg-card);
+  --mat-sys-surface-container: var(--bg-card);
+  --mat-sys-surface-container-high: var(--bg-surface);
+  --mat-sys-surface-container-highest: var(--bg-surface);
+  --mat-sys-on-surface: var(--text-primary);
+  --mat-sys-on-surface-variant: var(--text-secondary);
+  --mat-sys-outline: var(--divider-color);
+  --mat-sys-outline-variant: var(--border-color);
+
   background-color: var(--bg-primary);
   color: var(--text-primary);
 
@@ -105,6 +126,20 @@ body.dark-theme {
         color: var(--text-primary);
       }
     }
+  }
+
+  // In dark mode an expansion panel shares the page's base surface, so its
+  // elevation shadow is invisible and the box edges disappear. A border restores
+  // the visible boundary.
+  .mat-expansion-panel {
+    border: 1px solid var(--divider-color);
+  }
+
+  // My Queries group boxes: give each panel a raised shade (one step above the
+  // page) so it reads as a distinct container, not just a bordered region.
+  .groups .mat-expansion-panel {
+    --mat-expansion-container-background-color: var(--bg-card);
+    background-color: var(--bg-card);
   }
 
   .mat-toolbar {
@@ -215,6 +250,20 @@ body.dark-theme {
   .mat-mdc-chip {
     --mdc-chip-elevated-container-color: var(--bg-surface);
     --mdc-chip-label-text-color: var(--text-primary);
+  }
+
+  // Filled status/role chips (User Management) use the light green/red status
+  // colors as their background in dark mode. Their default light label text then
+  // nearly vanishes (measured contrast ~1.1 for "Inactive"). Force dark label
+  // text, which reads clearly on the light fills (contrast 6-8:1).
+  .mat-mdc-chip.active,
+  .mat-mdc-chip.inactive,
+  .mat-mdc-chip.admin-chip {
+    --mdc-chip-label-text-color: var(--bg-primary);
+
+    .mdc-evolution-chip__text-label {
+      color: var(--bg-primary) !important;
+    }
   }
 
   .mat-datepicker-content {
@@ -336,24 +385,49 @@ body.dark-theme {
     color: var(--text-primary);
   }
 
-  // Nested parameter cards (query-form)
+  // Nested parameter cards (query-form). Use the card surface (one step darker
+  // than bg-surface) so the outlined input fields inside have a background to
+  // contrast against — otherwise their outline matches the card and the boxes
+  // become invisible.
   .param-card {
-    background-color: var(--bg-surface);
+    background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
   }
 
-  // Dropdown config sections
+  // Dropdown config sections — a lighter recessed well nested inside the card.
   .dropdown-config {
     background-color: var(--bg-surface);
     border-color: var(--border-color);
     color: var(--text-primary);
   }
 
-  // Query grid cards
+  // The outlined parameter/dropdown input fields sit on the lighter card
+  // surfaces, where the default outline color (--border-color) is nearly
+  // invisible. Give them a lighter outline so each field reads as a distinct box.
+  // Targets the notched-outline segments directly to override the global rule above.
+  .param-card,
+  .dropdown-config {
+    .mdc-text-field--outlined:not(.mdc-text-field--disabled) {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: var(--text-hint);
+      }
+    }
+  }
+
+  // Query grid cards — one shade lighter than the group box they sit in
+  // (page < group box < card), so each card reads as a raised tile.
   .query-grid .query-card {
-    background-color: var(--bg-card);
+    background-color: var(--bg-surface);
     color: var(--text-primary);
+
+    // Chips would otherwise match the lighter card; drop them a shade so the
+    // parameter pills stay legible.
+    .mat-mdc-chip {
+      --mdc-chip-elevated-container-color: var(--bg-card);
+    }
   }
 
   // Form actions areas

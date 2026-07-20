@@ -277,7 +277,7 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
       background: var(--bg-surface);
       border-radius: 4px;
     }
-    .dropdown-config h4 { margin: 0 0 8px; font-size: 14px; color: var(--text-hint); }
+    .dropdown-config h4 { margin: 0 0 8px; font-size: 14px; color: var(--text-secondary); }
     .source-radio-group { display: flex; gap: 24px; margin-bottom: 16px; }
     .allow-multiple-toggle { display: block; margin-bottom: 12px; }
     .multi-value-block { margin: 8px 0 12px; }
