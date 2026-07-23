@@ -38,6 +38,10 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
               · {{ run.triggeredByUsername ? 'manual by ' + run.triggeredByUsername : 'scheduled' }}
               <span *ngIf="run.completedAt"> · {{ duration(run) }}</span>
             </mat-panel-description>
+            <button *ngIf="run.status === 'Running'" mat-stroked-button color="warn" class="cancel-btn"
+                    (click)="$event.stopPropagation(); cancel(run)" [disabled]="cancelingId === run.id">
+              <mat-icon>stop</mat-icon> {{ cancelingId === run.id ? 'Canceling…' : 'Cancel' }}
+            </button>
           </mat-expansion-panel-header>
 
           <p class="error" *ngIf="run.error">{{ run.error }}</p>
@@ -92,7 +96,9 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
     .status-PartiallySucceeded { color: #ff9800; }
     .status-Failed { color: #f44336; }
     .status-Running { color: #2196f3; }
+    .status-Canceled { color: #9e9e9e; }
     .error { color: #f44336; }
+    .cancel-btn { margin-left: 12px; line-height: 30px; }
     table.items { width: 100%; border-collapse: collapse; }
     table.items th, table.items td {
       text-align: left;
@@ -118,6 +124,7 @@ export class ScheduledTaskRunsComponent implements OnInit {
   task: ScheduledTask | null = null;
   runs: ScheduledTaskRun[] = [];
   loading = true;
+  cancelingId: string | null = null;
   private taskId = '';
 
   constructor(
@@ -170,6 +177,25 @@ export class ScheduledTaskRunsComponent implements OnInit {
           ? 'The file is no longer available on the server (it may have been moved, deleted or overwritten by a newer run).'
           : 'Failed to download the file';
         this.snackBar.open(message, 'Close', { duration: 6000 });
+      }
+    });
+  }
+
+  cancel(run: ScheduledTaskRun): void {
+    this.cancelingId = run.id;
+    this.scheduledTaskService.cancelRun(this.taskId, run.id).subscribe({
+      next: () => {
+        this.cancelingId = null;
+        this.snackBar.open('Cancellation requested — the running query is being stopped.', 'Close', { duration: 4000 });
+        this.load();
+      },
+      error: (err) => {
+        this.cancelingId = null;
+        const message = err?.status === 409
+          ? 'That run is no longer in progress.'
+          : 'Failed to cancel the run';
+        this.snackBar.open(message, 'Close', { duration: 5000 });
+        this.load();
       }
     });
   }

@@ -20,6 +20,10 @@ namespace DotNetDBTasks.Infrastructure.Services;
 /// and upload back as the system default. {{QUERY_NAME}}, {{GENERATED_AT}} and
 /// {{ROW_COUNT}} are replaced as text anywhere in the body, headers and footers
 /// (paragraph granularity: a matching paragraph keeps its first run's formatting).
+/// Each query parameter is exposed the same way it is referenced in the SQL: a
+/// {{@paramName}} placeholder is replaced with the value the query ran with (multi-value
+/// parameters join their values with ", "). {{PARAMS}} expands to every parameter as
+/// "Display Name: value", one per line.
 ///
 /// {{RESULTS}} marks where the result table goes, and the template controls the table's
 /// styling: when the marker sits INSIDE a table, that table is the styling prototype —
@@ -38,7 +42,8 @@ internal static partial class WordExporter
         IReadOnlyList<ExportResultSet> results,
         string title,
         bool includeHeaders,
-        byte[]? template = null)
+        byte[]? template = null,
+        IReadOnlyList<ExportParameter>? parameters = null)
     {
         var rowCount = results.Sum(r => r.Rows.Count);
         var replacements = new Dictionary<string, string>
@@ -48,7 +53,33 @@ internal static partial class WordExporter
             ["{{ROW_COUNT}}"] = rowCount.ToString(CultureInfo.InvariantCulture)
         };
 
+        if (parameters is { Count: > 0 })
+        {
+            // Expose each parameter as {{@name}} — the same @name it is bound by in the SQL.
+            foreach (var parameter in parameters)
+                replacements["{{@" + parameter.Name + "}}"] = FormatParameterValue(parameter.Value);
+
+            // {{PARAMS}} — every parameter as "Display Name: value", one per line.
+            replacements["{{PARAMS}}"] = string.Join("\n",
+                parameters.Select(p =>
+                    $"{(string.IsNullOrWhiteSpace(p.DisplayName) ? p.Name : p.DisplayName)}: {FormatParameterValue(p.Value)}"));
+        }
+
         return FillTemplate(template ?? BuildStarterTemplate(), results, includeHeaders, replacements);
+    }
+
+    /// <summary>
+    /// Renders a bound parameter value for a placeholder: multi-value parameters (bound as a
+    /// sequence for IN clauses) join with ", "; everything else uses the same culture-invariant
+    /// formatting as result cells.
+    /// </summary>
+    private static string FormatParameterValue(object? value)
+    {
+        if (value is null or DBNull)
+            return string.Empty;
+        if (value is not string && value is not byte[] && value is System.Collections.IEnumerable sequence)
+            return string.Join(", ", sequence.Cast<object?>().Select(ResultFileExporter.FormatValue));
+        return ResultFileExporter.FormatValue(value);
     }
 
     // ---------- starter template ----------
@@ -417,8 +448,12 @@ internal static partial class WordExporter
             var pPr = ParagraphPropsRegex().Match(paragraph).Value;
             var rPr = RunPropsRegex().Match(paragraph).Value;
             var openTag = paragraph[..(paragraph.IndexOf('>') + 1)];
+            // Embedded newlines (e.g. the {{PARAMS}} list) become real Word line breaks so a
+            // multi-line replacement doesn't collapse onto one line.
+            var body = EscapeXml(replaced).Replace("\r\n", "\n").Replace("\r", "\n")
+                .Replace("\n", "</w:t><w:br/><w:t xml:space=\"preserve\">");
             return openTag + pPr +
-                "<w:r>" + rPr + "<w:t xml:space=\"preserve\">" + EscapeXml(replaced) + "</w:t></w:r></w:p>";
+                "<w:r>" + rPr + "<w:t xml:space=\"preserve\">" + body + "</w:t></w:r></w:p>";
         });
     }
 

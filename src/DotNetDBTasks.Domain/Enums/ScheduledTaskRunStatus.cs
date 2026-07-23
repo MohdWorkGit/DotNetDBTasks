@@ -14,5 +14,8 @@ public enum ScheduledTaskRunStatus
     PartiallySucceeded = 2,
 
     /// <summary>No item exported successfully.</summary>
-    Failed = 3
+    Failed = 3,
+
+    /// <summary>An admin cancelled the run while it was in progress (the running query was aborted).</summary>
+    Canceled = 4
 }

@@ -65,11 +65,8 @@ public class QueryJobWorker : BackgroundService
             try
             {
                 var result = await mediator.Send(job.Command, linked.Token);
-                _jobStore.Update(jobId, j =>
-                {
-                    j.Result = result;
-                    j.Status = QueryJobStatus.Succeeded;
-                });
+                // Store decides whether to keep the rows in the heap or spill them to disk.
+                _jobStore.SetResult(jobId, result);
             }
             catch (OperationCanceledException) when (job.Cts.IsCancellationRequested)
             {

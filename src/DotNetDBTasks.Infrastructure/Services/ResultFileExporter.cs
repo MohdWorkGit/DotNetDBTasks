@@ -33,8 +33,9 @@ public class ResultFileExporter : IResultFileExporter
         string name,
         string csvSeparator = ",",
         bool includeHeaders = true,
-        byte[]? wordTemplate = null) =>
-        Export(format, new[] { new ExportResultSet(columns, rows) }, name, csvSeparator, includeHeaders, wordTemplate);
+        byte[]? wordTemplate = null,
+        IReadOnlyList<ExportParameter>? parameters = null) =>
+        Export(format, new[] { new ExportResultSet(columns, rows) }, name, csvSeparator, includeHeaders, wordTemplate, parameters);
 
     public byte[] Export(
         ExportFileFormat format,
@@ -42,15 +43,16 @@ public class ResultFileExporter : IResultFileExporter
         string name,
         string csvSeparator = ",",
         bool includeHeaders = true,
-        byte[]? wordTemplate = null)
+        byte[]? wordTemplate = null,
+        IReadOnlyList<ExportParameter>? parameters = null)
     {
         return format switch
         {
             ExportFileFormat.Excel => _excelExporter.Export(results, name, includeHeaders),
             ExportFileFormat.Csv => ExportCsv(results, csvSeparator, includeHeaders),
             ExportFileFormat.Json => ExportJson(results),
-            ExportFileFormat.Pdf => ExportPdf(results, name, includeHeaders, wordTemplate),
-            ExportFileFormat.Word => WordExporter.Export(results, name, includeHeaders, wordTemplate),
+            ExportFileFormat.Pdf => ExportPdf(results, name, includeHeaders, wordTemplate, parameters),
+            ExportFileFormat.Word => WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters),
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.")
         };
     }
@@ -77,11 +79,12 @@ public class ResultFileExporter : IResultFileExporter
         IReadOnlyList<ExportResultSet> results,
         string name,
         bool includeHeaders,
-        byte[]? wordTemplate)
+        byte[]? wordTemplate,
+        IReadOnlyList<ExportParameter>? parameters)
     {
         if (_docxToPdfConverter.IsAvailable)
         {
-            var docx = WordExporter.Export(results, name, includeHeaders, wordTemplate);
+            var docx = WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters);
             var pdf = _docxToPdfConverter.TryConvert(docx);
             if (pdf is not null)
                 return pdf;

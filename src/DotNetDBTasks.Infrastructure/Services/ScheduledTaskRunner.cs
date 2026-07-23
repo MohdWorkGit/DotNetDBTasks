@@ -30,6 +30,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
     private readonly IMediator _mediator;
     private readonly IUserExecutionContext _userContext;
     private readonly IResultFileExporter _exporter;
+    private readonly IScheduledTaskRunRegistry _runRegistry;
     private readonly ILogger<ScheduledTaskRunner> _logger;
 
     /// <summary>
@@ -43,19 +44,22 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         IMediator mediator,
         IUserExecutionContext userContext,
         IResultFileExporter exporter,
+        IScheduledTaskRunRegistry runRegistry,
         ILogger<ScheduledTaskRunner> logger)
     {
         _unitOfWork = unitOfWork;
         _mediator = mediator;
         _userContext = userContext;
         _exporter = exporter;
+        _runRegistry = runRegistry;
         _logger = logger;
     }
 
     public async Task RunAsync(ScheduledTaskRunRequest request, CancellationToken cancellationToken)
     {
         var task = (await _unitOfWork.ScheduledTasks.FindAsync(
-            t => t.Id == request.ScheduledTaskId, cancellationToken, "Items", "Items.DynamicQuery"))
+            t => t.Id == request.ScheduledTaskId, cancellationToken,
+            "Items", "Items.DynamicQuery", "Items.DynamicQuery.Parameters"))
             .FirstOrDefault();
         if (task is null)
         {
@@ -76,32 +80,47 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         await _unitOfWork.ScheduledTaskRuns.AddAsync(run, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // Register the run so an admin can cancel it; the token also trips on app shutdown. Running
+        // under runToken means a cancel aborts the executing DB command, not just the API await.
+        var runCts = _runRegistry.Register(run.Id, cancellationToken);
+        var runToken = runCts.Token;
+
         var results = new List<ScheduledTaskItemResult>();
         try
         {
             // Runs execute under the task creator's identity so the unchanged query
             // pipeline applies their access rights and attributes the audit log to them.
-            _userContext.Current = await BuildCreatorSnapshotAsync(task.CreatedByUserId, cancellationToken);
+            _userContext.Current = await BuildCreatorSnapshotAsync(task.CreatedByUserId, runToken);
 
             Directory.CreateDirectory(task.OutputFolder);
             if (!string.IsNullOrWhiteSpace(task.ArchiveFolder))
                 Directory.CreateDirectory(task.ArchiveFolder);
 
             var orderedItems = task.Items.OrderBy(i => i.SortOrder).ToList();
-            _defaultWordTemplate = await LoadDefaultWordTemplateAsync(task, orderedItems, cancellationToken);
+            _defaultWordTemplate = await LoadDefaultWordTemplateAsync(task, orderedItems, runToken);
             if (task.CombineOutput)
             {
-                results.AddRange(await RunCombinedAsync(task, orderedItems, cancellationToken));
+                results.AddRange(await RunCombinedAsync(task, orderedItems, runToken));
             }
             else
             {
                 foreach (var item in orderedItems)
-                    results.Add(await RunItemAsync(task, item, cancellationToken));
+                    results.Add(await RunItemAsync(task, item, runToken));
             }
 
             run.Status = results.All(r => r.Success) ? ScheduledTaskRunStatus.Succeeded
                 : results.Any(r => r.Success) ? ScheduledTaskRunStatus.PartiallySucceeded
                 : ScheduledTaskRunStatus.Failed;
+        }
+        catch (Exception) when (runCts.IsCancellationRequested)
+        {
+            // Any exception once cancellation was requested is a consequence of the cancel — some DB
+            // providers surface the aborted command as a provider error (e.g. Oracle ORA-01013)
+            // rather than OperationCanceledException.
+            _logger.LogInformation(
+                "Scheduled task {TaskName} ({TaskId}) run was canceled", task.Name, task.Id);
+            run.Status = ScheduledTaskRunStatus.Canceled;
+            run.Error = "Run was canceled.";
         }
         catch (Exception ex)
         {
@@ -111,6 +130,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         }
         finally
         {
+            _runRegistry.Unregister(run.Id);
             _userContext.Current = null;
             run.CompletedAt = DateTime.UtcNow;
             run.ItemResultsJson = JsonSerializer.Serialize(results, JsonOptions);
@@ -160,7 +180,8 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
                 var bytes = _exporter.Export(
                     item.ExportFormat, execution.Columns, execution.Rows, queryName,
                     CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders,
-                    item.DynamicQuery?.WordTemplate ?? _defaultWordTemplate);
+                    item.DynamicQuery?.WordTemplate ?? _defaultWordTemplate,
+                    BuildExportParameters(item.DynamicQuery, execution.Parameters));
                 var fileName = BuildFileName(task, item, queryName);
                 await WriteOutputAsync(task, fileName, bytes, cancellationToken);
 
@@ -179,6 +200,10 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             }
 
             result.Success = true;
+        }
+        catch (Exception) when (cancellationToken.IsCancellationRequested)
+        {
+            throw; // a run cancellation must stop the whole run, not be isolated as an item failure
         }
         catch (Exception ex)
         {
@@ -231,6 +256,10 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
                         new ExportResultSet(execution.Columns, execution.Rows),
                         ExtractNextKey(item, execution)));
                 }
+            }
+            catch (Exception) when (cancellationToken.IsCancellationRequested)
+            {
+                throw; // a run cancellation must stop the whole run, not be isolated as an item failure
             }
             catch (Exception ex)
             {
@@ -311,6 +340,23 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             Unlimited = !isWrite,
             Confirmed = isWrite
         }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Pairs each of the query's defined parameters (for name/display name and order) with the
+    /// value it ran with, so a Word/PDF template can print {{@name}} and the {{PARAMS}} summary.
+    /// </summary>
+    private static IReadOnlyList<ExportParameter>? BuildExportParameters(
+        DynamicQuery? query,
+        IReadOnlyDictionary<string, object?> values)
+    {
+        if (query is null || query.Parameters.Count == 0)
+            return null;
+
+        return query.Parameters
+            .OrderBy(p => p.SortOrder)
+            .Select(p => new ExportParameter(p.Name, p.DisplayName, values.GetValueOrDefault(p.Name)))
+            .ToList();
     }
 
     /// <summary>

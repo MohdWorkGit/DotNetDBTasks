@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { PageEvent } from '@angular/material/paginator';
-import { Sort } from '@angular/material/sort';
+import { Sort, SortDirection } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { timeout, catchError } from 'rxjs/operators';
@@ -8,6 +8,9 @@ import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { ExecutionLog } from '@core/models/dynamic-query.model';
 import { OldRowsDialogComponent } from '@shared/components/old-rows-dialog.component';
+
+/** Order the API applies when no sortBy is sent; also where a cleared header lands. */
+const DEFAULT_SORT_BY = 'executedAt';
 
 @Component({
   standalone: false,
@@ -29,8 +32,9 @@ import { OldRowsDialogComponent } from '@shared/components/old-rows-dialog.compo
             </button>
           </div>
 
-          <table mat-table [dataSource]="logs" matSort matSortActive="executedAt" matSortDirection="desc"
-                 matSortDisableClear (matSortChange)="onSortChange($event)"
+          <table mat-table [dataSource]="logs" matSort
+                 [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+                 (matSortChange)="onSortChange($event)"
                  *ngIf="!loading && !errorMessage">
             <ng-container matColumnDef="queryName">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Query</th>
@@ -183,7 +187,11 @@ export class ExecutionHistoryComponent implements OnInit {
   totalCount = 0;
   pageNumber = 1;
   pageSize = 25;
-  sortBy = 'executedAt';
+  /** Header state. Mirrored into the component because the table is inside an
+   *  *ngIf and is destroyed on every load — MatSort's own state does not survive. */
+  sortActive = DEFAULT_SORT_BY;
+  sortDirection: SortDirection = 'desc';
+  sortBy = DEFAULT_SORT_BY;
   sortDescending = true;
 
   constructor(
@@ -227,9 +235,15 @@ export class ExecutionHistoryComponent implements OnInit {
     });
   }
 
+  /**
+   * Headers cycle asc -> desc -> unsorted. Clearing falls back to the default
+   * newest-first order, which is what the API applies when sortBy is omitted.
+   */
   onSortChange(sort: Sort): void {
-    this.sortBy = sort.active;
-    this.sortDescending = sort.direction !== 'asc';
+    this.sortActive = sort.active;
+    this.sortDirection = sort.direction;
+    this.sortBy = sort.direction ? sort.active : DEFAULT_SORT_BY;
+    this.sortDescending = sort.direction ? sort.direction === 'desc' : true;
     this.pageNumber = 1;
     this.loadHistory();
   }

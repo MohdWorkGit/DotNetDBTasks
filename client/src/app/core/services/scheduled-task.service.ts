@@ -55,4 +55,9 @@ export class ScheduledTaskService {
   runNow(id: string): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/${id}/run`, {});
   }
+
+  /** Cancels a run that is currently executing, aborting its running query (409 if not in progress). */
+  cancelRun(taskId: string, runId: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${taskId}/runs/${runId}/cancel`, {});
+  }
 }

@@ -46,8 +46,10 @@ public static class DependencyInjection
         services.AddSingleton<IResultFileExporter, ResultFileExporter>();
 
         // Scheduled export tasks: manual/scheduled runs flow through a shared queue
-        // drained by the ScheduledTaskWorker; each run executes on a scoped runner.
+        // drained by the ScheduledTaskWorker; each run executes on a scoped runner. The run
+        // registry (singleton) lets the cancel endpoint stop an in-flight run.
         services.AddSingleton<IScheduledTaskRunQueue, ScheduledTaskRunQueue>();
+        services.AddSingleton<IScheduledTaskRunRegistry, ScheduledTaskRunRegistry>();
         services.AddScoped<IScheduledTaskRunner, ScheduledTaskRunner>();
 
         // Async query execution: in-memory job store + queue + ambient user context.

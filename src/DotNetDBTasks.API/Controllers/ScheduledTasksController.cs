@@ -99,4 +99,18 @@ public class ScheduledTasksController : ControllerBase
         await _mediator.Send(new RunScheduledTaskNowCommand(id), cancellationToken);
         return Accepted();
     }
+
+    /// <summary>
+    /// Cancels a run that is currently executing, aborting its running query. 409 when the run is
+    /// not in progress (already finished, or not running on this instance).
+    /// </summary>
+    [HttpPost("{id:guid}/runs/{runId:guid}/cancel")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CancelRun(Guid id, Guid runId, CancellationToken cancellationToken)
+    {
+        var canceled = await _mediator.Send(new CancelScheduledTaskRunCommand(id, runId), cancellationToken);
+        return canceled
+            ? Accepted()
+            : Conflict(new { message = "That run is not currently in progress." });
+    }
 }

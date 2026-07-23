@@ -34,7 +34,20 @@ public class QueryJob
     public ExecuteQueryCommand Command { get; init; } = null!;
 
     public QueryJobStatus Status { get; set; } = QueryJobStatus.Queued;
+
+    /// <summary>
+    /// Execution metadata (columns, totals, preview, parameters). For a read result the potentially
+    /// large row set is NOT kept here — it lives in <see cref="CachedRows"/> — so this object stays
+    /// small in the heap.
+    /// </summary>
     public QueryExecutionResult? Result { get; set; }
+
+    /// <summary>
+    /// The cached read rows, held either in the heap (small) or spilled to disk (large). Null for
+    /// write/preview results. Paging and export go through this; it is disposed on eviction/removal.
+    /// </summary>
+    public ICachedResult? CachedRows { get; set; }
+
     public string? Error { get; set; }
     public DateTime CreatedAt { get; init; }
 
@@ -63,8 +76,15 @@ public interface IQueryJobStore
     void Update(Guid id, Action<QueryJob> mutate);
 
     /// <summary>
+    /// Records a successful execution result on the job and marks it Succeeded. For a read result
+    /// the rows are moved into <see cref="QueryJob.CachedRows"/> (spilled to disk when large) and
+    /// cleared from <see cref="QueryExecutionResult.Rows"/> so only metadata stays in the heap.
+    /// </summary>
+    void SetResult(Guid id, QueryExecutionResult result);
+
+    /// <summary>
     /// Drops a job and its cached result immediately (used when the client leaves the results
-    /// page). No-op if the job does not exist.
+    /// page). Disposes any spilled disk artifacts. No-op if the job does not exist.
     /// </summary>
     void Remove(Guid id);
 
@@ -73,4 +93,14 @@ public interface IQueryJobStore
     /// the job does not exist or has already reached a terminal state.
     /// </summary>
     bool Cancel(Guid id);
+
+    /// <summary>
+    /// Evicts results idle beyond the retention window and enforces the heap/disk size budgets via
+    /// LRU eviction (never evicting queued/running jobs), disposing artifacts as it goes. Invoked on
+    /// a timer by the maintenance background service.
+    /// </summary>
+    void RunMaintenance();
+
+    /// <summary>How often <see cref="RunMaintenance"/> should be invoked.</summary>
+    TimeSpan MaintenanceInterval { get; }
 }

@@ -14,6 +14,9 @@ public interface IResultFileExporter
     /// <param name="includeHeaders">CSV/Excel/PDF/Word only: include the column header row (default true).</param>
     /// <param name="wordTemplate">Word only: .docx template whose placeholders are filled;
     /// null uses the built-in default document layout.</param>
+    /// <param name="parameters">Word/PDF only: the parameters the query ran with (name, display
+    /// name and value), exposed in the template as {{@name}} placeholders and the {{PARAMS}}
+    /// "Display Name: value" summary.</param>
     byte[] Export(
         ExportFileFormat format,
         IReadOnlyList<string> columns,
@@ -21,7 +24,8 @@ public interface IResultFileExporter
         string name,
         string csvSeparator = ",",
         bool includeHeaders = true,
-        byte[]? wordTemplate = null);
+        byte[]? wordTemplate = null,
+        IReadOnlyList<ExportParameter>? parameters = null);
 
     /// <summary>
     /// Writes several result sets into ONE file, in list order (combined scheduled-task
@@ -34,7 +38,8 @@ public interface IResultFileExporter
         string name,
         string csvSeparator = ",",
         bool includeHeaders = true,
-        byte[]? wordTemplate = null);
+        byte[]? wordTemplate = null,
+        IReadOnlyList<ExportParameter>? parameters = null);
 
     /// <summary>File extension for the format, without the leading dot (e.g. "xlsx").</summary>
     string GetExtension(ExportFileFormat format);

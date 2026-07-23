@@ -84,7 +84,10 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                 Optional .docx used when this query's results are exported as Word. Put
                 {{ '{{RESULTS}}' }} where the result table should go; {{ '{{QUERY_NAME}}' }},
                 {{ '{{GENERATED_AT}}' }} and {{ '{{ROW_COUNT}}' }} are also replaced (including
-                in headers/footers). To style the result table, put {{ '{{RESULTS}}' }} inside a
+                in headers/footers). Each parameter's value is available as
+                {{ '{{@paramName}}' }} — the same &#64;name you use in the SQL — and
+                {{ '{{PARAMS}}' }} prints every parameter as "Display Name: value", one per line.
+                To style the result table, put {{ '{{RESULTS}}' }} inside a
                 table: its first row styles the header, the marker's row styles the data rows,
                 and an optional row below it styles alternating rows. Without a template, the
                 system default Word template is used (managed on the Dynamic Queries page).

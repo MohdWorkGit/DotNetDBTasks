@@ -38,6 +38,9 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 // Background worker that executes submitted query jobs off the request thread
 builder.Services.AddHostedService<QueryJobWorker>();
 
+// Background worker that reclaims cached results (idle eviction + heap/disk size budgets)
+builder.Services.AddHostedService<ResultCacheMaintenanceService>();
+
 // Background worker that triggers scheduled export tasks and manual "run now" requests
 builder.Services.AddHostedService<ScheduledTaskWorker>();
 

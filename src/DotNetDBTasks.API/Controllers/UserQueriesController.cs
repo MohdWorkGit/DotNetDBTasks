@@ -131,42 +131,18 @@ public class UserQueriesController : ControllerBase
         if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
             return Forbid();
 
-        if (job.Status != QueryJobStatus.Succeeded || job.Result is null)
+        if (job.Status != QueryJobStatus.Succeeded || job.CachedRows is null)
             return Conflict(new { message = "The result is not ready." });
 
-        var result = job.Result;
-        IEnumerable<Dictionary<string, object?>> rows = result.Rows;
-
-        // Per-column "contains" filter (case-insensitive) — mirrors the previous client-side filter.
-        var parsedFilters = ParseFilters(filters);
-        foreach (var (col, term) in parsedFilters)
-        {
-            var needle = term;
-            rows = rows.Where(r =>
-                r.TryGetValue(col, out var v) &&
-                (v?.ToString() ?? string.Empty).Contains(needle, StringComparison.OrdinalIgnoreCase));
-        }
-
-        var filtered = rows.ToList();
-        var filteredTotal = filtered.Count;
-
-        if (!string.IsNullOrWhiteSpace(sortColumn) && result.Columns.Contains(sortColumn))
-        {
-            var direction = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
-            filtered.Sort((a, b) =>
-                CompareCells(a.GetValueOrDefault(sortColumn!), b.GetValueOrDefault(sortColumn!)) * direction);
-        }
-
-        if (pageSize <= 0) pageSize = 25;
-        if (pageIndex < 0) pageIndex = 0;
-
-        var pageRows = filtered.Skip(pageIndex * pageSize).Take(pageSize).ToList();
+        // The cached result pages/filters/sorts internally over its heap or on-disk storage, so a
+        // large spilled result never has to be materialized here.
+        var page = job.CachedRows.GetPage(pageIndex, pageSize, sortColumn, sortDir, ParseFilters(filters));
 
         return Ok(new
         {
-            rows = pageRows,
-            filteredTotal,
-            totalRows = result.TotalRows
+            rows = page.Rows,
+            filteredTotal = page.FilteredTotal,
+            totalRows = page.TotalRows
         });
     }
 
@@ -191,7 +167,7 @@ public class UserQueriesController : ControllerBase
         if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
             return Forbid();
 
-        if (job.Status != QueryJobStatus.Succeeded || job.Result is null)
+        if (job.Status != QueryJobStatus.Succeeded || job.Result is null || job.CachedRows is null)
             return Conflict(new { message = "The export is not ready." });
 
         var fileFormat = (format ?? "").Trim().ToLowerInvariant() switch
@@ -208,6 +184,7 @@ public class UserQueriesController : ControllerBase
 
         byte[]? wordTemplate = null;
         var exportName = "Results";
+        List<ExportParameter>? exportParameters = null;
         // PDF exports are rendered from the Word template too when a DOCX->PDF engine is
         // installed, so both formats need the effective template and the query name.
         var usesWordTemplate = fileFormat == ExportFileFormat.Word ||
@@ -220,11 +197,19 @@ public class UserQueriesController : ControllerBase
             // Per-query template, else the system default; null falls back to the built-in starter.
             wordTemplate = await _mediator.Send(
                 new GetEffectiveWordTemplateQuery(job.Command.QueryId), cancellationToken);
+            // Template can print each parameter ({{@name}}) and the {{PARAMS}} summary; the
+            // display names come from the query definition, the values from the executed job.
+            exportParameters = query.Parameters
+                .OrderBy(p => p.SortOrder)
+                .Select(p => new ExportParameter(
+                    p.Name, p.DisplayName, job.Result.Parameters.GetValueOrDefault(p.Name)))
+                .ToList();
         }
 
+        // AsRowList() streams from disk for a spilled result, so a large export is not re-materialized.
         var bytes = _resultFileExporter.Export(
-            fileFormat.Value, job.Result.Columns, job.Result.Rows, exportName,
-            wordTemplate: wordTemplate);
+            fileFormat.Value, job.CachedRows.Columns, job.CachedRows.AsRowList(), exportName,
+            wordTemplate: wordTemplate, parameters: exportParameters);
         var extension = _resultFileExporter.GetExtension(fileFormat.Value);
         var contentType = fileFormat.Value switch
         {
@@ -417,11 +402,8 @@ public class UserQueriesController : ControllerBase
             _currentUser.Roles);
 
         var job = _jobStore.Create(_currentUser.UserId, snapshot, command);
-        _jobStore.Update(job.Id, j =>
-        {
-            j.Result = result;
-            j.Status = QueryJobStatus.Succeeded;
-        });
+        // Store caches the rows (heap or disk) and marks the job succeeded.
+        _jobStore.SetResult(job.Id, result);
 
         return ToExecuteDto(result, job.Id);
     }
@@ -466,26 +448,6 @@ public class UserQueriesController : ControllerBase
         {
             return new Dictionary<string, string>();
         }
-    }
-
-    /// <summary>
-    /// Orders two cell values: same-typed comparables compare directly, otherwise fall back to a
-    /// numeric compare when both parse as numbers, and finally to a case-insensitive string compare.
-    /// Nulls sort first.
-    /// </summary>
-    private static int CompareCells(object? a, object? b)
-    {
-        if (a is null && b is null) return 0;
-        if (a is null) return -1;
-        if (b is null) return 1;
-
-        if (a.GetType() == b.GetType() && a is IComparable comparable)
-            return comparable.CompareTo(b);
-
-        if (decimal.TryParse(a.ToString(), out var da) && decimal.TryParse(b.ToString(), out var db))
-            return da.CompareTo(db);
-
-        return string.Compare(a.ToString(), b.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
 }
