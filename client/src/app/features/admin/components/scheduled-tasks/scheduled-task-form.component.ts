@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
 import { forkJoin } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
@@ -38,6 +38,7 @@ import {
               <mat-form-field appearance="outline" class="grow">
                 <mat-label>Name</mat-label>
                 <input matInput formControlName="name" maxlength="200" required>
+                <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
               </mat-form-field>
               <mat-slide-toggle formControlName="isEnabled" class="toggle">Enabled</mat-slide-toggle>
             </div>
@@ -52,6 +53,9 @@ import {
               <input matInput formControlName="outputFolder" maxlength="500"
                      placeholder="D:\\Exports\\Sales" required>
               <mat-hint>Absolute path; it is created automatically if missing.</mat-hint>
+              <mat-error *ngIf="form.get('outputFolder')?.hasError('required')">
+                Output folder is required
+              </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full">
@@ -159,7 +163,7 @@ import {
                 <input matInput type="time" formControlName="timeOfDay">
               </mat-form-field>
 
-              <button mat-icon-button type="button" color="warn" matTooltip="Remove trigger"
+              <button mat-icon-button type="button" color="warn" matTooltip="Remove trigger" aria-label="Remove trigger"
                       class="remove-item" *ngIf="triggers.length > 1" (click)="removeTrigger(i)">
                 <mat-icon>close</mat-icon>
               </button>
@@ -189,6 +193,9 @@ import {
                       {{ q.name }}<span *ngIf="isWriteSql(q.sqlQuery)"> (modifies data)</span>
                     </mat-option>
                   </mat-select>
+                  <mat-error *ngIf="item.get('dynamicQueryId')?.hasError('required')">
+                    Pick a query
+                  </mat-error>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" *ngIf="!itemMeta[i]?.isWrite && !combineOutput">
@@ -196,6 +203,9 @@ import {
                   <mat-select formControlName="exportFormat" required>
                     <mat-option *ngFor="let f of formats" [value]="f">{{ formatLabels[f] }}</mat-option>
                   </mat-select>
+                  <mat-error *ngIf="item.get('exportFormat')?.hasError('required')">
+                    Pick an export format
+                  </mat-error>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="separator"
@@ -205,7 +215,7 @@ import {
                   <mat-hint>e.g. ; or ;; ("tab" = tab)</mat-hint>
                 </mat-form-field>
 
-                <button mat-icon-button type="button" color="warn" matTooltip="Remove query"
+                <button mat-icon-button type="button" color="warn" matTooltip="Remove query" aria-label="Remove query"
                         class="remove-item" (click)="removeItem(i)">
                   <mat-icon>close</mat-icon>
                 </button>
@@ -311,7 +321,9 @@ import {
         </mat-card>
 
         <div class="actions">
-          <button mat-raised-button color="primary" type="submit" [disabled]="saving || form.invalid">
+          <!-- Kept enabled when invalid: save() then explains what is wrong, instead
+               of leaving a permanently dead button with no on-screen reason. -->
+          <button mat-raised-button color="primary" type="submit" [disabled]="saving">
             <mat-icon>save</mat-icon> {{ saving ? 'Saving…' : 'Save' }}
           </button>
           <button mat-button type="button" routerLink="/admin/scheduled-tasks">Cancel</button>
@@ -320,13 +332,6 @@ import {
     </div>
   `,
   styles: [`
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .loading { display: flex; justify-content: center; padding: 40px; }
     .section { margin-bottom: 16px; }
     .section mat-card-title {
       display: flex;
@@ -335,19 +340,18 @@ import {
       font-size: 16px;
       margin-bottom: 12px;
     }
-    .row { display: flex; gap: 12px; align-items: baseline; }
-    .row.wrap { flex-wrap: wrap; }
+    .row { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
     .grow { flex: 1; }
     .full { width: 100%; }
     .toggle { margin-bottom: 20px; align-self: center; }
     .item {
-      border: 1px solid var(--border-color, rgba(128,128,128,.3));
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 12px 12px 0;
       margin-bottom: 12px;
     }
     .write-note {
-      color: #ff9800;
+      color: var(--status-warning);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -400,7 +404,7 @@ export class ScheduledTaskFormComponent implements OnInit {
     private router: Router,
     private queryService: QueryService,
     private scheduledTaskService: ScheduledTaskService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -500,9 +504,9 @@ export class ScheduledTaskFormComponent implements OnInit {
           this.cdr.detectChanges();
         }
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.snackBar.open('Failed to load queries/users', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load queries/users');
         this.cdr.detectChanges();
       }
     });
@@ -564,9 +568,9 @@ export class ScheduledTaskFormComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.snackBar.open('Failed to load the scheduled task', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load the scheduled task');
         this.router.navigate(['/admin/scheduled-tasks']);
         this.cdr.detectChanges();
       }
@@ -681,8 +685,39 @@ export class ScheduledTaskFormComponent implements OnInit {
     return wire;
   }
 
+  /** Human-readable name of the first invalid control, for the save-blocked message. */
+  private firstInvalidLabel(): string | null {
+    const labels: Record<string, string> = {
+      name: 'Name',
+      outputFolder: 'Output folder',
+      archiveFolder: 'Archive folder',
+      combinedFormat: 'Combined output format',
+      timestampFormat: 'Timestamp format',
+      triggers: 'Schedule',
+      items: 'Queries'
+    };
+    for (const key of Object.keys(this.form.controls)) {
+      if (this.form.get(key)?.invalid) return labels[key] ?? key;
+    }
+    return null;
+  }
+
   save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      // Some required controls live inside *ngIf branches (e.g. combinedFormat only
+      // renders when combineOutput is on), so form.invalid could be true with nothing
+      // visible to fix. Reveal the errors and name the first offender.
+      this.form.markAllAsTouched();
+      const first = this.firstInvalidLabel();
+      this.toast.error(
+        first ? `Please check "${first}" — some required fields are missing or invalid.`
+              : 'Some required fields are missing or invalid.',
+        'Some required fields are missing or invalid.',
+        6000
+      );
+      this.cdr.detectChanges();
+      return;
+    }
     this.saving = true;
 
     const value = this.form.value;
@@ -734,13 +769,13 @@ export class ScheduledTaskFormComponent implements OnInit {
     call.subscribe({
       next: () => {
         this.saving = false;
-        this.snackBar.open('Scheduled task saved', 'Close', { duration: 3000 });
+        this.toast.success('Scheduled task saved');
         this.router.navigate(['/admin/scheduled-tasks']);
         this.cdr.detectChanges();
       },
       error: (err) => {
         this.saving = false;
-        this.snackBar.open(err?.error?.message || 'Failed to save the scheduled task', 'Close', { duration: 6000 });
+        this.toast.error(err, 'Failed to save the scheduled task', 6000);
         this.cdr.detectChanges();
       }
     });

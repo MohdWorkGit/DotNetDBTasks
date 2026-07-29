@@ -1,5 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
+import { ConfirmService } from '@core/services/confirm.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
 import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled-task.model';
 
@@ -21,6 +22,7 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
             <mat-spinner diameter="40"></mat-spinner>
           </div>
 
+          <div class="table-wrapper">
           <table mat-table [dataSource]="tasks" *ngIf="!loading">
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef>Name</th>
@@ -38,7 +40,10 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
             <ng-container matColumnDef="enabled">
               <th mat-header-cell *matHeaderCellDef>Enabled</th>
               <td mat-cell *matCellDef="let t">
-                <mat-icon [class.enabled]="t.isEnabled" [class.disabled]="!t.isEnabled">
+                <mat-icon [class.enabled]="t.isEnabled" [class.disabled]="!t.isEnabled"
+                          [matTooltip]="t.isEnabled ? 'Enabled' : 'Disabled'"
+                          [attr.aria-label]="t.isEnabled ? 'Enabled' : 'Disabled'"
+                          role="img">
                   {{ t.isEnabled ? 'check_circle' : 'pause_circle' }}
                 </mat-icon>
               </td>
@@ -67,19 +72,19 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let t">
-                <button mat-icon-button matTooltip="Run now" (click)="runNow(t)"
+                <button mat-icon-button matTooltip="Run now" aria-label="Run now" (click)="runNow(t)"
                         [disabled]="runningIds.has(t.id)">
                   <mat-icon>play_arrow</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Run history"
+                <button mat-icon-button matTooltip="Run history" aria-label="Run history"
                         [routerLink]="['/admin/scheduled-tasks', t.id, 'runs']">
                   <mat-icon>history</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Edit"
+                <button mat-icon-button matTooltip="Edit" aria-label="Edit"
                         [routerLink]="['/admin/scheduled-tasks/edit', t.id]">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Delete" color="warn" (click)="deleteTask(t)">
+                <button mat-icon-button matTooltip="Delete" aria-label="Delete" color="warn" (click)="deleteTask(t)">
                   <mat-icon>delete</mat-icon>
                 </button>
               </td>
@@ -94,30 +99,18 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
               </td>
             </tr>
           </table>
+          </div>
         </mat-card-content>
       </mat-card>
     </div>
   `,
   styles: [`
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .loading { display: flex; justify-content: center; padding: 40px; }
     table { width: 100%; }
     .task-name { font-weight: 500; }
     .task-sub { font-size: 12px; color: var(--text-secondary); }
-    .enabled { color: #4caf50; }
+    .enabled { color: var(--status-success); }
     .disabled { color: var(--text-secondary); }
     .status { font-weight: 500; }
-    .status-Succeeded { color: #4caf50; }
-    .status-PartiallySucceeded { color: #ff9800; }
-    .status-Failed { color: #f44336; }
-    .status-Running { color: #2196f3; }
-    .no-data-row { height: 56px; }
-    .no-data-cell { text-align: center; color: var(--text-secondary); padding: 16px; }
   `]
 })
 export class ScheduledTasksListComponent implements OnInit {
@@ -128,7 +121,8 @@ export class ScheduledTasksListComponent implements OnInit {
 
   constructor(
     private scheduledTaskService: ScheduledTaskService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
+    private confirmService: ConfirmService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -144,9 +138,9 @@ export class ScheduledTasksListComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.snackBar.open('Failed to load scheduled tasks', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load scheduled tasks');
         this.cdr.detectChanges();
       }
     });
@@ -169,28 +163,34 @@ export class ScheduledTasksListComponent implements OnInit {
     this.scheduledTaskService.runNow(task.id).subscribe({
       next: () => {
         this.runningIds.delete(task.id);
-        this.snackBar.open(`"${task.name}" queued — check its run history for the result`, 'Close', { duration: 4000 });
+        this.toast.success(`"${task.name}" queued — check its run history for the result`, 4000);
         this.cdr.detectChanges();
       },
       error: (err) => {
         this.runningIds.delete(task.id);
-        this.snackBar.open(err?.error?.message || 'Failed to queue the run', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to queue the run');
         this.cdr.detectChanges();
       }
     });
   }
 
   deleteTask(task: ScheduledTask): void {
-    if (!confirm(`Delete scheduled task "${task.name}" and its run history?`)) return;
-
-    this.scheduledTaskService.delete(task.id).subscribe({
-      next: () => {
-        this.snackBar.open('Scheduled task deleted', 'Close', { duration: 3000 });
-        this.load();
-      },
-      error: () => {
-        this.snackBar.open('Failed to delete scheduled task', 'Close', { duration: 5000 });
-      }
+    this.confirmService.askThen({
+      title: 'Delete scheduled task?',
+      message: `"${task.name}" and its entire run history will be permanently deleted. `
+        + 'This cannot be undone.',
+      confirmText: 'Delete',
+      destructive: true
+    }, () => {
+      this.scheduledTaskService.delete(task.id).subscribe({
+        next: () => {
+          this.toast.success('Scheduled task deleted');
+          this.load();
+        },
+        error: (err) => {
+          this.toast.error(err, 'Failed to delete scheduled task');
+        }
+      });
     });
   }
 }

@@ -1,5 +1,6 @@
 import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
+import { ConfirmService } from '@core/services/confirm.service';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
@@ -23,7 +24,8 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
               <mat-label>Search AD users</mat-label>
               <input matInput [(ngModel)]="searchTerm" (keyup.enter)="searchUsers()"
                      placeholder="Username, name, or email">
-              <button mat-icon-button matSuffix (click)="searchUsers()" [disabled]="searching">
+              <button mat-icon-button matSuffix (click)="searchUsers()" [disabled]="searching"
+                      matTooltip="Search" aria-label="Search AD users">
                 <mat-icon>search</mat-icon>
               </button>
             </mat-form-field>
@@ -49,18 +51,21 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
               </mat-form-field>
             </div>
 
+            <div class="table-wrapper">
             <table mat-table [dataSource]="searchDataSource" matSort #searchSort="matSort"
-                   *ngIf="!searching && searchDataSource.data.length > 0" class="full-width">
+                   *ngIf="!searching && searched" class="full-width">
               <ng-container matColumnDef="select">
                 <th mat-header-cell *matHeaderCellDef>
                   <mat-checkbox (change)="toggleAllSearch($event.checked)"
                                 [checked]="allSearchSelected()"
-                                [indeterminate]="someSearchSelected()">
+                                [indeterminate]="someSearchSelected()"
+                                aria-label="Select all users on this page">
                   </mat-checkbox>
                 </th>
                 <td mat-cell *matCellDef="let user">
                   <mat-checkbox [(ngModel)]="selectedUsers[user.username]"
-                                [disabled]="user.isImported">
+                                [disabled]="user.isImported"
+                                [attr.aria-label]="'Select ' + user.username">
                   </mat-checkbox>
                 </td>
               </ng-container>
@@ -101,10 +106,11 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
 
               <tr class="mat-row no-data-row" *matNoDataRow>
                 <td class="mat-cell no-data-cell" [attr.colspan]="searchColumns.length">
-                  No users match the current filters.
+                  No AD users matched that search.
                 </td>
               </tr>
             </table>
+            </div>
 
             <mat-paginator #searchPaginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons
                            *ngIf="!searching && searchDataSource.data.length > 0">
@@ -165,6 +171,7 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
                 </mat-form-field>
               </div>
 
+              <div class="table-wrapper">
               <table mat-table [dataSource]="deptDataSource" matSort #deptSort="matSort" class="full-width"
                      *ngIf="deptDataSource.data.length > 0">
                 <ng-container matColumnDef="username">
@@ -198,6 +205,7 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
                   </td>
                 </tr>
               </table>
+              </div>
 
               <mat-paginator #deptPaginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons
                              *ngIf="deptDataSource.data.length > 0">
@@ -237,6 +245,7 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
               </mat-form-field>
             </div>
 
+            <div class="table-wrapper">
             <table mat-table [dataSource]="importedDataSource" matSort #importedSort="matSort"
                    *ngIf="!loadingImported && importedDataSource.data.length > 0" class="full-width">
               <ng-container matColumnDef="username">
@@ -274,11 +283,13 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
                 <td mat-cell *matCellDef="let user">
                   <button *ngIf="user.isActive" mat-icon-button color="warn"
-                          (click)="revokeUser(user.username)" matTooltip="Revoke access">
+                          (click)="revokeUser(user.username)" matTooltip="Revoke access"
+                          [attr.aria-label]="'Revoke access for ' + user.username">
                     <mat-icon>block</mat-icon>
                   </button>
                   <button *ngIf="!user.isActive" mat-icon-button color="primary"
-                          (click)="restoreUser(user.username)" matTooltip="Restore access">
+                          (click)="restoreUser(user.username)" matTooltip="Restore access"
+                          [attr.aria-label]="'Restore access for ' + user.username">
                     <mat-icon>lock_open</mat-icon>
                   </button>
                 </td>
@@ -293,14 +304,20 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
                 </td>
               </tr>
             </table>
+            </div>
 
             <mat-paginator #importedPaginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons
                            *ngIf="!loadingImported && importedDataSource.data.length > 0">
             </mat-paginator>
 
-            <p *ngIf="!loadingImported && importedDataSource.data.length === 0" class="no-data">
+            <p *ngIf="!loadingImported && importedDataSource.data.length === 0 && !importedLoadFailed"
+               class="no-data">
               No LDAP users have been imported yet.
             </p>
+            <div *ngIf="!loadingImported && importedLoadFailed" class="error-block">
+              <p class="error-text">Could not load the imported users.</p>
+              <button mat-stroked-button (click)="loadImportedUsers()">Retry</button>
+            </div>
           </div>
         </mat-tab>
       </mat-tab-group>
@@ -309,17 +326,13 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
   styles: [`
     .tab-content { padding: 24px 0; }
     .tab-header-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
-    .loading { display: flex; justify-content: center; padding: 40px; }
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
-    .table-toolbar { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
     .filter-field { flex: 1; min-width: 240px; }
     .status-filter { width: 180px; }
     .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
     .dept-card { cursor: pointer; }
     .dept-users { margin-top: 24px; }
     .no-data { text-align: center; color: var(--text-secondary); padding: 40px; }
-    .no-data-row { height: 56px; }
-    .no-data-cell { text-align: center; color: var(--text-secondary); padding: 16px; }
     .imported { background-color: var(--chip-imported) !important; color: var(--chip-text) !important; }
     .active { background-color: var(--chip-active) !important; color: var(--chip-text) !important; }
     .inactive { background-color: var(--chip-inactive) !important; color: var(--chip-text) !important; }
@@ -329,6 +342,10 @@ import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
 export class AdUsersComponent implements OnInit {
   searchTerm = '';
   searching = false;
+  /** True once a search has run, so a zero-result search can show the no-data row. */
+  searched = false;
+  /** True when the imported-users fetch failed, to distinguish it from a genuinely empty list. */
+  importedLoadFailed = false;
   importing = false;
   syncing = false;
   loadingDepts = false;
@@ -361,7 +378,8 @@ export class AdUsersComponent implements OnInit {
 
   constructor(
     private queryService: QueryService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
+    private confirmService: ConfirmService,
     private cdr: ChangeDetectorRef
   ) {
     this.searchDataSource.sortingDataAccessor = this.ldapSortAccessor as any;
@@ -451,8 +469,12 @@ export class AdUsersComponent implements OnInit {
   }
 
   searchUsers(): void {
-    if (!this.searchTerm || this.searchTerm.length < 2) return;
+    if (!this.searchTerm || this.searchTerm.length < 2) {
+      this.toast.info('Enter at least 2 characters to search.');
+      return;
+    }
     this.searching = true;
+    this.searched = true;
     this.selectedUsers = {};
     this.queryService.searchLdapUsers(this.searchTerm).pipe(
       timeout(30000),
@@ -474,8 +496,8 @@ export class AdUsersComponent implements OnInit {
           this.refreshSearchFilter();
         });
       },
-      error: () => {
-        this.snackBar.open('Failed to search AD users', 'Close', { duration: 5000 });
+      error: (err) => {
+        this.toast.error(err, 'Failed to search AD users');
         this.searching = false;
         this.cdr.detectChanges();
       }
@@ -515,14 +537,14 @@ export class AdUsersComponent implements OnInit {
     this.importing = true;
     this.queryService.importLdapUsers(usernames).subscribe({
       next: (result) => {
-        this.snackBar.open(`Imported ${result.imported} user(s)`, 'Close', { duration: 3000 });
+        this.toast.success(`Imported ${result.imported} user(s)`);
         this.importing = false;
         this.selectedUsers = {};
         this.searchUsers();
         this.loadImportedUsers();
       },
-      error: () => {
-        this.snackBar.open('Failed to import users', 'Close', { duration: 5000 });
+      error: (err) => {
+        this.toast.error(err, 'Failed to import users');
         this.importing = false;
       }
     });
@@ -544,8 +566,8 @@ export class AdUsersComponent implements OnInit {
         this.loadingDepts = false;
         this.cdr.detectChanges();
       },
-      error: () => {
-        this.snackBar.open('Failed to load departments', 'Close', { duration: 5000 });
+      error: (err) => {
+        this.toast.error(err, 'Failed to load departments');
         this.loadingDepts = false;
         this.cdr.detectChanges();
       }
@@ -563,7 +585,7 @@ export class AdUsersComponent implements OnInit {
           if (this.deptPaginator) this.deptDataSource.paginator = this.deptPaginator;
         });
       },
-      error: () => this.snackBar.open('Failed to load department users', 'Close', { duration: 5000 })
+      error: (err) => this.toast.error(err, 'Failed to load department users')
     });
   }
 
@@ -571,15 +593,15 @@ export class AdUsersComponent implements OnInit {
     this.importing = true;
     this.queryService.importLdapDepartment(dept).subscribe({
       next: (result) => {
-        this.snackBar.open(`Imported ${result.imported} user(s) from ${dept}`, 'Close', { duration: 3000 });
+        this.toast.success(`Imported ${result.imported} user(s) from ${dept}`);
         this.importing = false;
         this.loadImportedUsers();
         if (this.selectedDepartment === dept) {
           this.viewDepartment(dept);
         }
       },
-      error: () => {
-        this.snackBar.open('Failed to import department', 'Close', { duration: 5000 });
+      error: (err) => {
+        this.toast.error(err, 'Failed to import department');
         this.importing = false;
       }
     });
@@ -587,6 +609,7 @@ export class AdUsersComponent implements OnInit {
 
   loadImportedUsers(): void {
     this.loadingImported = true;
+    this.importedLoadFailed = false;
     this.queryService.getImportedLdapUsers().pipe(
       timeout(30000),
       catchError(err => {
@@ -606,21 +629,35 @@ export class AdUsersComponent implements OnInit {
           this.refreshImportedFilter();
         });
       },
-      error: () => {
+      // Without surfacing this, a failed load was indistinguishable from
+      // "no LDAP users have been imported yet".
+      error: (err) => {
         this.loadingImported = false;
+        this.importedLoadFailed = true;
+        this.toast.error(err, 'Failed to load imported users');
         this.cdr.detectChanges();
       }
     });
   }
 
   revokeUser(username: string): void {
+    this.confirmService.askThen({
+      title: 'Revoke access?',
+      message: `${username} will immediately lose access to the application. You can restore `
+        + 'their access again later from this page.',
+      confirmText: 'Revoke access',
+      destructive: true
+    }, () => this.doRevoke(username));
+  }
+
+  private doRevoke(username: string): void {
     this.queryService.revokeLdapUser(username).subscribe({
       next: () => {
-        this.snackBar.open(`Access revoked for ${username}`, 'Close', { duration: 3000 });
+        this.toast.success(`Access revoked for ${username}`);
         this.loadImportedUsers();
       },
-      error: () => {
-        this.snackBar.open('Failed to revoke access', 'Close', { duration: 5000 });
+      error: (err) => {
+        this.toast.error(err, 'Failed to revoke access');
       }
     });
   }
@@ -628,11 +665,11 @@ export class AdUsersComponent implements OnInit {
   restoreUser(username: string): void {
     this.queryService.restoreLdapUser(username).subscribe({
       next: () => {
-        this.snackBar.open(`Access restored for ${username}`, 'Close', { duration: 3000 });
+        this.toast.success(`Access restored for ${username}`);
         this.loadImportedUsers();
       },
-      error: () => {
-        this.snackBar.open('Failed to restore access', 'Close', { duration: 5000 });
+      error: (err) => {
+        this.toast.error(err, 'Failed to restore access');
       }
     });
   }
@@ -642,15 +679,15 @@ export class AdUsersComponent implements OnInit {
     this.queryService.syncLdapImportedUsers().subscribe({
       next: (result) => {
         this.syncing = false;
-        this.snackBar.open(
+        this.toast.success(
           `Sync complete — ${result.synced} updated, ${result.notFound} not found in AD`,
-          'Close', { duration: 5000 }
+          5000
         );
         this.loadImportedUsers();
       },
-      error: () => {
+      error: (err) => {
         this.syncing = false;
-        this.snackBar.open('Sync failed', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Sync failed');
       }
     });
   }

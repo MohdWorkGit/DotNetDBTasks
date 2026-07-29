@@ -50,6 +50,7 @@ const DEFAULT_SORT_BY = 'executedAt';
             </mat-form-field>
           </div>
 
+          <div class="table-wrapper">
           <table mat-table [dataSource]="logs" matSort
                  [matSortActive]="sortActive" [matSortDirection]="sortDirection"
                  (matSortChange)="onSortChange($event)"
@@ -112,7 +113,9 @@ const DEFAULT_SORT_BY = 'executedAt';
               <td mat-cell *matCellDef="let log">
                 <mat-icon [class]="log.isSuccess ? 'success' : 'error'"
                           [matTooltip]="log.isSuccess ? 'Success' : (log.errorMessage || 'Unknown error')"
-                          [matTooltipClass]="log.isSuccess ? 'success-tooltip' : 'error-tooltip'">
+                          [matTooltipClass]="log.isSuccess ? 'success-tooltip' : 'error-tooltip'"
+                          [attr.aria-label]="log.isSuccess ? 'Succeeded' : ('Failed: ' + (log.errorMessage || 'Unknown error'))"
+                          role="img">
                   {{ log.isSuccess ? 'check_circle' : 'error' }}
                 </mat-icon>
               </td>
@@ -127,6 +130,7 @@ const DEFAULT_SORT_BY = 'executedAt';
               </td>
             </tr>
           </table>
+          </div>
 
           <mat-paginator *ngIf="!loading && !errorMessage"
                          [length]="totalCount"
@@ -141,16 +145,10 @@ const DEFAULT_SORT_BY = 'executedAt';
     </div>
   `,
   styles: [`
-    .loading { display: flex; justify-content: center; padding: 40px; }
-    .error-block { text-align: center; padding: 24px; }
-    .error-text { color: var(--status-error); margin-bottom: 16px; }
     .success { color: var(--status-success); cursor: default; }
     .error { color: var(--status-error); cursor: help; }
-    .table-toolbar { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
     .filter-field { flex: 1; min-width: 240px; }
     .status-filter { width: 160px; }
-    .no-data-row { height: 56px; }
-    .no-data-cell { text-align: center; color: var(--text-secondary); padding: 16px; }
     table { width: 100%; }
     .parameters-cell {
       max-width: 250px;
@@ -185,7 +183,7 @@ const DEFAULT_SORT_BY = 'executedAt';
       padding: 2px 6px;
       margin: 0;
       background: transparent;
-      border: 1px dashed var(--border-color, #e2e8f0);
+      border: 1px dashed var(--border-color);
       border-radius: 4px;
       cursor: pointer;
       font: inherit;
@@ -193,8 +191,8 @@ const DEFAULT_SORT_BY = 'executedAt';
       color: inherit;
     }
     .old-rows-trigger:hover {
-      background: var(--bg-secondary, #f8fafc);
-      border-color: var(--accent-primary, #4f46e5);
+      background: var(--bg-secondary);
+      border-color: var(--accent-primary);
     }
     .old-rows-trigger .old-values {
       flex: 1;
@@ -208,7 +206,7 @@ const DEFAULT_SORT_BY = 'executedAt';
       font-size: 14px;
       width: 14px;
       height: 14px;
-      color: var(--accent-primary, #4f46e5);
+      color: var(--accent-primary);
       flex-shrink: 0;
     }
   `]
@@ -336,7 +334,9 @@ export class ExecutionLogsComponent implements OnInit, OnDestroy {
       },
       width: '720px',
       maxWidth: '95vw',
-      autoFocus: false
+      // autoFocus was false, so keyboard focus never entered the dialog (WCAG 2.4.3).
+      autoFocus: 'dialog',
+      ariaModal: true
     });
   }
 }

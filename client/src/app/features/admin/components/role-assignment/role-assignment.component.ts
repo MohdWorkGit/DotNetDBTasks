@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
 import { forkJoin, throwError } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
@@ -103,9 +103,6 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
   styles: [`
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
     .tab-content { padding-top: 24px; }
-    .loading { display: flex; justify-content: center; padding: 40px; }
-    .error-block { text-align: center; padding: 24px; }
-    .error-text { color: var(--status-error); margin-bottom: 16px; }
   `]
 })
 export class RoleAssignmentComponent implements OnInit {
@@ -127,7 +124,7 @@ export class RoleAssignmentComponent implements OnInit {
     private queryService: QueryService,
     private route: ActivatedRoute,
     private router: Router,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {
     this.rolesForm = this.fb.group({ roleIds: [[]] });
@@ -188,12 +185,12 @@ export class RoleAssignmentComponent implements OnInit {
     this.queryService.assignRoles(this.queryId, { roleIds: this.rolesForm.value.roleIds }).subscribe({
       next: () => {
         this.saving = false;
-        this.snackBar.open('Roles assigned successfully', 'Close', { duration: 3000 });
+        this.toast.success('Roles assigned successfully');
         this.router.navigate(['/admin/queries']);
       },
       error: (err) => {
         this.saving = false;
-        this.snackBar.open(err.error?.message || 'Failed to assign roles', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to assign roles');
       }
     });
   }
@@ -203,12 +200,12 @@ export class RoleAssignmentComponent implements OnInit {
     this.queryService.assignDepartments(this.queryId, { departments: this.departmentsForm.value.departments }).subscribe({
       next: () => {
         this.saving = false;
-        this.snackBar.open('Departments assigned successfully', 'Close', { duration: 3000 });
+        this.toast.success('Departments assigned successfully');
         this.router.navigate(['/admin/queries']);
       },
       error: (err) => {
         this.saving = false;
-        this.snackBar.open(err.error?.message || 'Failed to assign departments', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to assign departments');
       }
     });
   }
@@ -218,12 +215,12 @@ export class RoleAssignmentComponent implements OnInit {
     this.queryService.assignUsers(this.queryId, { userIds: this.usersForm.value.userIds }).subscribe({
       next: () => {
         this.saving = false;
-        this.snackBar.open('Users assigned successfully', 'Close', { duration: 3000 });
+        this.toast.success('Users assigned successfully');
         this.router.navigate(['/admin/queries']);
       },
       error: (err) => {
         this.saving = false;
-        this.snackBar.open(err.error?.message || 'Failed to assign users', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to assign users');
       }
     });
   }

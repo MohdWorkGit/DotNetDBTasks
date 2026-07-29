@@ -1,7 +1,8 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
+import { ConfirmService } from '@core/services/confirm.service';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
@@ -60,7 +61,10 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                   {{ du.name }}
                 </mat-option>
               </mat-select>
-              <mat-hint>Select which database credentials to use when executing this query</mat-hint>
+              <mat-hint *ngIf="!lookupLoadFailed.dbUsers">Select which database credentials to use when executing this query</mat-hint>
+              <mat-hint *ngIf="lookupLoadFailed.dbUsers" class="load-failed-hint">
+                Could not load database users — reload the page to try again.
+              </mat-hint>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
@@ -71,7 +75,10 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                   {{ g.name }}
                 </mat-option>
               </mat-select>
-              <mat-hint>Pick a folder to organise this query on the My Queries page</mat-hint>
+              <mat-hint *ngIf="!lookupLoadFailed.groups">Pick a folder to organise this query on the My Queries page</mat-hint>
+              <mat-hint *ngIf="lookupLoadFailed.groups" class="load-failed-hint">
+                Could not load query groups — reload the page to try again.
+              </mat-hint>
             </mat-form-field>
 
             <mat-slide-toggle *ngIf="isEdit" formControlName="isEnabled" class="toggle">
@@ -103,11 +110,11 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                   <span class="template-name">
                     <mat-icon>description</mat-icon> {{ templateFileName }}
                   </span>
-                  <button mat-icon-button type="button" matTooltip="Download template"
+                  <button mat-icon-button type="button" matTooltip="Download template" aria-label="Download template"
                           (click)="downloadTemplate()">
                     <mat-icon>download</mat-icon>
                   </button>
-                  <button mat-icon-button color="warn" type="button" matTooltip="Remove template"
+                  <button mat-icon-button color="warn" type="button" matTooltip="Remove template" aria-label="Remove template"
                           (click)="removeTemplate()">
                     <mat-icon>delete</mat-icon>
                   </button>
@@ -126,11 +133,15 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                   <mat-form-field appearance="outline">
                     <mat-label>Name</mat-label>
                     <input matInput formControlName="name" placeholder="paramName">
+                    <mat-error *ngIf="param.get('name')?.hasError('required')">Name is required</mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
                     <mat-label>Display Name</mat-label>
                     <input matInput formControlName="displayName" placeholder="Parameter Label">
+                    <mat-error *ngIf="param.get('displayName')?.hasError('required')">
+                      Display name is required
+                    </mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
@@ -152,7 +163,8 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                     <input matInput formControlName="defaultValue">
                   </mat-form-field>
 
-                  <button mat-icon-button color="warn" type="button" (click)="removeParameter(i)">
+                  <button mat-icon-button color="warn" type="button" (click)="removeParameter(i)"
+                          matTooltip="Remove parameter" aria-label="Remove parameter">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
@@ -206,7 +218,8 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                                (input)="updateStaticOption(i, j, 'value', $event)">
                       </mat-form-field>
                       <button mat-icon-button color="warn" type="button"
-                              (click)="removeStaticOption(i, j)">
+                              (click)="removeStaticOption(i, j)"
+                              matTooltip="Remove option" aria-label="Remove option">
                         <mat-icon>remove_circle_outline</mat-icon>
                       </button>
                     </div>
@@ -225,7 +238,10 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                           {{ q.name }}
                         </mat-option>
                       </mat-select>
-                      <mat-hint>Select the query that returns the dropdown options</mat-hint>
+                      <mat-hint *ngIf="!lookupLoadFailed.queries">Select the query that returns the dropdown options</mat-hint>
+                      <mat-hint *ngIf="lookupLoadFailed.queries" class="load-failed-hint">
+                        Could not load queries — reload the page to try again.
+                      </mat-hint>
                     </mat-form-field>
 
                     <div class="column-row">
@@ -291,7 +307,8 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
     .option-field { flex: 1; }
 
     .query-config { margin-top: 8px; }
-    .column-row { display: flex; gap: 16px; }
+    .column-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .load-failed-hint { color: var(--status-error); }
     .full-width { width: 100%; }
 
     .template-section { margin: 16px 0; }
@@ -312,6 +329,8 @@ export class QueryFormComponent implements OnInit {
   availableQueries: DynamicQuery[] = [];
   availableDbUsers: DatabaseUser[] = [];
   availableGroups: QueryGroup[] = [];
+  /** Set when a lookup list fails to load, so the empty dropdown can explain itself. */
+  lookupLoadFailed = { dbUsers: false, queries: false, groups: false };
 
   readonly ParameterType = ParameterType;
   readonly DropdownSourceType = DropdownSourceType;
@@ -321,7 +340,8 @@ export class QueryFormComponent implements OnInit {
     private queryService: QueryService,
     private route: ActivatedRoute,
     private router: Router,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
+    private confirmService: ConfirmService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -338,21 +358,23 @@ export class QueryFormComponent implements OnInit {
       parameters: this.fb.array([])
     });
 
-    // Load available database users for the dropdown
+    // These three feed <mat-select> controls. Swallowing a failure leaves the
+    // dropdown permanently empty with no way for the user to type a value in,
+    // so each failure has to be surfaced.
     this.queryService.getAllDatabaseUsers().subscribe({
-      next: (dbUsers) => { this.availableDbUsers = dbUsers; },
-      error: () => {}
+      next: (dbUsers) => { this.availableDbUsers = dbUsers; this.cdr.detectChanges(); },
+      error: (err) => this.onLookupLoadFailed('dbUsers', err, 'Failed to load database users')
     });
 
     // Load all queries so admin can pick a lookup query
     this.queryService.getAllQueries().subscribe({
-      next: (queries) => { this.availableQueries = queries; },
-      error: () => { /* non-critical, user can still type manually */ }
+      next: (queries) => { this.availableQueries = queries; this.cdr.detectChanges(); },
+      error: (err) => this.onLookupLoadFailed('queries', err, 'Failed to load lookup queries')
     });
 
     this.queryService.getAllQueryGroups().subscribe({
-      next: (groups) => { this.availableGroups = groups; },
-      error: () => { /* non-critical, the query is just ungrouped */ }
+      next: (groups) => { this.availableGroups = groups; this.cdr.detectChanges(); },
+      error: (err) => this.onLookupLoadFailed('groups', err, 'Failed to load query groups')
     });
 
     this.queryId = this.route.snapshot.params['id'];
@@ -450,12 +472,12 @@ export class QueryFormComponent implements OnInit {
       next: () => {
         this.uploadingTemplate = false;
         this.templateFileName = file.name;
-        this.snackBar.open('Template uploaded', 'Close', { duration: 3000 });
+        this.toast.success('Template uploaded');
         this.cdr.detectChanges();
       },
       error: (err) => {
         this.uploadingTemplate = false;
-        this.snackBar.open(err.error?.message || 'Failed to upload template', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to upload template');
         this.cdr.detectChanges();
       }
     });
@@ -472,20 +494,30 @@ export class QueryFormComponent implements OnInit {
         a.click();
         window.URL.revokeObjectURL(url);
       },
-      error: () => this.snackBar.open('Failed to download template', 'Close', { duration: 5000 })
+      error: (err) => this.toast.error(err, 'Failed to download template')
     });
   }
 
   removeTemplate(): void {
     if (!this.queryId) return;
-    this.queryService.deleteWordTemplate(this.queryId).subscribe({
+    this.confirmService.askThen({
+      title: 'Remove Word template?',
+      message: `"${this.templateFileName}" will be deleted from the server and this query's Word `
+        + 'exports will fall back to the default layout. This cannot be undone.',
+      confirmText: 'Remove template',
+      destructive: true
+    }, () => this.doRemoveTemplate());
+  }
+
+  private doRemoveTemplate(): void {
+    this.queryService.deleteWordTemplate(this.queryId!).subscribe({
       next: () => {
         this.templateFileName = null;
-        this.snackBar.open('Template removed', 'Close', { duration: 3000 });
+        this.toast.success('Template removed');
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to remove template', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to remove template');
         this.cdr.detectChanges();
       }
     });
@@ -535,7 +567,7 @@ export class QueryFormComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to load query', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load query');
       }
     });
   }
@@ -584,19 +616,26 @@ export class QueryFormComponent implements OnInit {
     ).subscribe({
       next: () => {
         this.saving = false;
-        this.snackBar.open(
-          `Query ${this.isEdit ? 'updated' : (this.isCopy ? 'copied' : 'created')} successfully`,
-          'Close', { duration: 3000 }
+        this.toast.success(
+          `Query ${this.isEdit ? 'updated' : (this.isCopy ? 'copied' : 'created')} successfully`
         );
         this.router.navigate(['/admin/queries']);
       },
       error: (err) => {
         this.saving = false;
-        const msg = err.error?.message || err.error?.errors
-          ? Object.values(err.error.errors).flat().join(', ')
-          : 'Operation failed';
-        this.snackBar.open(msg, 'Close', { duration: 5000 });
+        this.toast.error(err, 'Operation failed');
       }
     });
+  }
+
+  /**
+   * Records that one of the lookup dropdowns could not be populated, so the
+   * template can explain the empty <mat-select> instead of leaving the user
+   * staring at a control with no options and no reason.
+   */
+  private onLookupLoadFailed(list: 'dbUsers' | 'queries' | 'groups', err: unknown, message: string): void {
+    this.lookupLoadFailed[list] = true;
+    this.toast.error(err, message);
+    this.cdr.detectChanges();
   }
 }

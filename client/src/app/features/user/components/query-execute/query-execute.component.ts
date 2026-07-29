@@ -3,7 +3,7 @@ import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators }
 import { ActivatedRoute } from '@angular/router';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
 import { forkJoin, of, throwError, Subject, Subscription } from 'rxjs';
 import { catchError, debounceTime, switchMap, timeout } from 'rxjs/operators';
 import { ExportFormat, QueryService } from '@core/services/query.service';
@@ -112,13 +112,30 @@ import {
               </ng-container>
             </div>
 
+            <!-- Write queries normally run a server-side preview first (execute in a
+                 transaction, collect the affected rows, roll back) which is two extra
+                 round trips and can be slow on large tables. This opts out of it. -->
+            <div *ngIf="isWriteQuery" class="skip-preview">
+              <mat-checkbox [(ngModel)]="skipPreview" [ngModelOptions]="{ standalone: true }"
+                            [disabled]="executing">
+                Run directly without preview
+              </mat-checkbox>
+              <p class="skip-preview-note" [class.armed]="skipPreview">
+                <mat-icon inline>{{ skipPreview ? 'warning' : 'info' }}</mat-icon>
+                {{ skipPreview
+                    ? 'Changes will be committed immediately with no confirmation step.'
+                    : 'Skips the row preview and commits immediately — faster, but there is no confirmation step.' }}
+              </p>
+            </div>
+
             <div class="actions">
-              <button mat-raised-button color="primary" type="submit"
+              <button mat-raised-button [color]="skipPreview && isWriteQuery ? 'warn' : 'primary'"
+                      type="submit"
                       [disabled]="form.invalid || executing || loadingDropdowns">
                 <mat-icon>play_arrow</mat-icon>
                 {{ executing
                     ? (query.isLongRunning ? 'Executing… ' + formatElapsed(elapsedSeconds) : 'Executing…')
-                    : 'Execute Query' }}
+                    : (skipPreview && isWriteQuery ? 'Run & Commit' : 'Execute Query') }}
               </button>
               <button mat-stroked-button color="warn" type="button"
                       *ngIf="executing && query.isLongRunning" (click)="cancelExecution()">
@@ -225,6 +242,7 @@ import {
                   <input class="col-filter-input"
                          [value]="columnFilters[col] || ''"
                          placeholder="Filter..."
+                         [attr.aria-label]="'Filter by ' + col"
                          (input)="applyColumnFilter($event, col)" />
                 </th>
               </ng-container>
@@ -232,6 +250,14 @@ import {
               <tr mat-header-row *matHeaderRowDef="result.columns"></tr>
               <tr mat-header-row *matHeaderRowDef="filterColumns" class="filter-row"></tr>
               <tr mat-row *matRowDef="let row; columns: result.columns;"></tr>
+
+              <tr class="mat-row no-data-row" *matNoDataRow>
+                <td class="mat-cell no-data-cell" [attr.colspan]="result.columns.length">
+                  {{ hasColumnFilters()
+                      ? 'No rows match the current column filters.'
+                      : 'Query returned no rows.' }}
+                </td>
+              </tr>
             </table>
           </div>
 
@@ -253,7 +279,6 @@ import {
     </div>
   `,
   styles: [`
-    .loading { display: flex; justify-content: center; padding: 40px; }
     .error-card { margin-bottom: 16px; }
     .error-card p { color: var(--status-error); margin-bottom: 16px; }
     .description { color: var(--text-secondary); margin-bottom: 16px; }
@@ -265,47 +290,58 @@ import {
     .toggle-field { display: flex; align-items: center; padding: 16px 0; }
     .actions { display: flex; gap: 12px; margin-top: 16px; }
     .results-card { margin-top: 24px; }
-    .table-wrapper { overflow-x: auto; }
     table { width: 100%; }
-    .filter-row th { padding-top: 4px; padding-bottom: 4px; background: var(--bg-secondary, #f5f5f5); }
+    /* Matches the sort-header row above it (--bg-surface); using --bg-secondary here
+       made the filter row read as a separate darker band in dark mode only. */
+    .filter-row th { padding-top: 4px; padding-bottom: 4px; background: var(--bg-surface); }
     .col-filter-input {
       width: 100%;
       box-sizing: border-box;
-      border: 1px solid var(--border-color, #ccc);
+      border: 1px solid var(--border-color);
       border-radius: 4px;
       padding: 4px 6px;
       font-size: 12px;
-      background: var(--bg-primary, #fff);
+      background: var(--bg-primary);
       color: inherit;
       outline: none;
     }
     .col-filter-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,.25); }
-    .col-filter-input::placeholder { color: var(--text-hint, #999); }
+    .col-filter-input::placeholder { color: var(--text-hint); }
     .limit-warning {
       display: flex; align-items: center; gap: 8px;
       padding: 10px 14px; margin-bottom: 12px;
       border-radius: 4px;
-      background: var(--status-warning-bg, #fff8e1);
-      border: 1px solid var(--status-warning, #f59e0b);
-      color: var(--status-warning-text, #92400e);
+      background: var(--status-warning-bg);
+      border: 1px solid var(--status-warning);
+      color: var(--status-warning-text);
       font-size: 13px;
     }
-    .limit-warning mat-icon { color: var(--status-warning, #f59e0b); flex-shrink: 0; }
+    .limit-warning mat-icon { color: var(--status-warning); flex-shrink: 0; }
     .non-query-result { display: flex; align-items: center; gap: 8px; padding: 24px 0; color: var(--status-success); }
     .non-query-result mat-icon { font-size: 32px; width: 32px; height: 32px; }
     .non-query-result p { font-size: 16px; margin: 0; }
     .loading-hint { margin-bottom: 16px; }
     .loading-hint p { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
-    .confirm-card { margin-top: 16px; border-left: 4px solid var(--status-warning, #f59e0b); }
+    .skip-preview { margin: 4px 0 12px; }
+    .skip-preview-note {
+      margin: 4px 0 0 32px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .skip-preview-note.armed { color: var(--status-warning); font-weight: 500; }
+    .confirm-card { margin-top: 16px; border-left: 4px solid var(--status-warning); }
     .confirm-card .warn-icon {
       display: flex; align-items: center; justify-content: center;
-      background: var(--status-warning, #f59e0b); color: #fff; border-radius: 50%;
+      background: var(--status-warning); color: #fff; border-radius: 50%;
     }
     .confirm-card p { font-size: 15px; margin: 0; }
-    .preview-table-wrapper { margin-top: 12px; overflow-x: auto; max-height: 320px; overflow-y: auto; border: 1px solid var(--border-color, #e0e0e0); border-radius: 4px; }
+    .preview-table-wrapper { margin-top: 12px; overflow-x: auto; max-height: 320px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; }
     .preview-table-title { font-size: 13px; margin: 0 0 8px 0; color: var(--text-secondary); }
     .preview-table { width: 100%; font-size: 13px; }
-    .preview-table th { font-weight: 600; background: var(--bg-secondary, #fafafa); position: sticky; top: 0; z-index: 1; }
+    .preview-table th { font-weight: 600; background: var(--bg-secondary); position: sticky; top: 0; z-index: 1; }
   `]
 })
 export class QueryExecuteComponent implements OnInit, OnDestroy {
@@ -314,6 +350,8 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   /** Execution metadata for the current result (columns, totals, jobId); rows are paged separately. */
   result?: ExecuteResult;
   /** Preview returned by the backend for a write query awaiting user confirmation. */
+  /** Opt-out of the server-side preview for write queries; resets on every page load. */
+  skipPreview = false;
   pendingPreview?: ExecuteResult;
   /** Parameters used for the pending preview, replayed on confirm. */
   private pendingParams: Record<string, string> = {};
@@ -364,7 +402,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private queryService: QueryService,
     private route: ActivatedRoute,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -471,11 +509,23 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     return patterns.some(p => p.test(value)) ? { sqlInjection: true } : null;
   }
 
+  /**
+   * True when the query modifies data, so the preview/confirm step applies.
+   * Same leading-keyword heuristic the server uses to decide the same thing.
+   */
+  get isWriteQuery(): boolean {
+    const sql = (this.query?.sqlQuery || '').trimStart().toUpperCase();
+    return sql.startsWith('INSERT') || sql.startsWith('UPDATE') || sql.startsWith('DELETE');
+  }
+
   execute(): void {
     if (this.form.invalid || !this.query) return;
 
     this.pendingPreview = undefined;
-    this.runExecute(this.buildParams(), false);
+    // Sending confirmed=true up front makes the server skip the preview round trip
+    // entirely and commit in one pass. The checkbox is the deliberate opt-in, so
+    // there is no second prompt.
+    this.runExecute(this.buildParams(), this.isWriteQuery && this.skipPreview);
   }
 
   /** Builds the backend wire-format parameter map from the current form values. */
@@ -607,9 +657,9 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
         this.loadingRows = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.loadingRows = false;
-        this.snackBar.open('Failed to load results. The result may have expired — re-run the query.', 'Close', { duration: 6000 });
+        this.toast.error(err, 'Failed to load results. The result may have expired — re-run the query.', 6000);
         this.cdr.detectChanges();
       }
     });
@@ -630,10 +680,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
 
   private handleError(err: any): void {
     this.stopExecuting();
-    this.snackBar.open(
-      err.error?.message || 'Query execution failed',
-      'Close', { duration: 5000 }
-    );
+    this.toast.error(err, 'Query execution failed');
     this.cdr.detectChanges();
   }
 
@@ -644,8 +691,14 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     this.stopExecuting();
     if (jobId) {
       this.queryService.cancelJob(jobId).subscribe({
-        next: () => this.snackBar.open('Query canceled', 'Close', { duration: 3000 }),
-        error: () => this.snackBar.open('Query canceled', 'Close', { duration: 3000 })
+        next: () => this.toast.success('Query canceled'),
+        // The client already stopped polling, but the server-side query is still
+        // holding a DB connection. Saying "canceled" here would be a lie.
+        error: (err) => this.toast.error(
+          err,
+          'Could not cancel the query on the server — it may still be running.',
+          6000
+        )
       });
     }
     this.cdr.detectChanges();
@@ -698,6 +751,11 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     this.filterChange$.next();
   }
 
+  /** Distinguishes "this query returned nothing" from "your filters excluded everything". */
+  hasColumnFilters(): boolean {
+    return Object.values(this.columnFilters).some(v => !!v);
+  }
+
   /**
    * Downloads the complete result set in the chosen format (Excel/CSV/PDF/JSON), reusing the
    * result cached during execution — no second query run. Includes every matching row, not
@@ -718,9 +776,9 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
         window.URL.revokeObjectURL(url);
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.exporting = false;
-        this.snackBar.open('Export failed. The result may have expired — re-run the query.', 'Close', { duration: 6000 });
+        this.toast.error(err, 'Export failed. The result may have expired — re-run the query.', 6000);
         this.cdr.detectChanges();
       }
     });

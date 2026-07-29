@@ -2,7 +2,8 @@ import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
+import { ConfirmService } from '@core/services/confirm.service';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
@@ -36,6 +37,7 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
             </mat-form-field>
           </div>
 
+          <div class="table-wrapper">
           <table mat-table [dataSource]="dataSource" matSort *ngIf="!loading">
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
@@ -58,16 +60,16 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let g">
-                <button mat-icon-button matTooltip="Edit"
+                <button mat-icon-button matTooltip="Edit" aria-label="Edit"
                         [routerLink]="['/admin/query-groups/edit', g.id]"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Manage Access"
+                <button mat-icon-button matTooltip="Manage Access" aria-label="Manage Access"
                         [routerLink]="['/admin/query-groups', g.id, 'access']">
                   <mat-icon>security</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Delete" color="warn"
+                <button mat-icon-button matTooltip="Delete" aria-label="Delete" color="warn"
                         (click)="deleteGroup(g.id, g.name)"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>delete</mat-icon>
@@ -84,6 +86,7 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
               </td>
             </tr>
           </table>
+          </div>
 
           <mat-paginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons>
           </mat-paginator>
@@ -92,17 +95,7 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
     </div>
   `,
   styles: [`
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .loading { display: flex; justify-content: center; padding: 40px; }
-    .table-toolbar { margin-bottom: 8px; }
     .filter-field { width: 100%; max-width: 480px; }
-    .no-data-row { height: 56px; }
-    .no-data-cell { text-align: center; color: var(--text-secondary); padding: 16px; }
     .count-link { color: inherit; text-decoration: underline; cursor: pointer; }
     table { width: 100%; }
   `]
@@ -118,7 +111,8 @@ export class QueryGroupsListComponent implements OnInit {
   constructor(
     private queryService: QueryService,
     public authService: AuthService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
+    private confirmService: ConfirmService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -160,9 +154,9 @@ export class QueryGroupsListComponent implements OnInit {
           this.dataSource.sort = this.sort;
         });
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.snackBar.open('Failed to load query groups', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load query groups');
         this.cdr.detectChanges();
       }
     });
@@ -174,16 +168,22 @@ export class QueryGroupsListComponent implements OnInit {
   }
 
   deleteGroup(id: string, name: string): void {
-    if (!confirm(`Delete group "${name}"? Queries inside the group will remain but become ungrouped.`)) return;
-
-    this.queryService.deleteQueryGroup(id).subscribe({
-      next: () => {
-        this.snackBar.open('Group deleted', 'Close', { duration: 3000 });
-        this.load();
-      },
-      error: () => {
-        this.snackBar.open('Failed to delete group', 'Close', { duration: 5000 });
-      }
+    this.confirmService.askThen({
+      title: 'Delete query group?',
+      message: `"${name}" will be deleted. Queries inside the group will remain but become `
+        + 'ungrouped. This cannot be undone.',
+      confirmText: 'Delete',
+      destructive: true
+    }, () => {
+      this.queryService.deleteQueryGroup(id).subscribe({
+        next: () => {
+          this.toast.success('Group deleted');
+          this.load();
+        },
+        error: (err) => {
+          this.toast.error(err, 'Failed to delete group');
+        }
+      });
     });
   }
 }

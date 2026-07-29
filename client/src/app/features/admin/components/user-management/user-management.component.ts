@@ -1,6 +1,12 @@
 import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { ToastService } from '@core/services/toast.service';
+import { ConfirmService } from '@core/services/confirm.service';
+import {
+  UserEditDialogComponent,
+  UserEditDialogData
+} from '@shared/components/user-edit-dialog.component';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
@@ -148,7 +154,7 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Actions</th>
             <td mat-cell *matCellDef="let user">
-              <button mat-icon-button [matMenuTriggerFor]="actionMenu" matTooltip="Actions">
+              <button mat-icon-button [matMenuTriggerFor]="actionMenu" matTooltip="Actions" aria-label="Actions">
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #actionMenu="matMenu">
@@ -183,127 +189,34 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+          <tr class="mat-row no-data-row" *matNoDataRow>
+            <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+              No users match the current filter.
+            </td>
+          </tr>
         </table>
 
         <mat-paginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons></mat-paginator>
       </div>
 
-      <!-- Edit Username Dialog -->
-      <div class="overlay" *ngIf="editingUser && editMode === 'username'" (click)="cancelEdit()">
-        <mat-card class="dialog-card" (click)="$event.stopPropagation()">
-          <mat-card-header>
-            <mat-card-title>Change Username</mat-card-title>
-            <mat-card-subtitle>Current: {{ editingUser.username }}</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>New Username</mat-label>
-              <input matInput [(ngModel)]="newUsername">
-            </mat-form-field>
-          </mat-card-content>
-          <mat-card-actions align="end">
-            <button mat-button (click)="cancelEdit()">Cancel</button>
-            <button mat-raised-button color="primary" (click)="saveUsername()"
-                    [disabled]="!newUsername || saving">
-              {{ saving ? 'Saving...' : 'Save' }}
-            </button>
-          </mat-card-actions>
-        </mat-card>
-      </div>
-
-      <!-- Change Password Dialog -->
-      <div class="overlay" *ngIf="editingUser && editMode === 'password'" (click)="cancelEdit()">
-        <mat-card class="dialog-card" (click)="$event.stopPropagation()">
-          <mat-card-header>
-            <mat-card-title>Change Password</mat-card-title>
-            <mat-card-subtitle>User: {{ editingUser.username }}</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>New Password</mat-label>
-              <input matInput [(ngModel)]="newPassword" type="password">
-              <mat-hint>Minimum 6 characters</mat-hint>
-            </mat-form-field>
-          </mat-card-content>
-          <mat-card-actions align="end">
-            <button mat-button (click)="cancelEdit()">Cancel</button>
-            <button mat-raised-button color="primary" (click)="savePassword()"
-                    [disabled]="!newPassword || newPassword.length < 6 || saving">
-              {{ saving ? 'Saving...' : 'Save' }}
-            </button>
-          </mat-card-actions>
-        </mat-card>
-      </div>
-
-      <!-- Change Roles Dialog -->
-      <div class="overlay" *ngIf="editingUser && editMode === 'roles'" (click)="cancelEdit()">
-        <mat-card class="dialog-card" (click)="$event.stopPropagation()">
-          <mat-card-header>
-            <mat-card-title>Change Roles</mat-card-title>
-            <mat-card-subtitle>User: {{ editingUser.username }}</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Roles</mat-label>
-              <mat-select [(ngModel)]="selectedRoleIds" multiple>
-                <mat-option *ngFor="let role of roles" [value]="role.id">{{ role.name }}</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </mat-card-content>
-          <mat-card-actions align="end">
-            <button mat-button (click)="cancelEdit()">Cancel</button>
-            <button mat-raised-button color="primary" (click)="saveRoles()"
-                    [disabled]="selectedRoleIds.length === 0 || saving">
-              {{ saving ? 'Saving...' : 'Save' }}
-            </button>
-          </mat-card-actions>
-        </mat-card>
-      </div>
-
-      <!-- Reset Password Result Dialog -->
-      <div class="overlay" *ngIf="tempPassword" (click)="tempPassword = null">
-        <mat-card class="dialog-card" (click)="$event.stopPropagation()">
-          <mat-card-header>
-            <mat-card-title>Password Reset</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <p>The temporary password has been set. Please share it securely with the user:</p>
-            <div class="temp-password">{{ tempPassword }}</div>
-            <p class="hint">The user should change this password on their next login.</p>
-          </mat-card-content>
-          <mat-card-actions align="end">
-            <button mat-raised-button color="primary" (click)="tempPassword = null">Close</button>
-          </mat-card-actions>
-        </mat-card>
-      </div>
     </div>
   `,
   styles: [`
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .form-card { margin-bottom: 24px; }
     .form-row { display: flex; gap: 16px; }
     .form-row mat-form-field { flex: 1; }
     .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
-    .loading { display: flex; justify-content: center; padding: 40px; }
     .table-wrapper { margin-top: 8px; }
     .filter-field { width: 100%; }
     .full-width { width: 100%; }
     table { width: 100%; }
-    .active { background-color: var(--status-active) !important; color: white !important; }
-    .inactive { background-color: var(--status-inactive) !important; color: white !important; }
-    .admin-chip { background-color: var(--status-active) !important; color: white !important; }
-    .overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.5); display: flex;
-      align-items: center; justify-content: center; z-index: 1000;
-    }
-    .dialog-card { width: 400px; max-width: 90vw; }
-    .temp-password {
-      background: var(--bg-secondary); padding: 12px 16px; border-radius: 4px;
-      font-family: monospace; font-size: 18px; text-align: center;
-      margin: 16px 0; user-select: all; letter-spacing: 1px;
-    }
-    .hint { color: var(--text-secondary); font-size: 13px; }
+    /* Chip fills use the --chip-* tokens, not --status-*: the status colors are tuned
+       as foreground colors and gave white label text ~1.6:1 in dark mode. These pairs
+       measure 11:1 light / 8.7:1 dark. Matches ad-users.component.ts. */
+    .active { background-color: var(--chip-active) !important; color: var(--chip-text) !important; }
+    .inactive { background-color: var(--chip-inactive) !important; color: var(--chip-text) !important; }
+    .admin-chip { background-color: var(--chip-accent) !important; color: var(--chip-text) !important; }
   `]
 })
 export class UserManagementComponent implements OnInit {
@@ -317,20 +230,15 @@ export class UserManagementComponent implements OnInit {
 
   createForm!: FormGroup;
 
-  // Edit state
-  editingUser: SystemUser | null = null;
-  editMode: 'username' | 'password' | 'roles' | null = null;
-  newUsername = '';
-  newPassword = '';
-  selectedRoleIds: string[] = [];
-  tempPassword: string | null = null;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   constructor(
     private queryService: QueryService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
+    private confirmService: ConfirmService,
+    private dialog: MatDialog,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef
   ) {}
@@ -353,7 +261,7 @@ export class UserManagementComponent implements OnInit {
   loadRoles(): void {
     this.queryService.getRoles().subscribe({
       next: (roles) => this.roles = roles,
-      error: () => this.snackBar.open('Failed to load roles', 'Close', { duration: 5000 })
+      error: (err) => this.toast.error(err, 'Failed to load roles')
     });
   }
 
@@ -390,8 +298,8 @@ export class UserManagementComponent implements OnInit {
           this.dataSource.sort = this.sort;
         });
       },
-      error: () => {
-        this.snackBar.open('Failed to load users', 'Close', { duration: 5000 });
+      error: (err) => {
+        this.toast.error(err, 'Failed to load users');
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -408,14 +316,14 @@ export class UserManagementComponent implements OnInit {
     this.saving = true;
     this.queryService.createUser(this.createForm.value).subscribe({
       next: () => {
-        this.snackBar.open('User created successfully', 'Close', { duration: 3000 });
+        this.toast.success('User created successfully');
         this.saving = false;
         this.showCreateForm = false;
         this.createForm.reset();
         this.loadUsers();
       },
       error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to create user', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to create user');
         this.saving = false;
       }
     });
@@ -427,91 +335,74 @@ export class UserManagementComponent implements OnInit {
   }
 
   openEditUsername(user: SystemUser): void {
-    this.editingUser = user;
-    this.editMode = 'username';
-    this.newUsername = user.username;
+    this.openUserDialog({
+      mode: 'username',
+      username: user.username,
+      save: (value) => this.queryService.changeUsername(user.id, { newUsername: value as string })
+    }, 'Username changed successfully', true);
   }
 
   openChangePassword(user: SystemUser): void {
-    this.editingUser = user;
-    this.editMode = 'password';
-    this.newPassword = '';
+    this.openUserDialog({
+      mode: 'password',
+      username: user.username,
+      save: (value) => this.queryService.changePassword(user.id, { newPassword: value as string })
+    }, 'Password changed successfully', false);
   }
 
   openChangeRoles(user: SystemUser): void {
-    this.editingUser = user;
-    this.editMode = 'roles';
-    this.selectedRoleIds = this.roles
-      .filter(r => user.roles.includes(r.name))
-      .map(r => r.id);
+    this.openUserDialog({
+      mode: 'roles',
+      username: user.username,
+      roles: this.roles,
+      selectedRoleIds: this.roles.filter(r => user.roles.includes(r.name)).map(r => r.id),
+      save: (value) => this.queryService.changeUserRoles(user.id, { roleIds: value as string[] })
+    }, 'Roles updated successfully', true);
   }
 
-  cancelEdit(): void {
-    this.editingUser = null;
-    this.editMode = null;
-  }
-
-  saveUsername(): void {
-    if (!this.editingUser || !this.newUsername) return;
-    this.saving = true;
-    this.queryService.changeUsername(this.editingUser.id, { newUsername: this.newUsername }).subscribe({
-      next: () => {
-        this.snackBar.open('Username changed successfully', 'Close', { duration: 3000 });
-        this.saving = false;
-        this.cancelEdit();
-        this.loadUsers();
-      },
-      error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to change username', 'Close', { duration: 5000 });
-        this.saving = false;
-      }
-    });
-  }
-
-  savePassword(): void {
-    if (!this.editingUser || !this.newPassword) return;
-    this.saving = true;
-    this.queryService.changePassword(this.editingUser.id, { newPassword: this.newPassword }).subscribe({
-      next: () => {
-        this.snackBar.open('Password changed successfully', 'Close', { duration: 3000 });
-        this.saving = false;
-        this.cancelEdit();
-      },
-      error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to change password', 'Close', { duration: 5000 });
-        this.saving = false;
-      }
-    });
+  /**
+   * Opens the shared edit dialog and, on a successful save, toasts and optionally
+   * reloads. MatDialog handles the focus trap, Escape, and focus restore that the
+   * previous hand-rolled overlays lacked.
+   */
+  private openUserDialog(data: UserEditDialogData, successMessage: string, reload: boolean): void {
+    this.dialog.open(UserEditDialogComponent, { data, width: '420px', ariaModal: true })
+      .afterClosed()
+      .subscribe(saved => {
+        if (saved) {
+          this.toast.success(successMessage);
+          if (reload) this.loadUsers();
+        }
+        this.cdr.detectChanges();
+      });
   }
 
   resetPassword(user: SystemUser): void {
-    this.saving = true;
-    this.queryService.resetPassword(user.id).subscribe({
-      next: (result) => {
-        this.tempPassword = result.temporaryPassword;
-        this.saving = false;
-      },
-      error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to reset password', 'Close', { duration: 5000 });
-        this.saving = false;
-      }
-    });
-  }
-
-  saveRoles(): void {
-    if (!this.editingUser || this.selectedRoleIds.length === 0) return;
-    this.saving = true;
-    this.queryService.changeUserRoles(this.editingUser.id, { roleIds: this.selectedRoleIds }).subscribe({
-      next: () => {
-        this.snackBar.open('Roles updated successfully', 'Close', { duration: 3000 });
-        this.saving = false;
-        this.cancelEdit();
-        this.loadUsers();
-      },
-      error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to update roles', 'Close', { duration: 5000 });
-        this.saving = false;
-      }
+    this.confirmService.askThen({
+      title: 'Reset password?',
+      message: `${user.username}'s current password will stop working immediately and be replaced `
+        + 'by a temporary one that you must pass on to them. This cannot be undone.',
+      confirmText: 'Reset password',
+      destructive: true
+    }, () => {
+      this.saving = true;
+      this.cdr.detectChanges();
+      this.queryService.resetPassword(user.id).subscribe({
+        next: (result) => {
+          this.saving = false;
+          this.dialog.open(UserEditDialogComponent, {
+            data: { mode: 'result', username: user.username, tempPassword: result.temporaryPassword },
+            width: '420px',
+            ariaModal: true
+          });
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.toast.error(err, 'Failed to reset password');
+          this.saving = false;
+          this.cdr.detectChanges();
+        }
+      });
     });
   }
 
@@ -521,15 +412,28 @@ export class UserManagementComponent implements OnInit {
 
   toggleActive(user: SystemUser): void {
     const newState = !user.isActive;
+    // Reactivating is harmless; deactivating locks the user out immediately.
+    if (!newState) {
+      this.confirmService.askThen({
+        title: 'Deactivate user?',
+        message: `${user.username} will be signed out and blocked from logging in until an admin `
+          + 'reactivates the account.',
+        confirmText: 'Deactivate',
+        destructive: true
+      }, () => this.setActive(user, newState));
+      return;
+    }
+    this.setActive(user, newState);
+  }
+
+  private setActive(user: SystemUser, newState: boolean): void {
     this.queryService.toggleUserActive(user.id, { isActive: newState }).subscribe({
       next: () => {
-        this.snackBar.open(
-          `User ${newState ? 'activated' : 'deactivated'} successfully`, 'Close', { duration: 3000 }
-        );
+        this.toast.success(`User ${newState ? 'activated' : 'deactivated'} successfully`);
         this.loadUsers();
       },
       error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to update user status', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to update user status');
       }
     });
   }

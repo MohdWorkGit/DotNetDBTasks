@@ -28,9 +28,26 @@
   --status-success: #059669;
   --status-error: #dc2626;
 
+  // Referenced by query-execute's row-limit banner and the scheduled-task status
+  // classes. Chosen for measured contrast, not Material-2 defaults:
+  // --status-warning is 5.05:1 on white.
+  --status-warning: #b45309;
+  --status-warning-bg: #fffbeb;
+  --status-warning-text: #92400e;
+  --status-info: #0369a1;
+  --status-neutral: #64748b;
+
+  // Toast fills need their own pair: --status-success (#059669) under white text
+  // measures 3.77:1 and fails AA, so it cannot double as a snackbar background.
+  --toast-success-bg: #047857;
+  --toast-success-fg: #ffffff;
+  --toast-error-bg: #b91c1c;
+  --toast-error-fg: #ffffff;
+
   --chip-imported: #d1fae5;
   --chip-active: #d1fae5;
   --chip-inactive: #fee2e2;
+  --chip-accent: #e0e7ff;
 
   --old-label-color: #dc2626;
   --new-label-color: #059669;
@@ -43,6 +60,10 @@
 
   --accent-primary: #4f46e5;
   --accent-hover: #4338ca;
+
+  // Translucent so it tints whatever surface the field sits on (white card,
+  // grey section, dialog) without needing a per-context colour.
+  --field-fill: rgba(15, 23, 42, 0.045);
 }
 
 // ── Dark Theme Overrides ──
@@ -55,7 +76,10 @@ body.dark-theme {
 
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
-  --text-hint: #64748b;
+  // Was #64748b, which measured 3.78:1 on --bg-primary and failed WCAG AA for
+  // normal text. #7e8fa6 is 5.45:1 and stays visually distinct from
+  // --text-secondary (7.02:1) so the type hierarchy is preserved.
+  --text-hint: #7e8fa6;
 
   --border-color: #334155;
   --divider-color: #475569;
@@ -65,9 +89,21 @@ body.dark-theme {
   --status-success: #34d399;
   --status-error: #f87171;
 
+  --status-warning: #fbbf24;
+  --status-warning-bg: #422006;
+  --status-warning-text: #fcd34d;   // 10.1:1 on --status-warning-bg
+  --status-info: #60a5fa;
+  --status-neutral: #94a3b8;
+
+  --toast-success-bg: #065f46;      // 7.4:1 with --toast-success-fg
+  --toast-success-fg: #ecfdf5;
+  --toast-error-bg: #7f1d1d;
+  --toast-error-fg: #fee2e2;
+
   --chip-imported: #064e3b;
   --chip-active: #064e3b;
   --chip-inactive: #7f1d1d;
+  --chip-accent: #312e81;
   --chip-text: #f1f5f9;
 
   --old-label-color: #fca5a5;
@@ -79,6 +115,8 @@ body.dark-theme {
 
   --accent-primary: #818cf8;
   --accent-hover: #6366f1;
+
+  --field-fill: rgba(255, 255, 255, 0.07);
 
   // ── Angular Material M3 system tokens ──
   // The azure-blue prebuilt theme defines --mat-sys-* on <html> with LIGHT values.
@@ -252,20 +290,6 @@ body.dark-theme {
     --mdc-chip-label-text-color: var(--text-primary);
   }
 
-  // Filled status/role chips (User Management) use the light green/red status
-  // colors as their background in dark mode. Their default light label text then
-  // nearly vanishes (measured contrast ~1.1 for "Inactive"). Force dark label
-  // text, which reads clearly on the light fills (contrast 6-8:1).
-  .mat-mdc-chip.active,
-  .mat-mdc-chip.inactive,
-  .mat-mdc-chip.admin-chip {
-    --mdc-chip-label-text-color: var(--bg-primary);
-
-    .mdc-evolution-chip__text-label {
-      color: var(--bg-primary) !important;
-    }
-  }
-
   .mat-datepicker-content {
     --mat-datepicker-calendar-container-background-color: var(--bg-card);
     --mat-datepicker-calendar-container-text-color: var(--text-primary);
@@ -277,12 +301,6 @@ body.dark-theme {
 
   .mat-mdc-progress-bar {
     --mdc-linear-progress-active-indicator-color: var(--accent-primary);
-  }
-
-  .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__leading,
-  .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__notch,
-  .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__trailing {
-    border-color: var(--border-color);
   }
 
   .mat-mdc-icon-button {
@@ -320,9 +338,15 @@ body.dark-theme {
     --mdc-plain-tooltip-supporting-text-color: var(--text-primary);
   }
 
-  .mat-mdc-snack-bar-container .mdc-snackbar__surface {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
+  // Neutral (info) snackbars only. This selector scores (0,3,1) while the
+  // .success-snackbar/.error-snackbar rules below score (0,3,0), so without the
+  // :not() exclusions it silently wins and the status colors never appear in
+  // dark mode. Exclude rather than escalating specificity on the status rules.
+  .mat-mdc-snack-bar-container:not(.success-snackbar):not(.error-snackbar) {
+    .mdc-snackbar__surface {
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+    }
   }
 
   .mat-mdc-checkbox {
@@ -400,21 +424,6 @@ body.dark-theme {
     background-color: var(--bg-surface);
     border-color: var(--border-color);
     color: var(--text-primary);
-  }
-
-  // The outlined parameter/dropdown input fields sit on the lighter card
-  // surfaces, where the default outline color (--border-color) is nearly
-  // invisible. Give them a lighter outline so each field reads as a distinct box.
-  // Targets the notched-outline segments directly to override the global rule above.
-  .param-card,
-  .dropdown-config {
-    .mdc-text-field--outlined:not(.mdc-text-field--disabled) {
-      .mdc-notched-outline__leading,
-      .mdc-notched-outline__notch,
-      .mdc-notched-outline__trailing {
-        border-color: var(--text-hint);
-      }
-    }
   }
 
   // Query grid cards — one shade lighter than the group box they sit in
@@ -537,29 +546,211 @@ html.dark-theme {
   flex: 1 1 auto;
 }
 
-// ── Snackbar Styling ──
-.mat-mdc-snack-bar-container {
-  &.success-snackbar .mdc-snackbar__surface {
-    background-color: var(--status-success);
-    color: #fff;
+// ── Borderless text fields ──
+// The rectangular notched outline is removed at rest. The field is identified by
+// its fill instead — a translucent tint, so it works on white cards and on the
+// grey section surfaces alike without needing a per-context colour.
+//
+// Focus and error keep a real outline on purpose: without one the control would
+// have no perceivable boundary in the states where it matters most, and an
+// invalid field would look identical to a valid one (WCAG 1.4.11 / 3.3.1).
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-outline-color: transparent;
+  --mdc-outlined-text-field-hover-outline-color: transparent;
+  --mdc-outlined-text-field-disabled-outline-color: transparent;
+  --mdc-outlined-text-field-outline-width: 0;
+}
+
+.mdc-text-field--outlined:not(.mdc-text-field--focused):not(.mdc-text-field--invalid) {
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: transparent;
   }
-  &.error-snackbar .mdc-snackbar__surface {
-    background-color: var(--status-error);
-    color: #fff;
+}
+
+.mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  background-color: var(--field-fill);
+  border-radius: 6px;
+}
+
+// Keep the focused/invalid outline hugging the filled box.
+.mat-mdc-form-field .mdc-notched-outline__leading,
+.mat-mdc-form-field .mdc-notched-outline__trailing {
+  border-radius: 6px;
+}
+
+// Selects and date pickers reuse the same wrapper, so they inherit the fill.
+.mat-mdc-form-field.mat-form-field-disabled .mat-mdc-text-field-wrapper {
+  background-color: transparent;
+}
+
+// ── Shared layout utilities ──
+// Emulated view encapsulation scopes *component* styles only; global rules still
+// apply to elements in component templates. These were duplicated verbatim across
+// 8-14 components each, so they live here and the component copies are deleted.
+.header,
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.error-block {
+  text-align: center;
+  padding: 24px;
+}
+
+.error-text {
+  color: var(--status-error);
+  margin-bottom: 16px;
+}
+
+// Wide tables must scroll inside their own container rather than pushing the
+// page into horizontal overflow when the window is narrowed or split.
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.table-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.no-data-row {
+  height: 56px;
+}
+
+.no-data-cell {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 16px;
+}
+
+// ── Scheduled task / run status colors ──
+// Previously hardcoded as Material-2 hexes in three separate components, which
+// produced two different greens and two different reds for the same semantics
+// and ignored the dark theme entirely.
+.status-Succeeded { color: var(--status-success); }
+.status-PartiallySucceeded { color: var(--status-warning); }
+.status-Failed { color: var(--status-error); }
+.status-Running { color: var(--status-info); }
+.status-Canceled,
+.status-Cancelled { color: var(--status-neutral); }
+
+// ── Accessibility baselines ──
+// The app previously had exactly one :focus rule in ~8,700 lines, leaving
+// keyboard users with no visible focus indicator anywhere. WCAG 2.4.7.
+//
+// Angular Material sets `outline: none` on its button bases and relies on a
+// state-layer tint instead, which is far too subtle to serve as a focus
+// indicator. Those rules out-specify a bare `:focus-visible`, so the element
+// selectors and !important below are needed to win.
+:focus-visible,
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+.mat-mdc-button-base:focus-visible,
+.mat-mdc-icon-button:focus-visible,
+.mat-mdc-menu-item:focus-visible,
+.mat-mdc-tab:focus-visible,
+.mat-mdc-chip:focus-visible {
+  outline: 2px solid var(--accent-primary) !important;
+  outline-offset: 2px;
+}
+
+// Skip link — first focusable element in the document, visually hidden until
+// focused. WCAG 2.4.1 Bypass Blocks.
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1100;
+  padding: 12px 20px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 2px solid var(--accent-primary);
+  border-radius: 0 0 4px 0;
+  text-decoration: none;
+  font-weight: 500;
+
+  &:focus {
+    left: 0;
+  }
+}
+
+// Current-page indicator. The underline (not the color) carries the meaning so
+// this does not rely on color alone. WCAG 1.4.1.
+.mat-toolbar .nav-active {
+  font-weight: 600;
+  box-shadow: inset 0 -3px 0 0 currentColor;
+  border-radius: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// ── Snackbar Styling ──
+// Driven by --toast-* rather than --status-*: the status greens/reds are tuned
+// for text and icons on a page background, and fail AA when used as a fill
+// behind white label text. One rule serves both themes.
+.mat-mdc-snack-bar-container {
+  &.success-snackbar {
+    --mat-snack-bar-button-color: var(--toast-success-fg);
+
+    .mdc-snackbar__surface {
+      background-color: var(--toast-success-bg);
+      color: var(--toast-success-fg);
+    }
+    .mdc-snackbar__label { color: var(--toast-success-fg); }
+  }
+  &.error-snackbar {
+    --mat-snack-bar-button-color: var(--toast-error-fg);
+
+    .mdc-snackbar__surface {
+      background-color: var(--toast-error-bg);
+      color: var(--toast-error-fg);
+    }
+    .mdc-snackbar__label { color: var(--toast-error-fg); }
   }
 }
 
 // ── Status Tooltips ──
+// Same reasoning as the snackbars: in dark mode --status-error/#fff measured
+// 2.77:1 and --status-success/#fff measured 1.92:1.
 .error-tooltip .mdc-tooltip__surface {
-  background-color: var(--status-error);
-  color: #fff;
+  background-color: var(--toast-error-bg);
+  color: var(--toast-error-fg);
   font-size: 13px;
   max-width: 400px;
   white-space: pre-wrap;
 }
 .success-tooltip .mdc-tooltip__surface {
-  background-color: var(--status-success);
-  color: #fff;
+  background-color: var(--toast-success-bg);
+  color: var(--toast-success-fg);
   font-size: 13px;
   max-width: 400px;
   white-space: pre-wrap;

@@ -1,7 +1,7 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { AuthService } from '@core/services/auth.service';
@@ -33,7 +33,9 @@ import { AuthService } from '@core/services/auth.service';
               <input matInput [type]="hidePassword ? 'password' : 'text'"
                      formControlName="password" autocomplete="current-password">
               <button mat-icon-button matSuffix type="button"
-                      (click)="hidePassword = !hidePassword">
+                      (click)="hidePassword = !hidePassword"
+                      [attr.aria-label]="hidePassword ? 'Show password' : 'Hide password'"
+                      [attr.aria-pressed]="!hidePassword">
                 <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
               </button>
               <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
@@ -56,7 +58,11 @@ import { AuthService } from '@core/services/auth.service';
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      /* min-height, not height: with a fixed height the card clips instead of
+         scrolling once validation errors expand it on a short window. */
+      min-height: 100vh;
+      padding: 24px 16px;
+      box-sizing: border-box;
       background: var(--bg-primary);
     }
     .login-card {
@@ -81,7 +87,7 @@ export class LoginComponent {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {
     this.loginForm = this.fb.group({
@@ -114,11 +120,7 @@ export class LoginComponent {
       },
       error: (err) => {
         this.loading = false;
-        this.snackBar.open(
-          err.error?.message || 'Login failed',
-          'Close',
-          { duration: 5000, panelClass: ['error-snackbar'] }
-        );
+        this.toast.error(err, 'Login failed');
         this.cdr.detectChanges();
       }
     });

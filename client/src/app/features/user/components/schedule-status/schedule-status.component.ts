@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
 import {
   ScheduledTask,
@@ -19,7 +19,7 @@ import {
     <div class="container">
       <div class="header">
         <h2>Scheduled Tasks</h2>
-        <button mat-icon-button matTooltip="Refresh" (click)="load()">
+        <button mat-icon-button matTooltip="Refresh" aria-label="Refresh" (click)="load()">
           <mat-icon>refresh</mat-icon>
         </button>
       </div>
@@ -70,12 +70,12 @@ import {
               <td>{{ run.triggeredByUsername ? 'manual' : 'scheduled' }}</td>
               <td>
                 <ng-container *ngIf="task.canDownloadFiles && runFiles(run).length; else summary">
-                  <a *ngFor="let f of runFiles(run)" class="file-link"
-                     href="javascript:void(0)"
-                     matTooltip="Download"
-                     (click)="download(task, run, f)">
+                  <button *ngFor="let f of runFiles(run)" type="button" class="file-link"
+                          matTooltip="Download"
+                          [attr.aria-label]="'Download ' + f"
+                          (click)="download(task, run, f)">
                     <mat-icon class="file-icon" inline>download</mat-icon>{{ f }}
-                  </a>
+                  </button>
                 </ng-container>
                 <ng-template #summary>{{ fileSummary(run) }}</ng-template>
               </td>
@@ -89,29 +89,24 @@ import {
     </div>
   `,
   styles: [`
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .loading { display: flex; justify-content: center; padding: 24px; }
     .hint { color: var(--text-secondary); }
     .status { font-weight: 500; }
-    .status-Succeeded { color: #4caf50; }
-    .status-PartiallySucceeded { color: #ff9800; }
-    .status-Failed { color: #f44336; }
-    .status-Running { color: #2196f3; }
     table.runs { width: 100%; border-collapse: collapse; }
     table.runs th, table.runs td {
       text-align: left;
       padding: 6px 12px 6px 0;
-      border-bottom: 1px solid rgba(128,128,128,.2);
+      border-bottom: 1px solid var(--border-color);
       font-size: 13px;
     }
     table.runs th { color: var(--text-secondary); font-weight: 500; }
+    /* A real <button>, not an anchor: these trigger a download, they don't navigate. */
     .file-link {
-      color: #2196f3;
+      color: var(--accent-primary);
+      background: none;
+      border: none;
+      padding: 0;
+      font: inherit;
+      text-align: left;
       text-decoration: none;
       cursor: pointer;
       display: inline-flex;
@@ -131,7 +126,7 @@ export class ScheduleStatusComponent implements OnInit {
 
   constructor(
     private scheduledTaskService: ScheduledTaskService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -148,9 +143,9 @@ export class ScheduleStatusComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.snackBar.open('Failed to load scheduled tasks', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load scheduled tasks');
         this.cdr.detectChanges();
       }
     });
@@ -165,9 +160,9 @@ export class ScheduleStatusComponent implements OnInit {
         this.runsLoading[task.id] = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.runsLoading[task.id] = false;
-        this.snackBar.open('Failed to load run history', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load run history');
         this.cdr.detectChanges();
       }
     });
@@ -209,7 +204,7 @@ export class ScheduleStatusComponent implements OnInit {
         const message = err?.status === 404
           ? 'The file is no longer available on the server (it may have been moved, deleted or overwritten by a newer run).'
           : 'Failed to download the file';
-        this.snackBar.open(message, 'Close', { duration: 6000 });
+        this.toast.error(message, message, 6000);
       }
     });
   }

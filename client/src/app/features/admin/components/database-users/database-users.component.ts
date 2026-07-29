@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
+import { ConfirmService } from '@core/services/confirm.service';
 import { QueryService } from '@core/services/query.service';
 import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-query.model';
 
@@ -28,6 +29,7 @@ import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-que
                 <mat-label>Name</mat-label>
                 <input matInput formControlName="name" placeholder="e.g. Production Read-Only">
                 <mat-hint>Friendly name for this connection</mat-hint>
+                <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
@@ -40,16 +42,19 @@ import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-que
                 <mat-select formControlName="serverType" (selectionChange)="onServerTypeChange($event.value)">
                   <mat-option *ngFor="let st of serverTypes" [value]="st.value">{{ st.label }}</mat-option>
                 </mat-select>
+                <mat-error *ngIf="form.get('serverType')?.hasError('required')">Database type is required</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>Host</mat-label>
                 <input matInput formControlName="host" placeholder="e.g. db.example.com">
+                <mat-error *ngIf="form.get('host')?.hasError('required')">Host is required</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>Port</mat-label>
                 <input matInput type="number" formControlName="port">
+                <mat-error *ngIf="form.get('port')?.hasError('required')">Port is required</mat-error>
               </mat-form-field>
 
               <mat-form-field *ngIf="isOracle" appearance="outline">
@@ -65,11 +70,13 @@ import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-que
               <mat-form-field appearance="outline">
                 <mat-label>DB Username</mat-label>
                 <input matInput formControlName="dbUsername">
+                <mat-error *ngIf="form.get('dbUsername')?.hasError('required')">DB username is required</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>{{ editingId ? 'New Password (leave blank to keep)' : 'Password' }}</mat-label>
                 <input matInput type="password" formControlName="password">
+                <mat-error *ngIf="form.get('password')?.hasError('required')">Password is required</mat-error>
               </mat-form-field>
 
               <mat-slide-toggle *ngIf="editingId" formControlName="isActive">Active</mat-slide-toggle>
@@ -77,9 +84,10 @@ import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-que
 
             <div class="actions">
               <button mat-button type="button" (click)="showForm = false">Cancel</button>
-              <button mat-raised-button color="primary" type="submit"
-                      [disabled]="form.invalid || saving">
-                {{ saving ? 'Saving...' : (editingId ? 'Update' : 'Create') }}
+              <!-- Kept enabled when invalid so clicking it reveals the errors rather
+                   than leaving the user with a dead button and no explanation. -->
+              <button mat-raised-button color="primary" type="submit" [disabled]="saving">
+                {{ saving ? 'Saving…' : (editingId ? 'Update' : 'Create') }}
               </button>
             </div>
           </form>
@@ -92,7 +100,9 @@ import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-que
           <mat-card-title>
             {{ du.name }}
             <mat-icon [class.active]="du.isActive" [class.inactive]="!du.isActive"
-                      [matTooltip]="du.isActive ? 'Active' : 'Inactive'">
+                      [matTooltip]="du.isActive ? 'Active' : 'Inactive'"
+                      [attr.aria-label]="du.isActive ? 'Active' : 'Inactive'"
+                      role="img">
               {{ du.isActive ? 'check_circle' : 'cancel' }}
             </mat-icon>
           </mat-card-title>
@@ -160,7 +170,6 @@ import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-que
     </div>
   `,
   styles: [`
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .form-card { margin-bottom: 24px; }
     .form-grid {
       display: grid;
@@ -218,7 +227,8 @@ export class DatabaseUsersComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private queryService: QueryService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
+    private confirmService: ConfirmService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -265,9 +275,10 @@ export class DatabaseUsersComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.snackBar.open('Failed to load database users', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load database users');
+        this.cdr.detectChanges();
       }
     });
   }
@@ -312,7 +323,13 @@ export class DatabaseUsersComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      // Reveal the <mat-error>s: untouched controls render no error until marked.
+      this.form.markAllAsTouched();
+      this.toast.error('Please correct the highlighted fields.', 'Please correct the highlighted fields.');
+      this.cdr.detectChanges();
+      return;
+    }
     this.saving = true;
     const val = this.form.value;
 
@@ -325,12 +342,12 @@ export class DatabaseUsersComponent implements OnInit {
         next: () => {
           this.saving = false;
           this.showForm = false;
-          this.snackBar.open('Database user updated', 'Close', { duration: 3000 });
+          this.toast.success('Database user updated');
           this.loadDbUsers();
         },
         error: (err) => {
           this.saving = false;
-          this.snackBar.open(err.error?.message || 'Update failed', 'Close', { duration: 5000 });
+          this.toast.error(err, 'Update failed');
         }
       });
     } else {
@@ -338,42 +355,53 @@ export class DatabaseUsersComponent implements OnInit {
         next: () => {
           this.saving = false;
           this.showForm = false;
-          this.snackBar.open('Database user created', 'Close', { duration: 3000 });
+          this.toast.success('Database user created');
           this.loadDbUsers();
         },
         error: (err) => {
           this.saving = false;
-          this.snackBar.open(err.error?.message || 'Creation failed', 'Close', { duration: 5000 });
+          this.toast.error(err, 'Creation failed');
         }
       });
     }
   }
 
   deleteDbUser(du: DatabaseUser): void {
-    if (!confirm(`Delete database user "${du.name}"? Queries using it will fall back to the default connection.`)) return;
-    this.queryService.deleteDatabaseUser(du.id).subscribe({
-      next: () => {
-        this.snackBar.open('Database user deleted', 'Close', { duration: 3000 });
-        this.loadDbUsers();
-      },
-      error: (err) => {
-        this.snackBar.open(err.error?.message || 'Delete failed', 'Close', { duration: 5000 });
-      }
+    this.confirmService.askThen({
+      title: 'Delete database connection?',
+      message: `"${du.name}" will be deleted. Any query using it will fall back to the default `
+        + 'system connection. This cannot be undone.',
+      confirmText: 'Delete',
+      destructive: true
+    }, () => {
+      this.queryService.deleteDatabaseUser(du.id).subscribe({
+        next: () => {
+          this.toast.success('Database user deleted');
+          this.loadDbUsers();
+        },
+        error: (err) => {
+          this.toast.error(err, 'Delete failed');
+        }
+      });
     });
   }
 
   testConnection(du: DatabaseUser): void {
-    this.snackBar.open('Testing connection...', '', { duration: 10000 });
+    this.toast.info('Testing connection…', 10000);
     this.queryService.testDatabaseConnection(du.id).subscribe({
       next: (result) => {
         if (result.success) {
-          this.snackBar.open('Connection successful!', 'Close', { duration: 3000 });
+          this.toast.success('Connection successful!');
         } else {
-          this.snackBar.open(`Connection failed: ${result.errorMessage}`, 'Close', { duration: 8000 });
+          this.toast.error(
+            `Connection failed: ${result.errorMessage}`,
+            'Connection failed',
+            8000
+          );
         }
       },
       error: (err) => {
-        this.snackBar.open(err.error?.message || 'Test failed', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Test failed');
       }
     });
   }
@@ -400,12 +428,12 @@ export class DatabaseUsersComponent implements OnInit {
       next: () => {
         this.savingAccess = false;
         this.accessDialogDbUser = null;
-        this.snackBar.open('Access updated', 'Close', { duration: 3000 });
+        this.toast.success('Access updated');
         this.loadDbUsers();
       },
       error: (err) => {
         this.savingAccess = false;
-        this.snackBar.open(err.error?.message || 'Failed to update access', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to update access');
       }
     });
   }

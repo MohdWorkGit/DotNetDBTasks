@@ -2,7 +2,8 @@ import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
+import { ConfirmService } from '@core/services/confirm.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
@@ -29,11 +30,16 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
           </button>
           <mat-menu #defaultTplMenu="matMenu">
             <div class="tpl-menu-status" (click)="$event.stopPropagation()">
-              {{ defaultTemplateInfo?.isBuiltIn
-                  ? 'Using the built-in layout'
-                  : 'Custom: ' + defaultTemplateInfo?.fileName }}
+              <ng-container *ngIf="templateInfoFailed">Template status unavailable</ng-container>
+              <ng-container *ngIf="!templateInfoFailed && !defaultTemplateInfo">Checking template…</ng-container>
+              <ng-container *ngIf="defaultTemplateInfo">
+                {{ defaultTemplateInfo.isBuiltIn
+                    ? 'Using the built-in layout'
+                    : 'Custom: ' + (defaultTemplateInfo.fileName || 'unnamed file') }}
+              </ng-container>
             </div>
-            <button mat-menu-item (click)="downloadDefaultTemplate()">
+            <button mat-menu-item (click)="downloadDefaultTemplate()"
+                    [disabled]="!defaultTemplateInfo">
               <mat-icon>download</mat-icon>
               Download {{ defaultTemplateInfo?.isBuiltIn ? 'starter template (edit and re-upload)' : 'current template' }}
             </button>
@@ -41,7 +47,7 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
               <mat-icon>upload_file</mat-icon> Upload new default
             </button>
             <button mat-menu-item (click)="resetDefaultTemplate()"
-                    [disabled]="defaultTemplateInfo?.isBuiltIn">
+                    [disabled]="!defaultTemplateInfo || defaultTemplateInfo.isBuiltIn">
               <mat-icon>restart_alt</mat-icon> Reset to built-in layout
             </button>
           </mat-menu>
@@ -92,6 +98,7 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
             </mat-form-field>
           </div>
 
+          <div class="table-wrapper">
           <table mat-table [dataSource]="dataSource" matSort *ngIf="!loading">
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
@@ -133,22 +140,22 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let q">
-                <button mat-icon-button matTooltip="Edit"
+                <button mat-icon-button matTooltip="Edit" aria-label="Edit"
                         [routerLink]="['/admin/queries/edit', q.id]"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Copy"
+                <button mat-icon-button matTooltip="Copy" aria-label="Copy"
                         routerLink="/admin/queries/create"
                         [queryParams]="{ copyFrom: q.id }"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>content_copy</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Manage Access"
+                <button mat-icon-button matTooltip="Manage Access" aria-label="Manage Access"
                         [routerLink]="['/admin/queries', q.id, 'roles']">
                   <mat-icon>security</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Delete" color="warn"
+                <button mat-icon-button matTooltip="Delete" aria-label="Delete" color="warn"
                         (click)="deleteQuery(q.id, q.name)"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>delete</mat-icon>
@@ -165,6 +172,7 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
               </td>
             </tr>
           </table>
+          </div>
 
           <mat-paginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons>
           </mat-paginator>
@@ -173,13 +181,6 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
     </div>
   `,
   styles: [`
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .loading { display: flex; justify-content: center; padding: 40px; }
     .header-actions { display: flex; gap: 12px; align-items: center; }
     .tpl-menu-status {
       padding: 8px 16px;
@@ -188,14 +189,11 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
       border-bottom: 1px solid var(--border-color);
       cursor: default;
     }
-    .table-toolbar { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; }
     .filter-field { flex: 1; min-width: 240px; }
     .status-filter { width: 160px; }
     .select-filter { width: 200px; }
     .status-active { color: var(--status-active); font-weight: 500; }
     .status-inactive { color: var(--status-inactive); font-weight: 500; }
-    .no-data-row { height: 56px; }
-    .no-data-cell { text-align: center; color: var(--text-secondary); padding: 16px; }
     table { width: 100%; }
   `]
 })
@@ -211,6 +209,8 @@ export class QueryListComponent implements OnInit {
   groupOptions: string[] = [];
   dbUserOptions: string[] = [];
   defaultTemplateInfo: { fileName: string | null; isBuiltIn: boolean } | null = null;
+  /** True when the template-info fetch failed, so the menu can say so instead of guessing. */
+  templateInfoFailed = false;
   private textFilter = '';
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -219,7 +219,8 @@ export class QueryListComponent implements OnInit {
   constructor(
     private queryService: QueryService,
     public authService: AuthService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
+    private confirmService: ConfirmService,
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
@@ -236,9 +237,19 @@ export class QueryListComponent implements OnInit {
   // ---- Default Word template ----
 
   private loadDefaultTemplateInfo(): void {
+    this.templateInfoFailed = false;
     this.queryService.getDefaultWordTemplateInfo().subscribe({
-      next: (info) => { this.defaultTemplateInfo = info; this.cdr.detectChanges(); },
-      error: () => {}
+      next: (info) => {
+        this.defaultTemplateInfo = info;
+        this.cdr.detectChanges();
+      },
+      // Swallowing this used to leave defaultTemplateInfo null while the menu
+      // still rendered 'Custom: ' + fileName — i.e. a literal "Custom: undefined".
+      error: () => {
+        this.defaultTemplateInfo = null;
+        this.templateInfoFailed = true;
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -252,7 +263,7 @@ export class QueryListComponent implements OnInit {
         a.click();
         window.URL.revokeObjectURL(url);
       },
-      error: () => this.snackBar.open('Failed to download template', 'Close', { duration: 5000 })
+      error: (err) => this.toast.error(err, 'Failed to download template')
     });
   }
 
@@ -263,26 +274,35 @@ export class QueryListComponent implements OnInit {
     if (!file) return;
     this.queryService.uploadDefaultWordTemplate(file).subscribe({
       next: () => {
-        this.snackBar.open('Default Word template updated', 'Close', { duration: 3000 });
+        this.toast.success('Default Word template updated');
         this.loadDefaultTemplateInfo();
       },
       error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to upload template', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to upload template');
         this.cdr.detectChanges();
       }
     });
   }
 
   resetDefaultTemplate(): void {
-    this.queryService.deleteDefaultWordTemplate().subscribe({
-      next: () => {
-        this.snackBar.open('Default template reset to the built-in layout', 'Close', { duration: 3000 });
-        this.loadDefaultTemplateInfo();
-      },
-      error: (err) => {
-        this.snackBar.open(err.error?.message || 'Failed to reset template', 'Close', { duration: 5000 });
-        this.cdr.detectChanges();
-      }
+    this.confirmService.askThen({
+      title: 'Reset default template?',
+      message: 'This deletes the uploaded system-wide Word template and restores the built-in '
+        + 'layout. Every query without its own template will use the built-in layout from now on. '
+        + 'This cannot be undone.',
+      confirmText: 'Reset template',
+      destructive: true
+    }, () => {
+      this.queryService.deleteDefaultWordTemplate().subscribe({
+        next: () => {
+          this.toast.success('Default template reset to the built-in layout');
+          this.loadDefaultTemplateInfo();
+        },
+        error: (err) => {
+          this.toast.error(err, 'Failed to reset template');
+          this.cdr.detectChanges();
+        }
+      });
     });
   }
 
@@ -346,9 +366,9 @@ export class QueryListComponent implements OnInit {
           this.dataSource.sort = this.sort;
         });
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.snackBar.open('Failed to load queries', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load queries');
         this.cdr.detectChanges();
       }
     });
@@ -370,16 +390,22 @@ export class QueryListComponent implements OnInit {
   }
 
   deleteQuery(id: string, name: string): void {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
-
-    this.queryService.deleteQuery(id).subscribe({
-      next: () => {
-        this.snackBar.open('Query deleted', 'Close', { duration: 3000 });
-        this.loadQueries();
-      },
-      error: () => {
-        this.snackBar.open('Failed to delete query', 'Close', { duration: 5000 });
-      }
+    this.confirmService.askThen({
+      title: 'Delete query?',
+      message: `"${name}" will be permanently deleted, along with its parameters and access `
+        + 'assignments. This cannot be undone.',
+      confirmText: 'Delete',
+      destructive: true
+    }, () => {
+      this.queryService.deleteQuery(id).subscribe({
+        next: () => {
+          this.toast.success('Query deleted');
+          this.loadQueries();
+        },
+        error: (err) => {
+          this.toast.error(err, 'Failed to delete query');
+        }
+      });
     });
   }
 }

@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
 import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '@core/models/scheduled-task.model';
 
@@ -12,7 +12,7 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
       <div class="header">
         <h2>Run History{{ task ? ' — ' + task.name : '' }}</h2>
         <div>
-          <button mat-icon-button matTooltip="Refresh" (click)="load()">
+          <button mat-icon-button matTooltip="Refresh" aria-label="Refresh" (click)="load()">
             <mat-icon>refresh</mat-icon>
           </button>
           <button mat-button routerLink="/admin/scheduled-tasks">
@@ -58,12 +58,13 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
             <tr *ngFor="let item of run.items">
               <td>{{ item.queryName }}<span class="muted" *ngIf="item.isWrite"> (data change)</span></td>
               <td>
-                <a *ngIf="item.fileName && item.success && task?.canDownloadFiles" class="file-link"
-                   href="javascript:void(0)"
-                   matTooltip="Download"
-                   (click)="download(run, item)">
+                <button *ngIf="item.fileName && item.success && task?.canDownloadFiles"
+                        type="button" class="file-link"
+                        matTooltip="Download"
+                        [attr.aria-label]="'Download ' + item.fileName"
+                        (click)="download(run, item)">
                   <mat-icon class="file-icon" inline>download</mat-icon>{{ item.fileName }}
-                </a>
+                </button>
                 <ng-container *ngIf="!(item.fileName && item.success && task?.canDownloadFiles)">
                   {{ item.fileName || (item.isWrite ? 'no file' : '—') }}
                 </ng-container>
@@ -83,33 +84,27 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
     </div>
   `,
   styles: [`
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .loading { display: flex; justify-content: center; padding: 40px; }
     .hint { color: var(--text-secondary); }
     .status { font-weight: 500; }
-    .status-Succeeded { color: #4caf50; }
-    .status-PartiallySucceeded { color: #ff9800; }
-    .status-Failed { color: #f44336; }
-    .status-Running { color: #2196f3; }
-    .status-Canceled { color: #9e9e9e; }
-    .error { color: #f44336; }
+    .error { color: var(--status-error); }
     .cancel-btn { margin-left: 12px; line-height: 30px; }
     table.items { width: 100%; border-collapse: collapse; }
     table.items th, table.items td {
       text-align: left;
       padding: 6px 12px 6px 0;
-      border-bottom: 1px solid rgba(128,128,128,.2);
+      border-bottom: 1px solid var(--border-color);
       font-size: 13px;
     }
     table.items th { color: var(--text-secondary); font-weight: 500; }
     .muted { color: var(--text-secondary); font-size: 12px; }
+    /* A real <button>, not an anchor: these trigger a download, they don't navigate. */
     .file-link {
-      color: #2196f3;
+      color: var(--accent-primary);
+      background: none;
+      border: none;
+      padding: 0;
+      font: inherit;
+      text-align: left;
       text-decoration: none;
       cursor: pointer;
       display: inline-flex;
@@ -130,7 +125,7 @@ export class ScheduledTaskRunsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private scheduledTaskService: ScheduledTaskService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -145,6 +140,12 @@ export class ScheduledTaskRunsComponent implements OnInit {
       next: (task) => {
         this.task = task;
         this.cdr.detectChanges();
+      },
+      // Without this the header stayed blank and canDownloadFiles was undefined,
+      // so every download link silently vanished with no explanation.
+      error: (err) => {
+        this.toast.error(err, 'Failed to load the scheduled task');
+        this.cdr.detectChanges();
       }
     });
     this.scheduledTaskService.getRuns(this.taskId).subscribe({
@@ -153,9 +154,9 @@ export class ScheduledTaskRunsComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.snackBar.open('Failed to load run history', 'Close', { duration: 5000 });
+        this.toast.error(err, 'Failed to load run history');
         this.cdr.detectChanges();
       }
     });
@@ -176,7 +177,7 @@ export class ScheduledTaskRunsComponent implements OnInit {
         const message = err?.status === 404
           ? 'The file is no longer available on the server (it may have been moved, deleted or overwritten by a newer run).'
           : 'Failed to download the file';
-        this.snackBar.open(message, 'Close', { duration: 6000 });
+        this.toast.error(message, message, 6000);
       }
     });
   }
@@ -186,7 +187,7 @@ export class ScheduledTaskRunsComponent implements OnInit {
     this.scheduledTaskService.cancelRun(this.taskId, run.id).subscribe({
       next: () => {
         this.cancelingId = null;
-        this.snackBar.open('Cancellation requested — the running query is being stopped.', 'Close', { duration: 4000 });
+        this.toast.success('Cancellation requested — the running query is being stopped.', 4000);
         this.load();
       },
       error: (err) => {
@@ -194,7 +195,7 @@ export class ScheduledTaskRunsComponent implements OnInit {
         const message = err?.status === 409
           ? 'That run is no longer in progress.'
           : 'Failed to cancel the run';
-        this.snackBar.open(message, 'Close', { duration: 5000 });
+        this.toast.error(message, message);
         this.load();
       }
     });

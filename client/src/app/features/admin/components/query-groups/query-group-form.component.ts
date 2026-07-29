@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '@core/services/toast.service';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
@@ -56,7 +56,7 @@ export class QueryGroupFormComponent implements OnInit {
     private queryService: QueryService,
     private route: ActivatedRoute,
     private router: Router,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -74,8 +74,8 @@ export class QueryGroupFormComponent implements OnInit {
           this.form.patchValue({ name: g.name, description: g.description });
           this.cdr.detectChanges();
         },
-        error: () => {
-          this.snackBar.open('Failed to load group', 'Close', { duration: 5000 });
+        error: (err) => {
+          this.toast.error(err, 'Failed to load group');
         }
       });
     }
@@ -101,16 +101,12 @@ export class QueryGroupFormComponent implements OnInit {
     ).subscribe({
       next: () => {
         this.saving = false;
-        this.snackBar.open(
-          `Group ${this.isEdit ? 'updated' : 'created'} successfully`,
-          'Close', { duration: 3000 }
-        );
+        this.toast.success(`Group ${this.isEdit ? 'updated' : 'created'} successfully`);
         this.router.navigate(['/admin/query-groups']);
       },
       error: (err) => {
         this.saving = false;
-        const msg = err.error?.message || 'Operation failed';
-        this.snackBar.open(msg, 'Close', { duration: 5000 });
+        this.toast.error(err, 'Operation failed');
       }
     });
   }

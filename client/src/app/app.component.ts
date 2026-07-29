@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { AuthService } from './core/services/auth.service';
 import { ThemeService } from './core/services/theme.service';
 
@@ -6,71 +8,107 @@ import { ThemeService } from './core/services/theme.service';
   standalone: false,
   selector: 'app-root',
   template: `
-    <mat-toolbar color="primary" *ngIf="authService.isAuthenticated$ | async">
-      <span>DotNetDBTasks</span>
-      <span class="spacer"></span>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
 
-      <button mat-button routerLink="/user/queries">
-        <mat-icon>list</mat-icon> My Queries
-      </button>
-      <button mat-button routerLink="/user/history">
-        <mat-icon>history</mat-icon> History
-      </button>
-      <button mat-button routerLink="/user/schedules" *ngIf="!authService.isAdmin()">
-        <mat-icon>schedule</mat-icon> Schedules
-      </button>
+    <nav aria-label="Main" *ngIf="authService.isAuthenticated$ | async">
+      <mat-toolbar color="primary">
+        <span>DotNetDBTasks</span>
+        <span class="spacer"></span>
 
-      <button mat-button routerLink="/admin/scheduled-tasks" *ngIf="authService.isAdmin()">
-        <mat-icon>schedule</mat-icon> Schedules
-      </button>
-      <button mat-button routerLink="/admin/queries" *ngIf="authService.isAdminOrAuditor()">
-        <mat-icon>dashboard</mat-icon> Manage Queries
-      </button>
-      <button mat-button routerLink="/admin/query-groups" *ngIf="authService.isAdminOrAuditor()">
-        <mat-icon>folder</mat-icon> Query Groups
-      </button>
-      <button mat-button routerLink="/admin/users" *ngIf="authService.isAdminOrAuditor()">
-        <mat-icon>people</mat-icon> Users
-      </button>
-      <button mat-button routerLink="/admin/database-users" *ngIf="authService.isAdmin()">
-        <mat-icon>storage</mat-icon> DB Users
-      </button>
-      <button mat-button routerLink="/admin/ad-users" *ngIf="authService.isAdmin()">
-        <mat-icon>group</mat-icon> AD Users
-      </button>
-      <button mat-button routerLink="/admin/logs" *ngIf="authService.isAdminOrAuditor()">
-        <mat-icon>receipt_long</mat-icon> Logs
-      </button>
-
-      <button mat-icon-button (click)="themeService.toggle()"
-              [matTooltip]="(themeService.isDarkMode$ | async) ? 'Switch to light mode' : 'Switch to dark mode'">
-        <mat-icon>{{ (themeService.isDarkMode$ | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
-      </button>
-
-      <button mat-icon-button [matMenuTriggerFor]="userMenu">
-        <mat-icon>account_circle</mat-icon>
-      </button>
-      <mat-menu #userMenu="matMenu">
-        <div mat-menu-item disabled>{{ authService.getUsername() }}</div>
-        <button mat-menu-item (click)="authService.logout()">
-          <mat-icon>exit_to_app</mat-icon> Logout
+        <button mat-button routerLink="/user/queries" routerLinkActive="nav-active"
+                matTooltip="My Queries" aria-label="My Queries">
+          <mat-icon>list</mat-icon> <span class="nav-label">My Queries</span>
         </button>
-      </mat-menu>
-    </mat-toolbar>
+        <button mat-button routerLink="/user/history" routerLinkActive="nav-active"
+                matTooltip="History" aria-label="History">
+          <mat-icon>history</mat-icon> <span class="nav-label">History</span>
+        </button>
+        <button mat-button routerLink="/user/schedules" routerLinkActive="nav-active"
+                *ngIf="!authService.isAdmin()"
+                matTooltip="Schedules" aria-label="Schedules">
+          <mat-icon>schedule</mat-icon> <span class="nav-label">Schedules</span>
+        </button>
+
+        <button mat-button routerLink="/admin/scheduled-tasks" routerLinkActive="nav-active"
+                *ngIf="authService.isAdmin()"
+                matTooltip="Schedules" aria-label="Schedules">
+          <mat-icon>schedule</mat-icon> <span class="nav-label">Schedules</span>
+        </button>
+        <button mat-button routerLink="/admin/queries" routerLinkActive="nav-active"
+                *ngIf="authService.isAdminOrAuditor()"
+                matTooltip="Manage Queries" aria-label="Manage Queries">
+          <mat-icon>dashboard</mat-icon> <span class="nav-label">Manage Queries</span>
+        </button>
+        <button mat-button routerLink="/admin/query-groups" routerLinkActive="nav-active"
+                *ngIf="authService.isAdminOrAuditor()"
+                matTooltip="Query Groups" aria-label="Query Groups">
+          <mat-icon>folder</mat-icon> <span class="nav-label">Query Groups</span>
+        </button>
+        <button mat-button routerLink="/admin/users" routerLinkActive="nav-active"
+                *ngIf="authService.isAdminOrAuditor()"
+                matTooltip="Users" aria-label="Users">
+          <mat-icon>people</mat-icon> <span class="nav-label">Users</span>
+        </button>
+        <button mat-button routerLink="/admin/database-users" routerLinkActive="nav-active"
+                *ngIf="authService.isAdmin()"
+                matTooltip="DB Users" aria-label="DB Users">
+          <mat-icon>storage</mat-icon> <span class="nav-label">DB Users</span>
+        </button>
+        <button mat-button routerLink="/admin/ad-users" routerLinkActive="nav-active"
+                *ngIf="authService.isAdmin()"
+                matTooltip="AD Users" aria-label="AD Users">
+          <mat-icon>group</mat-icon> <span class="nav-label">AD Users</span>
+        </button>
+        <button mat-button routerLink="/admin/logs" routerLinkActive="nav-active"
+                *ngIf="authService.isAdminOrAuditor()"
+                matTooltip="Logs" aria-label="Logs">
+          <mat-icon>receipt_long</mat-icon> <span class="nav-label">Logs</span>
+        </button>
+
+        <button mat-icon-button (click)="themeService.toggle()"
+                [matTooltip]="themeToggleLabel | async"
+                [attr.aria-label]="themeToggleLabel | async">
+          <mat-icon>{{ (themeService.isDarkMode$ | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        </button>
+
+        <button mat-icon-button [matMenuTriggerFor]="userMenu"
+                matTooltip="Account"
+                [attr.aria-label]="'Account menu for ' + authService.getUsername()">
+          <mat-icon>account_circle</mat-icon>
+        </button>
+        <mat-menu #userMenu="matMenu">
+          <div mat-menu-item disabled>{{ authService.getUsername() }}</div>
+          <button mat-menu-item (click)="authService.logout()">
+            <mat-icon>exit_to_app</mat-icon> Logout
+          </button>
+        </mat-menu>
+      </mat-toolbar>
+    </nav>
 
     <!-- Theme toggle for login page (when not authenticated) -->
     <button *ngIf="!(authService.isAuthenticated$ | async)"
             mat-icon-button class="login-theme-toggle"
             (click)="themeService.toggle()"
-            [matTooltip]="(themeService.isDarkMode$ | async) ? 'Switch to light mode' : 'Switch to dark mode'">
+            [matTooltip]="themeToggleLabel | async"
+            [attr.aria-label]="themeToggleLabel | async">
       <mat-icon>{{ (themeService.isDarkMode$ | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
 
-    <router-outlet></router-outlet>
+    <main id="main-content" tabindex="-1">
+      <router-outlet></router-outlet>
+    </main>
   `,
   styles: [`
     .spacer { flex: 1 1 auto; }
     mat-toolbar button { margin: 0 4px; }
+    .nav-label { margin-left: 4px; }
+    /* An Admin sees 9 nav buttons plus theme and account. On a 1366px laptop the
+       row overflows and pushes the account menu off-screen, so below 1400px the
+       labels collapse and the tooltip + aria-label carry the name. */
+    @media (max-width: 1400px) {
+      .nav-label { display: none; }
+      mat-toolbar button { margin: 0 2px; }
+    }
     .login-theme-toggle {
       position: fixed;
       top: 16px;
@@ -81,8 +119,15 @@ import { ThemeService } from './core/services/theme.service';
   `]
 })
 export class AppComponent {
+  /** Serves both the tooltip and the accessible name of the theme toggle. */
+  readonly themeToggleLabel: Observable<string>;
+
   constructor(
     public authService: AuthService,
     public themeService: ThemeService
-  ) {}
+  ) {
+    this.themeToggleLabel = this.themeService.isDarkMode$.pipe(
+      map(dark => dark ? 'Switch to light mode' : 'Switch to dark mode')
+    );
+  }
 }

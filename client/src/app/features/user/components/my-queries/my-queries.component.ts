@@ -72,9 +72,7 @@ import { MyQueryGroup } from '@core/models/dynamic-query.model';
     </div>
   `,
   styles: [`
-    .loading { display: flex; justify-content: center; padding: 40px; }
     .error-card { margin-bottom: 16px; }
-    .error-text { color: var(--status-error); margin-bottom: 16px; }
     .groups { display: block; }
     .folder-icon { margin-right: 8px; vertical-align: middle; color: var(--text-secondary); }
     .query-count { font-size: 13px; color: var(--text-secondary); margin-right: 12px; }

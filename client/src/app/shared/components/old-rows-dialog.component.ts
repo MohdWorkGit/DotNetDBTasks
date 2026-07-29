@@ -73,21 +73,18 @@ export interface OldRowsDialogData {
     </mat-dialog-actions>
   `,
   styles: [`
-    .loading { display: flex; justify-content: center; padding: 40px; }
-    .error-block { text-align: center; padding: 24px; }
-    .error-text { color: var(--status-error); margin-bottom: 16px; }
     .dialog-subtitle { font-size: 13px; margin: 0 0 12px 0; color: var(--text-secondary); }
     .rows-table-wrapper {
       overflow-x: auto;
       max-height: 55vh;
       overflow-y: auto;
-      border: 1px solid var(--border-color, #e0e0e0);
+      border: 1px solid var(--border-color);
       border-radius: 4px;
     }
     .rows-table { width: 100%; font-size: 13px; }
     .rows-table th {
       font-weight: 600;
-      background: var(--bg-secondary, #fafafa);
+      background: var(--bg-secondary);
       position: sticky;
       top: 0;
       z-index: 1;
