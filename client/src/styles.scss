@@ -60,10 +60,6 @@
 
   --accent-primary: #4f46e5;
   --accent-hover: #4338ca;
-
-  // Translucent so it tints whatever surface the field sits on (white card,
-  // grey section, dialog) without needing a per-context colour.
-  --field-fill: rgba(15, 23, 42, 0.045);
 }
 
 // ── Dark Theme Overrides ──
@@ -115,8 +111,6 @@ body.dark-theme {
 
   --accent-primary: #818cf8;
   --accent-hover: #6366f1;
-
-  --field-fill: rgba(255, 255, 255, 0.07);
 
   // ── Angular Material M3 system tokens ──
   // The azure-blue prebuilt theme defines --mat-sys-* on <html> with LIGHT values.
@@ -303,6 +297,27 @@ body.dark-theme {
     --mdc-linear-progress-active-indicator-color: var(--accent-primary);
   }
 
+  // Resting outline only. Focused/invalid are excluded so MDC's own focus and
+  // error colours still come through — without the :not()s this flat override
+  // won on specificity and a focused field looked identical to a resting one.
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled):not(.mdc-text-field--focused):not(.mdc-text-field--invalid) {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--border-color);
+    }
+  }
+
+  // The prebuilt theme's focus blue (#005CBB) is only 2.77:1 on the dark page —
+  // below the 3:1 WCAG 1.4.11 wants for a state indicator. --accent-primary is 6:1.
+  .mdc-text-field--outlined.mdc-text-field--focused:not(.mdc-text-field--invalid) {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--accent-primary);
+    }
+  }
+
   .mat-mdc-icon-button {
     --mat-icon-button-state-layer-color: rgba(255, 255, 255, 0.06);
     color: var(--text-secondary);
@@ -426,6 +441,21 @@ body.dark-theme {
     color: var(--text-primary);
   }
 
+  // The outlined parameter/dropdown input fields sit on the lighter card
+  // surfaces, where the default outline color (--border-color) is nearly
+  // invisible. Give them a lighter outline so each field reads as a distinct box.
+  // Targets the notched-outline segments directly to override the global rule above.
+  .param-card,
+  .dropdown-config {
+    .mdc-text-field--outlined:not(.mdc-text-field--disabled):not(.mdc-text-field--focused):not(.mdc-text-field--invalid) {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: var(--text-hint);
+      }
+    }
+  }
+
   // Query grid cards — one shade lighter than the group box they sit in
   // (page < group box < card), so each card reads as a raised tile.
   .query-grid .query-card {
@@ -546,45 +576,6 @@ html.dark-theme {
   flex: 1 1 auto;
 }
 
-// ── Borderless text fields ──
-// The rectangular notched outline is removed at rest. The field is identified by
-// its fill instead — a translucent tint, so it works on white cards and on the
-// grey section surfaces alike without needing a per-context colour.
-//
-// Focus and error keep a real outline on purpose: without one the control would
-// have no perceivable boundary in the states where it matters most, and an
-// invalid field would look identical to a valid one (WCAG 1.4.11 / 3.3.1).
-.mat-mdc-form-field {
-  --mdc-outlined-text-field-outline-color: transparent;
-  --mdc-outlined-text-field-hover-outline-color: transparent;
-  --mdc-outlined-text-field-disabled-outline-color: transparent;
-  --mdc-outlined-text-field-outline-width: 0;
-}
-
-.mdc-text-field--outlined:not(.mdc-text-field--focused):not(.mdc-text-field--invalid) {
-  .mdc-notched-outline__leading,
-  .mdc-notched-outline__notch,
-  .mdc-notched-outline__trailing {
-    border-color: transparent;
-  }
-}
-
-.mat-mdc-form-field .mat-mdc-text-field-wrapper {
-  background-color: var(--field-fill);
-  border-radius: 6px;
-}
-
-// Keep the focused/invalid outline hugging the filled box.
-.mat-mdc-form-field .mdc-notched-outline__leading,
-.mat-mdc-form-field .mdc-notched-outline__trailing {
-  border-radius: 6px;
-}
-
-// Selects and date pickers reuse the same wrapper, so they inherit the fill.
-.mat-mdc-form-field.mat-form-field-disabled .mat-mdc-text-field-wrapper {
-  background-color: transparent;
-}
-
 // ── Shared layout utilities ──
 // Emulated view encapsulation scopes *component* styles only; global rules still
 // apply to elements in component templates. These were duplicated verbatim across
@@ -672,6 +663,18 @@ textarea:focus-visible,
 .mat-mdc-chip:focus-visible {
   outline: 2px solid var(--accent-primary) !important;
   outline-offset: 2px;
+}
+
+// ...but never inside a form field. Material already indicates focus there by
+// colouring and thickening its own notched outline, so the ring above landed on
+// the inner <input> and drew a second rectangle inside the field's border.
+// Focus stays clearly visible via the notched outline — nothing is lost here.
+.mat-mdc-form-field :focus-visible,
+.mat-mdc-form-field input:focus-visible,
+.mat-mdc-form-field textarea:focus-visible,
+.mat-mdc-form-field .mat-mdc-select:focus-visible,
+.mat-mdc-form-field .mat-mdc-select-trigger:focus-visible {
+  outline: none !important;
 }
 
 // Skip link — first focusable element in the document, visually hidden until
