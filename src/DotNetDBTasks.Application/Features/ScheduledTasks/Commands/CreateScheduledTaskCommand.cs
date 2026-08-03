@@ -265,7 +265,7 @@ public static class ScheduledTaskInputValidator
             if (string.IsNullOrWhiteSpace(item.KeyColumn))
                 continue;
 
-            if (IsWriteQuery(query.SqlQuery))
+            if (query.QueryType.IsWrite())
                 throw new DomainException(
                     $"Query '{query.Name}' modifies data; a key column checkpoint is only supported for read queries.");
 
@@ -363,11 +363,4 @@ public static class ScheduledTaskInputValidator
                 ? separator
                 : null;
 
-    private static bool IsWriteQuery(string sql)
-    {
-        var trimmed = sql.TrimStart();
-        return trimmed.StartsWith("INSERT", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase);
-    }
 }

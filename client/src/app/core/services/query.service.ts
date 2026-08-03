@@ -116,6 +116,8 @@ export class QueryService {
     if (request.queryId) params['queryId'] = request.queryId;
     if (request.userId) params['userId'] = request.userId;
     if (request.isSuccess !== undefined) params['isSuccess'] = request.isSuccess;
+    // Guard on undefined, not falsiness — QueryType.Select is 0 and must still be sent.
+    if (request.queryType !== undefined) params['queryType'] = request.queryType;
     if (request.search) params['search'] = request.search;
     if (request.sortBy) params['sortBy'] = request.sortBy;
     if (request.sortDescending !== undefined) params['sortDescending'] = request.sortDescending;

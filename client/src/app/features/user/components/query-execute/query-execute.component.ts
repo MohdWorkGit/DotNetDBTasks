@@ -11,6 +11,7 @@ import {
   DropdownOption,
   DynamicQuery,
   ExecuteResult,
+  isWriteQueryType,
   ParameterType,
   QueryParameter
 } from '@core/models/dynamic-query.model';
@@ -513,12 +514,11 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * True when the query modifies data, so the preview/confirm step applies.
-   * Same leading-keyword heuristic the server uses to decide the same thing.
+   * True when the query modifies data, so the preview/confirm step applies. Reads the type the
+   * server derived and stored at save time rather than re-parsing the SQL here.
    */
   get isWriteQuery(): boolean {
-    const sql = (this.query?.sqlQuery || '').trimStart().toUpperCase();
-    return sql.startsWith('INSERT') || sql.startsWith('UPDATE') || sql.startsWith('DELETE');
+    return isWriteQueryType(this.query?.queryType);
   }
 
   /**

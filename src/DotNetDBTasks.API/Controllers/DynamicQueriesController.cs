@@ -2,6 +2,7 @@ using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Features.DynamicQueries.Commands;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Application.Features.QueryExecution.Queries;
+using DotNetDBTasks.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -287,6 +288,7 @@ public class DynamicQueriesController : ControllerBase
         [FromQuery] Guid? queryId,
         [FromQuery] Guid? userId,
         [FromQuery] bool? isSuccess,
+        [FromQuery] QueryType? queryType,
         [FromQuery] string? search,
         [FromQuery] string? sortBy,
         [FromQuery] bool sortDescending = true,
@@ -300,6 +302,7 @@ public class DynamicQueriesController : ControllerBase
                 QueryId = queryId,
                 UserId = userId,
                 IsSuccess = isSuccess,
+                QueryType = queryType,
                 Search = search,
                 SortBy = sortBy,
                 SortDescending = sortDescending,

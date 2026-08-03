@@ -1,3 +1,5 @@
+using DotNetDBTasks.Domain.Enums;
+
 namespace DotNetDBTasks.Application.Features.QueryExecution.Queries;
 
 public class ExecutionLogDto
@@ -17,6 +19,7 @@ public class ExecutionLogDto
     /// <summary>
     /// True when the SQL query is a DML UPDATE statement (used to show a before/after view).
     /// </summary>
+    public QueryType QueryType { get; set; }
     public bool IsUpdateQuery { get; set; }
     /// <summary>
     /// True when the SQL query is a DML DELETE statement.

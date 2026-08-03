@@ -8,6 +8,8 @@ public class DynamicQueryDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string SqlQuery { get; set; } = string.Empty;
+    /// <summary>Derived from SqlQuery server-side; read-only for clients.</summary>
+    public QueryType QueryType { get; set; }
     public bool IsEnabled { get; set; }
     public int TimeoutSeconds { get; set; }
     public bool IsLongRunning { get; set; }

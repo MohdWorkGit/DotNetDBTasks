@@ -9,7 +9,7 @@ import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { AuthService } from '@core/services/auth.service';
-import { DynamicQuery } from '@core/models/dynamic-query.model';
+import { DynamicQuery, isWriteQueryType, QUERY_TYPE_LABELS, QueryType } from '@core/models/dynamic-query.model';
 
 @Component({
   standalone: false,
@@ -81,6 +81,18 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="select-filter">
+              <mat-label>Type</mat-label>
+              <mat-select [(value)]="typeFilter" (selectionChange)="refreshFilter()">
+                <mat-option value="all">All</mat-option>
+                <mat-option [value]="QueryType.Select">SELECT</mat-option>
+                <mat-option [value]="QueryType.Insert">INSERT</mat-option>
+                <mat-option [value]="QueryType.Update">UPDATE</mat-option>
+                <mat-option [value]="QueryType.Delete">DELETE</mat-option>
+                <mat-option [value]="QueryType.Other">Other</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="select-filter">
               <mat-label>Group</mat-label>
               <mat-select [(value)]="groupFilter" (selectionChange)="refreshFilter()">
                 <mat-option value="all">All</mat-option>
@@ -108,6 +120,15 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
             <ng-container matColumnDef="description">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Description</th>
               <td mat-cell *matCellDef="let q">{{ q.description | slice:0:80 }}{{ q.description?.length > 80 ? '…' : '' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="queryType">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+              <td mat-cell *matCellDef="let q">
+                <span class="type-chip" [class.type-write]="isWriteType(q.queryType)">
+                  {{ typeLabel(q.queryType) }}
+                </span>
+              </td>
             </ng-container>
 
             <ng-container matColumnDef="isEnabled">
@@ -192,18 +213,33 @@ import { DynamicQuery } from '@core/models/dynamic-query.model';
     .filter-field { flex: 1; min-width: 240px; }
     .status-filter { width: 160px; }
     .select-filter { width: 200px; }
+    .type-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--chip-accent);
+      color: var(--chip-text);
+    }
+    /* Writes stand out: this table is where an admin scans for the risky ones. */
+    .type-chip.type-write { background: var(--chip-inactive); }
     .status-active { color: var(--status-active); font-weight: 500; }
     .status-inactive { color: var(--status-inactive); font-weight: 500; }
     table { width: 100%; }
   `]
 })
 export class QueryListComponent implements OnInit {
-  displayedColumns = ['name', 'description', 'isEnabled', 'queryGroupName', 'databaseUserName', 'parameters', 'actions'];
+  displayedColumns = ['name', 'description', 'queryType', 'isEnabled', 'queryGroupName', 'databaseUserName', 'parameters', 'actions'];
   dataSource = new MatTableDataSource<DynamicQuery>();
   loading = true;
   statusFilter: 'all' | 'active' | 'disabled' = 'all';
   /// Sentinel that cannot collide with a real group name.
   readonly UNGROUPED = '__ungrouped__';
+  typeFilter: QueryType | 'all' = 'all';
+  /// Exposed for the template's mat-option values.
+  readonly QueryType = QueryType;
+  readonly QUERY_TYPE_LABELS = QUERY_TYPE_LABELS;
   groupFilter = 'all';
   dbUserFilter = 'all';
   groupOptions: string[] = [];
@@ -325,6 +361,7 @@ export class QueryListComponent implements OnInit {
           .sort((a, b) => a.localeCompare(b));
         this.dataSource.sortingDataAccessor = (item: DynamicQuery, property: string) => {
           switch (property) {
+            case 'queryType': return item.queryType ?? 0;
             case 'isEnabled': return item.isEnabled ? 1 : 0;
             case 'queryGroupName': return (item.queryGroupName || '').toLowerCase();
             case 'databaseUserName': return (item.databaseUserName || 'Default').toLowerCase();
@@ -336,10 +373,12 @@ export class QueryListComponent implements OnInit {
         };
         this.dataSource.filterPredicate = (data: DynamicQuery, filter: string) => {
           const f = JSON.parse(filter) as {
-            text: string; status: 'all' | 'active' | 'disabled'; group: string; dbUser: string;
+            text: string; status: 'all' | 'active' | 'disabled'; type: QueryType | 'all';
+            group: string; dbUser: string;
           };
           if (f.status === 'active' && !data.isEnabled) return false;
           if (f.status === 'disabled' && data.isEnabled) return false;
+          if (f.type !== 'all' && data.queryType !== f.type) return false;
           if (f.group !== 'all') {
             if (f.group === this.UNGROUPED) {
               if (data.queryGroupName) return false;
@@ -379,10 +418,19 @@ export class QueryListComponent implements OnInit {
     this.refreshFilter();
   }
 
+  isWriteType(type: QueryType): boolean {
+    return isWriteQueryType(type);
+  }
+
+  typeLabel(type: QueryType): string {
+    return QUERY_TYPE_LABELS[type] ?? QUERY_TYPE_LABELS[QueryType.Other];
+  }
+
   refreshFilter(): void {
     this.dataSource.filter = JSON.stringify({
       text: this.textFilter,
       status: this.statusFilter,
+      type: this.typeFilter,
       group: this.groupFilter,
       dbUser: this.dbUserFilter
     });

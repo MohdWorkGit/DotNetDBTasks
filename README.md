@@ -31,6 +31,7 @@ docker/                           # Dockerfiles and nginx config
 | Flag slow queries as long-running (async execution) | Long-running queries run as background jobs — live elapsed timer + cancel |
 | Allow or block running writes without confirmation | Skip the write preview when the query allows it |
 | Turn off before-change row capture on bulk writes | |
+| Filter queries and execution logs by statement type | |
 | View execution audit logs | |
 
 ## Security
@@ -148,7 +149,7 @@ Generate a key with `openssl rand -base64 32`.
 - `PUT /api/admin/dynamicqueries/{id}` — Update query
 - `DELETE /api/admin/dynamicqueries/{id}` — Delete query
 - `POST /api/admin/dynamicqueries/{id}/roles` — Assign roles
-- `GET /api/admin/dynamicqueries/logs` — Get execution logs
+- `GET /api/admin/dynamicqueries/logs` — Get execution logs. Optional filters: `queryId`, `userId`, `isSuccess`, `queryType` (0=Select, 1=Insert, 2=Update, 3=Delete, 4=Other), `search`; plus `sortBy`/`sortDescending`/`pageNumber`/`pageSize`. All applied in the database.
 - `GET /api/admin/roles` — List all roles
 
 ### User (requires authentication)
@@ -233,8 +234,27 @@ flow so a user can review the impact before any data actually changes.
 
 ### Statement classification
 
-Every statement is classified by its leading keyword (see `QueryExecutor` and
-`ExecuteQueryCommandHandler`):
+Each query's type is decided **once, at save time** — `QueryTypeClassifier.FromSql` reads the
+leading keyword and the result is stored on `DynamicQueries.QueryType`
+(`Select`/`Insert`/`Update`/`Delete`/`Other`). It is derived server-side on create and update,
+never accepted from the client, so it cannot contradict the SQL it describes.
+
+Storing it is not a speed optimisation — the keyword check is trivially cheap. It exists so the
+type is available as an indexable column: the execution-log list filters and pages **in the
+database**, so a type filter there could not otherwise participate in the query without a `LIKE`
+scan over the `SqlQuery` CLOB. It also gives the execution path, the scheduled-task runner and
+the Angular client one shared definition instead of a copy each.
+
+`QueryType.Other` (a `MERGE`, DDL, a PL/SQL block) is deliberately **not** a write: such
+statements have always fallen through as reads, and reclassifying them would newly subject them
+to the preview/confirm handshake.
+
+Two lower-level checks intentionally remain keyword-based, because they answer different
+questions about raw SQL and never see a `DynamicQuery`: `QueryExecutor.IsSelectQuery` (does this
+return rows? — it also accepts `WITH` for CTEs) and the `UPDATE`/`DELETE` branch inside
+`FetchAffectedRowsPreviewAsync` (how do I parse a table and `WHERE` out of this statement?).
+
+The runtime behaviour per type:
 
 - `SELECT` / `WITH` → returns a result set (`Columns` + `Rows`). User-facing execution runs the
   read **once with no cap** and caches the full set server-side (see

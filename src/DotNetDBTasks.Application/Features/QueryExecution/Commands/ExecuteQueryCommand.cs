@@ -177,13 +177,13 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
 
         // Export runs the full result set with no row cap; it only makes sense for queries
         // that return rows, so reject write queries up front.
-        if (request.Unlimited && IsWriteQuery(query.SqlQuery))
+        if (request.Unlimited && query.QueryType.IsWrite())
             throw new DomainException("Export is only available for queries that return rows.");
 
         // Preview mode: for unconfirmed write queries (INSERT/UPDATE/DELETE), run inside
         // a transaction, capture the affected row count, then roll back. The client shows
         // the count to the user and re-submits with Confirmed=true to actually commit.
-        if (!request.Confirmed && IsWriteQuery(query.SqlQuery))
+        if (!request.Confirmed && query.QueryType.IsWrite())
         {
             var previewSw = Stopwatch.StartNew();
             try
@@ -234,7 +234,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         // off per query (SaveOldValues): on statements that affect large row counts the extra
         // SELECT and the stored copy of every affected row are the expensive part of the run.
         string? oldValuesJson = null;
-        if (query.SaveOldValues && (IsUpdateQuery(query.SqlQuery) || IsDeleteQuery(query.SqlQuery)))
+        if (query.SaveOldValues && query.QueryType is QueryType.Update or QueryType.Delete)
         {
             var oldRows = await FetchAffectedRowsPreviewAsync(
                 query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser, cancellationToken);
@@ -265,7 +265,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             // here (they never reach this point unconfirmed, and a confirmed write returns a
             // count, not rows).
             var noRowCap = request.Unlimited
-                || (request.CacheFullResult && !IsWriteQuery(query.SqlQuery));
+                || (request.CacheFullResult && !query.QueryType.IsWrite());
 
             QueryExecutionResult result;
             if (noRowCap)
@@ -429,12 +429,6 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
             .ToHashSet(StringComparer.Ordinal);
     }
 
-    private static bool IsUpdateQuery(string sql) =>
-        sql.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsDeleteQuery(string sql) =>
-        sql.TrimStart().StartsWith("DELETE", StringComparison.OrdinalIgnoreCase);
-
     /// <summary>
     /// For UPDATE/DELETE statements, parses out the table and WHERE clause and runs a
     /// SELECT * against the same predicate so the user can see which rows will be affected
@@ -522,14 +516,6 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         {
             return null;
         }
-    }
-
-    private static bool IsWriteQuery(string sql)
-    {
-        var trimmed = sql.TrimStart();
-        return trimmed.StartsWith("INSERT", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

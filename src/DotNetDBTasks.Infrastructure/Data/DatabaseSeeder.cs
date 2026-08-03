@@ -158,6 +158,7 @@ public static class DatabaseSeeder
                 CreatedByUserId = adminUser.Id,
                 CreatedAt = DateTime.UtcNow
             };
+            exampleQuery.QueryType = QueryTypeClassifier.FromSql(exampleQuery.SqlQuery);
 
             exampleQuery.Parameters.Add(new QueryParameter
             {

@@ -163,7 +163,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         CancellationToken cancellationToken)
     {
         var queryName = item.DynamicQuery?.Name ?? item.DynamicQueryId.ToString();
-        var isWrite = IsWriteQuery(item.DynamicQuery?.SqlQuery ?? string.Empty);
+        var isWrite = item.DynamicQuery?.QueryType.IsWrite() ?? false;
         var result = new ScheduledTaskItemResult { QueryName = queryName, IsWrite = isWrite };
         var sw = Stopwatch.StartNew();
         try
@@ -237,7 +237,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         foreach (var item in items)
         {
             var queryName = item.DynamicQuery?.Name ?? item.DynamicQueryId.ToString();
-            var isWrite = IsWriteQuery(item.DynamicQuery?.SqlQuery ?? string.Empty);
+            var isWrite = item.DynamicQuery?.QueryType.IsWrite() ?? false;
             var result = new ScheduledTaskItemResult { QueryName = queryName, IsWrite = isWrite };
             results.Add(result);
             var sw = Stopwatch.StartNew();
@@ -398,14 +398,6 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString()
         };
-    }
-
-    private static bool IsWriteQuery(string sql)
-    {
-        var trimmed = sql.TrimStart();
-        return trimmed.StartsWith("INSERT", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase);
     }
 
     private const string DefaultTimestampFormat = "_yyyyMMdd-HHmmss";

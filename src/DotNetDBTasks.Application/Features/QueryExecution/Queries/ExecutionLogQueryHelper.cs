@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Text.Json;
 using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Enums;
 
 namespace DotNetDBTasks.Application.Features.QueryExecution.Queries;
 
@@ -14,7 +15,11 @@ public sealed class ExecutionLogRow
     public Guid Id { get; init; }
     public Guid DynamicQueryId { get; init; }
     public string QueryName { get; init; } = string.Empty;
-    public string SqlQuery { get; init; } = string.Empty;
+    /// <summary>
+    /// The query's stored type. Replaces projecting the whole SqlQuery CLOB into every listed
+    /// log purely to re-read its first keyword.
+    /// </summary>
+    public QueryType QueryType { get; init; }
     public Guid UserId { get; init; }
     public string Username { get; init; } = string.Empty;
     public string? ParametersJson { get; init; }
@@ -41,7 +46,7 @@ public static class ExecutionLogQueryHelper
             Id = l.Id,
             DynamicQueryId = l.DynamicQueryId,
             QueryName = l.DynamicQuery.Name,
-            SqlQuery = l.DynamicQuery.SqlQuery,
+            QueryType = l.DynamicQuery.QueryType,
             UserId = l.UserId,
             Username = l.User.Username,
             ParametersJson = l.ParametersJson,
@@ -73,8 +78,9 @@ public static class ExecutionLogQueryHelper
         Username = row.Username,
         Parameters = ParseParameters(row.ParametersJson),
         HasOldValues = row.HasOldValuesFlag == 1,
-        IsUpdateQuery = StartsWithKeyword(row.SqlQuery, "UPDATE"),
-        IsDeleteQuery = StartsWithKeyword(row.SqlQuery, "DELETE"),
+        QueryType = row.QueryType,
+        IsUpdateQuery = row.QueryType == QueryType.Update,
+        IsDeleteQuery = row.QueryType == QueryType.Delete,
         ExecutedAt = row.ExecutedAt,
         ExecutionDurationMs = row.ExecutionDurationMs,
         RowsReturned = row.RowsReturned,
@@ -103,6 +109,4 @@ public static class ExecutionLogQueryHelper
         }
     }
 
-    private static bool StartsWithKeyword(string sql, string keyword) =>
-        sql.TrimStart().StartsWith(keyword, StringComparison.OrdinalIgnoreCase);
 }

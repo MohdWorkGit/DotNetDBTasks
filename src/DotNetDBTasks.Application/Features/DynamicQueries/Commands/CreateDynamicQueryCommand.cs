@@ -2,6 +2,7 @@ using AutoMapper;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
 
@@ -47,6 +48,9 @@ public class CreateDynamicQueryCommandHandler
     {
         var entity = _mapper.Map<DynamicQuery>(request);
         entity.Id = Guid.NewGuid();
+        // Derived from the SQL, never taken from the request — an admin-supplied value could
+        // contradict the statement it describes.
+        entity.QueryType = QueryTypeClassifier.FromSql(entity.SqlQuery);
         entity.CreatedAt = DateTime.UtcNow;
         entity.CreatedByUserId = _currentUser.UserId;
         entity.IsEnabled = true;

@@ -1,6 +1,7 @@
 using AutoMapper;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
@@ -49,6 +50,8 @@ public class UpdateDynamicQueryCommandHandler
         entity.Name = request.Name;
         entity.Description = request.Description;
         entity.SqlQuery = request.SqlQuery;
+        // Kept in step with SqlQuery on every save — this is the path where the type can change.
+        entity.QueryType = QueryTypeClassifier.FromSql(request.SqlQuery);
         entity.IsEnabled = request.IsEnabled;
         entity.TimeoutSeconds = request.TimeoutSeconds;
         entity.IsLongRunning = request.IsLongRunning;

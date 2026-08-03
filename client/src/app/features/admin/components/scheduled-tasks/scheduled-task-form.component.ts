@@ -5,7 +5,7 @@ import { ToastService } from '@core/services/toast.service';
 import { forkJoin } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
-import { DynamicQuery, SystemUser } from '@core/models/dynamic-query.model';
+import { DynamicQuery, isWriteQueryType, SystemUser } from '@core/models/dynamic-query.model';
 import {
   EXPORT_FORMAT_LABELS,
   ExportFileFormat,
@@ -190,7 +190,7 @@ import {
                   <mat-select formControlName="dynamicQueryId" required
                               (selectionChange)="onQueryChange(i, $event.value)">
                     <mat-option *ngFor="let q of selectableQueries" [value]="q.id">
-                      {{ q.name }}<span *ngIf="isWriteSql(q.sqlQuery)"> (modifies data)</span>
+                      {{ q.name }}<span *ngIf="isWriteQuery(q)"> (modifies data)</span>
                     </mat-option>
                   </mat-select>
                   <mat-error *ngIf="item.get('dynamicQueryId')?.hasError('required')">
@@ -460,9 +460,9 @@ export class ScheduledTaskFormComponent implements OnInit {
     return this.items.at(index).get('exportFormat')?.value === ExportFileFormat.Csv;
   }
 
-  isWriteSql(sql: string | undefined): boolean {
-    const trimmed = (sql || '').trimStart().toUpperCase();
-    return trimmed.startsWith('INSERT') || trimmed.startsWith('UPDATE') || trimmed.startsWith('DELETE');
+  /** Reads the type the server derived at save time rather than re-parsing the SQL here. */
+  isWriteQuery(query: DynamicQuery | undefined): boolean {
+    return isWriteQueryType(query?.queryType);
   }
 
   ngOnInit(): void {
@@ -617,7 +617,7 @@ export class ScheduledTaskFormComponent implements OnInit {
   onQueryChange(index: number, queryId: string): void {
     this.buildParameterControls(index, queryId, {});
     const query = this.queries.find(q => q.id === queryId);
-    this.itemMeta[index] = { isWrite: this.isWriteSql(query?.sqlQuery), lastKeyValue: null };
+    this.itemMeta[index] = { isWrite: this.isWriteQuery(query), lastKeyValue: null };
     // A different query means any previous checkpoint config no longer applies.
     (this.items.at(index) as FormGroup).patchValue({ keyColumn: '', keyParameter: '', initialKey: '', resetKey: false });
   }

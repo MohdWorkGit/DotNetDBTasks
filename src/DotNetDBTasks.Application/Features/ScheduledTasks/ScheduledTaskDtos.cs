@@ -154,7 +154,7 @@ public static class ScheduledTaskMapper
                 FileNamePrefix = i.FileNamePrefix,
                 AppendTimestamp = i.AppendTimestamp,
                 SortOrder = i.SortOrder,
-                IsWriteQuery = IsWriteQuery(i.DynamicQuery?.SqlQuery),
+                IsWriteQuery = i.DynamicQuery?.QueryType.IsWrite() ?? false,
                 KeyColumn = i.KeyColumn,
                 KeyParameter = i.KeyParameter,
                 InitialKey = i.InitialKey,
@@ -183,14 +183,6 @@ public static class ScheduledTaskMapper
         Error = run.Error,
         Items = ParseItemResults(run.ItemResultsJson)
     };
-
-    private static bool IsWriteQuery(string? sql)
-    {
-        var trimmed = sql?.TrimStart() ?? string.Empty;
-        return trimmed.StartsWith("INSERT", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase);
-    }
 
     private static Dictionary<string, string> ParseParameters(string? json)
     {

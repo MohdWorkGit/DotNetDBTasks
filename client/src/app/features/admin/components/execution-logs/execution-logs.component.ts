@@ -6,7 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, timeout, catchError } from 'rxjs/operators';
 import { Subject, Subscription, throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
-import { ExecutionLog } from '@core/models/dynamic-query.model';
+import { ExecutionLog, QueryType } from '@core/models/dynamic-query.model';
 import { OldRowsDialogComponent } from '@shared/components/old-rows-dialog.component';
 
 /** Order the API applies when no sortBy is sent; also where a cleared header lands. */
@@ -46,6 +46,18 @@ const DEFAULT_SORT_BY = 'executedAt';
                 <mat-option value="all">All</mat-option>
                 <mat-option value="success">Success</mat-option>
                 <mat-option value="failed">Failed</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="status-filter">
+              <mat-label>Type</mat-label>
+              <mat-select [(value)]="typeFilter" (selectionChange)="onFiltersChanged()">
+                <mat-option value="all">All</mat-option>
+                <mat-option [value]="QueryType.Select">SELECT</mat-option>
+                <mat-option [value]="QueryType.Insert">INSERT</mat-option>
+                <mat-option [value]="QueryType.Update">UPDATE</mat-option>
+                <mat-option [value]="QueryType.Delete">DELETE</mat-option>
+                <mat-option [value]="QueryType.Other">Other</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
@@ -217,6 +229,9 @@ export class ExecutionLogsComponent implements OnInit, OnDestroy {
   loading = true;
   errorMessage = '';
   statusFilter: 'all' | 'success' | 'failed' = 'all';
+  typeFilter: QueryType | 'all' = 'all';
+  /// Exposed for the template's mat-option values.
+  readonly QueryType = QueryType;
   searchText = '';
   totalCount = 0;
   pageNumber = 1;
@@ -258,6 +273,7 @@ export class ExecutionLogsComponent implements OnInit, OnDestroy {
     this.queryService.getExecutionLogs({
       search: this.searchText || undefined,
       isSuccess: this.statusFilter === 'all' ? undefined : this.statusFilter === 'success',
+      queryType: this.typeFilter === 'all' ? undefined : this.typeFilter,
       sortBy: this.sortBy,
       sortDescending: this.sortDescending,
       pageNumber: this.pageNumber,

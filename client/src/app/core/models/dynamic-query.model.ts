@@ -11,6 +11,30 @@ export enum DropdownSourceType {
   Query = 1
 }
 
+/** Mirrors the server-side QueryType enum. Derived from the SQL and stored on the query. */
+export enum QueryType {
+  Select = 0,
+  Insert = 1,
+  Update = 2,
+  Delete = 3,
+  /** Anything else — MERGE, DDL, a PL/SQL block. Not treated as a write. */
+  Other = 4
+}
+
+/** Display labels for the type filters and columns. */
+export const QUERY_TYPE_LABELS: Record<QueryType, string> = {
+  [QueryType.Select]: 'SELECT',
+  [QueryType.Insert]: 'INSERT',
+  [QueryType.Update]: 'UPDATE',
+  [QueryType.Delete]: 'DELETE',
+  [QueryType.Other]: 'Other'
+};
+
+/** True for the statement types that modify data. Mirrors QueryTypeClassifier.IsWrite. */
+export function isWriteQueryType(type: QueryType | undefined): boolean {
+  return type === QueryType.Insert || type === QueryType.Update || type === QueryType.Delete;
+}
+
 export interface DropdownOption {
   label: string;
   value: string;
@@ -119,6 +143,8 @@ export interface DynamicQuery {
   name: string;
   description: string;
   sqlQuery: string;
+  /** Derived from sqlQuery server-side on every save; read-only here. */
+  queryType: QueryType;
   isEnabled: boolean;
   timeoutSeconds: number;
   isLongRunning: boolean;
@@ -256,6 +282,8 @@ export interface ExecutionLog {
   id: string;
   dynamicQueryId: string;
   queryName: string;
+  /** Statement type of the underlying query, used by the log list's Type filter. */
+  queryType: QueryType;
   userId: string;
   username: string;
   parameters: Record<string, string>;
@@ -291,6 +319,7 @@ export interface ExecutionLogListRequest {
   queryId?: string;
   userId?: string;
   isSuccess?: boolean;
+  queryType?: QueryType;
   search?: string;
   sortBy?: string;
   sortDescending?: boolean;

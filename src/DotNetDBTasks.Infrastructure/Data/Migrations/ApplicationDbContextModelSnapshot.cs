@@ -144,6 +144,11 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Property<Guid?>("QueryGroupId")
                         .HasColumnType("RAW(16)");
 
+                    b.Property<int>("QueryType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(0);
+
                     b.Property<short>("SaveOldValues")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(5)")

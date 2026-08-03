@@ -1,3 +1,5 @@
+using DotNetDBTasks.Domain.Enums;
+
 namespace DotNetDBTasks.Domain.Entities;
 
 /// <summary>
@@ -14,6 +16,13 @@ public class DynamicQuery : BaseEntity
     /// Raw string concatenation is strictly prohibited.
     /// </summary>
     public string SqlQuery { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The kind of statement <see cref="SqlQuery"/> runs. Derived from the SQL — never supplied
+    /// by the admin — and recomputed wherever <see cref="SqlQuery"/> is written, so it stays in
+    /// step with it. Stored rather than re-parsed so lists can filter by type in the database.
+    /// </summary>
+    public QueryType QueryType { get; set; }
 
     public bool IsEnabled { get; set; } = true;
 

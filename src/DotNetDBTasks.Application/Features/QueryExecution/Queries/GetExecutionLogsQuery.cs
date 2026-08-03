@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using DotNetDBTasks.Application.Common.Models;
 using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
 
@@ -16,6 +17,8 @@ public class GetExecutionLogsQuery : IRequest<PaginatedList<ExecutionLogDto>>
     public Guid? UserId { get; set; }
     /// <summary>Optional status filter: true = success only, false = failed only.</summary>
     public bool? IsSuccess { get; set; }
+    /// <summary>Optional filter on the query's statement type (SELECT/INSERT/UPDATE/DELETE/other).</summary>
+    public QueryType? QueryType { get; set; }
     /// <summary>Case-insensitive text filter over query name, username, parameters and error.</summary>
     public string? Search { get; set; }
     public string? SortBy { get; set; }
@@ -41,6 +44,7 @@ public class GetExecutionLogsQueryHandler
         var queryId = request.QueryId;
         var userId = request.UserId;
         var isSuccess = request.IsSuccess;
+        var queryType = request.QueryType;
         var search = string.IsNullOrWhiteSpace(request.Search)
             ? null
             : request.Search.Trim().ToUpperInvariant();
@@ -49,6 +53,7 @@ public class GetExecutionLogsQueryHandler
             (queryId == null || l.DynamicQueryId == queryId) &&
             (userId == null || l.UserId == userId) &&
             (isSuccess == null || l.IsSuccess == isSuccess) &&
+            (queryType == null || l.DynamicQuery.QueryType == queryType) &&
             (search == null ||
                 l.DynamicQuery.Name.ToUpper().Contains(search) ||
                 l.User.Username.ToUpper().Contains(search) ||
