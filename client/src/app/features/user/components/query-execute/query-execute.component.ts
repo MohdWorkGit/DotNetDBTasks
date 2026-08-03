@@ -380,6 +380,8 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
 
   /** Seconds elapsed since the current execution started, shown on the button. */
   elapsedSeconds = 0;
+  /** Wall-clock start of the current execution; elapsedSeconds is derived from it. */
+  private startedAt = 0;
   /** Job id of the in-flight execution, used to cancel it server-side. */
   private currentJobId?: string;
   private pollSub?: Subscription;
@@ -705,19 +707,34 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
   }
 
   private startTimer(): void {
-    this.elapsedSeconds = 0;
     this.stopTimer();
-    this.timerHandle = setInterval(() => {
-      this.elapsedSeconds++;
-      this.cdr.detectChanges();
-    }, 1000);
+    this.startedAt = Date.now();
+    this.elapsedSeconds = 0;
+    // The tick only triggers a repaint — the value comes from the wall clock, because
+    // background tabs get their intervals throttled to about one fire per minute and a
+    // counter that incremented per tick would drift behind the real execution time.
+    this.timerHandle = setInterval(() => this.tickTimer(), 1000);
+    // A throttled tab can be up to a minute late, so resync the moment it is visible again.
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
+
+  private tickTimer(): void {
+    const seconds = Math.floor((Date.now() - this.startedAt) / 1000);
+    if (seconds === this.elapsedSeconds) return;
+    this.elapsedSeconds = seconds;
+    this.cdr.detectChanges();
+  }
+
+  private onVisibilityChange = (): void => {
+    if (!document.hidden && this.timerHandle) this.tickTimer();
+  };
 
   private stopTimer(): void {
     if (this.timerHandle) {
       clearInterval(this.timerHandle);
       this.timerHandle = undefined;
     }
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   private stopExecuting(): void {
