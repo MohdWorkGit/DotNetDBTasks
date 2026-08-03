@@ -109,6 +109,11 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("RAW(16)");
 
+                    b.Property<short>("AllowRunWithoutConfirmation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(5)")
+                        .HasDefaultValue((short)1);
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TIMESTAMP(7)");
 
@@ -138,6 +143,11 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
 
                     b.Property<Guid?>("QueryGroupId")
                         .HasColumnType("RAW(16)");
+
+                    b.Property<short>("SaveOldValues")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(5)")
+                        .HasDefaultValue((short)1);
 
                     b.Property<string>("SqlQuery")
                         .IsRequired()

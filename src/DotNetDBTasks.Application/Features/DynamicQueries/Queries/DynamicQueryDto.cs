@@ -11,6 +11,8 @@ public class DynamicQueryDto
     public bool IsEnabled { get; set; }
     public int TimeoutSeconds { get; set; }
     public bool IsLongRunning { get; set; }
+    public bool AllowRunWithoutConfirmation { get; set; }
+    public bool SaveOldValues { get; set; }
     public Guid? DatabaseUserId { get; set; }
     public string? DatabaseUserName { get; set; }
     public Guid? QueryGroupId { get; set; }

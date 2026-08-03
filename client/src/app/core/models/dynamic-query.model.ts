@@ -122,6 +122,10 @@ export interface DynamicQuery {
   isEnabled: boolean;
   timeoutSeconds: number;
   isLongRunning: boolean;
+  /** Admin setting: whether write runs may skip the preview/confirm step. */
+  allowRunWithoutConfirmation: boolean;
+  /** Admin setting: whether UPDATE/DELETE runs snapshot the pre-change rows into the audit log. */
+  saveOldValues: boolean;
   databaseUserId?: string;
   databaseUserName?: string;
   queryGroupId?: string | null;
@@ -172,6 +176,8 @@ export interface CreateDynamicQueryRequest {
   sqlQuery: string;
   timeoutSeconds: number;
   isLongRunning: boolean;
+  allowRunWithoutConfirmation: boolean;
+  saveOldValues: boolean;
   databaseUserId?: string | null;
   queryGroupId?: string | null;
   parameters: QueryParameter[];

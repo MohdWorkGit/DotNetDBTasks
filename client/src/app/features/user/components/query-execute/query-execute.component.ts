@@ -114,8 +114,9 @@ import {
 
             <!-- Write queries normally run a server-side preview first (execute in a
                  transaction, collect the affected rows, roll back) which is two extra
-                 round trips and can be slow on large tables. This opts out of it. -->
-            <div *ngIf="isWriteQuery" class="skip-preview">
+                 round trips and can be slow on large tables. This opts out of it, and
+                 is only offered when an admin allows it for this query. -->
+            <div *ngIf="allowsSkipPreview" class="skip-preview">
               <mat-checkbox [(ngModel)]="skipPreview" [ngModelOptions]="{ standalone: true }"
                             [disabled]="executing">
                 Run directly without preview
@@ -129,13 +130,13 @@ import {
             </div>
 
             <div class="actions">
-              <button mat-raised-button [color]="skipPreview && isWriteQuery ? 'warn' : 'primary'"
+              <button mat-raised-button [color]="willSkipPreview ? 'warn' : 'primary'"
                       type="submit"
                       [disabled]="form.invalid || executing || loadingDropdowns">
                 <mat-icon>play_arrow</mat-icon>
                 {{ executing
                     ? (query.isLongRunning ? 'Executing… ' + formatElapsed(elapsedSeconds) : 'Executing…')
-                    : (skipPreview && isWriteQuery ? 'Run & Commit' : 'Execute Query') }}
+                    : (willSkipPreview ? 'Run & Commit' : 'Execute Query') }}
               </button>
               <button mat-stroked-button color="warn" type="button"
                       *ngIf="executing && query.isLongRunning" (click)="cancelExecution()">
@@ -520,6 +521,19 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     return sql.startsWith('INSERT') || sql.startsWith('UPDATE') || sql.startsWith('DELETE');
   }
 
+  /**
+   * Whether the "run without preview" opt-out is offered at all: only for write queries, and
+   * only when an admin enabled it for this query on the manage-query page.
+   */
+  get allowsSkipPreview(): boolean {
+    return this.isWriteQuery && this.query?.allowRunWithoutConfirmation !== false;
+  }
+
+  /** Whether this run will actually commit without a confirmation step. */
+  get willSkipPreview(): boolean {
+    return this.allowsSkipPreview && this.skipPreview;
+  }
+
   execute(): void {
     if (this.form.invalid || !this.query) return;
 
@@ -527,7 +541,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     // Sending confirmed=true up front makes the server skip the preview round trip
     // entirely and commit in one pass. The checkbox is the deliberate opt-in, so
     // there is no second prompt.
-    this.runExecute(this.buildParams(), this.isWriteQuery && this.skipPreview);
+    this.runExecute(this.buildParams(), this.willSkipPreview);
   }
 
   /** Builds the backend wire-format parameter map from the current form values. */

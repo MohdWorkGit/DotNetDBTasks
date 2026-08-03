@@ -29,6 +29,8 @@ docker/                           # Dockerfiles and nginx config
 | Assign queries to roles | View personal execution history |
 | Enable/disable queries, configurable timeouts | |
 | Flag slow queries as long-running (async execution) | Long-running queries run as background jobs — live elapsed timer + cancel |
+| Allow or block running writes without confirmation | Skip the write preview when the query allows it |
+| Turn off before-change row capture on bulk writes | |
 | View execution audit logs | |
 
 ## Security
@@ -266,6 +268,25 @@ The Angular client uses phase 1 to show the user the affected-row count (and, fo
 `UPDATE`/`DELETE`, the affected rows themselves) and asks for confirmation before
 re-submitting with `Confirmed = true`.
 
+### Skipping the preview
+
+The preview costs two extra round trips and can be slow on large tables, so the execute page
+offers write queries a **"Run directly without preview"** checkbox that sends `Confirmed = true`
+on the first request and commits in one pass.
+
+Whether that checkbox is offered is per query, controlled by the `AllowRunWithoutConfirmation`
+toggle on the admin query form (**"Allow running without confirmation"**; defaults to on, so
+existing queries are unaffected). With it off, the checkbox is not rendered and every run of
+that query goes through the two-phase preview/confirm flow above.
+
+This gates the UI affordance. It is not a server-side authorization check — `Confirmed = true`
+is the same flag a legitimate phase-2 confirmation sends, so the API cannot tell the two apart
+without tracking preview state. Enforcing it server-side would require issuing a preview token
+in phase 1 and requiring it in phase 2.
+
+Scheduled tasks are unaffected: they always run writes with `Confirmed = true`, since there is
+no interactive user to confirm.
+
 ### Strict parameterization
 
 No value is ever concatenated into SQL. Queries are authored with `@param` placeholders
@@ -291,6 +312,12 @@ the configured database user. Then:
 - **Old-value capture.** For `UPDATE`/`DELETE`, the rows currently matching the `WHERE`
   clause are read and serialized into `OldValuesJson` on the execution log *before* the
   change commits, preserving the pre-change state for the audit trail.
+  This is per query, controlled by the `SaveOldValues` toggle on the admin query form
+  (**"Save before-change values"**; defaults to on). Turn it off for statements that affect
+  large row counts — the capture costs an extra `SELECT` per run and stores a copy of every
+  affected row. With it off, `OldValuesJson` stays null, so `HasOldValues` is false and the
+  execution-log UI simply offers no before-values view for those runs. The execution log
+  itself is still written either way.
 - **Execution log.** Every execution — preview failures, successes, and errors — writes a
   `QueryExecutionLog` row recording the user, parameters (JSON), duration, affected/returned
   row count, success flag, and any error message.

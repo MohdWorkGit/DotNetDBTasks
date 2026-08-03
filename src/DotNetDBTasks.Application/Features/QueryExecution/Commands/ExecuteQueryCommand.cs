@@ -230,9 +230,11 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         }
 
         // For UPDATE/DELETE, capture the current rows that match the WHERE clause so the
-        // audit log preserves the pre-change state of every affected row.
+        // audit log preserves the pre-change state of every affected row. Admins can turn this
+        // off per query (SaveOldValues): on statements that affect large row counts the extra
+        // SELECT and the stored copy of every affected row are the expensive part of the run.
         string? oldValuesJson = null;
-        if (IsUpdateQuery(query.SqlQuery) || IsDeleteQuery(query.SqlQuery))
+        if (query.SaveOldValues && (IsUpdateQuery(query.SqlQuery) || IsDeleteQuery(query.SqlQuery)))
         {
             var oldRows = await FetchAffectedRowsPreviewAsync(
                 query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser, cancellationToken);

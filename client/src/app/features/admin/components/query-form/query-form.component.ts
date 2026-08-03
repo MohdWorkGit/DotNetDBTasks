@@ -53,6 +53,25 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
               leave this off.
             </p>
 
+            <mat-slide-toggle formControlName="allowRunWithoutConfirmation" class="toggle">
+              Allow running without confirmation
+            </mat-slide-toggle>
+            <p class="field-hint">
+              Only applies to write queries (INSERT/UPDATE/DELETE). When on, users get a
+              "Run directly without preview" checkbox that commits the change in one pass.
+              Turn it off to force every run through the row preview and confirmation step.
+            </p>
+
+            <mat-slide-toggle formControlName="saveOldValues" class="toggle">
+              Save before-change values
+            </mat-slide-toggle>
+            <p class="field-hint">
+              Only applies to UPDATE/DELETE queries. When on, every affected row is snapshotted
+              into the execution log so the previous values can be reviewed later. Turn it off
+              for statements that affect large numbers of rows — the snapshot costs an extra
+              SELECT on each run and stores a copy of every affected row.
+            </p>
+
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Database User</mat-label>
               <mat-select formControlName="databaseUserId">
@@ -352,6 +371,8 @@ export class QueryFormComponent implements OnInit {
       sqlQuery: ['', [Validators.required, Validators.maxLength(4000)]],
       timeoutSeconds: [30, [Validators.min(0)]],
       isLongRunning: [false],
+      allowRunWithoutConfirmation: [true],
+      saveOldValues: [true],
       databaseUserId: [null],
       queryGroupId: [null],
       isEnabled: [true],
@@ -540,6 +561,8 @@ export class QueryFormComponent implements OnInit {
           sqlQuery: query.sqlQuery,
           timeoutSeconds: query.timeoutSeconds,
           isLongRunning: !!query.isLongRunning,
+          allowRunWithoutConfirmation: query.allowRunWithoutConfirmation !== false,
+          saveOldValues: query.saveOldValues !== false,
           databaseUserId: query.databaseUserId || null,
           queryGroupId: query.queryGroupId || null,
           isEnabled: this.isCopy ? true : query.isEnabled

@@ -30,6 +30,21 @@ public class DynamicQuery : BaseEntity
     /// </summary>
     public bool IsLongRunning { get; set; }
 
+    /// <summary>
+    /// When true, users running this query as a write (INSERT/UPDATE/DELETE) may opt out of the
+    /// preview/confirm step and commit in one pass. When false, the option is not offered and
+    /// every run goes through the preview. Defaults to true so existing queries keep the choice.
+    /// </summary>
+    public bool AllowRunWithoutConfirmation { get; set; } = true;
+
+    /// <summary>
+    /// When true, an UPDATE/DELETE run captures the pre-change state of every affected row into
+    /// the execution log so it can be reviewed later. Turn off for statements that touch large
+    /// numbers of rows: the snapshot costs an extra SELECT per run and stores a copy of every
+    /// affected row. Defaults to true so existing queries keep their audit trail.
+    /// </summary>
+    public bool SaveOldValues { get; set; } = true;
+
     public Guid CreatedByUserId { get; set; }
 
     /// <summary>

@@ -14,6 +14,8 @@ public class DynamicQueryConfiguration : IEntityTypeConfiguration<DynamicQuery>
         builder.Property(e => e.SqlQuery).HasColumnType("CLOB").IsRequired();
         builder.Property(e => e.TimeoutSeconds).HasDefaultValue(30);
         builder.Property(e => e.IsLongRunning).HasDefaultValue(false);
+        builder.Property(e => e.AllowRunWithoutConfirmation).HasDefaultValue(true);
+        builder.Property(e => e.SaveOldValues).HasDefaultValue(true);
         builder.Property(e => e.WordTemplate).HasColumnType("BLOB");
         builder.Property(e => e.WordTemplateFileName).HasMaxLength(255);
 
