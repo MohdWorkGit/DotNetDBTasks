@@ -2,7 +2,9 @@ import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort, SortDirection } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatDialog } from '@angular/material/dialog';
 import { ListStateService } from '@core/services/list-state.service';
+import { ImportResultDialogComponent } from '@shared/components/import-result-dialog.component';
 import { ToastService } from '@core/services/toast.service';
 import { ConfirmService } from '@core/services/confirm.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -62,6 +64,23 @@ interface QueryListState {
             <button mat-menu-item (click)="resetDefaultTemplate()"
                     [disabled]="!defaultTemplateInfo || defaultTemplateInfo.isBuiltIn">
               <mat-icon>restart_alt</mat-icon> Reset to built-in layout
+            </button>
+          </mat-menu>
+          <input #importInput type="file" accept=".json,application/json" hidden
+                 (change)="onImportFileSelected($event)">
+          <button mat-stroked-button [matMenuTriggerFor]="backupMenu"
+                  matTooltip="Back up every query, or restore from a backup file">
+            <mat-icon>backup</mat-icon>
+            Backup
+            <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
+          </button>
+          <mat-menu #backupMenu="matMenu">
+            <button mat-menu-item (click)="exportAllQueries()" [disabled]="importing">
+              <mat-icon>file_download</mat-icon> Export all queries
+            </button>
+            <button mat-menu-item (click)="importInput.click()"
+                    *ngIf="authService.isAdmin()" [disabled]="importing">
+              <mat-icon>file_upload</mat-icon> Import from backup…
             </button>
           </mat-menu>
           <button mat-raised-button color="primary" routerLink="/admin/queries/create"
@@ -197,6 +216,11 @@ interface QueryListState {
                         [routerLink]="['/admin/queries', q.id, 'roles']">
                   <mat-icon>security</mat-icon>
                 </button>
+                <button mat-icon-button (click)="exportQuery(q)"
+                        [matTooltip]="'Export ' + q.name + ' as a JSON definition'"
+                        [attr.aria-label]="'Export ' + q.name">
+                  <mat-icon>file_download</mat-icon>
+                </button>
                 <button mat-icon-button matTooltip="Delete" aria-label="Delete" color="warn"
                         (click)="deleteQuery(q.id, q.name)"
                         *ngIf="authService.isAdmin()">
@@ -246,6 +270,8 @@ export class QueryListComponent implements OnInit {
   displayedColumns = ['name', 'description', 'queryType', 'isEnabled', 'queryGroupName', 'databaseUserName', 'parameters', 'actions'];
   dataSource = new MatTableDataSource<DynamicQuery>();
   loading = true;
+  /** Blocks the backup menu while an import is in flight. */
+  importing = false;
   statusFilter: 'all' | 'active' | 'disabled' = 'all';
   /// Sentinel that cannot collide with a real group name.
   readonly UNGROUPED = '__ungrouped__';
@@ -279,6 +305,7 @@ export class QueryListComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private listState: ListStateService,
+    private dialog: MatDialog,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -314,6 +341,80 @@ export class QueryListComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  // ---- Backup: export / import ----
+
+  exportQuery(query: DynamicQuery): void {
+    this.queryService.exportQuery(query.id).subscribe({
+      next: (blob) => this.saveBlob(blob, `${this.slug(query.name)}.json`),
+      error: (err) => this.toast.error(err, 'Failed to export the query')
+    });
+  }
+
+  exportAllQueries(): void {
+    this.queryService.exportAllQueries().subscribe({
+      next: (blob) => {
+        const stamp = new Date().toISOString().slice(0, 10);
+        this.saveBlob(blob, `queries-backup-${stamp}.json`);
+        this.toast.success('Backup downloaded');
+      },
+      error: (err) => this.toast.error(err, 'Failed to export queries')
+    });
+  }
+
+  onImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Clear first so re-picking the same file still fires a change event.
+    input.value = '';
+    if (!file) return;
+
+    this.confirmService.askThen({
+      title: 'Import queries?',
+      message: `Import from "${file.name}"?\n\n`
+        + 'Nothing existing is modified or deleted. Any query whose name is already taken '
+        + 'is added as a copy for you to reconcile.',
+      confirmText: 'Import'
+    }, () => this.runImport(file));
+  }
+
+  private runImport(file: File): void {
+    this.importing = true;
+    this.cdr.detectChanges();
+    this.queryService.importQueries(file).subscribe({
+      next: (result) => {
+        this.importing = false;
+        this.dialog.open(ImportResultDialogComponent, {
+          data: result,
+          width: '560px',
+          autoFocus: 'dialog',
+          ariaModal: true
+        });
+        // The list is stale the moment anything imported, so reload regardless of warnings.
+        this.loadQueries();
+      },
+      error: (err) => {
+        this.importing = false;
+        this.toast.error(err, 'Failed to import queries');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private saveBlob(blob: Blob, fileName: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  /** Mirrors the server's file-name slug so a single-query export lands with a sane name. */
+  private slug(name: string): string {
+    const cleaned = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return cleaned || 'query';
   }
 
   downloadDefaultTemplate(): void {

@@ -216,6 +216,23 @@ export interface UpdateDynamicQueryRequest extends CreateDynamicQueryRequest {
   queryGroupId?: string | null;
 }
 
+/** One query's outcome from an import. */
+export interface ImportedQueryResult {
+  originalName: string;
+  importedName: string;
+  /** True when the name was already taken, so this came in as a copy. */
+  wasRenamed: boolean;
+}
+
+/** Summary returned by the import endpoint. */
+export interface QueryImportResult {
+  queries: ImportedQueryResult[];
+  /** Names that could not be resolved here — missing roles, users, DB connections. */
+  warnings: string[];
+  importedCount: number;
+  renamedCount: number;
+}
+
 export interface AssignRolesRequest {
   roleIds: string[];
 }

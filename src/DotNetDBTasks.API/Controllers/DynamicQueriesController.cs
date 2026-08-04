@@ -1,6 +1,8 @@
+using System.Text.Json;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Features.DynamicQueries.Commands;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
+using DotNetDBTasks.Application.Features.DynamicQueries.Transfer;
 using DotNetDBTasks.Application.Features.QueryExecution.Queries;
 using DotNetDBTasks.Domain.Enums;
 using MediatR;
@@ -217,6 +219,89 @@ public class DynamicQueriesController : ControllerBase
         await _mediator.Send(new DeleteDefaultWordTemplateCommand(), cancellationToken);
         return NoContent();
     }
+
+    /// <summary>
+    /// Exports one query as a portable JSON file for backup or transfer to another system.
+    /// </summary>
+    [HttpGet("{id:guid}/export")]
+    public async Task<IActionResult> ExportQuery(Guid id, CancellationToken cancellationToken)
+    {
+        var file = await _mediator.Send(new ExportQueriesQuery(id), cancellationToken);
+        var name = file.Queries.FirstOrDefault()?.Name ?? "query";
+        return ExportFileResult(file, $"{Slug(name)}-{DateTime.UtcNow:yyyyMMdd}.json");
+    }
+
+    /// <summary>
+    /// Exports every query as a single JSON backup. Contains no database credentials — see
+    /// <see cref="ExportQueriesQuery"/>.
+    /// </summary>
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportAllQueries(CancellationToken cancellationToken)
+    {
+        var file = await _mediator.Send(new ExportQueriesQuery(null), cancellationToken);
+        return ExportFileResult(file, $"queries-backup-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json");
+    }
+
+    /// <summary>
+    /// Imports queries from a file produced by the export endpoints. Never overwrites: a name
+    /// clash is imported as a copy. Requires Admin role.
+    /// </summary>
+    [HttpPost("import")]
+    [Authorize(Roles = "Admin")]
+    [RequestSizeLimit(MaxImportBytes + 1024)]
+    public async Task<IActionResult> ImportQueries(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "No file was uploaded." });
+        if (file.Length > MaxImportBytes)
+            return BadRequest(new { message = "The backup file must be 50 MB or smaller." });
+
+        QueryExportFile? parsed;
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            parsed = await JsonSerializer.DeserializeAsync<QueryExportFile>(
+                stream, ExportJsonOptions, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            return BadRequest(new { message = $"The file is not a valid query export: {ex.Message}" });
+        }
+
+        if (parsed is null)
+            return BadRequest(new { message = "The file is empty or not a query export." });
+
+        var result = await _mediator.Send(new ImportQueriesCommand(parsed), cancellationToken);
+        return Ok(result);
+    }
+
+    private IActionResult ExportFileResult(QueryExportFile file, string fileName)
+    {
+        // Indented on purpose: an export is something an admin may read, diff or keep in
+        // source control, not just feed back into the import endpoint.
+        var json = JsonSerializer.Serialize(file, ExportJsonOptions);
+        return File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", fileName);
+    }
+
+    private static readonly JsonSerializerOptions ExportJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        WriteIndented = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    /// <summary>Makes a query name safe to use as a download file name.</summary>
+    private static string Slug(string name)
+    {
+        var cleaned = new string(name.Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-').ToArray());
+        while (cleaned.Contains("--"))
+            cleaned = cleaned.Replace("--", "-");
+        cleaned = cleaned.Trim('-');
+        return cleaned.Length == 0 ? "query" : cleaned;
+    }
+
+    private const int MaxImportBytes = 50 * 1024 * 1024;
 
     private const int MaxTemplateBytes = 5 * 1024 * 1024;
 

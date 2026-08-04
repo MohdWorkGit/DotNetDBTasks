@@ -29,6 +29,7 @@ import {
   OldValuesPage,
   PagedResult,
   QueryGroup,
+  QueryImportResult,
   ResetPasswordResult,
   Role,
   SystemUser,
@@ -289,6 +290,23 @@ export class QueryService {
   /** Removes the custom default; exports fall back to the built-in starter layout. */
   deleteDefaultWordTemplate(): Observable<void> {
     return this.http.delete<void>(`${this.adminUrl}/default-word-template`);
+  }
+
+  /** Downloads one query as a portable JSON definition. */
+  exportQuery(queryId: string): Observable<Blob> {
+    return this.http.get(`${this.adminUrl}/${queryId}/export`, { responseType: 'blob' });
+  }
+
+  /** Downloads every query as a single JSON backup. */
+  exportAllQueries(): Observable<Blob> {
+    return this.http.get(`${this.adminUrl}/export`, { responseType: 'blob' });
+  }
+
+  /** Restores queries from an export file. Name clashes are imported as copies. */
+  importQueries(file: File): Observable<QueryImportResult> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<QueryImportResult>(`${this.adminUrl}/import`, form);
   }
 
   /**

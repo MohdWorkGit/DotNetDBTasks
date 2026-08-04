@@ -33,6 +33,7 @@ docker/                           # Dockerfiles and nginx config
 | Turn off before-change row capture on bulk writes | |
 | Filter queries and execution logs by statement type | |
 | Upload a site logo for the top banner | |
+| Export queries to JSON and import them back / on a new system | |
 | View execution audit logs | |
 
 ## Security
@@ -152,6 +153,10 @@ Generate a key with `openssl rand -base64 32`.
 - `POST /api/admin/dynamicqueries/{id}/roles` — Assign roles
 - `GET /api/admin/dynamicqueries/logs` — Get execution logs. Optional filters: `queryId`, `userId`, `isSuccess`, `queryType` (0=Select, 1=Insert, 2=Update, 3=Delete, 4=Other), `search`; plus `sortBy`/`sortDescending`/`pageNumber`/`pageSize`. All applied in the database.
 - `GET /api/admin/roles` — List all roles
+
+- `GET /api/admin/dynamicqueries/{id}/export` — Export one query as JSON
+- `GET /api/admin/dynamicqueries/export` — Export every query as one JSON backup
+- `POST /api/admin/dynamicqueries/import` — Restore from an export file, multipart `file` (Admin only)
 
 ### Branding
 - `GET /api/branding/logo` — The site logo image, or 404 when none is set. **Anonymous** — see [Site logo](#site-logo)
@@ -348,6 +353,44 @@ the configured database user. Then:
 - **Execution log.** Every execution — preview failures, successes, and errors — writes a
   `QueryExecutionLog` row recording the user, parameters (JSON), duration, affected/returned
   row count, success flag, and any error message.
+
+## Query Backup (Export / Import)
+
+Each row in Manage Queries has an **Export** button that downloads that query as JSON; the
+toolbar's **Backup** menu offers **Export all queries** (one JSON file) and **Import from
+backup…**. Import is Admin-only; export is available to anyone who can already read the query
+list, since it exposes nothing they cannot already see.
+
+### Everything travels by name, not by id
+
+A backup restored onto a different system would carry GUIDs that resolve to nothing there, so
+the file references related records by name and import re-resolves each one:
+
+| Reference | On import |
+|---|---|
+| Query group | Matched by name; **created** if missing (a group is just a folder) |
+| Database connection | Matched by name; if missing, the query is left on the default connection and a warning is reported |
+| Roles / users | Matched by name; unmatched assignments are dropped and reported |
+| Departments | Free text, carried across as-is |
+| Dropdown source query | Resolved in a **second pass**, after every query in the file exists — so a dropdown can point at another query from the same backup, even one that got renamed |
+
+`QueryType` is not exported: it is re-derived from the SQL on import rather than trusted from an
+external file. Word templates ride along base64-encoded, so a restored query produces identical
+Word exports.
+
+### Credentials are never exported
+
+A query records *which* database connection it uses, and that connection's password is encrypted
+at rest. Writing it into a file an admin then emails or commits to source control would undo that
+protection, so the export carries only the connection **name**. After a restore on a new system,
+configure the connection there (with its own credentials) and the name match reconnects it.
+
+### Import never overwrites
+
+A query whose name is already taken is imported as `Name (imported)` — nothing existing is
+modified or deleted, so a mistaken import is undone by deleting what it added. The result dialog
+lists every query imported, which ones were renamed, and every reference that could not be
+resolved.
 
 ## Site logo
 
