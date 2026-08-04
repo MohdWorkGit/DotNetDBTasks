@@ -1,7 +1,8 @@
 import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
-import { MatSort } from '@angular/material/sort';
+import { MatSort, SortDirection } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
+import { ListStateService } from '@core/services/list-state.service';
 import { ToastService } from '@core/services/toast.service';
 import { ConfirmService } from '@core/services/confirm.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -10,6 +11,18 @@ import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { AuthService } from '@core/services/auth.service';
 import { DynamicQuery, isWriteQueryType, QUERY_TYPE_LABELS, QueryType } from '@core/models/dynamic-query.model';
+
+/** What survives navigating away from the list and back. */
+interface QueryListState {
+  text: string;
+  status: 'all' | 'active' | 'disabled';
+  type: QueryType | 'all';
+  group: string;
+  dbUser: string;
+  pageIndex: number;
+  sortActive: string;
+  sortDirection: SortDirection;
+}
 
 @Component({
   standalone: false,
@@ -67,7 +80,8 @@ import { DynamicQuery, isWriteQueryType, QUERY_TYPE_LABELS, QueryType } from '@c
           <div *ngIf="!loading" class="table-toolbar">
             <mat-form-field appearance="outline" class="filter-field">
               <mat-label>Filter queries</mat-label>
-              <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, description, group, DB user...">
+              <input matInput [value]="textFilter" (keyup)="applyFilter($event)"
+                     placeholder="Search by name, description, group, DB user...">
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
 
@@ -108,6 +122,13 @@ import { DynamicQuery, isWriteQueryType, QUERY_TYPE_LABELS, QueryType } from '@c
                 <mat-option *ngFor="let u of dbUserOptions" [value]="u">{{ u }}</mat-option>
               </mat-select>
             </mat-form-field>
+
+            <!-- Filters are remembered across navigation, so there has to be an obvious way to
+                 undo them — otherwise a restored filter just looks like missing queries. -->
+            <button mat-stroked-button type="button" class="clear-filters"
+                    *ngIf="hasActiveFilters" (click)="clearFilters()">
+              <mat-icon>filter_alt_off</mat-icon> Clear filters
+            </button>
           </div>
 
           <div class="table-wrapper">
@@ -213,6 +234,8 @@ import { DynamicQuery, isWriteQueryType, QUERY_TYPE_LABELS, QueryType } from '@c
     .filter-field { flex: 1; min-width: 240px; }
     .status-filter { width: 160px; }
     .select-filter { width: 200px; }
+    /* mat-form-field carries its own subscript spacing; nudge the button onto the same line. */
+    .clear-filters { align-self: flex-start; margin-top: 8px; }
     .type-chip {
       display: inline-block;
       padding: 2px 8px;
@@ -247,7 +270,13 @@ export class QueryListComponent implements OnInit {
   defaultTemplateInfo: { fileName: string | null; isBuiltIn: boolean } | null = null;
   /** True when the template-info fetch failed, so the menu can say so instead of guessing. */
   templateInfoFailed = false;
-  private textFilter = '';
+  /** Raw as typed — the predicate lowercases at compare time so restoring it into the
+   *  input does not echo the user's typing back at them in lower case. */
+  textFilter = '';
+
+  private readonly STATE_KEY = 'admin-queries';
+  /** Page/sort restored from a previous visit, applied once the table has rendered. */
+  private restored: QueryListState | null = null;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -259,13 +288,21 @@ export class QueryListComponent implements OnInit {
     private confirmService: ConfirmService,
     private router: Router,
     private route: ActivatedRoute,
+    private listState: ListStateService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     // Deep link from the groups list: /admin/queries?group=<name> (or "ungrouped").
     const group = this.route.snapshot.queryParamMap.get('group');
-    if (group) this.groupFilter = group.toLowerCase() === 'ungrouped' ? this.UNGROUPED : group;
+    if (group) {
+      // The deep link is an explicit request for one group, so it wins outright. Restoring a
+      // saved Status/Type filter on top would show fewer rows than the count just clicked.
+      this.groupFilter = group.toLowerCase() === 'ungrouped' ? this.UNGROUPED : group;
+      this.listState.clear(this.STATE_KEY);
+    } else {
+      this.restoreState();
+    }
     this.loadQueries();
     if (this.authService.isAdmin()) this.loadDefaultTemplateInfo();
   }
@@ -394,15 +431,41 @@ export class QueryListComponent implements OnInit {
             data.queryGroupName,
             data.databaseUserName
           ].filter(Boolean).join(' ').toLowerCase();
-          return haystack.includes(f.text);
+          return haystack.includes(f.text.toLowerCase());
         };
         this.refreshFilter();
         this.loading = false;
         this.cdr.detectChanges();
         // Bind paginator/sort after the *ngIf table has rendered
         setTimeout(() => {
-          this.dataSource.paginator = this.paginator;
+          // Both must be set *before* the dataSource takes them: MatTableDataSource reads
+          // active/direction and pageIndex when it subscribes, so assigning afterwards would
+          // render page 1 unsorted and only correct itself on the next user interaction.
+          if (this.restored) {
+            this.sort.active = this.restored.sortActive;
+            this.sort.direction = this.restored.sortDirection;
+          }
           this.dataSource.sort = this.sort;
+
+          const wasRestoring = !!this.restored;
+          if (this.restored) {
+            // Rows may have been deleted while the admin was away; an out-of-range index
+            // renders an empty table with no obvious way back.
+            const pageCount = Math.ceil(this.dataSource.filteredData.length / this.paginator.pageSize);
+            this.paginator.pageIndex = Math.max(0, Math.min(this.restored.pageIndex, pageCount - 1));
+            this.restored = null;
+          }
+          this.dataSource.paginator = this.paginator;
+
+          // refreshFilter() already saved once above, while paginator/sort were still unbound —
+          // i.e. as page 0, no sort. Write the real position back now, or the *second* trip to
+          // the edit page and back would come home to page 1.
+          if (wasRestoring) this.saveState();
+
+          // Position changes bypass refreshFilter(), so persist them at their own source.
+          this.paginator.page.subscribe(() => this.saveState());
+          this.sort.sortChange.subscribe(() => this.saveState());
+          this.cdr.detectChanges();
         });
       },
       error: (err) => {
@@ -414,7 +477,7 @@ export class QueryListComponent implements OnInit {
   }
 
   applyFilter(event: Event): void {
-    this.textFilter = (event.target as HTMLInputElement).value.trim().toLowerCase();
+    this.textFilter = (event.target as HTMLInputElement).value.trim();
     this.refreshFilter();
   }
 
@@ -434,7 +497,53 @@ export class QueryListComponent implements OnInit {
       group: this.groupFilter,
       dbUser: this.dbUserFilter
     });
+    // Every filter control routes through here, so this is the single save point for them.
+    this.saveState();
     if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+  }
+
+  /** True when anything is narrowing the list — drives the Clear filters button. */
+  get hasActiveFilters(): boolean {
+    return !!this.textFilter
+      || this.statusFilter !== 'all'
+      || this.typeFilter !== 'all'
+      || this.groupFilter !== 'all'
+      || this.dbUserFilter !== 'all';
+  }
+
+  clearFilters(): void {
+    this.textFilter = '';
+    this.statusFilter = 'all';
+    this.typeFilter = 'all';
+    this.groupFilter = 'all';
+    this.dbUserFilter = 'all';
+    this.refreshFilter();
+  }
+
+  private saveState(): void {
+    this.listState.save<QueryListState>(this.STATE_KEY, {
+      text: this.textFilter,
+      status: this.statusFilter,
+      type: this.typeFilter,
+      group: this.groupFilter,
+      dbUser: this.dbUserFilter,
+      pageIndex: this.dataSource.paginator?.pageIndex ?? 0,
+      sortActive: this.sort?.active ?? '',
+      sortDirection: this.sort?.direction ?? ''
+    });
+  }
+
+  private restoreState(): void {
+    const saved = this.listState.load<QueryListState>(this.STATE_KEY);
+    if (!saved) return;
+
+    this.textFilter = saved.text ?? '';
+    this.statusFilter = saved.status ?? 'all';
+    this.typeFilter = saved.type ?? 'all';
+    this.groupFilter = saved.group ?? 'all';
+    this.dbUserFilter = saved.dbUser ?? 'all';
+    // Page and sort need the rendered table; applied once the paginator is bound.
+    this.restored = saved;
   }
 
   deleteQuery(id: string, name: string): void {

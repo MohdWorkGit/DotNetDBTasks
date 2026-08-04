@@ -32,6 +32,7 @@ docker/                           # Dockerfiles and nginx config
 | Allow or block running writes without confirmation | Skip the write preview when the query allows it |
 | Turn off before-change row capture on bulk writes | |
 | Filter queries and execution logs by statement type | |
+| Upload a site logo for the top banner | |
 | View execution audit logs | |
 
 ## Security
@@ -151,6 +152,12 @@ Generate a key with `openssl rand -base64 32`.
 - `POST /api/admin/dynamicqueries/{id}/roles` — Assign roles
 - `GET /api/admin/dynamicqueries/logs` — Get execution logs. Optional filters: `queryId`, `userId`, `isSuccess`, `queryType` (0=Select, 1=Insert, 2=Update, 3=Delete, 4=Other), `search`; plus `sortBy`/`sortDescending`/`pageNumber`/`pageSize`. All applied in the database.
 - `GET /api/admin/roles` — List all roles
+
+### Branding
+- `GET /api/branding/logo` — The site logo image, or 404 when none is set. **Anonymous** — see [Site logo](#site-logo)
+- `GET /api/branding/logo/info` — `{ hasLogo, fileName, updatedAt }` (authenticated)
+- `POST /api/branding/logo` — Upload/replace the logo, multipart `file` (Admin only)
+- `DELETE /api/branding/logo` — Remove the logo (Admin only)
 
 ### User (requires authentication)
 - `GET /api/user/queries` — Get queries assigned to user
@@ -341,6 +348,38 @@ the configured database user. Then:
 - **Execution log.** Every execution — preview failures, successes, and errors — writes a
   `QueryExecutionLog` row recording the user, parameters (JSON), duration, affected/returned
   row count, success flag, and any error message.
+
+## Site logo
+
+The top banner shows an uploaded logo in place of the app name. An Admin sets it from the
+account menu (the same menu as Logout) → **Website logo**, which opens a dialog with a preview,
+the recommended dimensions, and Upload / Replace / Remove. With no logo stored the banner falls
+back to the app name, so it is never blank.
+
+The image lives in `SystemTemplates` under the `branding-logo` key — the same keyed store as the
+default Word template, so there is no new table. Its content type is derived from the uploaded
+file's extension.
+
+**Sizing.** The banner renders it at 40 px tall and caps it at 200 px wide (140 px below 1400 px,
+where the nav labels collapse and the row is tight), with `object-fit: contain` preserving the
+aspect ratio. The dialog recommends 80 px tall — 2x, so it stays sharp on HiDPI screens — and
+warns before upload when the chosen image is shorter than the banner, below 2x, or so wide it
+will be capped.
+
+**Two deliberate choices worth knowing:**
+
+- `GET /api/branding/logo` is **anonymous**. The banner loads it with a plain `<img src>`, and
+  browsers do not run image requests through the app's JWT interceptor, so an authorized
+  endpoint would just 401. A logo is public branding rather than protected data. Uploading and
+  removing it still require the Admin role.
+- **SVG is rejected**, despite being ideal for logos. An SVG can carry script that executes if
+  its URL is opened directly, and this endpoint is same-origin and anonymous. Accepting it
+  safely needs a restrictive CSP response header on that action, not just an extension check.
+  Uploads are limited to PNG/JPG/WebP at 1 MB, and the bytes are checked against the format's
+  magic number so the extension alone cannot decide what gets served back.
+
+Uploads are cache-busted with `?v=<updatedAt>`; the image itself is sent with a long
+`immutable` cache lifetime, since the bytes at any given URL never change.
 
 ## Database Schema
 
