@@ -630,6 +630,24 @@ html.dark-theme {
   padding: 16px;
 }
 
+// ── Query statement-type chip ──
+// Shared by the manage-queries and execution-logs tables so the same query reads
+// identically in both. Writes get the alarm colour: these tables are where an admin
+// scans for the statements that change data.
+.type-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--chip-accent);
+  color: var(--chip-text);
+}
+
+.type-chip.type-write {
+  background: var(--chip-inactive);
+}
+
 // ── Scheduled task / run status colors ──
 // Previously hardcoded as Material-2 hexes in three separate components, which
 // produced two different greens and two different reds for the same semantics

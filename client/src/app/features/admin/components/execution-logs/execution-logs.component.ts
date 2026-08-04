@@ -6,7 +6,12 @@ import { MatDialog } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, timeout, catchError } from 'rxjs/operators';
 import { Subject, Subscription, throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
-import { ExecutionLog, QueryType } from '@core/models/dynamic-query.model';
+import {
+  ExecutionLog,
+  isWriteQueryType,
+  QUERY_TYPE_LABELS,
+  QueryType
+} from '@core/models/dynamic-query.model';
 import { OldRowsDialogComponent } from '@shared/components/old-rows-dialog.component';
 
 /** Order the API applies when no sortBy is sent; also where a cleared header lands. */
@@ -70,6 +75,15 @@ const DEFAULT_SORT_BY = 'executedAt';
             <ng-container matColumnDef="queryName">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Query</th>
               <td mat-cell *matCellDef="let log">{{ log.queryName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="queryType">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+              <td mat-cell *matCellDef="let log">
+                <span class="type-chip" [class.type-write]="isWriteType(log.queryType)">
+                  {{ typeLabel(log.queryType) }}
+                </span>
+              </td>
             </ng-container>
 
             <ng-container matColumnDef="username">
@@ -224,7 +238,7 @@ const DEFAULT_SORT_BY = 'executedAt';
   `]
 })
 export class ExecutionLogsComponent implements OnInit, OnDestroy {
-  displayedColumns = ['queryName', 'username', 'parameters', 'executedAt', 'executionDurationMs', 'rowsReturned', 'isSuccess'];
+  displayedColumns = ['queryName', 'queryType', 'username', 'parameters', 'executedAt', 'executionDurationMs', 'rowsReturned', 'isSuccess'];
   logs: ExecutionLog[] = [];
   loading = true;
   errorMessage = '';
@@ -315,6 +329,14 @@ export class ExecutionLogsComponent implements OnInit, OnDestroy {
    * Headers cycle asc -> desc -> unsorted. Clearing falls back to the default
    * newest-first order, which is what the API applies when sortBy is omitted.
    */
+  isWriteType(type: QueryType): boolean {
+    return isWriteQueryType(type);
+  }
+
+  typeLabel(type: QueryType): string {
+    return QUERY_TYPE_LABELS[type] ?? QUERY_TYPE_LABELS[QueryType.Other];
+  }
+
   onSortChange(sort: Sort): void {
     this.sortActive = sort.active;
     this.sortDirection = sort.direction;

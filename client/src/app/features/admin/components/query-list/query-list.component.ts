@@ -236,17 +236,7 @@ interface QueryListState {
     .select-filter { width: 200px; }
     /* mat-form-field carries its own subscript spacing; nudge the button onto the same line. */
     .clear-filters { align-self: flex-start; margin-top: 8px; }
-    .type-chip {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 500;
-      background: var(--chip-accent);
-      color: var(--chip-text);
-    }
-    /* Writes stand out: this table is where an admin scans for the risky ones. */
-    .type-chip.type-write { background: var(--chip-inactive); }
+    /* .type-chip / .type-write are global — shared with the execution-logs table. */
     .status-active { color: var(--status-active); font-weight: 500; }
     .status-inactive { color: var(--status-inactive); font-weight: 500; }
     table { width: 100%; }

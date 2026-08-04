@@ -62,6 +62,7 @@ public static class ExecutionLogQueryHelper
         sortBy switch
         {
             "queryName" => l => l.DynamicQuery.Name,
+            "queryType" => l => l.DynamicQuery.QueryType,
             "username" => l => l.User.Username,
             "executionDurationMs" => l => l.ExecutionDurationMs,
             "rowsReturned" => l => l.RowsReturned,
