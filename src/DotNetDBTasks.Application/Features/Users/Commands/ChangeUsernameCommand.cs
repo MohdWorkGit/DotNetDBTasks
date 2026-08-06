@@ -1,3 +1,4 @@
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
@@ -24,10 +25,12 @@ public class ChangeUsernameValidator : AbstractValidator<ChangeUsernameCommand>
 public class ChangeUsernameCommandHandler : IRequestHandler<ChangeUsernameCommand>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly AdminAccountGuard _adminGuard;
 
-    public ChangeUsernameCommandHandler(IUnitOfWork unitOfWork)
+    public ChangeUsernameCommandHandler(IUnitOfWork unitOfWork, AdminAccountGuard adminGuard)
     {
         _unitOfWork = unitOfWork;
+        _adminGuard = adminGuard;
     }
 
     public async Task Handle(ChangeUsernameCommand request, CancellationToken cancellationToken)
@@ -35,6 +38,8 @@ public class ChangeUsernameCommandHandler : IRequestHandler<ChangeUsernameComman
         var user = await _unitOfWork.Users.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             throw new NotFoundException("User", request.UserId);
+
+        await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
 
         if (user.AuthSource == AuthSource.Ldap)
             throw new InvalidOperationException("Cannot change username for LDAP users. Usernames are managed by Active Directory.");

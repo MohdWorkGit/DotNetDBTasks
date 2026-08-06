@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Application.Features.Users.Queries;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
@@ -36,15 +37,24 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserD
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly AdminAccountGuard _adminGuard;
 
-    public CreateUserCommandHandler(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
+    public CreateUserCommandHandler(
+        IUnitOfWork unitOfWork,
+        IPasswordHasher passwordHasher,
+        AdminAccountGuard adminGuard)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _adminGuard = adminGuard;
     }
 
     public async Task<UserDto> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
+        // Creating a brand-new administrator (whose password the caller chooses) is the same
+        // escalation as promoting an existing account.
+        await _adminGuard.EnsureCanAssignRolesAsync(request.RoleIds, cancellationToken);
+
         var exists = await _unitOfWork.Users.ExistsAsync(
             u => u.Username == request.Username, cancellationToken);
         if (exists)

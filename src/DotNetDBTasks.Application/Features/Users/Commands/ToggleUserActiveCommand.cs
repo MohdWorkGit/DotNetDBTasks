@@ -1,3 +1,4 @@
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
@@ -14,10 +15,12 @@ public class ToggleUserActiveCommand : IRequest
 public class ToggleUserActiveCommandHandler : IRequestHandler<ToggleUserActiveCommand>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly AdminAccountGuard _adminGuard;
 
-    public ToggleUserActiveCommandHandler(IUnitOfWork unitOfWork)
+    public ToggleUserActiveCommandHandler(IUnitOfWork unitOfWork, AdminAccountGuard adminGuard)
     {
         _unitOfWork = unitOfWork;
+        _adminGuard = adminGuard;
     }
 
     public async Task Handle(ToggleUserActiveCommand request, CancellationToken cancellationToken)
@@ -25,6 +28,9 @@ public class ToggleUserActiveCommandHandler : IRequestHandler<ToggleUserActiveCo
         var user = await _unitOfWork.Users.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             throw new NotFoundException("User", request.UserId);
+
+        // Deactivating an administrator is a denial-of-service on the people who could undo it.
+        await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
 
         // Guard: never allow the last active administrator to be deactivated,
         // otherwise the system could be left with no one able to manage it.

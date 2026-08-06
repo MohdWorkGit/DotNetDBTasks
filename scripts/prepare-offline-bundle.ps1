@@ -9,6 +9,7 @@
       - nuget-packages/  : the full NuGet dependency closure (offline restore source)
       - npm-cache/       : the npm cache for the Angular client (offline npm ci)
       - api-publish/     : (optional) self-contained .NET build, ready to run
+      - queryrunner-publish/ : (optional) self-contained QueryRunner console tool
       - client-dist/     : (optional) production Angular build
       - installers/      : (optional) .NET SDK + Node.js offline installers
       - MANIFEST.txt     : what's inside + how to use it on the target
@@ -161,6 +162,12 @@ if ($IncludeBuild) {
         --packages $NugetDir -o $ApiOut
     Write-Ok "API published ($Runtime, self-contained)"
 
+    Write-Step "Building self-contained QueryRunner -> queryrunner-publish/"
+    $QueryRunnerOut = Join-Path $OutDir 'queryrunner-publish'
+    & dotnet publish $QueryRunnerCsproj -c Release -r $Runtime --self-contained `
+        --packages $NugetDir -o $QueryRunnerOut
+    Write-Ok "QueryRunner published ($Runtime, self-contained)"
+
     Write-Step "Building Angular production bundle -> client-dist/"
     $ClientOut = Join-Path $OutDir 'client-dist'
     Push-Location $ClientDir
@@ -181,7 +188,7 @@ if ($IncludeBuild) {
 
 # --- 4. Optional: offline installers (best effort) ---
 # These URLs are point-in-time; verify them if a download fails.
-$dotnetSdkUrl = 'https://dotnetcli.azureedge.net/dotnet/Sdk/10.0.103/dotnet-sdk-10.0.103-win-x64.exe'
+$dotnetSdkUrl = 'https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.103/dotnet-sdk-10.0.103-win-x64.exe'
 $nodeMsiUrl   = 'https://nodejs.org/dist/v24.14.0/node-v24.14.0-x64.msi'
 if ($IncludeInstallers) {
     Write-Step "Downloading offline installers -> installers/"
@@ -206,9 +213,9 @@ if ($IncludeInstallers) {
 Write-Step "Writing MANIFEST.txt"
 $now = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 if ($IncludeBuild) {
-    $buildLine = "api-publish/           Self-contained API, ready to run.`r`nclient-dist/           Production Angular bundle."
+    $buildLine = "api-publish/           Self-contained API, ready to run.`r`nqueryrunner-publish/   Self-contained QueryRunner console tool (Task Scheduler).`r`nclient-dist/           Production Angular bundle."
 } else {
-    $buildLine = "(api-publish / client-dist not included - rerun with -IncludeBuild)"
+    $buildLine = "(api-publish / queryrunner-publish / client-dist not included - rerun with -IncludeBuild)"
 }
 if ($IncludeInstallers) {
     $installerLine = "installers/            .NET SDK + Node.js offline installers."

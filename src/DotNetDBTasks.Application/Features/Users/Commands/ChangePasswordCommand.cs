@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
@@ -26,11 +27,16 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly AdminAccountGuard _adminGuard;
 
-    public ChangePasswordCommandHandler(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
+    public ChangePasswordCommandHandler(
+        IUnitOfWork unitOfWork,
+        IPasswordHasher passwordHasher,
+        AdminAccountGuard adminGuard)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _adminGuard = adminGuard;
     }
 
     public async Task Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
@@ -38,6 +44,8 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         var user = await _unitOfWork.Users.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             throw new NotFoundException("User", request.UserId);
+
+        await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
 
         if (user.AuthSource == AuthSource.Ldap)
             throw new InvalidOperationException("Cannot change password for LDAP users. Passwords are managed by Active Directory.");

@@ -1,3 +1,4 @@
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
@@ -24,10 +25,12 @@ public class ChangeUserRoleValidator : AbstractValidator<ChangeUserRoleCommand>
 public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleCommand>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly AdminAccountGuard _adminGuard;
 
-    public ChangeUserRoleCommandHandler(IUnitOfWork unitOfWork)
+    public ChangeUserRoleCommandHandler(IUnitOfWork unitOfWork, AdminAccountGuard adminGuard)
     {
         _unitOfWork = unitOfWork;
+        _adminGuard = adminGuard;
     }
 
     public async Task Handle(ChangeUserRoleCommand request, CancellationToken cancellationToken)
@@ -35,6 +38,11 @@ public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleComman
         var user = await _unitOfWork.Users.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             throw new NotFoundException("User", request.UserId);
+
+        // Two separate escalation paths to close: demoting/altering an existing administrator,
+        // and promoting any account (the caller's own included) to Admin.
+        await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
+        await _adminGuard.EnsureCanAssignRolesAsync(request.RoleIds, cancellationToken);
 
         // Validate all role IDs exist
         var allRoles = await _unitOfWork.Roles.GetAllAsync(cancellationToken);

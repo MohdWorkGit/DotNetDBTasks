@@ -95,7 +95,16 @@ Output: `client/dist/dotnet-db-tasks-client/browser/`
 | `nginx.conf` | See Step 4 | Custom config for this app |
 | `appsettings.json` | `src/DotNetDBTasks.API/` | Edit before going — see Step 3 |
 | `queryrunner-publish/` (optional) | Built in Step 1 | Only if using the standalone QueryRunner with Task Scheduler |
+| LibreOffice installer (optional) | [libreoffice.org](https://www.libreoffice.org/download/download-libreoffice/) | ~350 MB. Only for full-fidelity Word-template PDF export — see below |
 | `docker/ldap/bootstrap.ldif` | Repo | Only needed if setting up a fresh OpenLDAP server |
+
+> **PDF export engine.** Exports that use a Word template are rendered to `.docx` first, then
+> converted to PDF by whichever engine the host offers: **LibreOffice** (headless, preferred) or
+> **Microsoft Word** via COM automation if Office is installed. With neither present the app does
+> *not* fail — it falls back to a built-in PDF layout, which ignores the Word template's styling.
+> If template-faithful PDFs matter, **carry a LibreOffice installer across now**; you cannot
+> download one later. Control the choice with `Export:PdfEngine` (`auto` | `libreoffice` | `word` |
+> `builtin`) and, for a non-standard install location, `Export:LibreOfficePath`.
 
 ---
 
@@ -258,6 +267,18 @@ To stop:
 A run-only deployment (Part A) does **not** let you change the code. To edit and rebuild on a machine
 that never touches the internet, you must bring the full toolchains plus the package caches the build
 restores from. Prepare everything below on an internet-connected machine, then carry it across.
+
+> **Fast path — one command does all of it.** The sections below explain each piece, but
+> `scripts/prepare-offline-bundle.ps1` automates the whole job into a single `offline-bundle/`
+> folder (NuGet closure, npm cache, self-contained API + QueryRunner, Angular build, and the
+> SDK/Node installers):
+>
+> ```powershell
+> ./scripts/prepare-offline-bundle.ps1 -Clean -IncludeBuild -IncludeInstallers
+> ```
+>
+> Copy that folder across and follow its generated `MANIFEST.txt`. Read on if you'd rather
+> assemble the pieces by hand or need to understand what the script produces.
 
 ## B1 — Toolchains to Install
 

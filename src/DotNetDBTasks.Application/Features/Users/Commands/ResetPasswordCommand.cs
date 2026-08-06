@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
@@ -29,11 +30,16 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly AdminAccountGuard _adminGuard;
 
-    public ResetPasswordCommandHandler(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
+    public ResetPasswordCommandHandler(
+        IUnitOfWork unitOfWork,
+        IPasswordHasher passwordHasher,
+        AdminAccountGuard adminGuard)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _adminGuard = adminGuard;
     }
 
     public async Task<ResetPasswordResult> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
@@ -41,6 +47,10 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
         var user = await _unitOfWork.Users.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             throw new NotFoundException("User", request.UserId);
+
+        // The result hands back the new password in clear text, so a non-Admin resetting an
+        // administrator would be handing themselves that account.
+        await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
 
         if (user.AuthSource == AuthSource.Ldap)
             throw new InvalidOperationException("Cannot reset password for LDAP users. Passwords are managed by Active Directory.");
