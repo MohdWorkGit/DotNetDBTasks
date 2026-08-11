@@ -42,12 +42,12 @@ public class ChangeUsernameCommandHandler : IRequestHandler<ChangeUsernameComman
         await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
 
         if (user.AuthSource == AuthSource.Ldap)
-            throw new InvalidOperationException("Cannot change username for LDAP users. Usernames are managed by Active Directory.");
+            throw new DomainException("Cannot change username for LDAP users. Usernames are managed by Active Directory.");
 
         var taken = await _unitOfWork.Users.ExistsAsync(
             u => u.Username == request.NewUsername && u.Id != request.UserId, cancellationToken);
         if (taken)
-            throw new InvalidOperationException($"Username '{request.NewUsername}' is already taken.");
+            throw new DomainException($"Username '{request.NewUsername}' is already taken.");
 
         user.Username = request.NewUsername;
         user.UpdatedAt = DateTime.UtcNow;

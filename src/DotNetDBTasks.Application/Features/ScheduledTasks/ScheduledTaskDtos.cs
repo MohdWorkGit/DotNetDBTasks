@@ -40,8 +40,8 @@ public class ScheduledTaskDto
     public ScheduledTaskRunDto? LastRun { get; set; }
 
     /// <summary>Whether the CURRENT user may download this task's export files
-    /// (Admin/Auditor, or a viewer granted the download permission). Set by the
-    /// query handlers, not the mapper.</summary>
+    /// (Admin, or a viewer granted the download permission). Set by the query
+    /// handlers, not the mapper.</summary>
     public bool CanDownloadFiles { get; set; }
 }
 

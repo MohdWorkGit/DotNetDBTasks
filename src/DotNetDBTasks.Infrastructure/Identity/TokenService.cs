@@ -27,10 +27,16 @@ public class TokenService : ITokenService
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Email, user.Email),
+            // ClaimTypes.Email is omitted entirely for users without an address —
+            // Claim's constructor rejects a null value.
             new("FirstName", user.FirstName),
             new("LastName", user.LastName)
         };
+
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            claims.Add(new Claim(ClaimTypes.Email, user.Email));
+        }
 
         if (!string.IsNullOrEmpty(user.Department))
         {

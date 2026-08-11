@@ -36,6 +36,8 @@ import { ScheduledTaskFormComponent } from './components/scheduled-tasks/schedul
 import { ScheduledTaskRunsComponent } from './components/scheduled-tasks/scheduled-task-runs.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { authGuard } from '@core/guards/auth.guard';
+import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
 
 @NgModule({
   declarations: [
@@ -77,23 +79,43 @@ import { MatExpansionModule } from '@angular/material/expansion';
     MatRadioModule,
     MatMenuModule,
     MatExpansionModule,
+    // Every route carries its own roles: the parent /admin guard only checks that the
+    // user has *some* admin page, so without these an Auditor could type their way into
+    // the query editor. These mirror the [Authorize] attributes on the API controllers —
+    // the server is the real gate; this keeps the UI from offering a guaranteed 403.
     RouterModule.forChild([
-      { path: 'queries', component: QueryListComponent },
-      { path: 'queries/create', component: QueryFormComponent },
-      { path: 'queries/edit/:id', component: QueryFormComponent },
-      { path: 'queries/:id/roles', component: RoleAssignmentComponent },
-      { path: 'query-groups', component: QueryGroupsListComponent },
-      { path: 'query-groups/create', component: QueryGroupFormComponent },
-      { path: 'query-groups/edit/:id', component: QueryGroupFormComponent },
-      { path: 'query-groups/:id/access', component: QueryGroupAccessComponent },
-      { path: 'scheduled-tasks', component: ScheduledTasksListComponent },
-      { path: 'scheduled-tasks/create', component: ScheduledTaskFormComponent },
-      { path: 'scheduled-tasks/edit/:id', component: ScheduledTaskFormComponent },
-      { path: 'scheduled-tasks/:id/runs', component: ScheduledTaskRunsComponent },
-      { path: 'logs', component: ExecutionLogsComponent },
-      { path: 'ad-users', component: AdUsersComponent },
-      { path: 'users', component: UserManagementComponent },
-      { path: 'database-users', component: DatabaseUsersComponent },
+      { path: 'queries', component: QueryListComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+      { path: 'queries/create', component: QueryFormComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN] } },
+      { path: 'queries/edit/:id', component: QueryFormComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN] } },
+      { path: 'queries/:id/roles', component: RoleAssignmentComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+      { path: 'query-groups', component: QueryGroupsListComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+      { path: 'query-groups/create', component: QueryGroupFormComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN] } },
+      { path: 'query-groups/edit/:id', component: QueryGroupFormComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN] } },
+      { path: 'query-groups/:id/access', component: QueryGroupAccessComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+      { path: 'scheduled-tasks', component: ScheduledTasksListComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
+      { path: 'scheduled-tasks/create', component: ScheduledTaskFormComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN] } },
+      { path: 'scheduled-tasks/edit/:id', component: ScheduledTaskFormComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN] } },
+      { path: 'scheduled-tasks/:id/runs', component: ScheduledTaskRunsComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
+      { path: 'logs', component: ExecutionLogsComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
+      { path: 'ad-users', component: AdUsersComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN] } },
+      { path: 'users', component: UserManagementComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+      { path: 'database-users', component: DatabaseUsersComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN] } },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])
   ]

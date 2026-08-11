@@ -69,6 +69,7 @@ interface QueryListState {
           <input #importInput type="file" accept=".json,application/json" hidden
                  (change)="onImportFileSelected($event)">
           <button mat-stroked-button [matMenuTriggerFor]="backupMenu"
+                  *ngIf="authService.isAdmin()"
                   matTooltip="Back up every query, or restore from a backup file">
             <mat-icon>backup</mat-icon>
             Backup
@@ -217,6 +218,7 @@ interface QueryListState {
                   <mat-icon>security</mat-icon>
                 </button>
                 <button mat-icon-button (click)="exportQuery(q)"
+                        *ngIf="authService.isAdmin()"
                         [matTooltip]="'Export ' + q.name + ' as a JSON definition'"
                         [attr.aria-label]="'Export ' + q.name">
                   <mat-icon>file_download</mat-icon>

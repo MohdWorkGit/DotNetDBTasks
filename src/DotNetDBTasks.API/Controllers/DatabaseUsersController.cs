@@ -1,6 +1,7 @@
 using DotNetDBTasks.Application.Features.DatabaseUsers.Commands;
 using DotNetDBTasks.Application.Features.DatabaseUsers.Queries;
 using MediatR;
+using DotNetDBTasks.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +12,7 @@ namespace DotNetDBTasks.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = RoleNames.Admin)]
 public class DatabaseUsersController : ControllerBase
 {
     private readonly IMediator _mediator;

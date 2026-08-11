@@ -5,15 +5,25 @@ using DotNetDBTasks.Domain.Interfaces;
 namespace DotNetDBTasks.Application.Common.Security;
 
 /// <summary>
-/// Keeps administrator accounts out of reach of the other roles that can manage users.
+/// Keeps administrator accounts out of reach of any non-Admin role that can manage users.
 ///
 /// <para>
-/// <c>UsersController</c> is authorized for <c>Admin,Auditor</c>, so an Auditor reaches every
-/// user-management handler. Without this guard an Auditor could reset an administrator's
-/// password — the response returns the new password in clear text — and sign in as that
-/// administrator. Blocking only that path is not enough: granting yourself (or a new account)
-/// the Admin role reaches the same place, so both the *target* of a change and the *roles*
-/// being handed out have to be checked.
+/// <c>UsersController</c> is authorized for <c>Admin,AccessManager</c>, so an Access Manager
+/// reaches every user-management handler. Without this guard they could reset an
+/// administrator's password — the response returns the new password in clear text — and sign
+/// in as that administrator. Blocking only that path is not enough: granting yourself (or a
+/// new account) the Admin role reaches the same place. So three things are checked — the
+/// *target* of a change, the *roles* being handed out, and whether the caller is editing
+/// *their own* role set.
+/// </para>
+///
+/// <para>
+/// The self-edit rule exists because Auditor and AccessManager are defined as roles that never
+/// run queries (see <see cref="QueryAccessRoles"/>). An Access Manager who could grant
+/// themselves the User role would undo that in one click: assign a query to themselves, then
+/// run it. They can still mint a separate account and log in as it — that is inherent in
+/// letting a role both create users and control query access — but that leaves an account and
+/// an audit trail behind, where a self-grant leaves neither.
 /// </para>
 ///
 /// <para>
@@ -60,6 +70,19 @@ public sealed class AdminAccountGuard
         var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
         if (adminRoleId is not null && roleIds.Contains(adminRoleId.Value))
             throw new ForbiddenAccessException("Only an administrator can grant the Admin role.");
+    }
+
+    /// <summary>
+    /// Throws when a non-Admin caller tries to edit their own role set. Managing other people's
+    /// roles is the job; handing yourself a new one is not.
+    /// </summary>
+    public void EnsureNotSelfRoleChange(Guid targetUserId)
+    {
+        if (CallerIsAdmin)
+            return;
+
+        if (targetUserId == _currentUser.UserId)
+            throw new ForbiddenAccessException("You cannot change your own roles.");
     }
 
     private async Task<bool> IsAdminAsync(Guid userId, CancellationToken cancellationToken)

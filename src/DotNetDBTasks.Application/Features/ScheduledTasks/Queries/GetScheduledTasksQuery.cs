@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Domain.Constants;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
 
@@ -24,7 +25,8 @@ public class GetScheduledTasksQueryHandler : IRequestHandler<GetScheduledTasksQu
 
     public async Task<List<ScheduledTaskDto>> Handle(GetScheduledTasksQuery request, CancellationToken cancellationToken)
     {
-        var seesAll = _currentUser.Roles.Contains("Admin") || _currentUser.Roles.Contains("Auditor");
+        var seesAll = _currentUser.Roles.Contains(RoleNames.Admin)
+            || _currentUser.Roles.Contains(RoleNames.Auditor);
 
         var tasks = seesAll
             ? await _unitOfWork.ScheduledTasks.GetAllAsync(

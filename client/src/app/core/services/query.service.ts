@@ -37,7 +37,8 @@ import {
   ToggleUserActiveRequest,
   UpdateDatabaseUserRequest,
   UpdateDynamicQueryRequest,
-  UpdateQueryGroupRequest
+  UpdateQueryGroupRequest,
+  LdapImportResult
 } from '../models/dynamic-query.model';
 
 /** Download format accepted by the export-file endpoint. */
@@ -383,12 +384,12 @@ export class QueryService {
     return this.http.get<LdapUser[]>(`${this.ldapUrl}/departments/${encodeURIComponent(department)}/users`);
   }
 
-  importLdapUsers(usernames: string[]): Observable<{ imported: number }> {
-    return this.http.post<{ imported: number }>(`${this.ldapUrl}/import/users`, { usernames });
+  importLdapUsers(usernames: string[]): Observable<LdapImportResult> {
+    return this.http.post<LdapImportResult>(`${this.ldapUrl}/import/users`, { usernames });
   }
 
-  importLdapDepartment(department: string): Observable<{ imported: number }> {
-    return this.http.post<{ imported: number }>(`${this.ldapUrl}/import/department`, { department });
+  importLdapDepartment(department: string): Observable<LdapImportResult> {
+    return this.http.post<LdapImportResult>(`${this.ldapUrl}/import/department`, { department });
   }
 
   getImportedLdapUsers(): Observable<ImportedLdapUser[]> {

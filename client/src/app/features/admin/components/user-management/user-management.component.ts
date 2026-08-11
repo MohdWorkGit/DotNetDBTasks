@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ToastService } from '@core/services/toast.service';
+import { roleLabel } from '@core/models/roles';
 import { ConfirmService } from '@core/services/confirm.service';
 import {
   UserEditDialogComponent,
@@ -42,9 +43,9 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Email</mat-label>
+                <mat-label>Email (optional)</mat-label>
                 <input matInput formControlName="email" type="email">
-                <mat-error *ngIf="createForm.get('email')?.hasError('required')">Email is required</mat-error>
+                <mat-hint>Leave blank if the user has no address</mat-hint>
                 <mat-error *ngIf="createForm.get('email')?.hasError('email')">Invalid email</mat-error>
               </mat-form-field>
             </div>
@@ -80,7 +81,7 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Roles</mat-label>
               <mat-select formControlName="roleIds" multiple>
-                <mat-option *ngFor="let role of roles" [value]="role.id">{{ role.name }}</mat-option>
+                <mat-option *ngFor="let role of roles" [value]="role.id">{{ roleLabel(role.name) }}</mat-option>
               </mat-select>
               <mat-error *ngIf="createForm.get('roleIds')?.hasError('required')">At least one role is required</mat-error>
             </mat-form-field>
@@ -121,7 +122,10 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
 
           <ng-container matColumnDef="email">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
-            <td mat-cell *matCellDef="let user">{{ user.email }}</td>
+            <td mat-cell *matCellDef="let user">
+              <span *ngIf="user.email; else noEmail">{{ user.email }}</span>
+              <ng-template #noEmail><span class="no-value">&mdash;</span></ng-template>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="roles">
@@ -129,7 +133,7 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
             <td mat-cell *matCellDef="let user">
               <mat-chip-listbox>
                 <mat-chip *ngFor="let role of user.roles" [class.admin-chip]="role === 'Admin'">
-                  {{ role }}
+                  {{ roleLabel(role) }}
                 </mat-chip>
               </mat-chip-listbox>
             </td>
@@ -217,6 +221,7 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
     .active { background-color: var(--chip-active) !important; color: var(--chip-text) !important; }
     .inactive { background-color: var(--chip-inactive) !important; color: var(--chip-text) !important; }
     .admin-chip { background-color: var(--chip-accent) !important; color: var(--chip-text) !important; }
+    .no-value { color: var(--text-secondary); }
   `]
 })
 export class UserManagementComponent implements OnInit {
@@ -225,6 +230,9 @@ export class UserManagementComponent implements OnInit {
   showCreateForm = false;
   users: SystemUser[] = [];
   roles: Role[] = [];
+
+  /** Turns the wire name into a display label ("AccessManager" -> "Access Manager"). */
+  roleLabel = roleLabel;
   dataSource = new MatTableDataSource<SystemUser>();
   displayedColumns = ['username', 'name', 'email', 'roles', 'authSource', 'status', 'actions'];
 
@@ -246,7 +254,9 @@ export class UserManagementComponent implements OnInit {
   ngOnInit(): void {
     this.createForm = this.fb.group({
       username: ['', [Validators.required, Validators.maxLength(100)]],
-      email: ['', [Validators.required, Validators.email, Validators.maxLength(200)]],
+      // Optional: Validators.email already passes on an empty control, so dropping
+      // Validators.required is all that is needed to allow a blank address.
+      email: ['', [Validators.email, Validators.maxLength(200)]],
       password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(100)]],
       firstName: ['', [Validators.required, Validators.maxLength(100)]],
       lastName: ['', [Validators.required, Validators.maxLength(100)]],

@@ -15,7 +15,9 @@ export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot): boolean
     const userRoles = authService.getUserRoles();
     const hasRole = requiredRoles.some(role => userRoles.includes(role));
     if (!hasRole) {
-      return router.createUrlTree(['/user/queries']);
+      // Bounce to the page this role actually has, not a blanket /user/queries —
+      // an Auditor sent there would land on an empty query list.
+      return router.createUrlTree([authService.landingRoute()]);
     }
   }
 

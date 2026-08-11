@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Domain.Exceptions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Novell.Directory.Ldap;
@@ -134,6 +135,7 @@ public class LdapService : ILdapService
         catch (LdapException ex)
         {
             _logger.LogError(ex, "LDAP search failed for term {SearchTerm}", searchTerm);
+            throw Unavailable($"searching for \"{searchTerm}\"", ex);
         }
 
         return Task.FromResult<IReadOnlyList<LdapUserInfo>>(results);
@@ -168,6 +170,7 @@ public class LdapService : ILdapService
         catch (LdapException ex)
         {
             _logger.LogError(ex, "Failed to retrieve LDAP departments");
+            throw Unavailable("listing departments", ex);
         }
 
         return Task.FromResult<IReadOnlyList<string>>(departments.OrderBy(d => d).ToList());
@@ -202,9 +205,22 @@ public class LdapService : ILdapService
         catch (LdapException ex)
         {
             _logger.LogError(ex, "LDAP department search failed for {Department}", department);
+            throw Unavailable($"listing members of \"{department}\"", ex);
         }
 
         return Task.FromResult<IReadOnlyList<LdapUserInfo>>(results);
+    }
+
+    /// <summary>
+    /// Names the server and what we were doing, so the caller sees "Active Directory at
+    /// host:port could not be reached while ..." instead of a bare failure. Authentication is
+    /// deliberately excluded — a rejected bind is a wrong password, not an outage.
+    /// </summary>
+    private ExternalServiceException Unavailable(string operation, LdapException ex)
+    {
+        var detail = string.IsNullOrWhiteSpace(ex.LdapErrorMessage) ? ex.Message : ex.LdapErrorMessage;
+        return new ExternalServiceException(
+            $"Active Directory at {_host}:{_port} could not be reached while {operation}. {detail}", ex);
     }
 
     private LdapUserInfo? MapEntry(LdapEntry entry)
@@ -216,7 +232,10 @@ public class LdapService : ILdapService
         return new LdapUserInfo
         {
             Username = username,
-            Email = GetAttribute(entry, "mail") ?? $"{username}@dotnetdbtasks.local",
+            // No synthetic fallback: a made-up address is indistinguishable from a real one
+            // and, being unique-indexed, used to make imports fail on collisions. Email is
+            // optional now, so an account without a mail attribute simply has none.
+            Email = GetAttribute(entry, "mail"),
             FirstName = GetAttribute(entry, "givenName") ?? "",
             LastName = GetAttribute(entry, "sn") ?? "",
             Department = GetAttribute(entry, _deptAttr)

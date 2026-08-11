@@ -422,3 +422,22 @@ export interface ToggleUserActiveRequest {
 export interface ResetPasswordResult {
   temporaryPassword: string;
 }
+
+export interface LdapImportSkip {
+  username: string;
+  reason: string;
+}
+
+/**
+ * Outcome of an Active Directory import. The API reports per-user reasons rather than only a
+ * count, so a partially-successful run can say exactly which accounts were left out and why.
+ * Distinct from QueryImportResult, which is about importing query definitions.
+ */
+export interface LdapImportResult {
+  imported: number;
+  notFound: string[];
+  alreadyImported: string[];
+  skipped: LdapImportSkip[];
+  /** One-line message assembled server-side, ready to show as-is. */
+  summary: string;
+}

@@ -30,28 +30,28 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
           <mat-icon>history</mat-icon> <span class="nav-label">History</span>
         </button>
         <button mat-button routerLink="/user/schedules" routerLinkActive="nav-active"
-                *ngIf="!authService.isAdmin()"
+                *ngIf="!authService.isAdminOrAuditor()"
                 matTooltip="Schedules" aria-label="Schedules">
           <mat-icon>schedule</mat-icon> <span class="nav-label">Schedules</span>
         </button>
 
         <button mat-button routerLink="/admin/scheduled-tasks" routerLinkActive="nav-active"
-                *ngIf="authService.isAdmin()"
+                *ngIf="authService.isAdminOrAuditor()"
                 matTooltip="Schedules" aria-label="Schedules">
           <mat-icon>schedule</mat-icon> <span class="nav-label">Schedules</span>
         </button>
         <button mat-button routerLink="/admin/queries" routerLinkActive="nav-active"
-                *ngIf="authService.isAdminOrAuditor()"
+                *ngIf="authService.isAdminOrAccessManager()"
                 matTooltip="Manage Queries" aria-label="Manage Queries">
           <mat-icon>dashboard</mat-icon> <span class="nav-label">Manage Queries</span>
         </button>
         <button mat-button routerLink="/admin/query-groups" routerLinkActive="nav-active"
-                *ngIf="authService.isAdminOrAuditor()"
+                *ngIf="authService.isAdminOrAccessManager()"
                 matTooltip="Query Groups" aria-label="Query Groups">
           <mat-icon>folder</mat-icon> <span class="nav-label">Query Groups</span>
         </button>
         <button mat-button routerLink="/admin/users" routerLinkActive="nav-active"
-                *ngIf="authService.isAdminOrAuditor()"
+                *ngIf="authService.isAdminOrAccessManager()"
                 matTooltip="Users" aria-label="Users">
           <mat-icon>people</mat-icon> <span class="nav-label">Users</span>
         </button>

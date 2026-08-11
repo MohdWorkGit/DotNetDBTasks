@@ -53,7 +53,7 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
         await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
 
         if (user.AuthSource == AuthSource.Ldap)
-            throw new InvalidOperationException("Cannot reset password for LDAP users. Passwords are managed by Active Directory.");
+            throw new DomainException("Cannot reset password for LDAP users. Passwords are managed by Active Directory.");
 
         var tempPassword = GenerateTemporaryPassword();
         user.PasswordHash = _passwordHasher.HashPassword(tempPassword);

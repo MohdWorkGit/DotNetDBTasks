@@ -7,9 +7,9 @@ using MediatR;
 namespace DotNetDBTasks.Application.Features.ScheduledTasks.Queries;
 
 /// <summary>
-/// Downloads an export file produced by a scheduled task run. Admins and Auditors may
-/// always download; viewers additionally need the CanDownloadFiles grant (plain
-/// viewers only see statuses and file names). The requested file name
+/// Downloads an export file produced by a scheduled task run. Requires Admin, or a viewer
+/// grant carrying CanDownloadFiles — Auditors see the run history but not its files, and
+/// plain viewers only see statuses and file names. The requested file name
 /// must be one recorded in the run's item results — the file is then served from the
 /// task's output folder (or the archive folder when the output copy is gone, e.g.
 /// picked up by a downstream consumer).

@@ -74,12 +74,40 @@ export class AuthService {
     return this.getUserRoles().includes('Admin');
   }
 
+  /** Reads execution logs and scheduled-task history. Nothing else under /admin. */
   isAuditor(): boolean {
     return this.getUserRoles().includes('Auditor');
   }
 
+  /**
+   * Manages who may reach each query and query group. Cannot read a query's SQL,
+   * edit anything, or run anything — the API enforces all three.
+   */
+  isAccessManager(): boolean {
+    return this.getUserRoles().includes('AccessManager');
+  }
+
   isAdminOrAuditor(): boolean {
     return this.isAdmin() || this.isAuditor();
+  }
+
+  isAdminOrAccessManager(): boolean {
+    return this.isAdmin() || this.isAccessManager();
+  }
+
+  /** Any role with at least one page under /admin. */
+  canReachAdminArea(): boolean {
+    return this.isAdmin() || this.isAuditor() || this.isAccessManager();
+  }
+
+  /**
+   * Where a signed-in user belongs after login. Each role's first reachable page:
+   * Admin and Access Manager both land on the query list, Auditors on the logs.
+   */
+  landingRoute(): string {
+    if (this.isAdmin() || this.isAccessManager()) return '/admin/queries';
+    if (this.isAuditor()) return '/admin/logs';
+    return '/user/queries';
   }
 
   private storeTokens(result: AuthResult): void {

@@ -41,7 +41,7 @@ docker/                           # Dockerfiles and nginx config
 - LDAP / Active Directory authentication
 - JWT access + refresh token authentication
 - AES-256 encryption of stored database credentials at rest
-- Role-based authorization (Admin, User)
+- Role-based authorization — see [Roles](#roles)
 - Parameterized SQL only — no string concatenation
 - SQL query validation (forbidden pattern detection: `XP_`, `SP_`, `--`, `;`, `DBMS_`, `UTL_`)
 - Write queries (INSERT/UPDATE/DELETE) run preview-and-confirm: previewed in a rolled-back
@@ -50,6 +50,51 @@ docker/                           # Dockerfiles and nginx config
 - Global exception handling middleware
 - Query execution timeout protection (supports unlimited/infinity)
 - Full execution audit logging
+
+## Roles
+
+Roles are rows in the `Roles` table, not a fixed enum, and a user may hold more than one —
+permissions add up. Four are seeded; the spellings live in `RoleNames.cs` (API) and
+`core/models/roles.ts` (client), which must stay in step because they are compared against
+the JWT's role claims.
+
+| | **Admin** | **Auditor** | **Access Manager** | **User** |
+|---|---|---|---|---|
+| Create / edit / delete queries and groups | ✅ | — | — | — |
+| Read a query's SQL | ✅ | — | — | assigned only |
+| **Run queries** | ✅ | **never** | **never** | assigned only |
+| Export / import query definitions | ✅ | — | — | — |
+| Assign queries and groups to roles / departments / users | ✅ | — | ✅ | — |
+| List queries and groups (names, no SQL) | ✅ | — | ✅ | — |
+| User management | ✅ | — | ✅ (not admins) | — |
+| Execution logs and before-change snapshots | ✅ | ✅ | — | own history only |
+| View scheduled tasks and run history | ✅ | ✅ | — | as named viewer |
+| Download scheduled-task output files | ✅ | — | — | with viewer grant |
+| Create / edit / run / cancel scheduled tasks | ✅ | — | — | — |
+| AD import, database users, branding | ✅ | — | — | — |
+
+Three rules are worth stating outright because they are not obvious from the table:
+
+- **Neither oversight role can run a query, ever.** Auditor and AccessManager are ordinary rows
+  in `Roles`, so both appear in the access pickers, and assigning a query to either would
+  otherwise grant exactly what the roles are defined not to have.
+  `QueryAccessRoles.GrantingRoleIdsAsync` drops them when resolving access — on the query list,
+  the detail fetch, execution, and parameter dropdowns alike — so such an assignment is inert,
+  and the pickers filter them out rather than offer a no-op. This is per role, not per person:
+  an Auditor who is also a User runs whatever User is assigned.
+- **Access Manager never sees query text.** It reaches the query list and the accessibility
+  pages, but the API blanks `sqlQuery` out of every DTO bound for this role, and the export
+  endpoints — which carry the SQL verbatim — are Admin-only.
+- **Access Manager cannot touch administrator accounts.** `AdminAccountGuard` blocks a
+  non-Admin from modifying any account holding the Admin role, from granting the Admin role,
+  and from editing their own role set — the last because a self-grant of `User` would undo the
+  no-query-access rule in one click. A user manager can still create a separate account and
+  sign in as it; that is inherent in one role both creating users and controlling query access,
+  and unlike a self-grant it leaves an account and an audit trail behind.
+
+Seeded accounts (development only — change or remove before deploying):
+`admin` / `Admin@123`, `user` / `User@123`, `auditor` / `Auditor@123`,
+`accessmanager` / `Access@123`.
 
 ## Quick Start with Docker
 
@@ -144,15 +189,20 @@ Generate a key with `openssl rand -base64 32`.
 - `POST /api/auth/login` — Authenticate (via LDAP/AD) and get tokens
 - `POST /api/auth/refresh` — Refresh expired access token
 
-### Admin (requires Admin role)
-- `GET /api/admin/dynamicqueries` — List all queries
-- `GET /api/admin/dynamicqueries/{id}` — Get query by ID
+### Admin
+Admin unless noted — see [Roles](#roles) for what Auditor and Access Manager reach.
+- `GET /api/admin/dynamicqueries` — List all queries (Admin, Access Manager — SQL blanked for the latter)
+- `GET /api/admin/dynamicqueries/{id}` — Get query by ID (Admin, Access Manager — same)
 - `POST /api/admin/dynamicqueries` — Create query
 - `PUT /api/admin/dynamicqueries/{id}` — Update query
 - `DELETE /api/admin/dynamicqueries/{id}` — Delete query
-- `POST /api/admin/dynamicqueries/{id}/roles` — Assign roles
-- `GET /api/admin/dynamicqueries/logs` — Get execution logs. Optional filters: `queryId`, `userId`, `isSuccess`, `queryType` (0=Select, 1=Insert, 2=Update, 3=Delete, 4=Other), `search`; plus `sortBy`/`sortDescending`/`pageNumber`/`pageSize`. All applied in the database.
-- `GET /api/admin/roles` — List all roles
+- `POST /api/admin/dynamicqueries/{id}/roles` — Assign roles (Admin, Access Manager)
+- `POST /api/admin/dynamicqueries/{id}/departments` — Assign departments (Admin, Access Manager)
+- `POST /api/admin/dynamicqueries/{id}/users` — Assign individual users (Admin, Access Manager)
+- `GET /api/admin/dynamicqueries/logs` — Get execution logs (Admin, Auditor). Optional filters: `queryId`, `userId`, `isSuccess`, `queryType` (0=Select, 1=Insert, 2=Update, 3=Delete, 4=Other), `search`; plus `sortBy`/`sortDescending`/`pageNumber`/`pageSize`. All applied in the database.
+- `GET /api/admin/dynamicqueries/logs/{id}/old-values` — Before-change snapshots (Admin, Auditor)
+- `GET /api/admin/roles` — List all roles (Admin, Access Manager)
+- `GET|POST|PUT /api/admin/users/...` — User management (Admin, Access Manager; administrator accounts and the caller's own roles are off limits to non-Admins)
 
 - `GET /api/admin/dynamicqueries/{id}/export` — Export one query as JSON
 - `GET /api/admin/dynamicqueries/export` — Export every query as one JSON backup

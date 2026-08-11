@@ -1,6 +1,7 @@
 using DotNetDBTasks.Application.Features.QueryGroups.Commands;
 using DotNetDBTasks.Application.Features.QueryGroups.Queries;
 using MediatR;
+using DotNetDBTasks.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,11 +9,12 @@ namespace DotNetDBTasks.API.Controllers;
 
 /// <summary>
 /// Admin endpoints for managing query groups (folders).
-/// Auditors have read access and can manage group accessibility.
+/// Access Managers may list groups and manage group accessibility, but cannot
+/// create, edit or delete them. Auditors have no access to groups at all.
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = "Admin,Auditor")]
+[Authorize(Roles = RoleNames.AdminOrAccessManager)]
 public class QueryGroupsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -37,7 +39,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> Create(
         [FromBody] CreateQueryGroupCommand command,
         CancellationToken cancellationToken)
@@ -47,7 +49,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateQueryGroupCommand command,
@@ -59,7 +61,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteQueryGroupCommand(id), cancellationToken);

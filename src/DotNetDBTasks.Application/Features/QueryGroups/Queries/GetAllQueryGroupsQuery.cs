@@ -5,7 +5,7 @@ using MediatR;
 namespace DotNetDBTasks.Application.Features.QueryGroups.Queries;
 
 /// <summary>
-/// Retrieves all query groups with their access assignments. Admin/Auditor.
+/// Retrieves all query groups with their access assignments. Admin/AccessManager.
 /// </summary>
 public record GetAllQueryGroupsQuery : IRequest<IReadOnlyList<QueryGroupDto>>;
 

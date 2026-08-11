@@ -7,8 +7,7 @@ export const noAuthGuard: CanActivateFn = (): boolean | UrlTree => {
   const router = inject(Router);
 
   if (authService.getAccessToken()) {
-    const destination = authService.isAdmin() ? '/admin/queries' : authService.isAuditor() ? '/admin/logs' : '/user/queries';
-    return router.createUrlTree([destination]);
+    return router.createUrlTree([authService.landingRoute()]);
   }
   return true;
 };
@@ -22,8 +21,7 @@ export const rootRedirectGuard: CanActivateFn = (): UrlTree => {
   const router = inject(Router);
 
   if (authService.getAccessToken()) {
-    const destination = authService.isAdmin() ? '/admin/queries' : authService.isAuditor() ? '/admin/logs' : '/user/queries';
-    return router.createUrlTree([destination]);
+    return router.createUrlTree([authService.landingRoute()]);
   }
   return router.createUrlTree(['/login']);
 };

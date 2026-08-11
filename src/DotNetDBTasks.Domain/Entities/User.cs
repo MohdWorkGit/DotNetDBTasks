@@ -8,7 +8,13 @@ namespace DotNetDBTasks.Domain.Entities;
 public class User : BaseEntity
 {
     public string Username { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    /// <summary>
+    /// Optional. Null when no address is known — a locally created user may be given one
+    /// later, and an AD account simply may not publish a <c>mail</c> attribute. Stored NULL
+    /// rather than "": the column carries a unique index, and Oracle permits many NULLs in
+    /// one but would reject a second empty string.
+    /// </summary>
+    public string? Email { get; set; }
     public string PasswordHash { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;

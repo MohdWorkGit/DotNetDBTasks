@@ -48,7 +48,7 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
 
         if (user.AuthSource == AuthSource.Ldap)
-            throw new InvalidOperationException("Cannot change password for LDAP users. Passwords are managed by Active Directory.");
+            throw new DomainException("Cannot change password for LDAP users. Passwords are managed by Active Directory.");
 
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;

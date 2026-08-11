@@ -1,5 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ToastService } from '@core/services/toast.service';
+import { AuthService } from '@core/services/auth.service';
 import { ConfirmService } from '@core/services/confirm.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
 import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled-task.model';
@@ -11,7 +12,8 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
     <div class="container">
       <div class="header">
         <h2>Scheduled Tasks</h2>
-        <button mat-raised-button color="primary" routerLink="/admin/scheduled-tasks/create">
+        <button mat-raised-button color="primary" routerLink="/admin/scheduled-tasks/create"
+                *ngIf="authService.isAdmin()">
           <mat-icon>add_alarm</mat-icon> Create Task
         </button>
       </div>
@@ -73,6 +75,7 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let t">
                 <button mat-icon-button matTooltip="Run now" aria-label="Run now" (click)="runNow(t)"
+                        *ngIf="authService.isAdmin()"
                         [disabled]="runningIds.has(t.id)">
                   <mat-icon>play_arrow</mat-icon>
                 </button>
@@ -81,10 +84,12 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
                   <mat-icon>history</mat-icon>
                 </button>
                 <button mat-icon-button matTooltip="Edit" aria-label="Edit"
+                        *ngIf="authService.isAdmin()"
                         [routerLink]="['/admin/scheduled-tasks/edit', t.id]">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Delete" aria-label="Delete" color="warn" (click)="deleteTask(t)">
+                <button mat-icon-button matTooltip="Delete" aria-label="Delete" color="warn"
+                        *ngIf="authService.isAdmin()" (click)="deleteTask(t)">
                   <mat-icon>delete</mat-icon>
                 </button>
               </td>
@@ -95,7 +100,7 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
 
             <tr class="mat-row no-data-row" *matNoDataRow>
               <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-                No scheduled tasks yet. Create one to export query results on a schedule.
+                No scheduled tasks yet.<span *ngIf="authService.isAdmin()"> Create one to export query results on a schedule.</span>
               </td>
             </tr>
           </table>
@@ -120,6 +125,7 @@ export class ScheduledTasksListComponent implements OnInit {
   runningIds = new Set<string>();
 
   constructor(
+    public authService: AuthService,
     private scheduledTaskService: ScheduledTaskService,
     private toast: ToastService,
     private confirmService: ConfirmService,

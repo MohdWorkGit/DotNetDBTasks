@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Domain.Constants;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -58,7 +59,12 @@ public static class DatabaseSeeder
             await RepairDatabaseUsersSchemaAsync(context, logger);
 
             if (await context.Roles.CountAsync() > 0)
+            {
+                // Roles introduced after the first release still have to reach databases
+                // seeded by an earlier version — the full seed below is skipped for those.
+                await EnsureRolesExistAsync(context, logger);
                 return;
+            }
 
             logger.LogInformation("Seeding database...");
 
@@ -66,7 +72,7 @@ public static class DatabaseSeeder
             var adminRole = new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "Admin",
+                Name = RoleNames.Admin,
                 Description = "System administrator with full access",
                 CreatedAt = DateTime.UtcNow
             };
@@ -74,7 +80,7 @@ public static class DatabaseSeeder
             var userRole = new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "User",
+                Name = RoleNames.User,
                 Description = "Standard user with query execution access",
                 CreatedAt = DateTime.UtcNow
             };
@@ -82,12 +88,20 @@ public static class DatabaseSeeder
             var auditorRole = new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "Auditor",
-                Description = "Auditor with access to execution logs and query accessibility management",
+                Name = RoleNames.Auditor,
+                Description = AuditorRoleDescription,
                 CreatedAt = DateTime.UtcNow
             };
 
-            context.Roles.AddRange(adminRole, userRole, auditorRole);
+            var accessManagerRole = new Role
+            {
+                Id = Guid.NewGuid(),
+                Name = RoleNames.AccessManager,
+                Description = AccessManagerRoleDescription,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            context.Roles.AddRange(adminRole, userRole, auditorRole, accessManagerRole);
 
             // Seed Admin User (password: Admin@123)
             var adminUser = new User
@@ -128,13 +142,27 @@ public static class DatabaseSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
-            context.Users.AddRange(adminUser, regularUser, auditorUser);
+            // Seed Access Manager User (password: Access@123)
+            var accessManagerUser = new User
+            {
+                Id = Guid.NewGuid(),
+                Username = "accessmanager",
+                Email = "accessmanager@dotnetdbtasks.com",
+                PasswordHash = passwordHasher.HashPassword("Access@123"),
+                FirstName = "Access",
+                LastName = "Manager",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            context.Users.AddRange(adminUser, regularUser, auditorUser, accessManagerUser);
 
             // Assign Roles
             context.UserRoles.AddRange(
                 new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id },
                 new UserRole { UserId = regularUser.Id, RoleId = userRole.Id },
-                new UserRole { UserId = auditorUser.Id, RoleId = auditorRole.Id }
+                new UserRole { UserId = auditorUser.Id, RoleId = auditorRole.Id },
+                new UserRole { UserId = accessManagerUser.Id, RoleId = accessManagerRole.Id }
             );
 
             // Seed Example Dynamic Query
@@ -213,6 +241,48 @@ public static class DatabaseSeeder
             logger.LogError(ex, "An error occurred while seeding the database.");
             throw;
         }
+    }
+
+    private const string AuditorRoleDescription =
+        "Auditor with read access to execution logs and scheduled task history";
+
+    private const string AccessManagerRoleDescription =
+        "Manages which roles, departments and users may access queries and query groups";
+
+    /// <summary>
+    /// Inserts any seeded role missing from an already-populated database. Existing rows are
+    /// left untouched, including their descriptions, so an operator's edits survive a restart.
+    /// No user is attached to a backfilled role — an administrator assigns it.
+    /// </summary>
+    private static async Task EnsureRolesExistAsync(ApplicationDbContext context, ILogger logger)
+    {
+        var expected = new (string Name, string Description)[]
+        {
+            (RoleNames.Admin, "System administrator with full access"),
+            (RoleNames.User, "Standard user with query execution access"),
+            (RoleNames.Auditor, AuditorRoleDescription),
+            (RoleNames.AccessManager, AccessManagerRoleDescription)
+        };
+
+        var existing = await context.Roles.Select(r => r.Name).ToListAsync();
+        var missing = expected
+            .Where(e => !existing.Contains(e.Name))
+            .Select(e => new Role
+            {
+                Id = Guid.NewGuid(),
+                Name = e.Name,
+                Description = e.Description,
+                CreatedAt = DateTime.UtcNow
+            })
+            .ToList();
+
+        if (missing.Count == 0)
+            return;
+
+        context.Roles.AddRange(missing);
+        await context.SaveChangesAsync();
+        logger.LogInformation("Added missing role(s): {Roles}.",
+            string.Join(", ", missing.Select(r => r.Name)));
     }
 
     /// <summary>

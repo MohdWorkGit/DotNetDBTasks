@@ -4,6 +4,7 @@ import { ToastService } from '@core/services/toast.service';
 import { ConfirmService } from '@core/services/confirm.service';
 import { QueryService } from '@core/services/query.service';
 import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-query.model';
+import { roleLabel, grantsQueryAccess } from '@core/models/roles';
 
 @Component({
   standalone: false,
@@ -118,7 +119,7 @@ import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-que
           <div class="access-section">
             <strong>Allowed Roles:</strong>
             <mat-chip-set>
-              <mat-chip *ngFor="let r of du.assignedRoles">{{ r.roleName }}</mat-chip>
+              <mat-chip *ngFor="let r of du.assignedRoles">{{ roleLabel(r.roleName) }}</mat-chip>
               <mat-chip *ngIf="!du.assignedRoles?.length" class="none-chip">None assigned</mat-chip>
             </mat-chip-set>
           </div>
@@ -156,7 +157,7 @@ import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-que
             <mat-checkbox *ngFor="let role of allRoles"
                           [checked]="selectedRoleIds.has(role.id)"
                           (change)="toggleRoleAccess(role.id, $event.checked)">
-              {{ role.name }}<span *ngIf="role.description"> &mdash; {{ role.description }}</span>
+              {{ roleLabel(role.name) }}<span *ngIf="role.description"> &mdash; {{ role.description }}</span>
             </mat-checkbox>
           </div>
           <div class="actions">
@@ -202,6 +203,9 @@ import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-que
 export class DatabaseUsersComponent implements OnInit {
   dbUsers: DatabaseUser[] = [];
   allRoles: Role[] = [];
+
+  /** "AccessManager" -> "Access Manager" for display. */
+  roleLabel = roleLabel;
   showForm = false;
   form!: FormGroup;
   editingId: string | null = null;
@@ -236,7 +240,9 @@ export class DatabaseUsersComponent implements OnInit {
     this.resetForm();
     this.loadDbUsers();
     this.queryService.getRoles().subscribe({
-      next: (roles) => { this.allRoles = roles; },
+      // Auditor and AccessManager never execute queries, so a database-user grant to
+      // either can never be used — leave them out rather than offer a no-op.
+      next: (roles) => { this.allRoles = roles.filter(r => grantsQueryAccess(r.name)); },
       error: () => {}
     });
   }

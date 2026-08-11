@@ -14,7 +14,7 @@ public class ScheduledTaskViewer
 
     /// <summary>
     /// When true the viewer may also download the run's export files; plain viewers
-    /// only see statuses and file names. Admins and Auditors can always download.
+    /// only see statuses and file names. Admins can always download; Auditors cannot.
     /// </summary>
     public bool CanDownloadFiles { get; set; }
 }

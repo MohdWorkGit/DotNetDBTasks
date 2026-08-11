@@ -2,6 +2,7 @@ using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Interfaces;
+using DotNetDBTasks.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +11,15 @@ namespace DotNetDBTasks.API.Controllers;
 /// <summary>
 /// Admin endpoints for managing Active Directory / LDAP user access.
 /// Allows searching AD users, importing by user or department, and revoking access.
+///
+/// <para>Access Managers reach only the two unannotated read actions — the department
+/// list and the imported-user list — which populate the pickers on the accessibility
+/// pages. Every action that touches AD or changes access is Admin only, so a new
+/// action here needs its own attribute.</para>
 /// </summary>
 [ApiController]
 [Route("api/admin/ldap")]
-[Authorize(Roles = "Admin,Auditor")]
+[Authorize(Roles = RoleNames.AdminOrAccessManager)]
 public class LdapUsersController : ControllerBase
 {
     private readonly ILdapService _ldapService;
@@ -29,7 +35,7 @@ public class LdapUsersController : ControllerBase
     /// Searches LDAP directory for users matching the given term.
     /// </summary>
     [HttpGet("search")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> SearchUsers([FromQuery] string term)
     {
         if (string.IsNullOrWhiteSpace(term) || term.Length < 2)
@@ -70,7 +76,7 @@ public class LdapUsersController : ControllerBase
     /// Returns all LDAP users in a given department, with import status.
     /// </summary>
     [HttpGet("departments/{department}/users")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> GetDepartmentUsers(string department)
     {
         var ldapUsers = await _ldapService.GetUsersByDepartmentAsync(department);
@@ -98,64 +104,139 @@ public class LdapUsersController : ControllerBase
     /// Creates local user records with AuthSource=Ldap and assigns the User role.
     /// </summary>
     [HttpPost("import/users")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> ImportUsers([FromBody] ImportUsersRequest request)
     {
         if (request.Usernames == null || request.Usernames.Count == 0)
             return BadRequest("At least one username is required.");
 
-        var userRole = (await _unitOfWork.Roles.FindAsync(r => r.Name == "User")).FirstOrDefault();
+        var userRole = (await _unitOfWork.Roles.FindAsync(r => r.Name == RoleNames.User)).FirstOrDefault();
         if (userRole is null)
             return StatusCode(500, "User role not found in the system.");
 
-        var imported = 0;
+        var result = new ImportResultDto();
+        var claimedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var username in request.Usernames)
         {
-            // Skip if already imported
             if (await _unitOfWork.Users.ExistsAsync(
                     u => u.Username == username && u.AuthSource == AuthSource.Ldap))
+            {
+                result.AlreadyImported.Add(username);
                 continue;
+            }
 
-            // Look up in LDAP
             var ldapUsers = await _ldapService.SearchUsersAsync(username);
             var ldapUser = ldapUsers.FirstOrDefault(u =>
                 u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
             if (ldapUser is null)
+            {
+                result.NotFound.Add(username);
                 continue;
+            }
 
-            var user = new User
+            var skip = await DescribeBlockerAsync(ldapUser, claimedEmails);
+            if (skip is not null)
             {
-                Id = Guid.NewGuid(),
-                Username = ldapUser.Username,
-                Email = ldapUser.Email,
-                FirstName = ldapUser.FirstName,
-                LastName = ldapUser.LastName,
-                PasswordHash = "LDAP_AUTH",
-                IsActive = true,
-                AuthSource = AuthSource.Ldap,
-                Department = ldapUser.Department,
-                CreatedAt = DateTime.UtcNow
-            };
+                result.Skipped.Add(new ImportSkipDto { Username = username, Reason = skip });
+                continue;
+            }
 
-            await _unitOfWork.Users.AddAsync(user);
-            await _unitOfWork.UserRoles.AddAsync(new UserRole
-            {
-                UserId = user.Id,
-                RoleId = userRole.Id
-            });
-
-            imported++;
+            await StageImportAsync(ldapUser, userRole.Id, claimedEmails);
+            result.Imported++;
         }
 
         await _unitOfWork.SaveChangesAsync();
-        return Ok(new { Imported = imported });
+        result.Summary = Summarise(result);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Why this directory account cannot be imported, or null when it can. Checked up front
+    /// because the whole batch is one SaveChanges: letting the database reject a single row
+    /// would roll back every other user in the request and surface as one opaque error.
+    /// </summary>
+    private async Task<string?> DescribeBlockerAsync(LdapUserInfo ldapUser, HashSet<string> claimedEmails)
+    {
+        if (await _unitOfWork.Users.ExistsAsync(u => u.Username == ldapUser.Username))
+            return $"A local account named \"{ldapUser.Username}\" already exists.";
+
+        if (string.IsNullOrWhiteSpace(ldapUser.Email))
+            return null;
+
+        if (claimedEmails.Contains(ldapUser.Email))
+            return $"Another account in this same import already uses {ldapUser.Email}.";
+
+        if (await _unitOfWork.Users.ExistsAsync(u => u.Email == ldapUser.Email))
+            return $"The email {ldapUser.Email} is already used by another account.";
+
+        return null;
+    }
+
+    private async Task StageImportAsync(LdapUserInfo ldapUser, Guid roleId, HashSet<string> claimedEmails)
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = ldapUser.Username,
+            Email = string.IsNullOrWhiteSpace(ldapUser.Email) ? null : ldapUser.Email,
+            FirstName = ldapUser.FirstName,
+            LastName = ldapUser.LastName,
+            PasswordHash = "LDAP_AUTH",
+            IsActive = true,
+            AuthSource = AuthSource.Ldap,
+            Department = ldapUser.Department,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        if (user.Email is not null)
+            claimedEmails.Add(user.Email);
+
+        await _unitOfWork.Users.AddAsync(user);
+        await _unitOfWork.UserRoles.AddAsync(new UserRole { UserId = user.Id, RoleId = roleId });
+    }
+
+    /// <summary>True when some other account already holds this address. Null is never taken.</summary>
+    private async Task<bool> EmailTakenByOtherAsync(string? email, Guid userId)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
+        return await _unitOfWork.Users.ExistsAsync(u => u.Email == email && u.Id != userId);
+    }
+
+    /// <summary>Builds the one-line message the client shows after an import.</summary>
+    private static string Summarise(ImportResultDto result)
+    {
+        var parts = new List<string> { $"{result.Imported} imported" };
+
+        if (result.AlreadyImported.Count > 0)
+            parts.Add($"{result.AlreadyImported.Count} already present");
+        if (result.NotFound.Count > 0)
+            parts.Add($"{result.NotFound.Count} not found in the directory");
+        if (result.Skipped.Count > 0)
+            parts.Add($"{result.Skipped.Count} skipped");
+
+        var summary = string.Join(", ", parts) + ".";
+
+        // Reasons are the part worth reading; without them "3 skipped" is as unhelpful as the
+        // generic error it replaced. Cap the list so a large batch stays readable.
+        if (result.Skipped.Count > 0)
+        {
+            var reasons = result.Skipped.Take(5).Select(s => $"{s.Username}: {s.Reason}");
+            summary += " " + string.Join(" ", reasons);
+            if (result.Skipped.Count > 5)
+                summary += $" (+{result.Skipped.Count - 5} more)";
+        }
+
+        return summary;
     }
 
     /// <summary>
     /// Imports all LDAP users from a specific department.
     /// </summary>
     [HttpPost("import/department")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> ImportDepartment([FromBody] ImportDepartmentRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Department))
@@ -163,9 +244,12 @@ public class LdapUsersController : ControllerBase
 
         var ldapUsers = await _ldapService.GetUsersByDepartmentAsync(request.Department);
         if (ldapUsers.Count == 0)
-            return Ok(new { Imported = 0 });
+            return Ok(new ImportResultDto
+            {
+                Summary = $"No accounts found in the directory for department \"{request.Department}\"."
+            });
 
-        var userRole = (await _unitOfWork.Roles.FindAsync(r => r.Name == "User")).FirstOrDefault();
+        var userRole = (await _unitOfWork.Roles.FindAsync(r => r.Name == RoleNames.User)).FirstOrDefault();
         if (userRole is null)
             return StatusCode(500, "User role not found in the system.");
 
@@ -174,45 +258,38 @@ public class LdapUsersController : ControllerBase
             .Select(u => u.Username)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var imported = 0;
+        var result = new ImportResultDto();
+        var claimedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var ldapUser in ldapUsers)
         {
             if (existingUsernames.Contains(ldapUser.Username))
+            {
+                result.AlreadyImported.Add(ldapUser.Username);
                 continue;
+            }
 
-            var user = new User
+            var skip = await DescribeBlockerAsync(ldapUser, claimedEmails);
+            if (skip is not null)
             {
-                Id = Guid.NewGuid(),
-                Username = ldapUser.Username,
-                Email = ldapUser.Email,
-                FirstName = ldapUser.FirstName,
-                LastName = ldapUser.LastName,
-                PasswordHash = "LDAP_AUTH",
-                IsActive = true,
-                AuthSource = AuthSource.Ldap,
-                Department = ldapUser.Department,
-                CreatedAt = DateTime.UtcNow
-            };
+                result.Skipped.Add(new ImportSkipDto { Username = ldapUser.Username, Reason = skip });
+                continue;
+            }
 
-            await _unitOfWork.Users.AddAsync(user);
-            await _unitOfWork.UserRoles.AddAsync(new UserRole
-            {
-                UserId = user.Id,
-                RoleId = userRole.Id
-            });
-
-            imported++;
+            await StageImportAsync(ldapUser, userRole.Id, claimedEmails);
+            result.Imported++;
         }
 
         await _unitOfWork.SaveChangesAsync();
-        return Ok(new { Imported = imported });
+        result.Summary = Summarise(result);
+        return Ok(result);
     }
 
     /// <summary>
     /// Revokes access for an LDAP user by deactivating their local account.
     /// </summary>
     [HttpPost("revoke/{username}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> RevokeAccess(string username)
     {
         var users = await _unitOfWork.Users.FindAsync(
@@ -234,7 +311,7 @@ public class LdapUsersController : ControllerBase
     /// Restores access for a previously revoked LDAP user.
     /// </summary>
     [HttpPost("restore/{username}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> RestoreAccess(string username)
     {
         var users = await _unitOfWork.Users.FindAsync(
@@ -256,7 +333,7 @@ public class LdapUsersController : ControllerBase
     /// Syncs department (and profile fields) for all imported LDAP users from the directory.
     /// </summary>
     [HttpPost("sync")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> SyncImportedUsers()
     {
         var importedUsers = await _unitOfWork.Users.FindAsync(u => u.AuthSource == AuthSource.Ldap);
@@ -275,7 +352,16 @@ public class LdapUsersController : ControllerBase
 
             var changed = false;
             if (user.Department != ldapUser.Department) { user.Department = ldapUser.Department; changed = true; }
-            if (user.Email != ldapUser.Email) { user.Email = ldapUser.Email; changed = true; }
+
+            // Email is unique-indexed, and one collision here would roll back the whole sync
+            // run — so adopt the directory's address only when no other account holds it.
+            if (user.Email != ldapUser.Email
+                && !await EmailTakenByOtherAsync(ldapUser.Email, user.Id))
+            {
+                user.Email = ldapUser.Email;
+                changed = true;
+            }
+
             if (user.FirstName != ldapUser.FirstName) { user.FirstName = ldapUser.FirstName; changed = true; }
             if (user.LastName != ldapUser.LastName) { user.LastName = ldapUser.LastName; changed = true; }
 
@@ -322,4 +408,31 @@ public class ImportUsersRequest
 public class ImportDepartmentRequest
 {
     public string Department { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Outcome of an import. Reports what did not get imported and why, rather than only a count:
+/// an import that quietly returns 0 leaves the operator with nothing to act on.
+/// </summary>
+public class ImportResultDto
+{
+    public int Imported { get; set; }
+
+    /// <summary>Requested usernames the directory had no match for.</summary>
+    public List<string> NotFound { get; set; } = new();
+
+    /// <summary>Already present locally; nothing to do.</summary>
+    public List<string> AlreadyImported { get; set; } = new();
+
+    /// <summary>Rejected, with the reason — a clashing email address, most often.</summary>
+    public List<ImportSkipDto> Skipped { get; set; } = new();
+
+    /// <summary>One line summarising the whole run, ready to show in a toast.</summary>
+    public string Summary { get; set; } = string.Empty;
+}
+
+public class ImportSkipDto
+{
+    public string Username { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
 }

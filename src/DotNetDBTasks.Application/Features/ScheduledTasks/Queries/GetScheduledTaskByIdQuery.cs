@@ -1,4 +1,5 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Domain.Constants;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
@@ -45,22 +46,29 @@ public class GetScheduledTaskByIdQueryHandler : IRequestHandler<GetScheduledTask
 
 /// <summary>
 /// Shared read-permission rule: Admins and Auditors see every scheduled task;
-/// everyone else needs an explicit viewer grant. Downloading a run's export files
-/// additionally requires the viewer's CanDownloadFiles permission.
+/// everyone else needs an explicit viewer grant.
+///
+/// <para>
+/// Downloading a run's export files is a narrower right than viewing. An Auditor reads
+/// the task's configuration and run history, but the exports themselves are query results —
+/// the data the Auditor role is deliberately not given. So downloading needs Admin, or an
+/// explicit viewer grant carrying <c>CanDownloadFiles</c>; an Auditor named as a viewer with
+/// that grant may download, like any other user.
+/// </para>
 /// </summary>
 public static class ScheduledTaskAccess
 {
     public static void EnsureCanView(ScheduledTask task, ICurrentUserService currentUser)
     {
-        var seesAll = currentUser.Roles.Contains("Admin") || currentUser.Roles.Contains("Auditor");
+        var seesAll = currentUser.Roles.Contains(RoleNames.Admin)
+            || currentUser.Roles.Contains(RoleNames.Auditor);
         if (!seesAll && task.Viewers.All(v => v.UserId != currentUser.UserId))
             throw new ForbiddenAccessException("You do not have access to this scheduled task.");
     }
 
     /// <summary>Requires the task's Viewers navigation to be loaded.</summary>
     public static bool CanDownloadFiles(ScheduledTask task, ICurrentUserService currentUser) =>
-        currentUser.Roles.Contains("Admin")
-        || currentUser.Roles.Contains("Auditor")
+        currentUser.Roles.Contains(RoleNames.Admin)
         || task.Viewers.Any(v => v.UserId == currentUser.UserId && v.CanDownloadFiles);
 
     public static void EnsureCanDownloadFiles(ScheduledTask task, ICurrentUserService currentUser)

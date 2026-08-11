@@ -1,5 +1,6 @@
 using AutoMapper;
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
 
@@ -32,9 +33,8 @@ public class GetQueriesForUserQueryHandler
         GetQueriesForUserQuery request,
         CancellationToken cancellationToken)
     {
-        var userRoles = await _unitOfWork.UserRoles.FindAsync(
-            ur => ur.UserId == _currentUser.UserId, cancellationToken);
-        var roleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
+        var roleIds = await QueryAccessRoles.GrantingRoleIdsAsync(
+            _unitOfWork, _currentUser.UserId, cancellationToken);
         var department = _currentUser.Department;
 
         // Direct (query-level) access — role, department, or per-user assignment on the query itself.

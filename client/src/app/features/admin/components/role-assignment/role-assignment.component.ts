@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { ToastService } from '@core/services/toast.service';
+import { grantsQueryAccess, roleLabel } from '@core/models/roles';
 import { forkJoin, throwError } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
@@ -40,7 +41,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
                   <mat-label>Assigned Roles</mat-label>
                   <mat-select formControlName="roleIds" multiple>
                     <mat-option *ngFor="let role of roles" [value]="role.id">
-                      {{ role.name }} <span *ngIf="role.description">- {{ role.description }}</span>
+                      {{ roleLabel(role.name) }} <span *ngIf="role.description">- {{ role.description }}</span>
                     </mat-option>
                   </mat-select>
                 </mat-form-field>
@@ -111,6 +112,9 @@ export class RoleAssignmentComponent implements OnInit {
   usersForm!: FormGroup;
   query?: DynamicQuery;
   roles: Role[] = [];
+
+  /** "AccessManager" -> "Access Manager" for display. */
+  roleLabel = roleLabel;
   departments: string[] = [];
   users: ImportedLdapUser[] = [];
   saving = false;
@@ -157,7 +161,10 @@ export class RoleAssignmentComponent implements OnInit {
     ).subscribe({
       next: (result) => {
         this.query = result.query;
-        this.roles = result.roles;
+        // Auditor and AccessManager never run queries, so the API ignores them when
+        // resolving who may open a query. Offering them here would only let someone save
+        // an assignment that silently does nothing.
+        this.roles = result.roles.filter(r => grantsQueryAccess(r.name));
         this.departments = result.departments as string[];
         this.users = result.users as ImportedLdapUser[];
         this.rolesForm.patchValue({

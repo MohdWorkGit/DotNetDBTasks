@@ -7,7 +7,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
-import { LdapUser, ImportedLdapUser } from '@core/models/dynamic-query.model';
+import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynamic-query.model';
 
 @Component({
   standalone: false,
@@ -527,6 +527,23 @@ export class AdUsersComponent implements OnInit {
     return Object.values(this.selectedUsers).some(v => v);
   }
 
+  /**
+   * Shows the outcome of an import. Anything less than a clean run goes out as info rather
+   * than success — "0 imported, 3 skipped" is not a success, and styling it as one is how
+   * a failed import used to pass unnoticed.
+   */
+  private reportImport(result: LdapImportResult, department?: string): void {
+    const scope = department ? ` from ${department}` : '';
+    const message = `${result.summary}`.trim();
+    const clean = result.imported > 0 && result.skipped.length === 0 && result.notFound.length === 0;
+
+    if (clean) {
+      this.toast.success(`${result.imported} user(s) imported${scope}.`);
+    } else {
+      this.toast.info(`Import${scope}: ${message}`);
+    }
+  }
+
   importSelectedUsers(): void {
     const usernames = Object.entries(this.selectedUsers)
       .filter(([_, selected]) => selected)
@@ -537,7 +554,9 @@ export class AdUsersComponent implements OnInit {
     this.importing = true;
     this.queryService.importLdapUsers(usernames).subscribe({
       next: (result) => {
-        this.toast.success(`Imported ${result.imported} user(s)`);
+        // The summary carries the per-user reasons; a bare count hid why an import
+        // that reported success actually brought in nothing.
+        this.reportImport(result);
         this.importing = false;
         this.selectedUsers = {};
         this.searchUsers();
@@ -593,7 +612,7 @@ export class AdUsersComponent implements OnInit {
     this.importing = true;
     this.queryService.importLdapDepartment(dept).subscribe({
       next: (result) => {
-        this.toast.success(`Imported ${result.imported} user(s) from ${dept}`);
+        this.reportImport(result, dept);
         this.importing = false;
         this.loadImportedUsers();
         if (this.selectedDepartment === dept) {

@@ -1,5 +1,6 @@
 using AutoMapper;
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
@@ -41,9 +42,8 @@ public class GetQueryForUserByIdQueryHandler
         if (query is null || !query.IsEnabled)
             throw new NotFoundException(nameof(Domain.Entities.DynamicQuery), request.Id);
 
-        var userRoles = await _unitOfWork.UserRoles.FindAsync(
-            ur => ur.UserId == _currentUser.UserId, cancellationToken);
-        var roleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
+        var roleIds = await QueryAccessRoles.GrantingRoleIdsAsync(
+            _unitOfWork, _currentUser.UserId, cancellationToken);
         var department = _currentUser.Department;
 
         var hasRoleAccess = query.DynamicQueryRoles.Any(qr => roleIds.Contains(qr.RoleId));

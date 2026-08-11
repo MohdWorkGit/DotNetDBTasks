@@ -11,7 +11,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Username).HasMaxLength(100).IsRequired();
         builder.HasIndex(e => e.Username).IsUnique();
-        builder.Property(e => e.Email).HasMaxLength(256).IsRequired();
+        // Optional, but still unique when supplied. Oracle allows any number of NULLs in a
+        // unique index, so users without an address do not collide with each other.
+        builder.Property(e => e.Email).HasMaxLength(256);
         builder.HasIndex(e => e.Email).IsUnique();
         builder.Property(e => e.PasswordHash).HasMaxLength(512).IsRequired();
         builder.Property(e => e.FirstName).HasMaxLength(100).IsRequired();

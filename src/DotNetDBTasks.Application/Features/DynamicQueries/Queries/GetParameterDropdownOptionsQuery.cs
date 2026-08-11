@@ -1,7 +1,9 @@
 using System.Text.Json;
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
+using DotNetDBTasks.Domain.Constants;
 using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
@@ -57,9 +59,8 @@ public class GetParameterDropdownOptionsQueryHandler
         // Verify user access (same 4-tier check as execution)
         var hasAccess = false;
 
-        var userRoles = await _unitOfWork.UserRoles.FindAsync(
-            ur => ur.UserId == _currentUser.UserId, cancellationToken);
-        var userRoleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
+        var userRoleIds = await QueryAccessRoles.GrantingRoleIdsAsync(
+            _unitOfWork, _currentUser.UserId, cancellationToken);
 
         var queryRoles = await _unitOfWork.DynamicQueryRoles.FindAsync(
             qr => qr.DynamicQueryId == request.QueryId, cancellationToken);
@@ -103,7 +104,7 @@ public class GetParameterDropdownOptionsQueryHandler
             }
         }
 
-        if (!hasAccess && !_currentUser.Roles.Contains("Admin"))
+        if (!hasAccess && !_currentUser.Roles.Contains(RoleNames.Admin))
             throw new ForbiddenAccessException("You do not have access to this query.");
 
         // Load the specific parameter

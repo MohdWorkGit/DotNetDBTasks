@@ -112,11 +112,7 @@ export class LoginComponent {
       next: () => {
         this.loading = false;
         this.cdr.detectChanges();
-        if (this.authService.isAdmin()) {
-          this.router.navigate(['/admin/queries']);
-        } else {
-          this.router.navigate(['/user/queries']);
-        }
+        this.router.navigate([this.authService.landingRoute()]);
       },
       error: (err) => {
         this.loading = false;

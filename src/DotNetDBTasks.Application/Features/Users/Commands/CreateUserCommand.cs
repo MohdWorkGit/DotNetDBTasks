@@ -2,6 +2,7 @@ using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Application.Features.Users.Queries;
 using DotNetDBTasks.Domain.Entities;
+using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Interfaces;
 using FluentValidation;
@@ -12,7 +13,7 @@ namespace DotNetDBTasks.Application.Features.Users.Commands;
 public class CreateUserCommand : IRequest<UserDto>
 {
     public string Username { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
     public string Password { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
@@ -25,7 +26,10 @@ public class CreateUserValidator : AbstractValidator<CreateUserCommand>
     public CreateUserValidator()
     {
         RuleFor(x => x.Username).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(200);
+        // Optional. Only checked for shape when the caller actually supplied one.
+        RuleFor(x => x.Email)
+            .EmailAddress().MaximumLength(200)
+            .When(x => !string.IsNullOrWhiteSpace(x.Email));
         RuleFor(x => x.Password).NotEmpty().MinimumLength(6).MaximumLength(100);
         RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
@@ -58,18 +62,26 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserD
         var exists = await _unitOfWork.Users.ExistsAsync(
             u => u.Username == request.Username, cancellationToken);
         if (exists)
-            throw new InvalidOperationException($"Username '{request.Username}' is already taken.");
+            throw new DomainException($"Username '{request.Username}' is already taken.");
 
-        var emailExists = await _unitOfWork.Users.ExistsAsync(
-            u => u.Email == request.Email, cancellationToken);
-        if (emailExists)
-            throw new InvalidOperationException($"Email '{request.Email}' is already in use.");
+        // "" would violate the unique index on the second address-less user (Oracle stores
+        // it as NULL on the way in but the in-memory comparison above would not catch it),
+        // so normalize blank to null and skip the uniqueness check entirely.
+        var email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
+
+        if (email is not null)
+        {
+            var emailExists = await _unitOfWork.Users.ExistsAsync(
+                u => u.Email == email, cancellationToken);
+            if (emailExists)
+                throw new DomainException($"Email '{email}' is already in use.");
+        }
 
         var user = new User
         {
             Id = Guid.NewGuid(),
             Username = request.Username,
-            Email = request.Email,
+            Email = email,
             PasswordHash = _passwordHasher.HashPassword(request.Password),
             FirstName = request.FirstName,
             LastName = request.LastName,
@@ -88,7 +100,7 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserD
         foreach (var roleId in request.RoleIds)
         {
             if (!roleMap.ContainsKey(roleId))
-                throw new InvalidOperationException($"Role with ID '{roleId}' does not exist.");
+                throw new DomainException($"Role with ID '{roleId}' does not exist.");
 
             await _unitOfWork.UserRoles.AddAsync(new UserRole
             {

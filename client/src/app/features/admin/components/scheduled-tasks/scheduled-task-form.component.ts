@@ -315,7 +315,7 @@ import {
                   {{ u.username }}<span *ngIf="u.firstName || u.lastName"> — {{ u.firstName }} {{ u.lastName }}</span>
                 </mat-option>
               </mat-select>
-              <mat-hint>Pick from the viewers above. Admins and Auditors can always download.</mat-hint>
+              <mat-hint>Pick from the viewers above. Admins can always download; Auditors cannot.</mat-hint>
             </mat-form-field>
           </mat-card-content>
         </mat-card>

@@ -39,10 +39,12 @@ public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleComman
         if (user is null)
             throw new NotFoundException("User", request.UserId);
 
-        // Two separate escalation paths to close: demoting/altering an existing administrator,
-        // and promoting any account (the caller's own included) to Admin.
+        // Three separate escalation paths to close: demoting/altering an existing administrator,
+        // promoting any account to Admin, and a non-Admin rewriting their own role set — which
+        // would let an Access Manager grant themselves query access they are defined not to have.
         await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
         await _adminGuard.EnsureCanAssignRolesAsync(request.RoleIds, cancellationToken);
+        _adminGuard.EnsureNotSelfRoleChange(request.UserId);
 
         // Validate all role IDs exist
         var allRoles = await _unitOfWork.Roles.GetAllAsync(cancellationToken);
@@ -50,7 +52,7 @@ public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleComman
         foreach (var roleId in request.RoleIds)
         {
             if (!validRoleIds.Contains(roleId))
-                throw new InvalidOperationException($"Role with ID '{roleId}' does not exist.");
+                throw new DomainException($"Role with ID '{roleId}' does not exist.");
         }
 
         // Guard: never allow the last active administrator to lose the Admin role,

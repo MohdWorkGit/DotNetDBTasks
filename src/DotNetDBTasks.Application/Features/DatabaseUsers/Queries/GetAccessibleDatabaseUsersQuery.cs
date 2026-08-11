@@ -1,4 +1,6 @@
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Security;
+using DotNetDBTasks.Domain.Constants;
 using DotNetDBTasks.Domain.Interfaces;
 using MediatR;
 
@@ -28,7 +30,7 @@ public class GetAccessibleDatabaseUsersQueryHandler
         GetAccessibleDatabaseUsersQuery request,
         CancellationToken cancellationToken)
     {
-        if (_currentUser.Roles.Contains("Admin"))
+        if (_currentUser.Roles.Contains(RoleNames.Admin))
         {
             var allActive = await _unitOfWork.DatabaseUsers.FindAsync(
                 du => du.IsActive, cancellationToken);
@@ -39,9 +41,10 @@ public class GetAccessibleDatabaseUsersQueryHandler
             }).ToList();
         }
 
-        var userRoles = await _unitOfWork.UserRoles.FindAsync(
-            ur => ur.UserId == _currentUser.UserId, cancellationToken);
-        var userRoleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
+        // Same granting-role set as query execution: a database user reached only through
+        // Auditor or AccessManager is not reachable at all, since neither runs queries.
+        var userRoleIds = await QueryAccessRoles.GrantingRoleIdsAsync(
+            _unitOfWork, _currentUser.UserId, cancellationToken);
 
         if (userRoleIds.Count == 0)
             return new List<DatabaseUserSummaryDto>();

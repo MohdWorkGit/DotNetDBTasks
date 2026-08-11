@@ -1,6 +1,7 @@
 using DotNetDBTasks.Application.Features.Users.Commands;
 using DotNetDBTasks.Application.Features.Users.Queries;
 using MediatR;
+using DotNetDBTasks.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,11 +9,15 @@ namespace DotNetDBTasks.API.Controllers;
 
 /// <summary>
 /// Admin endpoints for managing system users.
-/// Auditors have full user management access.
+/// Admins and Access Managers manage users; Auditors do not.
+///
+/// <para>Because a non-Admin reaches every handler here, administrator accounts are fenced
+/// off by <c>AdminAccountGuard</c> in the command handlers — see that class for why the
+/// controller attribute alone is not enough.</para>
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = "Admin,Auditor")]
+[Authorize(Roles = RoleNames.AdminOrAccessManager)]
 public class UsersController : ControllerBase
 {
     private readonly IMediator _mediator;

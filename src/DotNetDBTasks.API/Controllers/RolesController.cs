@@ -1,15 +1,17 @@
 using DotNetDBTasks.Domain.Interfaces;
+using DotNetDBTasks.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotNetDBTasks.API.Controllers;
 
 /// <summary>
-/// Admin endpoint for listing available roles.
+/// Lists the available roles. Access Managers need it to populate the role picker
+/// on the query and query-group accessibility pages.
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = "Admin,Auditor")]
+[Authorize(Roles = RoleNames.AdminOrAccessManager)]
 public class RolesController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
