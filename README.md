@@ -96,6 +96,36 @@ Seeded accounts (development only — change or remove before deploying):
 `admin` / `Admin@123`, `user` / `User@123`, `auditor` / `Auditor@123`,
 `accessmanager` / `Access@123`.
 
+## System Audit Trail
+
+Every administrative change — a user created, a permission granted, a query edited — is
+recorded to `SystemAuditLogs` and shown on **System Audit** (`/admin/system-audit`), visible to
+**Admin and Auditor**. Distinct from the execution logs: those answer *what did people run*,
+this answers *what did people change*.
+
+Entries are written by `AuditLoggingBehavior`, a MediatR pipeline behavior, so **every command
+is covered without each handler remembering to log**. That completeness is the point — a trail
+with silent gaps is not one. Consequences worth knowing:
+
+- **A new command is audited automatically.** Name it in `AuditActions.Map` to give it a
+  readable label; skip that and it still records, under the `other` category with its raw type
+  name. Exclusions are a short explicit list (`AuditActions.IsExcluded`): auth commands, and
+  query execution because it already has its own richer log.
+- **Refusals are recorded too.** "Access Manager tried to reset the admin's password and was
+  refused" is often the entry that matters, so the behavior logs the exception path as well as
+  the happy one.
+- **Secrets never reach the table.** Any property whose name contains `password`, `secret`,
+  `token`, `connectionstring`, `encrypted`, `apikey` or `credential` is replaced with `***`
+  before serialization; file bytes and other bulk fields become `[omitted]`.
+- **Read-only.** The API exposes no write verb — `POST`/`PUT`/`DELETE`/`PATCH` all return 405.
+  An audit trail an administrator can rewrite is not one.
+- **Actions are stored as codes**, not sentences (`users.create`), and translated in the UI, so
+  the trail reads in Arabic too. Add a code to `admin.audit.actions` in **both** catalogs.
+
+Two current limitations: there is **no retention or pruning** — the table only grows, so plan a
+housekeeping job before it matters. And a recorded `errorMessage` is frozen in whatever language
+the actor was using at the time, because it stores the produced message rather than a code.
+
 ## Localization (English / Arabic)
 
 The UI ships in English and Arabic, switchable at runtime from the toolbar (and from the login

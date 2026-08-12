@@ -37,11 +37,35 @@ export class LanguageService {
     return this.locale$.value === 'ar' ? 'en' : 'ar';
   }
 
+  /**
+   * Switches language and reloads the page.
+   *
+   * <p>The reload is deliberate. Two things in Angular Material latch their state when they
+   * are created and do not react to a later change:</p>
+   * <ul>
+   *   <li><b>Direction.</b> @angular/cdk/bidi reads <c>dir</c> when an overlay is created, so
+   *       any menu, dialog or snackbar already open stays mirrored the old way.</li>
+   *   <li><b>MatPaginatorIntl labels.</b> A paginator already on screen keeps the strings it
+   *       read at construction; pushing <c>changes</c> does not reliably re-read them.</li>
+   * </ul>
+   *
+   * <p>Both are fixable individually with progressively more special-casing, and every new
+   * Material widget is a fresh chance to miss one. Reloading is one line and correct for all
+   * of them. The cost is real but small: switching language is rare, and the preference is
+   * written before the reload so it survives. Everything else Transloco still handles live —
+   * this is one build serving both languages, not a per-locale bundle.</p>
+   */
   use(locale: AppLocale): void {
     if (locale === this.locale$.value) return;
+
+    localStorage.setItem(this.STORAGE_KEY, locale);
+
+    // Applied before reloading so the correct lang/dir is on <html> for the very first paint
+    // of the new page, rather than flashing the old direction.
     this.locale$.next(locale);
     this.apply(locale);
-    localStorage.setItem(this.STORAGE_KEY, locale);
+
+    window.location.reload();
   }
 
   /**

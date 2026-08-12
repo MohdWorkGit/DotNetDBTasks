@@ -2,6 +2,7 @@ import { inject, Injectable, OnDestroy } from '@angular/core';
 import { MatPaginatorIntl } from '@angular/material/paginator';
 import { TranslocoService } from '@jsverse/transloco';
 import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 /**
  * Translates the paginator's own labels.
@@ -22,10 +23,17 @@ export class LocalizedPaginatorIntl extends MatPaginatorIntl implements OnDestro
 
   constructor() {
     super();
-    this.sub = this.transloco.langChanges$.subscribe(() => {
-      this.applyLabels();
-      this.changes.next();
-    });
+
+    // events$/langChanged, not langChanges$. The latter fires the moment setActiveLang is
+    // called — before the new catalog has been fetched — so reading labels there yields the
+    // *previous* language and the paginator stays stuck in English after a switch.
+    this.sub = this.transloco.events$
+      .pipe(filter(e => e.type === 'langChanged'))
+      .subscribe(() => {
+        this.applyLabels();
+        this.changes.next();
+      });
+
     this.applyLabels();
   }
 

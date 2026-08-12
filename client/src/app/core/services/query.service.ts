@@ -38,7 +38,10 @@ import {
   UpdateDatabaseUserRequest,
   UpdateDynamicQueryRequest,
   UpdateQueryGroupRequest,
-  LdapImportResult
+  LdapImportResult,
+  SystemAuditLog,
+  SystemAuditLogListRequest,
+  AuditActionCatalog
 } from '../models/dynamic-query.model';
 
 /** Download format accepted by the export-file endpoint. */
@@ -64,6 +67,7 @@ export class QueryService {
   private ldapUrl = `${environment.apiUrl}/admin/ldap`;
   private dbUsersUrl = `${environment.apiUrl}/admin/databaseusers`;
   private groupsUrl = `${environment.apiUrl}/admin/querygroups`;
+  private auditUrl = `${environment.apiUrl}/admin/systemauditlogs`;
 
   constructor(private http: HttpClient) {}
 
@@ -126,6 +130,22 @@ export class QueryService {
     if (request.pageNumber !== undefined) params['pageNumber'] = request.pageNumber;
     if (request.pageSize !== undefined) params['pageSize'] = request.pageSize;
     return params;
+  }
+
+  // ---- System audit trail (Admin, Auditor) ----
+  getSystemAuditLogs(request: SystemAuditLogListRequest = {}): Observable<PagedResult<SystemAuditLog>> {
+    let params = new HttpParams();
+    // Guard on undefined, not falsiness: isSuccess=false and pageNumber=0 are meaningful.
+    Object.entries(request).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params = params.set(key, String(value));
+      }
+    });
+    return this.http.get<PagedResult<SystemAuditLog>>(this.auditUrl, { params });
+  }
+
+  getAuditActionCatalog(): Observable<AuditActionCatalog> {
+    return this.http.get<AuditActionCatalog>(`${this.auditUrl}/actions`);
   }
 
   getRoles(): Observable<Role[]> {

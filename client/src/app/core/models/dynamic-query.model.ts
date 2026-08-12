@@ -441,3 +441,38 @@ export interface LdapImportResult {
   /** One-line message assembled server-side, ready to show as-is. */
   summary: string;
 }
+
+/**
+ * One administrative action from the system audit trail.
+ *
+ * `action` is a stable machine code (`users.create`), not a sentence — the UI translates it,
+ * which is what lets the log read in Arabic as well as English.
+ */
+export interface SystemAuditLog {
+  id: string;
+  occurredAt: string;
+  username: string;
+  action: string;
+  category: string;
+  entityName?: string | null;
+  detailsJson?: string | null;
+  isSuccess: boolean;
+  errorMessage?: string | null;
+  ipAddress?: string | null;
+}
+
+export interface SystemAuditLogListRequest {
+  category?: string;
+  action?: string;
+  userId?: string;
+  isSuccess?: boolean;
+  search?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+/** Filter options advertised by the server, so the dropdowns cannot drift from what it emits. */
+export interface AuditActionCatalog {
+  categories: string[];
+  actions: string[];
+}

@@ -38,6 +38,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IAppLocalizer, AppLocalizer>();
+builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 
 // Background worker that executes submitted query jobs off the request thread
 builder.Services.AddHostedService<QueryJobWorker>();

@@ -25,13 +25,32 @@ public class LdapUsersController : ControllerBase
     private readonly ILdapService _ldapService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAppLocalizer _messages;
+    private readonly IAuditLogger _audit;
 
-    public LdapUsersController(ILdapService ldapService, IUnitOfWork unitOfWork, IAppLocalizer messages)
+    public LdapUsersController(
+        ILdapService ldapService,
+        IUnitOfWork unitOfWork,
+        IAppLocalizer messages,
+        IAuditLogger audit)
     {
         _ldapService = ldapService;
         _unitOfWork = unitOfWork;
         _messages = messages;
+        _audit = audit;
     }
+
+    /// <summary>
+    /// These endpoints act on the controller rather than through MediatR, so the audit
+    /// pipeline behavior never sees them — they have to record themselves.
+    /// </summary>
+    private Task AuditAsync(string action, string? entityName, object? details, CancellationToken ct = default) =>
+        _audit.RecordAsync(new AuditEntry
+        {
+            Action = action,
+            Category = AuditActions.CategoryDirectory,
+            EntityName = entityName,
+            DetailsJson = details is null ? null : System.Text.Json.JsonSerializer.Serialize(details)
+        }, ct);
 
     /// <summary>
     /// Searches LDAP directory for users matching the given term.
@@ -150,6 +169,14 @@ public class LdapUsersController : ControllerBase
 
         await _unitOfWork.SaveChangesAsync();
         result.Summary = Summarise(result);
+        await AuditAsync(AuditActions.DirectoryImportUsers, null, new
+        {
+            requested = request.Usernames.Count,
+            result.Imported,
+            alreadyPresent = result.AlreadyImported.Count,
+            notFound = result.NotFound.Count,
+            skipped = result.Skipped.Count
+        });
         return Ok(result);
     }
 
@@ -284,6 +311,13 @@ public class LdapUsersController : ControllerBase
 
         await _unitOfWork.SaveChangesAsync();
         result.Summary = Summarise(result);
+        await AuditAsync(AuditActions.DirectoryImportDepartment, request.Department, new
+        {
+            request.Department,
+            result.Imported,
+            alreadyPresent = result.AlreadyImported.Count,
+            skipped = result.Skipped.Count
+        });
         return Ok(result);
     }
 
@@ -306,6 +340,7 @@ public class LdapUsersController : ControllerBase
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
+        await AuditAsync(AuditActions.DirectoryRevoke, username, new { username });
         return Ok();
     }
 
@@ -328,6 +363,7 @@ public class LdapUsersController : ControllerBase
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
+        await AuditAsync(AuditActions.DirectoryRestore, username, new { username });
         return Ok();
     }
 
@@ -376,6 +412,7 @@ public class LdapUsersController : ControllerBase
         }
 
         await _unitOfWork.SaveChangesAsync();
+        await AuditAsync(AuditActions.DirectorySync, null, new { synced, notFound });
         return Ok(new { Synced = synced, NotFound = notFound });
     }
 

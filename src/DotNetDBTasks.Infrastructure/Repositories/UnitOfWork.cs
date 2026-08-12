@@ -33,6 +33,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<ScheduledTaskRun> ScheduledTaskRuns { get; }
     public IRepository<ScheduledTaskViewer> ScheduledTaskViewers { get; }
     public IRepository<SystemTemplate> SystemTemplates { get; }
+    public IRepository<SystemAuditLog> SystemAuditLogs { get; }
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -58,6 +59,7 @@ public class UnitOfWork : IUnitOfWork
         ScheduledTaskRuns = new Repository<ScheduledTaskRun>(context);
         ScheduledTaskViewers = new Repository<ScheduledTaskViewer>(context);
         SystemTemplates = new Repository<SystemTemplate>(context);
+        SystemAuditLogs = new Repository<SystemAuditLog>(context);
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

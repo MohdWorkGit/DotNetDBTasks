@@ -35,6 +35,7 @@ import { QueryGroupAccessComponent } from './components/query-groups/query-group
 import { ScheduledTasksListComponent } from './components/scheduled-tasks/scheduled-tasks-list.component';
 import { ScheduledTaskFormComponent } from './components/scheduled-tasks/scheduled-task-form.component';
 import { ScheduledTaskRunsComponent } from './components/scheduled-tasks/scheduled-task-runs.component';
+import { SystemAuditComponent } from './components/system-audit/system-audit.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { authGuard } from '@core/guards/auth.guard';
@@ -54,7 +55,8 @@ import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
     QueryGroupAccessComponent,
     ScheduledTasksListComponent,
     ScheduledTaskFormComponent,
-    ScheduledTaskRunsComponent
+    ScheduledTaskRunsComponent,
+    SystemAuditComponent
   ],
   imports: [
     CommonModule,
@@ -111,6 +113,8 @@ import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
       { path: 'scheduled-tasks/:id/runs', component: ScheduledTaskRunsComponent,
         canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
       { path: 'logs', component: ExecutionLogsComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
+      { path: 'system-audit', component: SystemAuditComponent,
         canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
       { path: 'ad-users', component: AdUsersComponent,
         canActivate: [authGuard], data: { roles: [ADMIN] } },
