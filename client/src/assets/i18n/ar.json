@@ -57,8 +57,8 @@
     "systemAudit": "سجل عمليات النظام",
     "queriesGroup": "الاستعلامات",
     "peopleGroup": "المستخدمون والصلاحيات",
-    "oversightGroup": "الرقابة",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "auditGroup": "التدقيق"
   },
   "auth": {
     "signInSubtitle": "سجّل الدخول إلى حسابك",

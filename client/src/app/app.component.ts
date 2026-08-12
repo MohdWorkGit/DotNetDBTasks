@@ -45,21 +45,27 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
           <mat-icon>schedule</mat-icon> <span class="nav-label">{{ 'nav.schedules' | transloco }}</span>
         </button>
 
-        <!-- Queries: authoring and group/query accessibility. -->
-        <button mat-button *ngIf="authService.isAdminOrAccessManager()"
+        <!-- Queries: authoring, group/query accessibility, and the scheduled runs of those
+             queries. The trigger also shows for an Auditor, who reaches nothing here except
+             the read-only scheduled tasks — without that they would lose the entry entirely
+             when it moved out of the audit menu. -->
+        <button mat-button *ngIf="authService.isAdminOrAccessManager() || authService.isAdminOrAuditor()"
                 [matMenuTriggerFor]="queriesMenu"
-                [class.nav-active]="inSection(['/admin/queries', '/admin/query-groups'])"
+                [class.nav-active]="inSection(['/admin/queries', '/admin/query-groups', '/admin/scheduled-tasks'])"
                 [matTooltip]="'nav.queriesGroup' | transloco">
           <mat-icon>dashboard</mat-icon>
           <span class="nav-label">{{ 'nav.queriesGroup' | transloco }}</span>
           <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
         </button>
         <mat-menu #queriesMenu="matMenu">
-          <button mat-menu-item routerLink="/admin/queries">
+          <button mat-menu-item *ngIf="authService.isAdminOrAccessManager()" routerLink="/admin/queries">
             <mat-icon>dashboard</mat-icon> {{ 'nav.manageQueries' | transloco }}
           </button>
-          <button mat-menu-item routerLink="/admin/query-groups">
+          <button mat-menu-item *ngIf="authService.isAdminOrAccessManager()" routerLink="/admin/query-groups">
             <mat-icon>folder</mat-icon> {{ 'nav.queryGroups' | transloco }}
+          </button>
+          <button mat-menu-item *ngIf="authService.isAdminOrAuditor()" routerLink="/admin/scheduled-tasks">
+            <mat-icon>schedule</mat-icon> {{ 'nav.schedules' | transloco }}
           </button>
         </mat-menu>
 
@@ -84,19 +90,16 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
           </button>
         </mat-menu>
 
-        <!-- Oversight: the Auditor's whole surface lives here. -->
+        <!-- Audit: the two read-only trails. -->
         <button mat-button *ngIf="authService.isAdminOrAuditor()"
-                [matMenuTriggerFor]="oversightMenu"
-                [class.nav-active]="inSection(['/admin/scheduled-tasks', '/admin/logs', '/admin/system-audit'])"
-                [matTooltip]="'nav.oversightGroup' | transloco">
+                [matMenuTriggerFor]="auditMenu"
+                [class.nav-active]="inSection(['/admin/logs', '/admin/system-audit'])"
+                [matTooltip]="'nav.auditGroup' | transloco">
           <mat-icon>fact_check</mat-icon>
-          <span class="nav-label">{{ 'nav.oversightGroup' | transloco }}</span>
+          <span class="nav-label">{{ 'nav.auditGroup' | transloco }}</span>
           <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
         </button>
-        <mat-menu #oversightMenu="matMenu">
-          <button mat-menu-item routerLink="/admin/scheduled-tasks">
-            <mat-icon>schedule</mat-icon> {{ 'nav.schedules' | transloco }}
-          </button>
+        <mat-menu #auditMenu="matMenu">
           <button mat-menu-item routerLink="/admin/logs">
             <mat-icon>receipt_long</mat-icon> {{ 'nav.logs' | transloco }}
           </button>
