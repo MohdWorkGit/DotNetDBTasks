@@ -3,6 +3,9 @@
 @import '@fontsource/inter/400.css';
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/600.css';
+@import '@fontsource/cairo/400.css';
+@import '@fontsource/cairo/500.css';
+@import '@fontsource/cairo/600.css';
 @import '@fontsource/roboto/300.css';
 @import '@fontsource/roboto/400.css';
 @import '@fontsource/roboto/500.css';
@@ -699,19 +702,24 @@ textarea:focus-visible,
 // focused. WCAG 2.4.1 Bypass Blocks.
 .skip-link {
   position: absolute;
-  left: -9999px;
+  // Logical inset so the link parks off the leading edge in both directions; in RTL that is
+  // off the right, which is where it must come back into view from.
+  inset-inline-start: -9999px;
   top: 0;
   z-index: 1100;
   padding: 12px 20px;
   background: var(--bg-card);
   color: var(--text-primary);
   border: 2px solid var(--accent-primary);
-  border-radius: 0 0 4px 0;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+  border-end-end-radius: 4px;
+  border-end-start-radius: 0;
   text-decoration: none;
   font-weight: 500;
 
   &:focus {
-    left: 0;
+    inset-inline-start: 0;
   }
 }
 
@@ -775,4 +783,102 @@ textarea:focus-visible,
   font-size: 13px;
   max-width: 400px;
   white-space: pre-wrap;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Arabic typography and RTL
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//  Direction comes from `dir` on <html>, set by LanguageService. Angular Material picks the
+//  same attribute up through @angular/cdk/bidi, so the component library mirrors itself and
+//  these rules only cover what Material does not.
+//
+//  Nothing here restates a color. Per the project's token rule, any new colored surface must
+//  use --status-* / --chip-* / --toast-* / --accent-*, and note the documented specificity
+//  trap: `body.dark-theme .mat-mdc-snack-bar-container ...` scores (0,3,1) and will silently
+//  beat a (0,3,0) status rule. These selectors are attribute-only and deliberately never
+//  wrap a Material overlay class, so they cannot reintroduce it.
+
+:root[lang='ar'] {
+  // Cairo first, then the Latin stack: Arabic glyphs come from Cairo, and any embedded English
+  // still renders in Inter rather than Cairo's narrower Latin set.
+  --app-font-family: Cairo, Inter, Roboto, 'Helvetica Neue', sans-serif;
+
+  // Arabic ascenders and descenders are taller than Latin's, so the default 1.4-ish leading
+  // clips them inside fixed-height Material rows.
+  --app-line-height: 1.75;
+}
+
+:root[lang='ar'] body,
+:root[lang='ar'] .mat-typography {
+  font-family: var(--app-font-family);
+  line-height: var(--app-line-height);
+}
+
+// Material sets font-family on its own components, so it needs an explicit hand-off.
+:root[lang='ar'] .mat-mdc-button,
+:root[lang='ar'] .mat-mdc-raised-button,
+:root[lang='ar'] .mat-mdc-outlined-button,
+:root[lang='ar'] .mat-mdc-menu-item,
+:root[lang='ar'] .mat-mdc-form-field,
+:root[lang='ar'] .mat-mdc-card,
+:root[lang='ar'] .mat-mdc-table,
+:root[lang='ar'] .mat-mdc-dialog-container,
+:root[lang='ar'] .mat-mdc-snack-bar-container,
+:root[lang='ar'] .mat-toolbar,
+:root[lang='ar'] .mat-mdc-chip {
+  font-family: var(--app-font-family);
+}
+
+// Form fields and table cells are the two places where the extra leading actually prevents
+// clipping rather than just looking roomier.
+:root[lang='ar'] .mat-mdc-form-field,
+:root[lang='ar'] .mat-mdc-cell,
+:root[lang='ar'] .mat-mdc-header-cell {
+  line-height: var(--app-line-height);
+}
+
+// ── Directional icons ──
+//
+// Only icons that point somewhere get mirrored. This is an explicit allow-list, never a
+// blanket `mat-icon` rule: flipping non-directional glyphs (search, settings, a clock) makes
+// them look broken, and flipping a logo or a checkmark is simply wrong.
+[dir='rtl'] .mat-icon {
+  &[data-mat-icon-name='arrow_back'],
+  &[data-mat-icon-name='arrow_forward'] {
+    transform: scaleX(-1);
+  }
+}
+
+// Material icon fonts render the glyph as ligature text rather than an attribute, so the
+// name is not available to CSS. Mark them in the template with .rtl-flip instead.
+[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+// Paginator arrows, sort indicators and expansion-panel chevrons are drawn by Material and
+// already mirror with the CDK direction — they are listed here only to record that they were
+// checked, not to restyle them.
+
+// ── Content that carries its own direction ──
+//
+// Query names, descriptions and result rows are user data: this app already stores queries
+// named in Arabic. `dir="auto"` in the template lets each value pick its own direction from
+// its first strong character. These utilities cover the cases where the value must NOT be
+// auto-detected.
+
+// SQL, connection strings, file paths and timestamps are always LTR, whatever the UI language
+// and whatever characters they happen to contain.
+.force-ltr {
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: isolate;
+}
+
+// Numeric table cells stay LTR so digits and separators do not reorder, while still sitting
+// on the correct side of an RTL table.
+.numeric-cell {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: end;
 }

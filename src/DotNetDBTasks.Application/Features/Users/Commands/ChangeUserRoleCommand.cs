@@ -4,6 +4,7 @@ using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
 using FluentValidation;
 using MediatR;
+using DotNetDBTasks.Application.Common.Interfaces;
 
 namespace DotNetDBTasks.Application.Features.Users.Commands;
 
@@ -26,11 +27,13 @@ public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleComman
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly AdminAccountGuard _adminGuard;
+    private readonly IAppLocalizer _messages;
 
-    public ChangeUserRoleCommandHandler(IUnitOfWork unitOfWork, AdminAccountGuard adminGuard)
+    public ChangeUserRoleCommandHandler(IUnitOfWork unitOfWork, AdminAccountGuard adminGuard, IAppLocalizer messages)
     {
         _unitOfWork = unitOfWork;
         _adminGuard = adminGuard;
+        _messages = messages;
     }
 
     public async Task Handle(ChangeUserRoleCommand request, CancellationToken cancellationToken)
@@ -103,6 +106,6 @@ public class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRoleComman
             u => adminUserIds.Contains(u.Id) && u.IsActive, cancellationToken);
 
         if (!hasOtherActiveAdmin)
-            throw new DomainException("Cannot remove the Admin role from the last active administrator.");
+            throw new DomainException(_messages[MessageKeys.CannotRemoveLastAdmin]);
     }
 }

@@ -1,5 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslocoService } from '@jsverse/transloco';
+import { TranslationParams } from '../models/locale';
 
 /**
  * Pulls a human-readable message out of an HTTP error.
@@ -46,34 +48,76 @@ export function extractApiError(err: unknown, fallback: string): string {
  * Wraps MatSnackBar so that every message gets a status colour and an announcement
  * politeness. Previously 95 call sites opened snackbars directly and exactly one
  * passed a panelClass, so success and failure were visually identical everywhere.
+ *
+ * <p>Call sites pass a **translation key**, not a sentence — `toast.success('admin.users.created')`.
+ * Translating here rather than at each of the ~106 call sites keeps them one-liners and means no
+ * component has to inject TranslocoService just to show a message. Anything that is not a known
+ * key falls through unchanged, which is what lets server-generated text (already localized via
+ * the Accept-Language header) be displayed verbatim.</p>
  */
 @Injectable({ providedIn: 'root' })
 export class ToastService {
   private snackBar = inject(MatSnackBar);
+  private transloco = inject(TranslocoService);
 
-  success(message: string, duration = 3000): void {
-    this.snackBar.open(message, 'Close', {
-      duration,
+  /**
+   * Third argument is either interpolation values or a duration in ms — existing call sites
+   * pass a bare number, and both readings are unambiguous at runtime.
+   */
+  success(key: string, paramsOrDuration?: TranslationParams | number, duration = 3000): void {
+    const [params, ms] = split(paramsOrDuration, duration);
+    this.snackBar.open(this.text(key, params), this.closeLabel(), {
+      duration: ms,
       panelClass: ['success-snackbar'],
       politeness: 'polite'
     });
   }
 
   /**
-   * `err` may be an HttpErrorResponse or an already-extracted string; `fallback`
+   * `err` may be an HttpErrorResponse or an already-extracted string; `fallbackKey`
    * is used when the response carries nothing readable.
+   *
+   * The server's own message wins when there is one — it arrives in the active language
+   * because every request carries Accept-Language.
    */
-  error(err: unknown, fallback: string, duration = 5000): void {
-    const message = typeof err === 'string' ? err : extractApiError(err, fallback);
-    this.snackBar.open(message, 'Close', {
-      duration,
+  error(err: unknown, fallbackKey: string, paramsOrDuration?: TranslationParams | number, duration = 5000): void {
+    const [params, ms] = split(paramsOrDuration, duration);
+    const fallback = this.text(fallbackKey, params);
+    const message = typeof err === 'string' ? this.text(err, params) : extractApiError(err, fallback);
+    this.snackBar.open(message, this.closeLabel(), {
+      duration: ms,
       panelClass: ['error-snackbar'],
       // Failures interrupt: they must be announced even if the user is mid-task.
       politeness: 'assertive'
     });
   }
 
-  info(message: string, duration = 4000): void {
-    this.snackBar.open(message, 'Close', { duration, politeness: 'polite' });
+  info(key: string, paramsOrDuration?: TranslationParams | number, duration = 4000): void {
+    const [params, ms] = split(paramsOrDuration, duration);
+    this.snackBar.open(this.text(key, params), this.closeLabel(), { duration: ms, politeness: 'polite' });
   }
+
+  /**
+   * Resolves a key, or returns the input untouched when it is not one. Transloco echoes the key
+   * back on a miss, so that echo is the signal that this was a literal (a server message) rather
+   * than a lookup failure.
+   */
+  private text(keyOrMessage: string, params?: TranslationParams): string {
+    const translated = this.transloco.translate(keyOrMessage, params);
+    return translated === keyOrMessage ? keyOrMessage : translated;
+  }
+
+  private closeLabel(): string {
+    return this.transloco.translate('common.close');
+  }
+}
+
+/** Disambiguates the overloaded third argument shared by success/error/info. */
+function split(
+  paramsOrDuration: TranslationParams | number | undefined,
+  fallbackDuration: number
+): [TranslationParams | undefined, number] {
+  return typeof paramsOrDuration === 'number'
+    ? [undefined, paramsOrDuration]
+    : [paramsOrDuration, fallbackDuration];
 }

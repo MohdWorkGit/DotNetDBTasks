@@ -4,6 +4,7 @@ using DotNetDBTasks.Domain.Exceptions;
 using DotNetDBTasks.Domain.Interfaces;
 using FluentValidation;
 using MediatR;
+using DotNetDBTasks.Application.Common.Interfaces;
 
 namespace DotNetDBTasks.Application.Features.Users.Commands;
 
@@ -26,11 +27,13 @@ public class ChangeUsernameCommandHandler : IRequestHandler<ChangeUsernameComman
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly AdminAccountGuard _adminGuard;
+    private readonly IAppLocalizer _messages;
 
-    public ChangeUsernameCommandHandler(IUnitOfWork unitOfWork, AdminAccountGuard adminGuard)
+    public ChangeUsernameCommandHandler(IUnitOfWork unitOfWork, AdminAccountGuard adminGuard, IAppLocalizer messages)
     {
         _unitOfWork = unitOfWork;
         _adminGuard = adminGuard;
+        _messages = messages;
     }
 
     public async Task Handle(ChangeUsernameCommand request, CancellationToken cancellationToken)
@@ -42,12 +45,12 @@ public class ChangeUsernameCommandHandler : IRequestHandler<ChangeUsernameComman
         await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
 
         if (user.AuthSource == AuthSource.Ldap)
-            throw new DomainException("Cannot change username for LDAP users. Usernames are managed by Active Directory.");
+            throw new DomainException(_messages[MessageKeys.LdapUsernameImmutable]);
 
         var taken = await _unitOfWork.Users.ExistsAsync(
             u => u.Username == request.NewUsername && u.Id != request.UserId, cancellationToken);
         if (taken)
-            throw new DomainException($"Username '{request.NewUsername}' is already taken.");
+            throw new DomainException(_messages[MessageKeys.UsernameTaken, request.NewUsername]);
 
         user.Username = request.NewUsername;
         user.UpdatedAt = DateTime.UtcNow;

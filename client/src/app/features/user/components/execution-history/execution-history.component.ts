@@ -8,6 +8,7 @@ import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { ExecutionLog } from '@core/models/dynamic-query.model';
 import { OldRowsDialogComponent } from '@shared/components/old-rows-dialog.component';
+import { TranslocoService } from '@jsverse/transloco';
 
 /** Order the API applies when no sortBy is sent; also where a cleared header lands. */
 const DEFAULT_SORT_BY = 'executedAt';
@@ -17,7 +18,7 @@ const DEFAULT_SORT_BY = 'executedAt';
   selector: 'app-execution-history',
   template: `
     <div class="container">
-      <h2>My Execution History</h2>
+      <h2>{{ 'user.history.title' | transloco }}</h2>
 
       <mat-card>
         <mat-card-content>
@@ -37,20 +38,20 @@ const DEFAULT_SORT_BY = 'executedAt';
                  (matSortChange)="onSortChange($event)"
                  *ngIf="!loading && !errorMessage">
             <ng-container matColumnDef="queryName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Query</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'user.history.query' | transloco }}</th>
               <td mat-cell *matCellDef="let log">{{ log.queryName }}</td>
             </ng-container>
 
             <ng-container matColumnDef="parameters">
-              <th mat-header-cell *matHeaderCellDef>Parameters</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'user.history.parameters' | transloco }}</th>
               <td mat-cell *matCellDef="let log">
                 <ng-container *ngIf="log.hasOldValues; else plainParams">
                   <div class="update-params">
                     <span class="update-label old-label">Before:</span>
                     <button type="button" class="old-rows-trigger"
                             (click)="openOldRowsDialog(log)"
-                            matTooltip="Click to view affected rows">
-                      <span class="old-values">View affected rows</span>
+                            [matTooltip]="'user.history.viewAffectedRows' | transloco">
+                      <span class="old-values">{{ 'common.viewAffectedRows' | transloco }}</span>
                       <mat-icon class="open-icon">open_in_new</mat-icon>
                     </button>
                     <ng-container *ngIf="log.isUpdateQuery">
@@ -70,22 +71,22 @@ const DEFAULT_SORT_BY = 'executedAt';
             </ng-container>
 
             <ng-container matColumnDef="executedAt">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Executed At</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'user.history.executedAt' | transloco }}</th>
               <td mat-cell *matCellDef="let log">{{ log.executedAt | date:'medium' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="executionDurationMs">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Duration (ms)</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'user.history.durationMs' | transloco }}</th>
               <td mat-cell *matCellDef="let log">{{ log.executionDurationMs }}</td>
             </ng-container>
 
             <ng-container matColumnDef="rowsReturned">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Rows</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'user.history.rows' | transloco }}</th>
               <td mat-cell *matCellDef="let log">{{ log.rowsReturned }}</td>
             </ng-container>
 
             <ng-container matColumnDef="isSuccess">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'user.history.status' | transloco }}</th>
               <td mat-cell *matCellDef="let log">
                 <mat-icon [class]="log.isSuccess ? 'success' : 'error'"
                           [matTooltip]="log.isSuccess ? 'Success' : (log.errorMessage || 'Unknown error')"
@@ -154,7 +155,7 @@ const DEFAULT_SORT_BY = 'executedAt';
       border-radius: 4px;
       cursor: pointer;
       font: inherit;
-      text-align: left;
+      text-align: start;
       color: inherit;
     }
     .old-rows-trigger:hover {
@@ -195,6 +196,7 @@ export class ExecutionHistoryComponent implements OnInit {
 
   constructor(
     private queryService: QueryService,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef,
     private dialog: MatDialog
   ) {}
@@ -228,7 +230,7 @@ export class ExecutionHistoryComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.message || 'Failed to load history. Please try again.';
+        this.errorMessage = err.error?.message || this.transloco.translate('user.history.loadFailed');
         this.cdr.detectChanges();
       }
     });

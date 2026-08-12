@@ -7,41 +7,42 @@ import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, ParameterType, QueryGroup } from '@core/models/dynamic-query.model';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
   standalone: false,
   selector: 'app-query-form',
   template: `
     <div class="container">
-      <h2>{{ isEdit ? 'Edit' : (isCopy ? 'Copy' : 'Create') }} Dynamic Query</h2>
+      <h2>{{ (isEdit ? 'admin.queryForm.editTitle' : (isCopy ? 'admin.queryForm.copyTitle' : 'admin.queryForm.createTitle')) | transloco }}</h2>
 
       <mat-card>
         <mat-card-content>
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
             <mat-form-field class="full-width" appearance="outline">
-              <mat-label>Name</mat-label>
+              <mat-label>{{ 'admin.queries.name' | transloco }}</mat-label>
               <input matInput formControlName="name">
               <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
             </mat-form-field>
 
             <mat-form-field class="full-width" appearance="outline">
-              <mat-label>Description</mat-label>
+              <mat-label>{{ 'admin.queries.description' | transloco }}</mat-label>
               <textarea matInput formControlName="description" rows="3"></textarea>
               <mat-error *ngIf="form.get('description')?.hasError('required')">Description is required</mat-error>
             </mat-form-field>
 
             <mat-form-field class="full-width" appearance="outline">
-              <mat-label>SQL Query (parameterized)</mat-label>
-              <textarea matInput formControlName="sqlQuery" rows="5"
-                        placeholder="SELECT * FROM Users WHERE CreatedAt >= &#64;StartDate"></textarea>
-              <mat-hint>Use &#64;paramName syntax for parameters. All query types supported (SELECT, INSERT, UPDATE, DELETE, etc.).</mat-hint>
+              <mat-label>{{ 'admin.queryForm.sqlParameterized' | transloco }}</mat-label>
+              <textarea matInput formControlName="sqlQuery" rows="5" dir="ltr" class="force-ltr"
+                        [attr.placeholder]="'admin.queryForm.sqlPlaceholder' | transloco"></textarea>
+              <mat-hint>{{ 'admin.queryForm.sqlHint' | transloco }}</mat-hint>
               <mat-error *ngIf="form.get('sqlQuery')?.hasError('required')">SQL query is required</mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Timeout (seconds)</mat-label>
+              <mat-label>{{ 'admin.queryForm.timeout' | transloco }}</mat-label>
               <input matInput type="number" min="0" formControlName="timeoutSeconds">
-              <mat-hint>Set to 0 for no timeout (query can run indefinitely).</mat-hint>
+              <mat-hint>{{ 'admin.queryForm.timeoutHint' | transloco }}</mat-hint>
             </mat-form-field>
 
             <mat-slide-toggle formControlName="isLongRunning" class="toggle">
@@ -73,7 +74,7 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
             </p>
 
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Database User</mat-label>
+              <mat-label>{{ 'admin.queryForm.databaseUser' | transloco }}</mat-label>
               <mat-select formControlName="databaseUserId">
                 <mat-option [value]="null">Default (system connection)</mat-option>
                 <mat-option *ngFor="let du of availableDbUsers" [value]="du.id">
@@ -87,7 +88,7 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Group</mat-label>
+              <mat-label>{{ 'admin.queries.group' | transloco }}</mat-label>
               <mat-select formControlName="queryGroupId">
                 <mat-option [value]="null">Ungrouped</mat-option>
                 <mat-option *ngFor="let g of availableGroups" [value]="g.id">
@@ -105,7 +106,7 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
             </mat-slide-toggle>
 
             <div *ngIf="isEdit" class="template-section">
-              <h3>Word Export Template</h3>
+              <h3>{{ 'admin.queryForm.wordTemplate' | transloco }}</h3>
               <p class="field-hint">
                 Optional .docx used when this query's results are exported as Word. Put
                 {{ '{{RESULTS}}' }} where the result table should go; {{ '{{QUERY_NAME}}' }},
@@ -129,11 +130,11 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                   <span class="template-name">
                     <mat-icon>description</mat-icon> {{ templateFileName }}
                   </span>
-                  <button mat-icon-button type="button" matTooltip="Download template" aria-label="Download template"
+                  <button mat-icon-button type="button" [matTooltip]="'admin.queryForm.downloadTemplate' | transloco" [attr.aria-label]="'admin.queryForm.downloadTemplate' | transloco"
                           (click)="downloadTemplate()">
                     <mat-icon>download</mat-icon>
                   </button>
-                  <button mat-icon-button color="warn" type="button" matTooltip="Remove template" aria-label="Remove template"
+                  <button mat-icon-button color="warn" type="button" [matTooltip]="'admin.queryForm.removeTemplate' | transloco" [attr.aria-label]="'admin.queryForm.removeTemplate' | transloco"
                           (click)="removeTemplate()">
                     <mat-icon>delete</mat-icon>
                   </button>
@@ -144,27 +145,27 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
               </div>
             </div>
 
-            <h3>Parameters</h3>
+            <h3>{{ 'admin.queries.parameters' | transloco }}</h3>
             <div formArrayName="parameters">
               <mat-card *ngFor="let param of parameters.controls; let i = index"
                         [formGroupName]="i" class="param-card">
                 <div class="param-row">
                   <mat-form-field appearance="outline">
-                    <mat-label>Name</mat-label>
+                    <mat-label>{{ 'admin.queries.name' | transloco }}</mat-label>
                     <input matInput formControlName="name" placeholder="paramName">
                     <mat-error *ngIf="param.get('name')?.hasError('required')">Name is required</mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
-                    <mat-label>Display Name</mat-label>
-                    <input matInput formControlName="displayName" placeholder="Parameter Label">
+                    <mat-label>{{ 'admin.queryForm.displayName' | transloco }}</mat-label>
+                    <input matInput formControlName="displayName" [attr.placeholder]="'admin.queryForm.parameterLabel' | transloco">
                     <mat-error *ngIf="param.get('displayName')?.hasError('required')">
                       Display name is required
                     </mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
-                    <mat-label>Type</mat-label>
+                    <mat-label>{{ 'admin.queries.type' | transloco }}</mat-label>
                     <mat-select formControlName="parameterType">
                       <mat-option [value]="0">String</mat-option>
                       <mat-option [value]="1">Number</mat-option>
@@ -174,16 +175,16 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                     </mat-select>
                   </mat-form-field>
 
-                  <mat-slide-toggle formControlName="isRequired">Required</mat-slide-toggle>
+                  <mat-slide-toggle formControlName="isRequired">{{ 'admin.queryForm.required' | transloco }}</mat-slide-toggle>
 
                   <mat-form-field appearance="outline"
                                   *ngIf="getParamType(i) !== ParameterType.Dropdown">
-                    <mat-label>Default Value</mat-label>
+                    <mat-label>{{ 'admin.queryForm.defaultValue' | transloco }}</mat-label>
                     <input matInput formControlName="defaultValue">
                   </mat-form-field>
 
                   <button mat-icon-button color="warn" type="button" (click)="removeParameter(i)"
-                          matTooltip="Remove parameter" aria-label="Remove parameter">
+                          [matTooltip]="'admin.queryForm.removeParameter' | transloco" [attr.aria-label]="'admin.queryForm.removeParameter' | transloco">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
@@ -227,18 +228,18 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                     <div *ngFor="let opt of getStaticOptions(i); let j = index; trackBy: trackStaticOption"
                          class="static-option-row">
                       <mat-form-field appearance="outline" class="option-field">
-                        <mat-label>Label</mat-label>
+                        <mat-label>{{ 'admin.queryForm.label' | transloco }}</mat-label>
                         <input matInput [value]="opt.label"
                                (input)="updateStaticOption(i, j, 'label', $event)">
                       </mat-form-field>
                       <mat-form-field appearance="outline" class="option-field">
-                        <mat-label>Value</mat-label>
+                        <mat-label>{{ 'admin.queryForm.value' | transloco }}</mat-label>
                         <input matInput [value]="opt.value"
                                (input)="updateStaticOption(i, j, 'value', $event)">
                       </mat-form-field>
                       <button mat-icon-button color="warn" type="button"
                               (click)="removeStaticOption(i, j)"
-                              matTooltip="Remove option" aria-label="Remove option">
+                              [matTooltip]="'admin.queryForm.removeOption' | transloco" [attr.aria-label]="'admin.queryForm.removeOption' | transloco">
                         <mat-icon>remove_circle_outline</mat-icon>
                       </button>
                     </div>
@@ -251,31 +252,31 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
                   <div *ngIf="getDropdownSourceType(i) === DropdownSourceType.Query"
                        class="query-config">
                     <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Lookup Query</mat-label>
+                      <mat-label>{{ 'admin.queryForm.lookupQuery' | transloco }}</mat-label>
                       <mat-select formControlName="dropdownQueryId">
                         <mat-option *ngFor="let q of availableQueries" [value]="q.id">
                           {{ q.name }}
                         </mat-option>
                       </mat-select>
-                      <mat-hint *ngIf="!lookupLoadFailed.queries">Select the query that returns the dropdown options</mat-hint>
+                      <mat-hint *ngIf="!lookupLoadFailed.queries">{{ 'admin.queryForm.lookupQueryHint' | transloco }}</mat-hint>
                       <mat-hint *ngIf="lookupLoadFailed.queries" class="load-failed-hint">
-                        Could not load queries — reload the page to try again.
+                        {{ 'admin.queryForm.lookupLoadFailed' | transloco }}
                       </mat-hint>
                     </mat-form-field>
 
                     <div class="column-row">
                       <mat-form-field appearance="outline">
-                        <mat-label>Value Column</mat-label>
+                        <mat-label>{{ 'admin.queryForm.valueColumn' | transloco }}</mat-label>
                         <input matInput formControlName="dropdownQueryValueColumn"
                                placeholder="e.g. ID">
-                        <mat-hint>Column used as the stored value</mat-hint>
+                        <mat-hint>{{ 'admin.queryForm.valueColumnHint' | transloco }}</mat-hint>
                       </mat-form-field>
 
                       <mat-form-field appearance="outline">
-                        <mat-label>Label Column</mat-label>
+                        <mat-label>{{ 'admin.queryForm.labelColumn' | transloco }}</mat-label>
                         <input matInput formControlName="dropdownQueryLabelColumn"
                                placeholder="e.g. NAME">
-                        <mat-hint>Column displayed to the user</mat-hint>
+                        <mat-hint>{{ 'admin.queryForm.columnDisplayedHint' | transloco }}</mat-hint>
                       </mat-form-field>
                     </div>
                   </div>
@@ -288,7 +289,7 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
             </button>
 
             <div class="actions">
-              <button mat-button type="button" routerLink="/admin/queries">Cancel</button>
+              <button mat-button type="button" routerLink="/admin/queries">{{ 'common.cancel' | transloco }}</button>
               <button mat-raised-button color="primary" type="submit"
                       [disabled]="form.invalid || saving">
                 {{ saving ? 'Saving...' : (isEdit ? 'Update' : 'Create') }}
@@ -300,7 +301,7 @@ import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, Paramet
     </div>
   `,
   styles: [`
-    mat-form-field { margin-right: 16px; }
+    mat-form-field { margin-inline-end: 16px; }
     .param-card { margin-bottom: 12px; padding: 12px; }
     .param-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
@@ -361,6 +362,7 @@ export class QueryFormComponent implements OnInit {
     private router: Router,
     private toast: ToastService,
     private confirmService: ConfirmService,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -493,12 +495,12 @@ export class QueryFormComponent implements OnInit {
       next: () => {
         this.uploadingTemplate = false;
         this.templateFileName = file.name;
-        this.toast.success('Template uploaded');
+        this.toast.success('admin.queryForm.templateUploaded');
         this.cdr.detectChanges();
       },
       error: (err) => {
         this.uploadingTemplate = false;
-        this.toast.error(err, 'Failed to upload template');
+        this.toast.error(err, 'admin.queryForm.templateUploadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -515,17 +517,17 @@ export class QueryFormComponent implements OnInit {
         a.click();
         window.URL.revokeObjectURL(url);
       },
-      error: (err) => this.toast.error(err, 'Failed to download template')
+      error: (err) => this.toast.error(err, 'admin.queryForm.templateDownloadFailed')
     });
   }
 
   removeTemplate(): void {
     if (!this.queryId) return;
     this.confirmService.askThen({
-      title: 'Remove Word template?',
-      message: `"${this.templateFileName}" will be deleted from the server and this query's Word `
-        + 'exports will fall back to the default layout. This cannot be undone.',
-      confirmText: 'Remove template',
+      titleKey: 'admin.queryForm.removeTemplateTitle',
+      messageKey: 'admin.queryForm.removeTemplateMessage',
+      params: { fileName: this.templateFileName },
+      confirmText: this.transloco.translate('admin.queryForm.removeTemplateConfirm'),
       destructive: true
     }, () => this.doRemoveTemplate());
   }
@@ -534,11 +536,11 @@ export class QueryFormComponent implements OnInit {
     this.queryService.deleteWordTemplate(this.queryId!).subscribe({
       next: () => {
         this.templateFileName = null;
-        this.toast.success('Template removed');
+        this.toast.success('admin.queryForm.templateRemoved');
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to remove template');
+        this.toast.error(err, 'admin.queryForm.templateRemoveFailed');
         this.cdr.detectChanges();
       }
     });
@@ -590,7 +592,7 @@ export class QueryFormComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to load query');
+        this.toast.error(err, 'admin.queryForm.loadFailed');
       }
     });
   }
@@ -640,13 +642,13 @@ export class QueryFormComponent implements OnInit {
       next: () => {
         this.saving = false;
         this.toast.success(
-          `Query ${this.isEdit ? 'updated' : (this.isCopy ? 'copied' : 'created')} successfully`
+          this.isEdit ? 'admin.queryForm.updated' : (this.isCopy ? 'admin.queryForm.copied' : 'admin.queryForm.created')
         );
         this.router.navigate(['/admin/queries']);
       },
       error: (err) => {
         this.saving = false;
-        this.toast.error(err, 'Operation failed');
+        this.toast.error(err, 'common.operationFailed');
       }
     });
   }

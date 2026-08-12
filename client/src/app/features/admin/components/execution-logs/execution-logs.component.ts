@@ -22,7 +22,7 @@ const DEFAULT_SORT_BY = 'executedAt';
   selector: 'app-execution-logs',
   template: `
     <div class="container">
-      <h2>Execution Logs</h2>
+      <h2>{{ 'admin.logs.title' | transloco }}</h2>
 
       <mat-card>
         <mat-card-content>
@@ -39,25 +39,25 @@ const DEFAULT_SORT_BY = 'executedAt';
 
           <div *ngIf="!loading && !errorMessage" class="table-toolbar">
             <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Filter logs</mat-label>
+              <mat-label>{{ 'admin.logs.filter' | transloco }}</mat-label>
               <input matInput [value]="searchText" (input)="onSearchInput($event)"
-                     placeholder="Search by query, user, parameters, error...">
+                     [attr.placeholder]="'admin.logs.filterPlaceholder' | transloco">
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="status-filter">
-              <mat-label>Status</mat-label>
+              <mat-label>{{ 'admin.logs.status' | transloco }}</mat-label>
               <mat-select [(value)]="statusFilter" (selectionChange)="onFiltersChanged()">
-                <mat-option value="all">All</mat-option>
+                <mat-option value="all">{{ 'common.all' | transloco }}</mat-option>
                 <mat-option value="success">Success</mat-option>
                 <mat-option value="failed">Failed</mat-option>
               </mat-select>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="status-filter">
-              <mat-label>Type</mat-label>
+              <mat-label>{{ 'admin.logs.type' | transloco }}</mat-label>
               <mat-select [(value)]="typeFilter" (selectionChange)="onFiltersChanged()">
-                <mat-option value="all">All</mat-option>
+                <mat-option value="all">{{ 'common.all' | transloco }}</mat-option>
                 <mat-option [value]="QueryType.Select">SELECT</mat-option>
                 <mat-option [value]="QueryType.Insert">INSERT</mat-option>
                 <mat-option [value]="QueryType.Update">UPDATE</mat-option>
@@ -73,12 +73,12 @@ const DEFAULT_SORT_BY = 'executedAt';
                  (matSortChange)="onSortChange($event)"
                  *ngIf="!loading && !errorMessage">
             <ng-container matColumnDef="queryName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Query</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.logs.query' | transloco }}</th>
               <td mat-cell *matCellDef="let log">{{ log.queryName }}</td>
             </ng-container>
 
             <ng-container matColumnDef="queryType">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.logs.type' | transloco }}</th>
               <td mat-cell *matCellDef="let log">
                 <span class="type-chip" [class.type-write]="isWriteType(log.queryType)">
                   {{ typeLabel(log.queryType) }}
@@ -87,20 +87,20 @@ const DEFAULT_SORT_BY = 'executedAt';
             </ng-container>
 
             <ng-container matColumnDef="username">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>User</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.logs.user' | transloco }}</th>
               <td mat-cell *matCellDef="let log">{{ log.username }}</td>
             </ng-container>
 
             <ng-container matColumnDef="parameters">
-              <th mat-header-cell *matHeaderCellDef>Parameters</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.parameters' | transloco }}</th>
               <td mat-cell *matCellDef="let log">
                 <ng-container *ngIf="log.hasOldValues; else plainParams">
                   <div class="update-params">
                     <span class="update-label old-label">Before:</span>
                     <button type="button" class="old-rows-trigger"
                             (click)="openOldRowsDialog(log)"
-                            matTooltip="Click to view affected rows">
-                      <span class="old-values">View affected rows</span>
+                            [matTooltip]="'admin.logs.viewAffectedRows' | transloco">
+                      <span class="old-values">{{ 'common.viewAffectedRows' | transloco }}</span>
                       <mat-icon class="open-icon">open_in_new</mat-icon>
                     </button>
                     <ng-container *ngIf="log.isUpdateQuery">
@@ -120,22 +120,22 @@ const DEFAULT_SORT_BY = 'executedAt';
             </ng-container>
 
             <ng-container matColumnDef="executedAt">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Executed At</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.logs.executedAt' | transloco }}</th>
               <td mat-cell *matCellDef="let log">{{ log.executedAt | date:'medium' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="executionDurationMs">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Duration (ms)</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.logs.durationMs' | transloco }}</th>
               <td mat-cell *matCellDef="let log">{{ log.executionDurationMs }}</td>
             </ng-container>
 
             <ng-container matColumnDef="rowsReturned">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Rows</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.logs.rows' | transloco }}</th>
               <td mat-cell *matCellDef="let log">{{ log.rowsReturned }}</td>
             </ng-container>
 
             <ng-container matColumnDef="isSuccess">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.logs.status' | transloco }}</th>
               <td mat-cell *matCellDef="let log">
                 <mat-icon [class]="log.isSuccess ? 'success' : 'error'"
                           [matTooltip]="log.isSuccess ? 'Success' : (log.errorMessage || 'Unknown error')"
@@ -213,7 +213,7 @@ const DEFAULT_SORT_BY = 'executedAt';
       border-radius: 4px;
       cursor: pointer;
       font: inherit;
-      text-align: left;
+      text-align: start;
       color: inherit;
     }
     .old-rows-trigger:hover {

@@ -36,11 +36,16 @@ public sealed class AdminAccountGuard
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
+    private readonly IAppLocalizer _messages;
 
-    public AdminAccountGuard(IUnitOfWork unitOfWork, ICurrentUserService currentUser)
+    public AdminAccountGuard(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUser,
+        IAppLocalizer messages)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
+        _messages = messages;
     }
 
     private bool CallerIsAdmin => _currentUser.Roles.Contains(AdminRoleName);
@@ -55,7 +60,7 @@ public sealed class AdminAccountGuard
             return;
 
         if (await IsAdminAsync(targetUserId, cancellationToken))
-            throw new ForbiddenAccessException("Only an administrator can modify an administrator account.");
+            throw new ForbiddenAccessException(_messages[MessageKeys.OnlyAdminCanModifyAdmin]);
     }
 
     /// <summary>
@@ -69,7 +74,7 @@ public sealed class AdminAccountGuard
 
         var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
         if (adminRoleId is not null && roleIds.Contains(adminRoleId.Value))
-            throw new ForbiddenAccessException("Only an administrator can grant the Admin role.");
+            throw new ForbiddenAccessException(_messages[MessageKeys.OnlyAdminCanGrantAdmin]);
     }
 
     /// <summary>
@@ -82,7 +87,7 @@ public sealed class AdminAccountGuard
             return;
 
         if (targetUserId == _currentUser.UserId)
-            throw new ForbiddenAccessException("You cannot change your own roles.");
+            throw new ForbiddenAccessException(_messages[MessageKeys.CannotChangeOwnRoles]);
     }
 
     private async Task<bool> IsAdminAsync(Guid userId, CancellationToken cancellationToken)

@@ -36,46 +36,46 @@ import {
           <mat-card-content>
             <div class="row">
               <mat-form-field appearance="outline" class="grow">
-                <mat-label>Name</mat-label>
+                <mat-label>{{ 'admin.tasks.name' | transloco }}</mat-label>
                 <input matInput formControlName="name" maxlength="200" required>
                 <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
               </mat-form-field>
-              <mat-slide-toggle formControlName="isEnabled" class="toggle">Enabled</mat-slide-toggle>
+              <mat-slide-toggle formControlName="isEnabled" class="toggle">{{ 'admin.tasks.enabledToggle' | transloco }}</mat-slide-toggle>
             </div>
 
             <mat-form-field appearance="outline" class="full">
-              <mat-label>Description</mat-label>
+              <mat-label>{{ 'admin.tasks.description' | transloco }}</mat-label>
               <input matInput formControlName="description" maxlength="1000">
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full">
-              <mat-label>Output folder (on the server)</mat-label>
+              <mat-label>{{ 'admin.tasks.outputFolder' | transloco }}</mat-label>
               <input matInput formControlName="outputFolder" maxlength="500"
                      placeholder="D:\\Exports\\Sales" required>
-              <mat-hint>Absolute path; it is created automatically if missing.</mat-hint>
+              <mat-hint>{{ 'admin.tasks.outputFolderHint' | transloco }}</mat-hint>
               <mat-error *ngIf="form.get('outputFolder')?.hasError('required')">
                 Output folder is required
               </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full">
-              <mat-label>Archive folder (optional)</mat-label>
+              <mat-label>{{ 'admin.tasks.archiveFolder' | transloco }}</mat-label>
               <input matInput formControlName="archiveFolder" maxlength="500"
                      placeholder="D:\\Exports\\Archive">
-              <mat-hint>A copy of every export file is also written here.</mat-hint>
+              <mat-hint>{{ 'admin.tasks.archiveHint' | transloco }}</mat-hint>
             </mat-form-field>
 
             <div class="row output-options">
               <mat-slide-toggle formControlName="combineOutput"
-                                matTooltip="All query results are appended into one file, in query order">
+                                [matTooltip]="'admin.tasks.combineTip' | transloco">
                 Combine all results into one file
               </mat-slide-toggle>
               <mat-slide-toggle formControlName="includeHeaders"
-                                matTooltip="Off: CSV/Excel files contain data rows only">
+                                [matTooltip]="'admin.tasks.headersTip' | transloco">
                 Include header row
               </mat-slide-toggle>
               <mat-form-field appearance="outline" class="timestamp-format">
-                <mat-label>Timestamp format (optional)</mat-label>
+                <mat-label>{{ 'admin.tasks.timestampFormat' | transloco }}</mat-label>
                 <input matInput formControlName="timestampFormat" maxlength="50"
                        placeholder="_yyyyMMdd-HHmmss">
                 <mat-hint>.NET date format for the file-name suffix, e.g. -yyyy-MM-dd</mat-hint>
@@ -84,14 +84,14 @@ import {
 
             <div class="row wrap" *ngIf="combineOutput">
               <mat-form-field appearance="outline">
-                <mat-label>Format</mat-label>
+                <mat-label>{{ 'admin.tasks.format' | transloco }}</mat-label>
                 <mat-select formControlName="combinedFormat" required>
                   <mat-option *ngFor="let f of formats" [value]="f">{{ formatLabels[f] }}</mat-option>
                 </mat-select>
               </mat-form-field>
               <mat-form-field appearance="outline" class="separator"
                               *ngIf="form.get('combinedFormat')?.value === Format.Csv">
-                <mat-label>Separator</mat-label>
+                <mat-label>{{ 'admin.tasks.separator' | transloco }}</mat-label>
                 <input matInput formControlName="combinedCsvSeparator" maxlength="8" placeholder=",">
                 <mat-hint>e.g. ; or ;; ("tab" = tab)</mat-hint>
               </mat-form-field>
@@ -101,12 +101,12 @@ import {
                 default Word template (managed on the Dynamic Queries page).
               </p>
               <mat-form-field appearance="outline" class="grow">
-                <mat-label>File name (optional)</mat-label>
+                <mat-label>{{ 'admin.tasks.fileName' | transloco }}</mat-label>
                 <input matInput formControlName="combinedFileName" maxlength="200"
-                       placeholder="Defaults to the task name">
+                       [attr.placeholder]="'admin.tasks.fileNamePlaceholder' | transloco">
               </mat-form-field>
               <mat-slide-toggle formControlName="combinedAppendTimestamp" class="toggle"
-                                matTooltip="Off: the same file is overwritten on every run">
+                                [matTooltip]="'admin.tasks.timestampTip' | transloco">
                 Append timestamp
               </mat-slide-toggle>
             </div>
@@ -132,7 +132,7 @@ import {
 
             <div class="row" *ngFor="let trigger of triggers.controls; let i = index" [formGroupName]="i">
               <mat-form-field appearance="outline">
-                <mat-label>Frequency</mat-label>
+                <mat-label>{{ 'admin.tasks.frequency' | transloco }}</mat-label>
                 <mat-select formControlName="frequency" required>
                   <mat-option [value]="Frequency.EveryNMinutes">Every N minutes</mat-option>
                   <mat-option [value]="Frequency.Daily">Daily</mat-option>
@@ -142,28 +142,28 @@ import {
               </mat-form-field>
 
               <mat-form-field appearance="outline" *ngIf="triggerFrequency(i) === Frequency.EveryNMinutes">
-                <mat-label>Interval (minutes)</mat-label>
+                <mat-label>{{ 'admin.tasks.intervalMinutes' | transloco }}</mat-label>
                 <input matInput type="number" formControlName="intervalMinutes" min="1">
               </mat-form-field>
 
               <mat-form-field appearance="outline" *ngIf="triggerFrequency(i) === Frequency.Weekly">
-                <mat-label>Day of week</mat-label>
+                <mat-label>{{ 'admin.tasks.dayOfWeek' | transloco }}</mat-label>
                 <mat-select formControlName="dayOfWeek">
                   <mat-option *ngFor="let d of dayNames; let di = index" [value]="di">{{ d }}</mat-option>
                 </mat-select>
               </mat-form-field>
 
               <mat-form-field appearance="outline" *ngIf="triggerFrequency(i) === Frequency.Monthly">
-                <mat-label>Day of month</mat-label>
+                <mat-label>{{ 'admin.tasks.dayOfMonth' | transloco }}</mat-label>
                 <input matInput type="number" formControlName="dayOfMonth" min="1" max="31">
               </mat-form-field>
 
               <mat-form-field appearance="outline" *ngIf="triggerFrequency(i) !== Frequency.EveryNMinutes">
-                <mat-label>Time of day</mat-label>
+                <mat-label>{{ 'admin.tasks.timeOfDay' | transloco }}</mat-label>
                 <input matInput type="time" formControlName="timeOfDay">
               </mat-form-field>
 
-              <button mat-icon-button type="button" color="warn" matTooltip="Remove trigger" aria-label="Remove trigger"
+              <button mat-icon-button type="button" color="warn" [matTooltip]="'admin.tasks.removeTrigger' | transloco" [attr.aria-label]="'admin.tasks.removeTrigger' | transloco"
                       class="remove-item" *ngIf="triggers.length > 1" (click)="removeTrigger(i)">
                 <mat-icon>close</mat-icon>
               </button>
@@ -186,7 +186,7 @@ import {
             <div class="item" *ngFor="let item of items.controls; let i = index" [formGroupName]="i">
               <div class="row">
                 <mat-form-field appearance="outline" class="grow">
-                  <mat-label>Query</mat-label>
+                  <mat-label>{{ 'admin.tasks.query' | transloco }}</mat-label>
                   <mat-select formControlName="dynamicQueryId" required
                               (selectionChange)="onQueryChange(i, $event.value)">
                     <mat-option *ngFor="let q of selectableQueries" [value]="q.id">
@@ -199,7 +199,7 @@ import {
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" *ngIf="!itemMeta[i]?.isWrite && !combineOutput">
-                  <mat-label>Format</mat-label>
+                  <mat-label>{{ 'admin.tasks.format' | transloco }}</mat-label>
                   <mat-select formControlName="exportFormat" required>
                     <mat-option *ngFor="let f of formats" [value]="f">{{ formatLabels[f] }}</mat-option>
                   </mat-select>
@@ -210,12 +210,12 @@ import {
 
                 <mat-form-field appearance="outline" class="separator"
                                 *ngIf="!itemMeta[i]?.isWrite && !combineOutput && isCsv(i)">
-                  <mat-label>Separator</mat-label>
+                  <mat-label>{{ 'admin.tasks.separator' | transloco }}</mat-label>
                   <input matInput formControlName="csvSeparator" maxlength="8" placeholder=",">
                   <mat-hint>e.g. ; or ;; ("tab" = tab)</mat-hint>
                 </mat-form-field>
 
-                <button mat-icon-button type="button" color="warn" matTooltip="Remove query" aria-label="Remove query"
+                <button mat-icon-button type="button" color="warn" [matTooltip]="'admin.tasks.removeQuery' | transloco" [attr.aria-label]="'admin.tasks.removeQuery' | transloco"
                         class="remove-item" (click)="removeItem(i)">
                   <mat-icon>close</mat-icon>
                 </button>
@@ -243,10 +243,10 @@ import {
                 <mat-form-field appearance="outline" class="grow">
                   <mat-label>File name (optional)</mat-label>
                   <input matInput formControlName="fileNamePrefix" maxlength="200"
-                         [placeholder]="queryName(i) || 'Defaults to the query name'">
+                         [placeholder]="queryName(i) || ('admin.tasks.fileNameQueryDefault' | transloco)">
                 </mat-form-field>
                 <mat-slide-toggle formControlName="appendTimestamp" class="toggle"
-                                  matTooltip="Off: the same file is overwritten on every run">
+                                  [matTooltip]="'admin.tasks.timestampTip' | transloco">
                   Append timestamp
                 </mat-slide-toggle>
               </div>
@@ -258,19 +258,19 @@ import {
                 </div>
                 <div class="row wrap">
                   <mat-form-field appearance="outline">
-                    <mat-label>Key column</mat-label>
+                    <mat-label>{{ 'admin.tasks.keyColumn' | transloco }}</mat-label>
                     <input matInput formControlName="keyColumn" maxlength="128"
                            placeholder="e.g. Id">
                   </mat-form-field>
                   <mat-form-field appearance="outline">
-                    <mat-label>Key parameter</mat-label>
+                    <mat-label>{{ 'admin.tasks.keyParameter' | transloco }}</mat-label>
                     <mat-select formControlName="keyParameter">
                       <mat-option [value]="''">—</mat-option>
                       <mat-option *ngFor="let p of parameterDefs[i]" [value]="p.name">{{ p.name }}</mat-option>
                     </mat-select>
                   </mat-form-field>
                   <mat-form-field appearance="outline">
-                    <mat-label>Initial key</mat-label>
+                    <mat-label>{{ 'admin.tasks.initialKey' | transloco }}</mat-label>
                     <input matInput formControlName="initialKey" maxlength="500" placeholder="e.g. 0">
                   </mat-form-field>
                 </div>
@@ -299,23 +299,23 @@ import {
           <mat-card-title>Status visibility</mat-card-title>
           <mat-card-content>
             <mat-form-field appearance="outline" class="full">
-              <mat-label>Users who can view this task's status</mat-label>
+              <mat-label>{{ 'admin.tasks.viewers' | transloco }}</mat-label>
               <mat-select formControlName="viewerUserIds" multiple (selectionChange)="pruneDownloadUsers()">
                 <mat-option *ngFor="let u of users" [value]="u.id">
                   {{ u.username }}<span *ngIf="u.firstName || u.lastName"> — {{ u.firstName }} {{ u.lastName }}</span>
                 </mat-option>
               </mat-select>
-              <mat-hint>Admins and Auditors always see every task.</mat-hint>
+              <mat-hint>{{ 'admin.tasks.viewersHint' | transloco }}</mat-hint>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full">
-              <mat-label>Viewers who can also download the output files</mat-label>
+              <mat-label>{{ 'admin.tasks.downloaders' | transloco }}</mat-label>
               <mat-select formControlName="downloadUserIds" multiple>
                 <mat-option *ngFor="let u of viewerUsers" [value]="u.id">
                   {{ u.username }}<span *ngIf="u.firstName || u.lastName"> — {{ u.firstName }} {{ u.lastName }}</span>
                 </mat-option>
               </mat-select>
-              <mat-hint>Pick from the viewers above. Admins can always download; Auditors cannot.</mat-hint>
+              <mat-hint>{{ 'admin.tasks.downloadersHint' | transloco }}</mat-hint>
             </mat-form-field>
           </mat-card-content>
         </mat-card>
@@ -326,7 +326,7 @@ import {
           <button mat-raised-button color="primary" type="submit" [disabled]="saving">
             <mat-icon>save</mat-icon> {{ saving ? 'Saving…' : 'Save' }}
           </button>
-          <button mat-button type="button" routerLink="/admin/scheduled-tasks">Cancel</button>
+          <button mat-button type="button" routerLink="/admin/scheduled-tasks">{{ 'common.cancel' | transloco }}</button>
         </div>
       </form>
     </div>
@@ -506,7 +506,7 @@ export class ScheduledTaskFormComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err, 'Failed to load queries/users');
+        this.toast.error(err, 'admin.tasks.lookupsFailed');
         this.cdr.detectChanges();
       }
     });
@@ -570,7 +570,7 @@ export class ScheduledTaskFormComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err, 'Failed to load the scheduled task');
+        this.toast.error(err, 'admin.tasks.loadOneFailed');
         this.router.navigate(['/admin/scheduled-tasks']);
         this.cdr.detectChanges();
       }
@@ -769,13 +769,13 @@ export class ScheduledTaskFormComponent implements OnInit {
     call.subscribe({
       next: () => {
         this.saving = false;
-        this.toast.success('Scheduled task saved');
+        this.toast.success('admin.tasks.saved');
         this.router.navigate(['/admin/scheduled-tasks']);
         this.cdr.detectChanges();
       },
       error: (err) => {
         this.saving = false;
-        this.toast.error(err, 'Failed to save the scheduled task', 6000);
+        this.toast.error(err, 'admin.tasks.saveFailed', 6000);
         this.cdr.detectChanges();
       }
     });

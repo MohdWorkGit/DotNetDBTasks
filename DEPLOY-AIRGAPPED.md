@@ -331,6 +331,17 @@ Then commit/copy the `offline-nuget` folder alongside the source. Restore uses o
 
 ## B3 — npm Packages (offline)
 
+> **If you prepared a bundle before Arabic/RTL support was added, regenerate it.** Localization
+> introduced two new runtime dependencies — `@jsverse/transloco` and `@fontsource/cairo` — so an
+> older `npm-cache` will fail `npm ci --offline` with a missing-package error. Re-run
+> `scripts/prepare-offline-bundle.ps1 -Clean -IncludeBuild` on the online machine.
+>
+> Both are deliberately npm packages rather than CDN links: the Arabic font must ship inside the
+> bundle, exactly like the existing `@fontsource/inter` and `@fontsource/roboto` imports in
+> `client/src/styles.scss`. Nothing in the UI fetches a font or a translation file from the
+> internet — the `ar.json` / `en.json` catalogs are served as static assets from the app's own
+> `assets/i18n/` folder.
+
 The repo's `client/node_modules/` is already populated, **but it contains native, platform-specific binaries**
 (`@rollup/rollup-win32-x64-msvc`, `@napi-rs/nice-win32-x64-msvc`, `lmdb`, …). How you carry npm depends on
 whether the target OS/arch matches.

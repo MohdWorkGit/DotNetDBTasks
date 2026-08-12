@@ -9,6 +9,7 @@ import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { AuthService } from '@core/services/auth.service';
 import { QueryGroup } from '@core/models/dynamic-query.model';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
   standalone: false,
@@ -16,10 +17,10 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
   template: `
     <div class="container">
       <div class="header">
-        <h2>Query Groups</h2>
+        <h2>{{ 'admin.groups.title' | transloco }}</h2>
         <button mat-raised-button color="primary" routerLink="/admin/query-groups/create"
                 *ngIf="authService.isAdmin()">
-          <mat-icon>add</mat-icon> Create Group
+          <mat-icon>add</mat-icon> {{ 'admin.groups.create' | transloco }}
         </button>
       </div>
 
@@ -31,8 +32,8 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
 
           <div *ngIf="!loading" class="table-toolbar">
             <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Filter groups</mat-label>
-              <input matInput (keyup)="applyFilter($event)" placeholder="Search by name or description">
+              <mat-label>{{ 'admin.groups.filter' | transloco }}</mat-label>
+              <input matInput (keyup)="applyFilter($event)" [attr.placeholder]="'admin.groups.filterPlaceholder' | transloco">
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
           </div>
@@ -40,36 +41,36 @@ import { QueryGroup } from '@core/models/dynamic-query.model';
           <div class="table-wrapper">
           <table mat-table [dataSource]="dataSource" matSort *ngIf="!loading">
             <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-              <td mat-cell *matCellDef="let g">{{ g.name }}</td>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.groups.name' | transloco }}</th>
+              <td mat-cell *matCellDef="let g" dir="auto">{{ g.name }}</td>
             </ng-container>
 
             <ng-container matColumnDef="description">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Description</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.groups.description' | transloco }}</th>
               <td mat-cell *matCellDef="let g">{{ g.description | slice:0:80 }}{{ g.description?.length > 80 ? '…' : '' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="queryCount">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Queries</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.groups.queries' | transloco }}</th>
               <td mat-cell *matCellDef="let g">
                 <a class="count-link" [routerLink]="['/admin/queries']" [queryParams]="{ group: g.name }"
-                   matTooltip="View this group's queries">{{ g.queryCount }}</a>
+                   [matTooltip]="'admin.groups.viewQueries' | transloco">{{ g.queryCount }}</a>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | transloco }}</th>
               <td mat-cell *matCellDef="let g">
-                <button mat-icon-button matTooltip="Edit" aria-label="Edit"
+                <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
                         [routerLink]="['/admin/query-groups/edit', g.id]"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Manage Access" aria-label="Manage Access"
+                <button mat-icon-button [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
                         [routerLink]="['/admin/query-groups', g.id, 'access']">
                   <mat-icon>security</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Delete" aria-label="Delete" color="warn"
+                <button mat-icon-button [matTooltip]="'common.delete' | transloco" [attr.aria-label]="'common.delete' | transloco" color="warn"
                         (click)="deleteGroup(g.id, g.name)"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>delete</mat-icon>
@@ -113,6 +114,7 @@ export class QueryGroupsListComponent implements OnInit {
     public authService: AuthService,
     private toast: ToastService,
     private confirmService: ConfirmService,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -156,7 +158,7 @@ export class QueryGroupsListComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err, 'Failed to load query groups');
+        this.toast.error(err, 'admin.groups.loadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -169,19 +171,19 @@ export class QueryGroupsListComponent implements OnInit {
 
   deleteGroup(id: string, name: string): void {
     this.confirmService.askThen({
-      title: 'Delete query group?',
-      message: `"${name}" will be deleted. Queries inside the group will remain but become `
-        + 'ungrouped. This cannot be undone.',
-      confirmText: 'Delete',
+      titleKey: 'admin.groups.deleteTitle',
+      messageKey: 'admin.groups.deleteMessage',
+      params: { name },
+      confirmText: this.transloco.translate('common.delete'),
       destructive: true
     }, () => {
       this.queryService.deleteQueryGroup(id).subscribe({
         next: () => {
-          this.toast.success('Group deleted');
+          this.toast.success('admin.groups.deleted');
           this.load();
         },
         error: (err) => {
-          this.toast.error(err, 'Failed to delete group');
+          this.toast.error(err, 'admin.groups.deleteFailed');
         }
       });
     });

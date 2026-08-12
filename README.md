@@ -96,6 +96,48 @@ Seeded accounts (development only — change or remove before deploying):
 `admin` / `Admin@123`, `user` / `User@123`, `auditor` / `Auditor@123`,
 `accessmanager` / `Access@123`.
 
+## Localization (English / Arabic)
+
+The UI ships in English and Arabic, switchable at runtime from the toolbar (and from the login
+page, so someone who cannot read the English form can switch before signing in). One build serves
+both — there is no per-locale bundle and no nginx locale routing.
+
+| Layer | Mechanism |
+|---|---|
+| Client strings | [Transloco](https://jsverse.github.io/transloco/) — `client/src/assets/i18n/{en,ar}.json` |
+| Active locale + direction | `core/services/language.service.ts`, modelled on `ThemeService`; sets `lang`/`dir` on `<html>` |
+| Angular Material mirroring | Driven by `dir` on `<html>` via `@angular/cdk/bidi` — no per-component RTL config |
+| Server messages | `Resources/Messages.resx` / `Messages.ar.resx` + `IAppLocalizer`, selected by `Accept-Language` |
+| Arabic typography | Cairo via `@fontsource/cairo`, `line-height: 1.75` under `:root[lang='ar']` |
+
+Adding a string: put the key in **both** `en.json` and `ar.json` and reference it with the
+`transloco` pipe. `ToastService` and `ConfirmService` resolve keys themselves, so a message is
+`toast.success('admin.users.created')` — no component injects `TranslocoService` just to show one.
+
+Four conventions that are easy to get wrong:
+
+- **Never concatenate a translated fragment with a variable.** Use interpolation
+  (`'admin.users.greeting' | transloco: { name }`), because word order differs between the two
+  languages and concatenation bakes in English order.
+- **Wrap embedded LTR values in bidi isolates.** Arabic catalog entries carrying a username, file
+  name or host use `⁨{{param}}⁩` (U+2068 / U+2069). In templates, an element attribute works too —
+  `<span dir="ltr">`— but attributes are invisible inside an `aria-label`, where only the isolate
+  characters survive.
+- **Content the app did not author gets `dir="auto"`.** Query names, group names, descriptions and
+  every result-grid cell: this database already holds a query named `كل المستخدمين`, and it has to
+  render correctly in the English UI too. Conversely SQL, connection strings and paths take
+  `.force-ltr`, never `auto`.
+- **Use CSS logical properties.** `margin-inline-start`, not `margin-left`; `text-align: start`,
+  not `left`. CI-style gate: `grep -rE 'margin-left|margin-right|padding-left|padding-right' client/src`
+  must return nothing.
+
+Technical vocabulary stays in Latin script inside Arabic text — SQL, API, LDAP, Active Directory,
+CSV/XLSX, and the role names `Admin` / `Auditor` / `AccessManager` — because transliterating them
+makes the UI harder for the technical audience that uses it.
+
+**Not covered:** Arabic-Indic numerals, Hijri dates, and RTL layout inside exported
+PDF/Word/Excel files (export rendering goes through LibreOffice/Word templates).
+
 ## Quick Start with Docker
 
 ### Prerequisites

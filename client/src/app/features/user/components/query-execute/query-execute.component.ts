@@ -7,6 +7,7 @@ import { ToastService } from '@core/services/toast.service';
 import { forkJoin, of, throwError, Subject, Subscription } from 'rxjs';
 import { catchError, debounceTime, switchMap, timeout } from 'rxjs/operators';
 import { ExportFormat, QueryService } from '@core/services/query.service';
+import { TranslocoService } from '@jsverse/transloco';
 import {
   DropdownOption,
   DynamicQuery,
@@ -29,22 +30,22 @@ import {
         <mat-card-content>
           <p>{{ queryError }}</p>
           <button mat-raised-button color="primary" (click)="loadQuery()">
-            <mat-icon>refresh</mat-icon> Retry
+            <mat-icon>refresh</mat-icon> {{ 'common.retry' | transloco }}
           </button>
         </mat-card-content>
       </mat-card>
 
-      <h2 *ngIf="query">{{ query.name }}</h2>
-      <p *ngIf="query" class="description">{{ query.description }}</p>
+      <h2 *ngIf="query" dir="auto">{{ query.name }}</h2>
+      <p *ngIf="query" class="description" dir="auto">{{ query.description }}</p>
 
       <mat-card *ngIf="query">
         <mat-card-header>
-          <mat-card-title>Parameters</mat-card-title>
+          <mat-card-title>{{ 'user.execute.parameters' | transloco }}</mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <div *ngIf="loadingDropdowns" class="loading-hint">
             <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-            <p>Loading dropdown options...</p>
+            <p>{{ 'user.execute.loadingOptions' | transloco }}</p>
           </div>
 
           <form [formGroup]="form" (ngSubmit)="execute()">
@@ -120,13 +121,11 @@ import {
             <div *ngIf="allowsSkipPreview" class="skip-preview">
               <mat-checkbox [(ngModel)]="skipPreview" [ngModelOptions]="{ standalone: true }"
                             [disabled]="executing">
-                Run directly without preview
+                {{ 'user.execute.runWithoutPreview' | transloco }}
               </mat-checkbox>
               <p class="skip-preview-note" [class.armed]="skipPreview">
                 <mat-icon inline>{{ skipPreview ? 'warning' : 'info' }}</mat-icon>
-                {{ skipPreview
-                    ? 'Changes will be committed immediately with no confirmation step.'
-                    : 'Skips the row preview and commits immediately — faster, but there is no confirmation step.' }}
+                {{ (skipPreview ? 'user.execute.skipPreviewArmed' : 'user.execute.skipPreviewHint') | transloco }}
               </p>
             </div>
 
@@ -136,18 +135,20 @@ import {
                       [disabled]="form.invalid || executing || loadingDropdowns">
                 <mat-icon>play_arrow</mat-icon>
                 {{ executing
-                    ? (query.isLongRunning ? 'Executing… ' + formatElapsed(elapsedSeconds) : 'Executing…')
-                    : (willSkipPreview ? 'Run & Commit' : 'Execute Query') }}
+                    ? (query.isLongRunning
+                        ? ('user.execute.executingElapsed' | transloco: { elapsed: formatElapsed(elapsedSeconds) })
+                        : ('user.execute.executing' | transloco))
+                    : ((willSkipPreview ? 'user.execute.runAndCommit' : 'user.execute.executeQuery') | transloco) }}
               </button>
               <button mat-stroked-button color="warn" type="button"
                       *ngIf="executing && query.isLongRunning" (click)="cancelExecution()">
-                <mat-icon>cancel</mat-icon> Cancel
+                <mat-icon>cancel</mat-icon> {{ 'common.cancel' | transloco }}
               </button>
               <button mat-stroked-button type="button"
                       *ngIf="result && result.columns.length > 0 && result.jobId"
                       [matMenuTriggerFor]="exportMenu" [disabled]="exporting">
                 <mat-icon>download</mat-icon>
-                {{ exporting ? 'Exporting…' : 'Export' }}
+                {{ (exporting ? 'user.execute.exporting' : 'user.execute.export') | transloco }}
                 <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
               </button>
               <mat-menu #exportMenu="matMenu">
@@ -175,22 +176,22 @@ import {
       <mat-card *ngIf="pendingPreview" class="confirm-card">
         <mat-card-header>
           <mat-icon mat-card-avatar class="warn-icon">warning</mat-icon>
-          <mat-card-title>Confirm changes</mat-card-title>
-          <mat-card-subtitle>This query will modify data. Review before committing.</mat-card-subtitle>
+          <mat-card-title>{{ 'user.execute.confirmTitle' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'user.execute.confirmSubtitle' | transloco }}</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <p>
-            <strong>{{ pendingPreview.affectedRows }}</strong>
-            {{ pendingPreview.affectedRows === 1 ? 'row' : 'rows' }} will be affected.
-            The change has not been committed yet.
+            {{ (pendingPreview.affectedRows === 1
+                  ? 'user.execute.willAffectOne'
+                  : 'user.execute.willAffectMany') | transloco: { count: pendingPreview.affectedRows } }}
           </p>
           <div *ngIf="pendingPreview.previewRows && pendingPreview.previewRows.length > 0"
                class="preview-table-wrapper">
-            <p class="preview-table-title">Rows that will be affected:</p>
+            <p class="preview-table-title">{{ 'user.execute.rowsAffectedTitle' | transloco }}</p>
             <table mat-table [dataSource]="pendingPreview.previewRows" class="preview-table">
               <ng-container *ngFor="let col of pendingPreview.previewColumns || []" [matColumnDef]="col">
                 <th mat-header-cell *matHeaderCellDef>{{ col }}</th>
-                <td mat-cell *matCellDef="let row">{{ row[col] }}</td>
+                <td mat-cell *matCellDef="let row" dir="auto">{{ row[col] }}</td>
               </ng-container>
               <tr mat-header-row *matHeaderRowDef="pendingPreview.previewColumns || []"></tr>
               <tr mat-row *matRowDef="let row; columns: pendingPreview.previewColumns || [];"></tr>
@@ -199,25 +200,25 @@ import {
         </mat-card-content>
         <mat-card-actions align="end">
           <button mat-stroked-button type="button" (click)="cancelConfirm()" [disabled]="executing">
-            Cancel
+            {{ 'common.cancel' | transloco }}
           </button>
           <button mat-raised-button color="warn" type="button" (click)="confirmExecute()" [disabled]="executing">
             <mat-icon>check</mat-icon>
-            {{ executing ? 'Committing...' : 'Confirm & Commit' }}
+            {{ (executing ? 'user.execute.committing' : 'user.execute.confirmAndCommit') | transloco }}
           </button>
         </mat-card-actions>
       </mat-card>
 
       <mat-card *ngIf="result" class="results-card">
         <mat-card-header>
-          <mat-card-title>Results</mat-card-title>
+          <mat-card-title>{{ 'user.execute.results' | transloco }}</mat-card-title>
           <mat-card-subtitle>
             <span *ngIf="result.columns.length > 0">
-              {{ result.totalRows }} rows returned in {{ result.executionDurationMs }}ms<span
-                *ngIf="filteredTotal !== result.totalRows"> · {{ filteredTotal }} match the filter</span>
+              {{ 'user.execute.rowsReturned' | transloco: { rows: result.totalRows, ms: result.executionDurationMs } }}<span
+                *ngIf="filteredTotal !== result.totalRows"> · {{ 'user.execute.matchFilter' | transloco: { count: filteredTotal } }}</span>
             </span>
             <span *ngIf="result.columns.length === 0">
-              {{ result.affectedRows }} rows affected in {{ result.executionDurationMs }}ms
+              {{ 'user.execute.rowsAffectedIn' | transloco: { rows: result.affectedRows, ms: result.executionDurationMs } }}
             </span>
           </mat-card-subtitle>
         </mat-card-header>
@@ -225,8 +226,7 @@ import {
           <div *ngIf="result.isLimitReached" class="limit-warning">
             <mat-icon>warning_amber</mat-icon>
             <span>
-              Only the first {{ result.totalRows }} rows are shown (display limit reached).
-              Use <strong>Export Excel</strong> to download the complete result set.
+              {{ 'user.execute.displayLimit' | transloco: { rows: result.totalRows } }}
             </span>
           </div>
 
@@ -236,15 +236,15 @@ import {
             <table mat-table [dataSource]="pageRows" matSort (matSortChange)="onSortChange($event)">
               <ng-container *ngFor="let col of result.columns" [matColumnDef]="col">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ col }}</th>
-                <td mat-cell *matCellDef="let row">{{ row[col] }}</td>
+                <td mat-cell *matCellDef="let row" dir="auto">{{ row[col] }}</td>
               </ng-container>
 
               <ng-container *ngFor="let col of result.columns" [matColumnDef]="'filter_' + col">
                 <th mat-header-cell *matHeaderCellDef>
                   <input class="col-filter-input"
                          [value]="columnFilters[col] || ''"
-                         placeholder="Filter..."
-                         [attr.aria-label]="'Filter by ' + col"
+                         [attr.placeholder]="'user.execute.filterPlaceholder' | transloco"
+                         [attr.aria-label]="'user.execute.filterBy' | transloco: { column: col }"
                          (input)="applyColumnFilter($event, col)" />
                 </th>
               </ng-container>
@@ -255,9 +255,9 @@ import {
 
               <tr class="mat-row no-data-row" *matNoDataRow>
                 <td class="mat-cell no-data-cell" [attr.colspan]="result.columns.length">
-                  {{ hasColumnFilters()
-                      ? 'No rows match the current column filters.'
-                      : 'Query returned no rows.' }}
+                  {{ (hasColumnFilters()
+                      ? 'user.execute.noRowsMatchFilters'
+                      : 'user.execute.noRows') | transloco }}
                 </td>
               </tr>
             </table>
@@ -265,7 +265,7 @@ import {
 
           <div *ngIf="result.columns.length === 0" class="non-query-result">
             <mat-icon>check_circle</mat-icon>
-            <p>Query executed successfully. {{ result.affectedRows }} rows affected.</p>
+            <p>{{ 'user.execute.successAffected' | transloco: { rows: result.affectedRows } }}</p>
           </div>
 
           <mat-paginator *ngIf="result.columns.length > 0"
@@ -334,7 +334,7 @@ import {
       gap: 6px;
     }
     .skip-preview-note.armed { color: var(--status-warning); font-weight: 500; }
-    .confirm-card { margin-top: 16px; border-left: 4px solid var(--status-warning); }
+    .confirm-card { margin-top: 16px; border-inline-start: 4px solid var(--status-warning); }
     .confirm-card .warn-icon {
       display: flex; align-items: center; justify-content: center;
       background: var(--status-warning); color: #fff; border-radius: 50%;
@@ -407,6 +407,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     private queryService: QueryService,
     private route: ActivatedRoute,
     private toast: ToastService,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -484,7 +485,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.loadingQuery = false;
-        this.queryError = err.error?.message || 'Failed to load query. Please try again.';
+        this.queryError = err.error?.message || this.transloco.translate('user.execute.loadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -675,7 +676,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.loadingRows = false;
-        this.toast.error(err, 'Failed to load results. The result may have expired — re-run the query.', 6000);
+        this.toast.error(err, 'user.execute.loadResultsFailed', 6000);
         this.cdr.detectChanges();
       }
     });
@@ -696,7 +697,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
 
   private handleError(err: any): void {
     this.stopExecuting();
-    this.toast.error(err, 'Query execution failed');
+    this.toast.error(err, 'user.execute.executionFailed');
     this.cdr.detectChanges();
   }
 
@@ -707,14 +708,10 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
     this.stopExecuting();
     if (jobId) {
       this.queryService.cancelJob(jobId).subscribe({
-        next: () => this.toast.success('Query canceled'),
+        next: () => this.toast.success('user.execute.canceled'),
         // The client already stopped polling, but the server-side query is still
         // holding a DB connection. Saying "canceled" here would be a lie.
-        error: (err) => this.toast.error(
-          err,
-          'Could not cancel the query on the server — it may still be running.',
-          6000
-        )
+        error: (err) => this.toast.error(err, 'user.execute.cancelFailed', 6000)
       });
     }
     this.cdr.detectChanges();
@@ -809,7 +806,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.exporting = false;
-        this.toast.error(err, 'Export failed. The result may have expired — re-run the query.', 6000);
+        this.toast.error(err, 'user.execute.exportFailed', 6000);
         this.cdr.detectChanges();
       }
     });

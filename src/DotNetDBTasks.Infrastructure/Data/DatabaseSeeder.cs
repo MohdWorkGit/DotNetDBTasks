@@ -250,9 +250,24 @@ public static class DatabaseSeeder
         "Manages which roles, departments and users may access queries and query groups";
 
     /// <summary>
-    /// Inserts any seeded role missing from an already-populated database. Existing rows are
-    /// left untouched, including their descriptions, so an operator's edits survive a restart.
-    /// No user is attached to a backfilled role — an administrator assigns it.
+    /// Descriptions shipped by earlier versions whose wording no longer matches what the role
+    /// can do. A row still carrying one of these verbatim has never been edited, so replacing
+    /// it corrects the text without overwriting anything an operator wrote themselves.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> SupersededDescriptions = new()
+    {
+        [RoleNames.Auditor] = new[]
+        {
+            // Pre-dates the split that moved accessibility management to AccessManager.
+            "Auditor with access to execution logs and query accessibility management"
+        }
+    };
+
+    /// <summary>
+    /// Inserts any seeded role missing from an already-populated database, and refreshes
+    /// descriptions still carrying superseded wording. Any other existing text is left alone,
+    /// so an operator's edits survive a restart. No user is attached to a backfilled role —
+    /// an administrator assigns it.
     /// </summary>
     private static async Task EnsureRolesExistAsync(ApplicationDbContext context, ILogger logger)
     {
@@ -264,9 +279,11 @@ public static class DatabaseSeeder
             (RoleNames.AccessManager, AccessManagerRoleDescription)
         };
 
-        var existing = await context.Roles.Select(r => r.Name).ToListAsync();
+        var existing = await context.Roles.ToListAsync();
+        var existingNames = existing.Select(r => r.Name).ToHashSet();
+
         var missing = expected
-            .Where(e => !existing.Contains(e.Name))
+            .Where(e => !existingNames.Contains(e.Name))
             .Select(e => new Role
             {
                 Id = Guid.NewGuid(),
@@ -276,13 +293,31 @@ public static class DatabaseSeeder
             })
             .ToList();
 
-        if (missing.Count == 0)
+        var reworded = new List<string>();
+        foreach (var (name, description) in expected)
+        {
+            var role = existing.FirstOrDefault(r => r.Name == name);
+            if (role?.Description is null
+                || !SupersededDescriptions.TryGetValue(name, out var stale)
+                || !stale.Contains(role.Description))
+                continue;
+
+            role.Description = description;
+            reworded.Add(name);
+        }
+
+        if (missing.Count == 0 && reworded.Count == 0)
             return;
 
         context.Roles.AddRange(missing);
         await context.SaveChangesAsync();
-        logger.LogInformation("Added missing role(s): {Roles}.",
-            string.Join(", ", missing.Select(r => r.Name)));
+
+        if (missing.Count > 0)
+            logger.LogInformation("Added missing role(s): {Roles}.",
+                string.Join(", ", missing.Select(r => r.Name)));
+        if (reworded.Count > 0)
+            logger.LogInformation("Refreshed superseded description(s) for role(s): {Roles}.",
+                string.Join(", ", reworded));
     }
 
     /// <summary>

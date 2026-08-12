@@ -28,15 +28,18 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly AdminAccountGuard _adminGuard;
+    private readonly IAppLocalizer _messages;
 
     public ChangePasswordCommandHandler(
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
-        AdminAccountGuard adminGuard)
+        AdminAccountGuard adminGuard,
+        IAppLocalizer messages)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _adminGuard = adminGuard;
+        _messages = messages;
     }
 
     public async Task Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
@@ -48,7 +51,7 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         await _adminGuard.EnsureCanModifyUserAsync(request.UserId, cancellationToken);
 
         if (user.AuthSource == AuthSource.Ldap)
-            throw new DomainException("Cannot change password for LDAP users. Passwords are managed by Active Directory.");
+            throw new DomainException(_messages[MessageKeys.LdapPasswordImmutable]);
 
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;

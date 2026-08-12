@@ -4,6 +4,7 @@ import { AuthService } from '@core/services/auth.service';
 import { ConfirmService } from '@core/services/confirm.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
 import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled-task.model';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
   standalone: false,
@@ -11,10 +12,10 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
   template: `
     <div class="container">
       <div class="header">
-        <h2>Scheduled Tasks</h2>
+        <h2>{{ 'admin.tasks.title' | transloco }}</h2>
         <button mat-raised-button color="primary" routerLink="/admin/scheduled-tasks/create"
                 *ngIf="authService.isAdmin()">
-          <mat-icon>add_alarm</mat-icon> Create Task
+          <mat-icon>add_alarm</mat-icon> {{ 'admin.tasks.create' | transloco }}
         </button>
       </div>
 
@@ -27,20 +28,20 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
           <div class="table-wrapper">
           <table mat-table [dataSource]="tasks" *ngIf="!loading">
             <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef>Name</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'admin.tasks.name' | transloco }}</th>
               <td mat-cell *matCellDef="let t">
-                <div class="task-name">{{ t.name }}</div>
+                <div class="task-name" dir="auto">{{ t.name }}</div>
                 <div class="task-sub">{{ t.items.length }} quer{{ t.items.length === 1 ? 'y' : 'ies' }} → {{ t.outputFolder }}<span *ngIf="t.archiveFolder"> (+ {{ t.archiveFolder }})</span></div>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="schedule">
-              <th mat-header-cell *matHeaderCellDef>Schedule</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'admin.tasks.schedule' | transloco }}</th>
               <td mat-cell *matCellDef="let t">{{ describe(t) }}</td>
             </ng-container>
 
             <ng-container matColumnDef="enabled">
-              <th mat-header-cell *matHeaderCellDef>Enabled</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'admin.tasks.enabled' | transloco }}</th>
               <td mat-cell *matCellDef="let t">
                 <mat-icon [class.enabled]="t.isEnabled" [class.disabled]="!t.isEnabled"
                           [matTooltip]="t.isEnabled ? 'Enabled' : 'Disabled'"
@@ -52,14 +53,14 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
             </ng-container>
 
             <ng-container matColumnDef="nextRun">
-              <th mat-header-cell *matHeaderCellDef>Next Run</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'admin.tasks.nextRun' | transloco }}</th>
               <td mat-cell *matCellDef="let t">
                 {{ t.isEnabled && t.nextRunAt ? (asDate(t.nextRunAt) | date:'medium') : '—' }}
               </td>
             </ng-container>
 
             <ng-container matColumnDef="lastRun">
-              <th mat-header-cell *matHeaderCellDef>Last Run</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'admin.tasks.lastRun' | transloco }}</th>
               <td mat-cell *matCellDef="let t">
                 <ng-container *ngIf="t.lastRun; else never">
                   <span class="status" [ngClass]="'status-' + t.lastRun.status">
@@ -72,23 +73,23 @@ import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled
             </ng-container>
 
             <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | transloco }}</th>
               <td mat-cell *matCellDef="let t">
-                <button mat-icon-button matTooltip="Run now" aria-label="Run now" (click)="runNow(t)"
+                <button mat-icon-button [matTooltip]="'admin.tasks.runNow' | transloco" [attr.aria-label]="'admin.tasks.runNow' | transloco" (click)="runNow(t)"
                         *ngIf="authService.isAdmin()"
                         [disabled]="runningIds.has(t.id)">
                   <mat-icon>play_arrow</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Run history" aria-label="Run history"
+                <button mat-icon-button [matTooltip]="'admin.tasks.runHistory' | transloco" [attr.aria-label]="'admin.tasks.runHistory' | transloco"
                         [routerLink]="['/admin/scheduled-tasks', t.id, 'runs']">
                   <mat-icon>history</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Edit" aria-label="Edit"
+                <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
                         *ngIf="authService.isAdmin()"
                         [routerLink]="['/admin/scheduled-tasks/edit', t.id]">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Delete" aria-label="Delete" color="warn"
+                <button mat-icon-button [matTooltip]="'common.delete' | transloco" [attr.aria-label]="'common.delete' | transloco" color="warn"
                         *ngIf="authService.isAdmin()" (click)="deleteTask(t)">
                   <mat-icon>delete</mat-icon>
                 </button>
@@ -129,6 +130,7 @@ export class ScheduledTasksListComponent implements OnInit {
     private scheduledTaskService: ScheduledTaskService,
     private toast: ToastService,
     private confirmService: ConfirmService,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -182,10 +184,10 @@ export class ScheduledTasksListComponent implements OnInit {
 
   deleteTask(task: ScheduledTask): void {
     this.confirmService.askThen({
-      title: 'Delete scheduled task?',
-      message: `"${task.name}" and its entire run history will be permanently deleted. `
-        + 'This cannot be undone.',
-      confirmText: 'Delete',
+      titleKey: 'admin.tasks.deleteTitle',
+      messageKey: 'admin.tasks.deleteMessage',
+      params: { name: task.name },
+      confirmText: this.transloco.translate('common.delete'),
       destructive: true
     }, () => {
       this.scheduledTaskService.delete(task.id).subscribe({

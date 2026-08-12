@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a2c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a2c561934e089</value>
+  </resheader>
+
+  <!-- Users -->
+  <data name="UsernameTaken" xml:space="preserve">
+    <value>Username '{0}' is already taken.</value>
+  </data>
+  <data name="EmailInUse" xml:space="preserve">
+    <value>Email '{0}' is already in use.</value>
+  </data>
+  <data name="CannotChangeOwnRoles" xml:space="preserve">
+    <value>You cannot change your own roles.</value>
+  </data>
+  <data name="OnlyAdminCanModifyAdmin" xml:space="preserve">
+    <value>Only an administrator can modify an administrator account.</value>
+  </data>
+  <data name="OnlyAdminCanGrantAdmin" xml:space="preserve">
+    <value>Only an administrator can grant the Admin role.</value>
+  </data>
+  <data name="CannotRemoveLastAdmin" xml:space="preserve">
+    <value>Cannot remove the Admin role from the last active administrator.</value>
+  </data>
+  <data name="LdapUsernameImmutable" xml:space="preserve">
+    <value>Cannot change username for LDAP users. Usernames are managed by Active Directory.</value>
+  </data>
+  <data name="LdapPasswordImmutable" xml:space="preserve">
+    <value>Cannot change password for LDAP users. Passwords are managed by Active Directory.</value>
+  </data>
+  <data name="LdapPasswordResetUnavailable" xml:space="preserve">
+    <value>Cannot reset password for LDAP users. Passwords are managed by Active Directory.</value>
+  </data>
+
+  <!-- Query access -->
+  <data name="NoAccessToQuery" xml:space="preserve">
+    <value>You do not have access to this query.</value>
+  </data>
+  <data name="QueryDisabled" xml:space="preserve">
+    <value>This query is currently disabled.</value>
+  </data>
+  <data name="NoAccessToDatabaseUser" xml:space="preserve">
+    <value>You do not have access to database user '{0}'.</value>
+  </data>
+  <data name="NoAccessToScheduledTask" xml:space="preserve">
+    <value>You do not have access to this scheduled task.</value>
+  </data>
+  <data name="NoPermissionToDownloadTaskFiles" xml:space="preserve">
+    <value>You do not have permission to download this task's files.</value>
+  </data>
+
+  <!-- Saving / database -->
+  <data name="SaveFailed" xml:space="preserve">
+    <value>The change could not be saved.</value>
+  </data>
+  <data name="SaveFailedDetail" xml:space="preserve">
+    <value>The change could not be saved: {0}</value>
+  </data>
+  <data name="DuplicateValue" xml:space="preserve">
+    <value>That value is already used by another record: {0}</value>
+  </data>
+  <data name="RequiredFieldEmpty" xml:space="preserve">
+    <value>A required field was left empty: {0}</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>An unexpected error occurred.</value>
+  </data>
+  <data name="ValidationFailed" xml:space="preserve">
+    <value>Validation failed.</value>
+  </data>
+  <data name="OperationCancelled" xml:space="preserve">
+    <value>The operation was cancelled.</value>
+  </data>
+
+  <!-- Active Directory -->
+  <data name="AdUnreachable" xml:space="preserve">
+    <value>Active Directory at {0} could not be reached while {1}. {2}</value>
+  </data>
+  <data name="AdOpSearching" xml:space="preserve">
+    <value>searching for "{0}"</value>
+  </data>
+  <data name="AdOpListingDepartments" xml:space="preserve">
+    <value>listing departments</value>
+  </data>
+  <data name="AdOpListingMembers" xml:space="preserve">
+    <value>listing members of "{0}"</value>
+  </data>
+  <data name="ImportLocalAccountExists" xml:space="preserve">
+    <value>A local account named "{0}" already exists.</value>
+  </data>
+  <data name="ImportEmailClashInBatch" xml:space="preserve">
+    <value>Another account in this same import already uses {0}.</value>
+  </data>
+  <data name="ImportEmailTaken" xml:space="preserve">
+    <value>The email {0} is already used by another account.</value>
+  </data>
+  <data name="ImportSummaryImported" xml:space="preserve">
+    <value>{0} imported</value>
+  </data>
+  <data name="ImportSummaryAlreadyPresent" xml:space="preserve">
+    <value>{0} already present</value>
+  </data>
+  <data name="ImportSummaryNotFound" xml:space="preserve">
+    <value>{0} not found in the directory</value>
+  </data>
+  <data name="ImportSummarySkipped" xml:space="preserve">
+    <value>{0} skipped</value>
+  </data>
+  <data name="ImportSummaryMore" xml:space="preserve">
+    <value>(+{0} more)</value>
+  </data>
+  <data name="ImportNoDepartmentMatches" xml:space="preserve">
+    <value>No accounts found in the directory for department "{0}".</value>
+  </data>
+</root>

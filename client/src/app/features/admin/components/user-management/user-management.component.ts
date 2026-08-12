@@ -15,6 +15,7 @@ import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { SystemUser, Role } from '@core/models/dynamic-query.model';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
   standalone: false,
@@ -22,43 +23,43 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
   template: `
     <div class="container">
       <div class="header">
-        <h2>User Management</h2>
+        <h2>{{ 'admin.users.title' | transloco }}</h2>
         <button mat-raised-button color="primary" (click)="showCreateForm = true" *ngIf="!showCreateForm">
-          <mat-icon>person_add</mat-icon> Create User
+          <mat-icon>person_add</mat-icon> {{ 'admin.users.createUser' | transloco }}
         </button>
       </div>
 
       <!-- Create User Form -->
       <mat-card *ngIf="showCreateForm" class="form-card">
         <mat-card-header>
-          <mat-card-title>Create New User</mat-card-title>
+          <mat-card-title>{{ 'admin.users.createTitle' | transloco }}</mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <form [formGroup]="createForm" (ngSubmit)="createUser()">
             <div class="form-row">
               <mat-form-field appearance="outline">
-                <mat-label>Username</mat-label>
+                <mat-label>{{ 'admin.users.username' | transloco }}</mat-label>
                 <input matInput formControlName="username">
                 <mat-error *ngIf="createForm.get('username')?.hasError('required')">Username is required</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Email (optional)</mat-label>
+                <mat-label>{{ 'admin.users.emailOptional' | transloco }}</mat-label>
                 <input matInput formControlName="email" type="email">
-                <mat-hint>Leave blank if the user has no address</mat-hint>
+                <mat-hint>{{ 'admin.users.emailHint' | transloco }}</mat-hint>
                 <mat-error *ngIf="createForm.get('email')?.hasError('email')">Invalid email</mat-error>
               </mat-form-field>
             </div>
 
             <div class="form-row">
               <mat-form-field appearance="outline">
-                <mat-label>First Name</mat-label>
+                <mat-label>{{ 'admin.users.firstName' | transloco }}</mat-label>
                 <input matInput formControlName="firstName">
                 <mat-error *ngIf="createForm.get('firstName')?.hasError('required')">First name is required</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Last Name</mat-label>
+                <mat-label>{{ 'admin.users.lastName' | transloco }}</mat-label>
                 <input matInput formControlName="lastName">
                 <mat-error *ngIf="createForm.get('lastName')?.hasError('required')">Last name is required</mat-error>
               </mat-form-field>
@@ -66,20 +67,20 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
 
             <div class="form-row">
               <mat-form-field appearance="outline">
-                <mat-label>Password</mat-label>
+                <mat-label>{{ 'admin.users.password' | transloco }}</mat-label>
                 <input matInput formControlName="password" type="password">
                 <mat-error *ngIf="createForm.get('password')?.hasError('required')">Password is required</mat-error>
                 <mat-error *ngIf="createForm.get('password')?.hasError('minlength')">Minimum 6 characters</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Department</mat-label>
+                <mat-label>{{ 'admin.users.department' | transloco }}</mat-label>
                 <input matInput formControlName="department">
               </mat-form-field>
             </div>
 
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Roles</mat-label>
+              <mat-label>{{ 'admin.users.roles' | transloco }}</mat-label>
               <mat-select formControlName="roleIds" multiple>
                 <mat-option *ngFor="let role of roles" [value]="role.id">{{ roleLabel(role.name) }}</mat-option>
               </mat-select>
@@ -87,10 +88,10 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
             </mat-form-field>
 
             <div class="form-actions">
-              <button mat-button type="button" (click)="cancelCreate()">Cancel</button>
+              <button mat-button type="button" (click)="cancelCreate()">{{ 'common.cancel' | transloco }}</button>
               <button mat-raised-button color="primary" type="submit"
                       [disabled]="createForm.invalid || saving">
-                {{ saving ? 'Creating...' : 'Create User' }}
+                {{ (saving ? 'admin.users.creating' : 'admin.users.createUser') | transloco }}
               </button>
             </div>
           </form>
@@ -104,24 +105,24 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
 
       <div *ngIf="!loading" class="table-wrapper">
         <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Filter users</mat-label>
-          <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, username, email...">
+          <mat-label>{{ 'admin.users.filter' | transloco }}</mat-label>
+          <input matInput (keyup)="applyFilter($event)" [attr.placeholder]="'admin.users.filterPlaceholder' | transloco">
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
 
         <table mat-table [dataSource]="dataSource" matSort class="full-width">
           <ng-container matColumnDef="username">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Username</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.username' | transloco }}</th>
             <td mat-cell *matCellDef="let user">{{ user.username }}</td>
           </ng-container>
 
           <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.name' | transloco }}</th>
             <td mat-cell *matCellDef="let user">{{ user.firstName }} {{ user.lastName }}</td>
           </ng-container>
 
           <ng-container matColumnDef="email">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.email' | transloco }}</th>
             <td mat-cell *matCellDef="let user">
               <span *ngIf="user.email; else noEmail">{{ user.email }}</span>
               <ng-template #noEmail><span class="no-value">&mdash;</span></ng-template>
@@ -129,7 +130,7 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
           </ng-container>
 
           <ng-container matColumnDef="roles">
-            <th mat-header-cell *matHeaderCellDef>Roles</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'admin.users.roles' | transloco }}</th>
             <td mat-cell *matCellDef="let user">
               <mat-chip-listbox>
                 <mat-chip *ngFor="let role of user.roles" [class.admin-chip]="role === 'Admin'">
@@ -140,25 +141,25 @@ import { SystemUser, Role } from '@core/models/dynamic-query.model';
           </ng-container>
 
           <ng-container matColumnDef="authSource">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Auth Source</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.authSource' | transloco }}</th>
             <td mat-cell *matCellDef="let user">{{ user.authSource }}</td>
           </ng-container>
 
           <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.status' | transloco }}</th>
             <td mat-cell *matCellDef="let user">
               <mat-chip-listbox>
                 <mat-chip [class.active]="user.isActive" [class.inactive]="!user.isActive">
-                  {{ user.isActive ? 'Active' : 'Inactive' }}
+                  {{ (user.isActive ? 'common.active' : 'common.inactive') | transloco }}
                 </mat-chip>
               </mat-chip-listbox>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | transloco }}</th>
             <td mat-cell *matCellDef="let user">
-              <button mat-icon-button [matMenuTriggerFor]="actionMenu" matTooltip="Actions" aria-label="Actions">
+              <button mat-icon-button [matMenuTriggerFor]="actionMenu" [matTooltip]="'common.actions' | transloco" [attr.aria-label]="'common.actions' | transloco">
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #actionMenu="matMenu">
@@ -248,6 +249,7 @@ export class UserManagementComponent implements OnInit {
     private confirmService: ConfirmService,
     private dialog: MatDialog,
     private fb: FormBuilder,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -292,7 +294,7 @@ export class UserManagementComponent implements OnInit {
         this.dataSource.sortingDataAccessor = (item: SystemUser, property: string) => {
           switch (property) {
             case 'name': return `${item.firstName} ${item.lastName}`;
-            case 'status': return item.isActive ? 'Active' : 'Inactive';
+            case 'status': return this.transloco.translate(item.isActive ? 'common.active' : 'common.inactive');
             default: return (item as any)[property];
           }
         };
@@ -309,7 +311,7 @@ export class UserManagementComponent implements OnInit {
         });
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to load users');
+        this.toast.error(err, 'admin.users.loadFailed');
         this.loading = false;
         this.cdr.detectChanges();
       }
@@ -326,14 +328,14 @@ export class UserManagementComponent implements OnInit {
     this.saving = true;
     this.queryService.createUser(this.createForm.value).subscribe({
       next: () => {
-        this.toast.success('User created successfully');
+        this.toast.success('admin.users.created');
         this.saving = false;
         this.showCreateForm = false;
         this.createForm.reset();
         this.loadUsers();
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to create user');
+        this.toast.error(err, 'admin.users.createFailed');
         this.saving = false;
       }
     });
@@ -389,10 +391,10 @@ export class UserManagementComponent implements OnInit {
 
   resetPassword(user: SystemUser): void {
     this.confirmService.askThen({
-      title: 'Reset password?',
-      message: `${user.username}'s current password will stop working immediately and be replaced `
-        + 'by a temporary one that you must pass on to them. This cannot be undone.',
-      confirmText: 'Reset password',
+      titleKey: 'admin.users.resetPasswordTitle',
+      messageKey: 'admin.users.resetPasswordMessage',
+      params: { username: user.username },
+      confirmText: this.transloco.translate('admin.users.resetPassword'),
       destructive: true
     }, () => {
       this.saving = true;
@@ -425,10 +427,10 @@ export class UserManagementComponent implements OnInit {
     // Reactivating is harmless; deactivating locks the user out immediately.
     if (!newState) {
       this.confirmService.askThen({
-        title: 'Deactivate user?',
-        message: `${user.username} will be signed out and blocked from logging in until an admin `
-          + 'reactivates the account.',
-        confirmText: 'Deactivate',
+        titleKey: 'admin.users.deactivateTitle',
+        messageKey: 'admin.users.deactivateMessage',
+        params: { username: user.username },
+        confirmText: this.transloco.translate('admin.users.deactivate'),
         destructive: true
       }, () => this.setActive(user, newState));
       return;

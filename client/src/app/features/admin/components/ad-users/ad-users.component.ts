@@ -8,24 +8,25 @@ import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynamic-query.model';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
   standalone: false,
   selector: 'app-ad-users',
   template: `
     <div class="container">
-      <h2>Active Directory User Management</h2>
+      <h2>{{ 'admin.adUsers.title' | transloco }}</h2>
 
       <mat-tab-group>
         <!-- Tab 1: Search & Import Users -->
         <mat-tab label="Search Users">
           <div class="tab-content">
             <mat-form-field class="full-width" appearance="outline">
-              <mat-label>Search AD users</mat-label>
+              <mat-label>{{ 'admin.adUsers.search' | transloco }}</mat-label>
               <input matInput [(ngModel)]="searchTerm" (keyup.enter)="searchUsers()"
-                     placeholder="Username, name, or email">
+                     [attr.placeholder]="'admin.adUsers.searchPlaceholder' | transloco">
               <button mat-icon-button matSuffix (click)="searchUsers()" [disabled]="searching"
-                      matTooltip="Search" aria-label="Search AD users">
+                      [matTooltip]="'admin.adUsers.searchAction' | transloco" [attr.aria-label]="'admin.adUsers.search' | transloco">
                 <mat-icon>search</mat-icon>
               </button>
             </mat-form-field>
@@ -36,17 +37,17 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
 
             <div *ngIf="!searching && searchDataSource.data.length > 0" class="table-toolbar">
               <mat-form-field appearance="outline" class="filter-field">
-                <mat-label>Filter results</mat-label>
-                <input matInput (keyup)="applySearchFilter($event)" placeholder="Filter by name, email, dept...">
+                <mat-label>{{ 'admin.adUsers.filterResults' | transloco }}</mat-label>
+                <input matInput (keyup)="applySearchFilter($event)" [attr.placeholder]="'admin.adUsers.filterPlaceholder' | transloco">
                 <mat-icon matSuffix>filter_list</mat-icon>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="status-filter">
-                <mat-label>Import Status</mat-label>
+                <mat-label>{{ 'admin.adUsers.importStatus' | transloco }}</mat-label>
                 <mat-select [(value)]="searchStatusFilter" (selectionChange)="refreshSearchFilter()">
                   <mat-option value="all">All</mat-option>
-                  <mat-option value="imported">Imported</mat-option>
-                  <mat-option value="not-imported">Not imported</mat-option>
+                  <mat-option value="imported">{{ 'admin.adUsers.imported' | transloco }}</mat-option>
+                  <mat-option value="not-imported">{{ 'admin.adUsers.notImported' | transloco }}</mat-option>
                 </mat-select>
               </mat-form-field>
             </div>
@@ -59,7 +60,7 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
                   <mat-checkbox (change)="toggleAllSearch($event.checked)"
                                 [checked]="allSearchSelected()"
                                 [indeterminate]="someSearchSelected()"
-                                aria-label="Select all users on this page">
+                                [attr.aria-label]="'admin.adUsers.selectAll' | transloco">
                   </mat-checkbox>
                 </th>
                 <td mat-cell *matCellDef="let user">
@@ -71,31 +72,31 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
               </ng-container>
 
               <ng-container matColumnDef="username">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Username</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.username' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">{{ user.username }}</td>
               </ng-container>
 
               <ng-container matColumnDef="name">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.name' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">{{ user.firstName }} {{ user.lastName }}</td>
               </ng-container>
 
               <ng-container matColumnDef="email">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.email' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">{{ user.email }}</td>
               </ng-container>
 
               <ng-container matColumnDef="department">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.department' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">{{ user.department }}</td>
               </ng-container>
 
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.status' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">
                   <mat-chip-listbox>
                     <mat-chip [class.imported]="user.isImported">
-                      {{ user.isImported ? 'Imported' : 'Not imported' }}
+                      {{ (user.isImported ? 'admin.adUsers.imported' : 'admin.adUsers.notImported') | transloco }}
                     </mat-chip>
                   </mat-chip-listbox>
                 </td>
@@ -134,8 +135,8 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
             </div>
 
             <mat-form-field appearance="outline" class="filter-field" *ngIf="!loadingDepts && departments.length">
-              <mat-label>Filter departments</mat-label>
-              <input matInput [(ngModel)]="departmentFilter" placeholder="Search departments...">
+              <mat-label>{{ 'admin.adUsers.filterDepartments' | transloco }}</mat-label>
+              <input matInput [(ngModel)]="departmentFilter" [attr.placeholder]="'admin.adUsers.filterDepartmentsPlaceholder' | transloco">
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
 
@@ -165,8 +166,8 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
 
               <div *ngIf="deptDataSource.data.length > 0" class="table-toolbar">
                 <mat-form-field appearance="outline" class="filter-field">
-                  <mat-label>Filter users</mat-label>
-                  <input matInput (keyup)="applyDeptFilter($event)" placeholder="Search by name, email...">
+                  <mat-label>{{ 'admin.users.filter' | transloco }}</mat-label>
+                  <input matInput (keyup)="applyDeptFilter($event)" [attr.placeholder]="'admin.adUsers.filterUsersPlaceholder' | transloco">
                   <mat-icon matSuffix>filter_list</mat-icon>
                 </mat-form-field>
               </div>
@@ -175,24 +176,24 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
               <table mat-table [dataSource]="deptDataSource" matSort #deptSort="matSort" class="full-width"
                      *ngIf="deptDataSource.data.length > 0">
                 <ng-container matColumnDef="username">
-                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Username</th>
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.username' | transloco }}</th>
                   <td mat-cell *matCellDef="let user">{{ user.username }}</td>
                 </ng-container>
 
                 <ng-container matColumnDef="name">
-                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.name' | transloco }}</th>
                   <td mat-cell *matCellDef="let user">{{ user.firstName }} {{ user.lastName }}</td>
                 </ng-container>
 
                 <ng-container matColumnDef="email">
-                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.email' | transloco }}</th>
                   <td mat-cell *matCellDef="let user">{{ user.email }}</td>
                 </ng-container>
 
                 <ng-container matColumnDef="status">
-                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.status' | transloco }}</th>
                   <td mat-cell *matCellDef="let user">
-                    {{ user.isImported ? 'Imported' : 'Not imported' }}
+                    {{ (user.isImported ? 'admin.adUsers.imported' : 'admin.adUsers.notImported') | transloco }}
                   </td>
                 </ng-container>
 
@@ -215,7 +216,7 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
         </mat-tab>
 
         <!-- Tab 3: Imported Users -->
-        <mat-tab label="Imported Users">
+        <mat-tab [label]="'admin.adUsers.importedTab' | transloco">
           <div class="tab-content">
             <div class="tab-header-row">
               <button mat-stroked-button (click)="syncFromAd()" [disabled]="syncing || loadingImported">
@@ -230,13 +231,13 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
 
             <div *ngIf="!loadingImported && importedDataSource.data.length > 0" class="table-toolbar">
               <mat-form-field appearance="outline" class="filter-field">
-                <mat-label>Filter imported users</mat-label>
-                <input matInput (keyup)="applyImportedFilter($event)" placeholder="Search by name, email, dept...">
+                <mat-label>{{ 'admin.adUsers.filterImported' | transloco }}</mat-label>
+                <input matInput (keyup)="applyImportedFilter($event)" [attr.placeholder]="'admin.adUsers.filterPlaceholder' | transloco">
                 <mat-icon matSuffix>filter_list</mat-icon>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="status-filter">
-                <mat-label>Status</mat-label>
+                <mat-label>{{ 'admin.users.status' | transloco }}</mat-label>
                 <mat-select [(value)]="importedStatusFilter" (selectionChange)="refreshImportedFilter()">
                   <mat-option value="all">All</mat-option>
                   <mat-option value="active">Active</mat-option>
@@ -249,27 +250,27 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
             <table mat-table [dataSource]="importedDataSource" matSort #importedSort="matSort"
                    *ngIf="!loadingImported && importedDataSource.data.length > 0" class="full-width">
               <ng-container matColumnDef="username">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Username</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.username' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">{{ user.username }}</td>
               </ng-container>
 
               <ng-container matColumnDef="name">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.name' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">{{ user.firstName }} {{ user.lastName }}</td>
               </ng-container>
 
               <ng-container matColumnDef="email">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.email' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">{{ user.email }}</td>
               </ng-container>
 
               <ng-container matColumnDef="department">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.department' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">{{ user.department }}</td>
               </ng-container>
 
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.users.status' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">
                   <mat-chip-listbox>
                     <mat-chip [class.active]="user.isActive" [class.inactive]="!user.isActive">
@@ -280,15 +281,15 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
               </ng-container>
 
               <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | transloco }}</th>
                 <td mat-cell *matCellDef="let user">
                   <button *ngIf="user.isActive" mat-icon-button color="warn"
-                          (click)="revokeUser(user.username)" matTooltip="Revoke access"
+                          (click)="revokeUser(user.username)" [matTooltip]="'admin.adUsers.revokeAction' | transloco"
                           [attr.aria-label]="'Revoke access for ' + user.username">
                     <mat-icon>block</mat-icon>
                   </button>
                   <button *ngIf="!user.isActive" mat-icon-button color="primary"
-                          (click)="restoreUser(user.username)" matTooltip="Restore access"
+                          (click)="restoreUser(user.username)" [matTooltip]="'admin.adUsers.restoreAction' | transloco"
                           [attr.aria-label]="'Restore access for ' + user.username">
                     <mat-icon>lock_open</mat-icon>
                   </button>
@@ -300,7 +301,7 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
 
               <tr class="mat-row no-data-row" *matNoDataRow>
                 <td class="mat-cell no-data-cell" [attr.colspan]="importedColumns.length">
-                  No imported users match the current filters.
+                  {{ 'admin.adUsers.noImportedMatch' | transloco }}
                 </td>
               </tr>
             </table>
@@ -312,11 +313,11 @@ import { LdapUser, ImportedLdapUser, LdapImportResult } from '@core/models/dynam
 
             <p *ngIf="!loadingImported && importedDataSource.data.length === 0 && !importedLoadFailed"
                class="no-data">
-              No LDAP users have been imported yet.
+              {{ 'admin.adUsers.noneImported' | transloco }}
             </p>
             <div *ngIf="!loadingImported && importedLoadFailed" class="error-block">
-              <p class="error-text">Could not load the imported users.</p>
-              <button mat-stroked-button (click)="loadImportedUsers()">Retry</button>
+              <p class="error-text">{{ 'admin.adUsers.importedLoadFailed' | transloco }}</p>
+              <button mat-stroked-button (click)="loadImportedUsers()">{{ 'common.retry' | transloco }}</button>
             </div>
           </div>
         </mat-tab>
@@ -380,6 +381,7 @@ export class AdUsersComponent implements OnInit {
     private queryService: QueryService,
     private toast: ToastService,
     private confirmService: ConfirmService,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {
     this.searchDataSource.sortingDataAccessor = this.ldapSortAccessor as any;
@@ -470,7 +472,7 @@ export class AdUsersComponent implements OnInit {
 
   searchUsers(): void {
     if (!this.searchTerm || this.searchTerm.length < 2) {
-      this.toast.info('Enter at least 2 characters to search.');
+      this.toast.info('admin.adUsers.minSearchLength');
       return;
     }
     this.searching = true;
@@ -497,7 +499,7 @@ export class AdUsersComponent implements OnInit {
         });
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to search AD users');
+        this.toast.error(err, 'admin.adUsers.searchFailed');
         this.searching = false;
         this.cdr.detectChanges();
       }
@@ -538,9 +540,9 @@ export class AdUsersComponent implements OnInit {
     const clean = result.imported > 0 && result.skipped.length === 0 && result.notFound.length === 0;
 
     if (clean) {
-      this.toast.success(`${result.imported} user(s) imported${scope}.`);
+      this.toast.success('admin.adUsers.importedCount', { count: result.imported, scope });
     } else {
-      this.toast.info(`Import${scope}: ${message}`);
+      this.toast.info('admin.adUsers.importOutcome', { scope, message });
     }
   }
 
@@ -563,7 +565,7 @@ export class AdUsersComponent implements OnInit {
         this.loadImportedUsers();
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to import users');
+        this.toast.error(err, 'admin.adUsers.importFailed');
         this.importing = false;
       }
     });
@@ -586,7 +588,7 @@ export class AdUsersComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to load departments');
+        this.toast.error(err, 'admin.adUsers.departmentsLoadFailed');
         this.loadingDepts = false;
         this.cdr.detectChanges();
       }
@@ -604,7 +606,7 @@ export class AdUsersComponent implements OnInit {
           if (this.deptPaginator) this.deptDataSource.paginator = this.deptPaginator;
         });
       },
-      error: (err) => this.toast.error(err, 'Failed to load department users')
+      error: (err) => this.toast.error(err, 'admin.adUsers.departmentUsersLoadFailed')
     });
   }
 
@@ -620,7 +622,7 @@ export class AdUsersComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to import department');
+        this.toast.error(err, 'admin.adUsers.importDepartmentFailed');
         this.importing = false;
       }
     });
@@ -653,7 +655,7 @@ export class AdUsersComponent implements OnInit {
       error: (err) => {
         this.loadingImported = false;
         this.importedLoadFailed = true;
-        this.toast.error(err, 'Failed to load imported users');
+        this.toast.error(err, 'admin.adUsers.importedLoadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -661,10 +663,10 @@ export class AdUsersComponent implements OnInit {
 
   revokeUser(username: string): void {
     this.confirmService.askThen({
-      title: 'Revoke access?',
-      message: `${username} will immediately lose access to the application. You can restore `
-        + 'their access again later from this page.',
-      confirmText: 'Revoke access',
+      titleKey: 'admin.adUsers.revokeTitle',
+      messageKey: 'admin.adUsers.revokeMessage',
+      params: { username },
+      confirmText: this.transloco.translate('admin.adUsers.revokeConfirm'),
       destructive: true
     }, () => this.doRevoke(username));
   }
@@ -672,11 +674,11 @@ export class AdUsersComponent implements OnInit {
   private doRevoke(username: string): void {
     this.queryService.revokeLdapUser(username).subscribe({
       next: () => {
-        this.toast.success(`Access revoked for ${username}`);
+        this.toast.success('admin.adUsers.accessRevoked', { username });
         this.loadImportedUsers();
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to revoke access');
+        this.toast.error(err, 'admin.adUsers.revokeFailed');
       }
     });
   }
@@ -684,11 +686,11 @@ export class AdUsersComponent implements OnInit {
   restoreUser(username: string): void {
     this.queryService.restoreLdapUser(username).subscribe({
       next: () => {
-        this.toast.success(`Access restored for ${username}`);
+        this.toast.success('admin.adUsers.accessRestored', { username });
         this.loadImportedUsers();
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to restore access');
+        this.toast.error(err, 'admin.adUsers.restoreFailed');
       }
     });
   }
@@ -706,7 +708,7 @@ export class AdUsersComponent implements OnInit {
       },
       error: (err) => {
         this.syncing = false;
-        this.toast.error(err, 'Sync failed');
+        this.toast.error(err, 'admin.adUsers.syncFailed');
       }
     });
   }

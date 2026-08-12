@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslocoModule } from '@jsverse/transloco';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
@@ -57,6 +58,7 @@ import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
   ],
   imports: [
     CommonModule,
+    TranslocoModule,
     FormsModule,
     ReactiveFormsModule,
     MatTableModule,

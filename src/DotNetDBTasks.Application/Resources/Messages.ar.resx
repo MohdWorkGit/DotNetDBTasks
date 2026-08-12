@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a2c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a2c561934e089</value>
+  </resheader>
+
+  <!-- Users -->
+  <data name="UsernameTaken" xml:space="preserve">
+    <value>اسم المستخدم «{0}» مستخدم بالفعل.</value>
+  </data>
+  <data name="EmailInUse" xml:space="preserve">
+    <value>البريد الإلكتروني «{0}» مستخدم بالفعل.</value>
+  </data>
+  <data name="CannotChangeOwnRoles" xml:space="preserve">
+    <value>لا يمكنك تعديل أدوارك الخاصة.</value>
+  </data>
+  <data name="OnlyAdminCanModifyAdmin" xml:space="preserve">
+    <value>يمكن للمسؤول وحده تعديل حساب مسؤول.</value>
+  </data>
+  <data name="OnlyAdminCanGrantAdmin" xml:space="preserve">
+    <value>يمكن للمسؤول وحده منح دور Admin.</value>
+  </data>
+  <data name="CannotRemoveLastAdmin" xml:space="preserve">
+    <value>لا يمكن إزالة دور Admin من آخر مسؤول نشط.</value>
+  </data>
+  <data name="LdapUsernameImmutable" xml:space="preserve">
+    <value>لا يمكن تغيير اسم المستخدم لحسابات LDAP، فهي تُدار عبر Active Directory.</value>
+  </data>
+  <data name="LdapPasswordImmutable" xml:space="preserve">
+    <value>لا يمكن تغيير كلمة المرور لحسابات LDAP، فهي تُدار عبر Active Directory.</value>
+  </data>
+  <data name="LdapPasswordResetUnavailable" xml:space="preserve">
+    <value>لا يمكن إعادة تعيين كلمة المرور لحسابات LDAP، فهي تُدار عبر Active Directory.</value>
+  </data>
+
+  <!-- Query access -->
+  <data name="NoAccessToQuery" xml:space="preserve">
+    <value>ليس لديك صلاحية الوصول إلى هذا الاستعلام.</value>
+  </data>
+  <data name="QueryDisabled" xml:space="preserve">
+    <value>هذا الاستعلام معطَّل حاليًا.</value>
+  </data>
+  <data name="NoAccessToDatabaseUser" xml:space="preserve">
+    <value>ليس لديك صلاحية الوصول إلى مستخدم قاعدة البيانات «{0}».</value>
+  </data>
+  <data name="NoAccessToScheduledTask" xml:space="preserve">
+    <value>ليس لديك صلاحية الوصول إلى هذه المهمة المجدولة.</value>
+  </data>
+  <data name="NoPermissionToDownloadTaskFiles" xml:space="preserve">
+    <value>ليس لديك إذن بتنزيل ملفات هذه المهمة.</value>
+  </data>
+
+  <!-- Saving / database -->
+  <data name="SaveFailed" xml:space="preserve">
+    <value>تعذّر حفظ التغيير.</value>
+  </data>
+  <data name="SaveFailedDetail" xml:space="preserve">
+    <value>تعذّر حفظ التغيير: {0}</value>
+  </data>
+  <data name="DuplicateValue" xml:space="preserve">
+    <value>هذه القيمة مستخدمة بالفعل في سجل آخر: {0}</value>
+  </data>
+  <data name="RequiredFieldEmpty" xml:space="preserve">
+    <value>تُرك حقل مطلوب فارغًا: {0}</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>حدث خطأ غير متوقع.</value>
+  </data>
+  <data name="ValidationFailed" xml:space="preserve">
+    <value>فشل التحقق من صحة البيانات.</value>
+  </data>
+  <data name="OperationCancelled" xml:space="preserve">
+    <value>تم إلغاء العملية.</value>
+  </data>
+
+  <!-- Active Directory -->
+  <data name="AdUnreachable" xml:space="preserve">
+    <value>تعذّر الوصول إلى Active Directory على ⁨{0}⁩ أثناء {1}. {2}</value>
+  </data>
+  <data name="AdOpSearching" xml:space="preserve">
+    <value>البحث عن «⁨{0}⁩»</value>
+  </data>
+  <data name="AdOpListingDepartments" xml:space="preserve">
+    <value>جلب قائمة الأقسام</value>
+  </data>
+  <data name="AdOpListingMembers" xml:space="preserve">
+    <value>جلب أعضاء القسم «⁨{0}⁩»</value>
+  </data>
+  <data name="ImportLocalAccountExists" xml:space="preserve">
+    <value>يوجد بالفعل حساب محلي باسم «⁨{0}⁩».</value>
+  </data>
+  <data name="ImportEmailClashInBatch" xml:space="preserve">
+    <value>يستخدم حساب آخر ضمن عملية الاستيراد نفسها البريد ⁨{0}⁩.</value>
+  </data>
+  <data name="ImportEmailTaken" xml:space="preserve">
+    <value>البريد الإلكتروني ⁨{0}⁩ مستخدم بالفعل في حساب آخر.</value>
+  </data>
+  <data name="ImportSummaryImported" xml:space="preserve">
+    <value>تم استيراد {0}</value>
+  </data>
+  <data name="ImportSummaryAlreadyPresent" xml:space="preserve">
+    <value>{0} موجود مسبقًا</value>
+  </data>
+  <data name="ImportSummaryNotFound" xml:space="preserve">
+    <value>{0} غير موجود في الدليل</value>
+  </data>
+  <data name="ImportSummarySkipped" xml:space="preserve">
+    <value>{0} تم تخطيه</value>
+  </data>
+  <data name="ImportSummaryMore" xml:space="preserve">
+    <value>(+{0} أخرى)</value>
+  </data>
+  <data name="ImportNoDepartmentMatches" xml:space="preserve">
+    <value>لم يُعثر على أي حسابات في الدليل للقسم «⁨{0}⁩».</value>
+  </data>
+</root>

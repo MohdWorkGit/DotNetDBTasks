@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslocoModule } from '@jsverse/transloco';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -15,6 +16,7 @@ import { LoginComponent } from './components/login/login.component';
   declarations: [LoginComponent],
   imports: [
     CommonModule,
+    TranslocoModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,

@@ -13,11 +13,11 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
       <div class="header">
         <h2>Run History{{ task ? ' — ' + task.name : '' }}</h2>
         <div>
-          <button mat-icon-button matTooltip="Refresh" aria-label="Refresh" (click)="load()">
+          <button mat-icon-button [matTooltip]="'common.refresh' | transloco" [attr.aria-label]="'common.refresh' | transloco" (click)="load()">
             <mat-icon>refresh</mat-icon>
           </button>
           <button mat-button routerLink="/admin/scheduled-tasks">
-            <mat-icon>arrow_back</mat-icon> Back
+            <mat-icon class="rtl-flip">arrow_back</mat-icon> {{ 'common.back' | transloco }}
           </button>
         </div>
       </div>
@@ -26,7 +26,7 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
         <mat-spinner diameter="40"></mat-spinner>
       </div>
 
-      <p class="hint" *ngIf="!loading && runs.length === 0">This task has not run yet.</p>
+      <p class="hint" *ngIf="!loading && runs.length === 0">{{ 'admin.tasks.neverRun' | transloco }}</p>
 
       <mat-accordion *ngIf="!loading">
         <mat-expansion-panel *ngFor="let run of runs">
@@ -41,7 +41,7 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
             </mat-panel-description>
             <button *ngIf="run.status === 'Running' && authService.isAdmin()" mat-stroked-button color="warn" class="cancel-btn"
                     (click)="$event.stopPropagation(); cancel(run)" [disabled]="cancelingId === run.id">
-              <mat-icon>stop</mat-icon> {{ cancelingId === run.id ? 'Canceling…' : 'Cancel' }}
+              <mat-icon>stop</mat-icon> {{ (cancelingId === run.id ? 'admin.tasks.canceling' : 'common.cancel') | transloco }}
             </button>
           </mat-expansion-panel-header>
 
@@ -49,19 +49,19 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
 
           <table class="items" *ngIf="run.items.length">
             <tr>
-              <th>Query</th>
-              <th>File</th>
-              <th>Rows</th>
-              <th>Checkpoint</th>
-              <th>Duration</th>
-              <th>Result</th>
+              <th>{{ 'admin.tasks.query' | transloco }}</th>
+              <th>{{ 'admin.tasks.file' | transloco }}</th>
+              <th>{{ 'admin.tasks.rows' | transloco }}</th>
+              <th>{{ 'admin.tasks.checkpoint' | transloco }}</th>
+              <th>{{ 'admin.tasks.duration' | transloco }}</th>
+              <th>{{ 'admin.tasks.result' | transloco }}</th>
             </tr>
             <tr *ngFor="let item of run.items">
               <td>{{ item.queryName }}<span class="muted" *ngIf="item.isWrite"> (data change)</span></td>
               <td>
                 <button *ngIf="item.fileName && item.success && task?.canDownloadFiles"
                         type="button" class="file-link"
-                        matTooltip="Download"
+                        [matTooltip]="'common.download' | transloco"
                         [attr.aria-label]="'Download ' + item.fileName"
                         (click)="download(run, item)">
                   <mat-icon class="file-icon" inline>download</mat-icon>{{ item.fileName }}
@@ -88,10 +88,10 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
     .hint { color: var(--text-secondary); }
     .status { font-weight: 500; }
     .error { color: var(--status-error); }
-    .cancel-btn { margin-left: 12px; line-height: 30px; }
+    .cancel-btn { margin-inline-start: 12px; line-height: 30px; }
     table.items { width: 100%; border-collapse: collapse; }
     table.items th, table.items td {
-      text-align: left;
+      text-align: start;
       padding: 6px 12px 6px 0;
       border-bottom: 1px solid var(--border-color);
       font-size: 13px;
@@ -105,7 +105,7 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
       border: none;
       padding: 0;
       font: inherit;
-      text-align: left;
+      text-align: start;
       text-decoration: none;
       cursor: pointer;
       display: inline-flex;
@@ -146,7 +146,7 @@ export class ScheduledTaskRunsComponent implements OnInit {
       // Without this the header stayed blank and canDownloadFiles was undefined,
       // so every download link silently vanished with no explanation.
       error: (err) => {
-        this.toast.error(err, 'Failed to load the scheduled task');
+        this.toast.error(err, 'admin.tasks.loadOneFailed');
         this.cdr.detectChanges();
       }
     });
@@ -158,7 +158,7 @@ export class ScheduledTaskRunsComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err, 'Failed to load run history');
+        this.toast.error(err, 'admin.tasks.runsLoadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -176,10 +176,10 @@ export class ScheduledTaskRunsComponent implements OnInit {
         window.URL.revokeObjectURL(url);
       },
       error: (err) => {
-        const message = err?.status === 404
-          ? 'The file is no longer available on the server (it may have been moved, deleted or overwritten by a newer run).'
-          : 'Failed to download the file';
-        this.toast.error(message, message, 6000);
+        const messageKey = err?.status === 404
+          ? 'admin.tasks.fileGone'
+          : 'admin.tasks.downloadFailed';
+        this.toast.error(messageKey, messageKey, 6000);
       }
     });
   }
@@ -189,7 +189,7 @@ export class ScheduledTaskRunsComponent implements OnInit {
     this.scheduledTaskService.cancelRun(this.taskId, run.id).subscribe({
       next: () => {
         this.cancelingId = null;
-        this.toast.success('Cancellation requested — the running query is being stopped.', 4000);
+        this.toast.success('admin.tasks.cancelRequested', 4000);
         this.load();
       },
       error: (err) => {

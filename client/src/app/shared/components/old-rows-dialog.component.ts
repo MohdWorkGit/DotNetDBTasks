@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslocoModule } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -29,8 +30,7 @@ export interface OldRowsDialogData {
     MatIconModule,
     MatPaginatorModule,
     MatProgressSpinnerModule,
-    MatTableModule
-  ],
+    MatTableModule, TranslocoModule],
   template: `
     <h2 mat-dialog-title>Affected rows — {{ data.queryName }}</h2>
     <mat-dialog-content>
@@ -69,7 +69,7 @@ export interface OldRowsDialogData {
       </ng-container>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-stroked-button (click)="close()">Close</button>
+      <button mat-stroked-button (click)="close()">{{ 'common.close' | transloco }}</button>
     </mat-dialog-actions>
   `,
   styles: [`

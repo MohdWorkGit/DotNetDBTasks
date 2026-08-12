@@ -18,8 +18,8 @@ import {
   template: `
     <div class="container">
       <div class="header">
-        <h2>Scheduled Tasks</h2>
-        <button mat-icon-button matTooltip="Refresh" aria-label="Refresh" (click)="load()">
+        <h2>{{ 'user.schedules.title' | transloco }}</h2>
+        <button mat-icon-button [matTooltip]="'common.refresh' | transloco" [attr.aria-label]="'common.refresh' | transloco" (click)="load()">
           <mat-icon>refresh</mat-icon>
         </button>
       </div>
@@ -46,7 +46,7 @@ import {
             </mat-panel-description>
           </mat-expansion-panel-header>
 
-          <p class="hint" *ngIf="task.description">{{ task.description }}</p>
+          <p class="hint" *ngIf="task.description" dir="auto">{{ task.description }}</p>
           <p class="hint" *ngIf="task.isEnabled && task.nextRunAt">
             Next run: {{ asDate(task.nextRunAt) | date:'medium' }}
           </p>
@@ -57,10 +57,10 @@ import {
 
           <table class="runs" *ngIf="runs[task.id]?.length">
             <tr>
-              <th>Started</th>
-              <th>Status</th>
-              <th>Trigger</th>
-              <th>Files</th>
+              <th>{{ 'user.schedules.started' | transloco }}</th>
+              <th>{{ 'user.schedules.status' | transloco }}</th>
+              <th>{{ 'user.schedules.trigger' | transloco }}</th>
+              <th>{{ 'user.schedules.files' | transloco }}</th>
             </tr>
             <tr *ngFor="let run of runs[task.id]">
               <td>{{ asDate(run.startedAt) | date:'medium' }}</td>
@@ -71,7 +71,7 @@ import {
               <td>
                 <ng-container *ngIf="task.canDownloadFiles && runFiles(run).length; else summary">
                   <button *ngFor="let f of runFiles(run)" type="button" class="file-link"
-                          matTooltip="Download"
+                          [matTooltip]="'common.download' | transloco"
                           [attr.aria-label]="'Download ' + f"
                           (click)="download(task, run, f)">
                     <mat-icon class="file-icon" inline>download</mat-icon>{{ f }}
@@ -93,7 +93,7 @@ import {
     .status { font-weight: 500; }
     table.runs { width: 100%; border-collapse: collapse; }
     table.runs th, table.runs td {
-      text-align: left;
+      text-align: start;
       padding: 6px 12px 6px 0;
       border-bottom: 1px solid var(--border-color);
       font-size: 13px;
@@ -106,13 +106,13 @@ import {
       border: none;
       padding: 0;
       font: inherit;
-      text-align: left;
+      text-align: start;
       text-decoration: none;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      margin-right: 12px;
+      margin-inline-end: 12px;
     }
     .file-link:hover { text-decoration: underline; }
     .file-icon { font-size: 16px; }
@@ -145,7 +145,7 @@ export class ScheduleStatusComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err, 'Failed to load scheduled tasks');
+        this.toast.error(err, 'user.schedules.loadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -162,7 +162,7 @@ export class ScheduleStatusComponent implements OnInit {
       },
       error: (err) => {
         this.runsLoading[task.id] = false;
-        this.toast.error(err, 'Failed to load run history');
+        this.toast.error(err, 'user.schedules.runsLoadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -201,10 +201,10 @@ export class ScheduleStatusComponent implements OnInit {
         window.URL.revokeObjectURL(url);
       },
       error: (err) => {
-        const message = err?.status === 404
-          ? 'The file is no longer available on the server (it may have been moved, deleted or overwritten by a newer run).'
-          : 'Failed to download the file';
-        this.toast.error(message, message, 6000);
+        const key = err?.status === 404
+          ? 'user.schedules.fileGone'
+          : 'user.schedules.downloadFailed';
+        this.toast.error(key, key, 6000);
       }
     });
   }

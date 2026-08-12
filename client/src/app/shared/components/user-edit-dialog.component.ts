@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { TranslocoModule } from '@jsverse/transloco';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -45,26 +46,25 @@ export interface UserEditDialogData {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule
-  ],
+    MatSelectModule, TranslocoModule],
   template: `
     <h2 mat-dialog-title>{{ title }}</h2>
     <mat-dialog-content>
       <p class="subject" *ngIf="data.mode !== 'result'">User: {{ data.username }}</p>
 
       <mat-form-field *ngIf="data.mode === 'username'" appearance="outline" class="full-width">
-        <mat-label>New Username</mat-label>
+        <mat-label>{{ 'admin.users.newUsername' | transloco }}</mat-label>
         <input matInput [(ngModel)]="newUsername" name="newUsername" cdkFocusInitial>
       </mat-form-field>
 
       <mat-form-field *ngIf="data.mode === 'password'" appearance="outline" class="full-width">
-        <mat-label>New Password</mat-label>
+        <mat-label>{{ 'admin.users.newPassword' | transloco }}</mat-label>
         <input matInput [(ngModel)]="newPassword" name="newPassword" type="password" cdkFocusInitial>
-        <mat-hint>Minimum 6 characters</mat-hint>
+        <mat-hint>{{ 'admin.users.passwordMinHint' | transloco }}</mat-hint>
       </mat-form-field>
 
       <mat-form-field *ngIf="data.mode === 'roles'" appearance="outline" class="full-width">
-        <mat-label>Roles</mat-label>
+        <mat-label>{{ 'admin.users.roles' | transloco }}</mat-label>
         <mat-select [(ngModel)]="selectedRoleIds" name="roleIds" multiple cdkFocusInitial>
           <mat-option *ngFor="let role of data.roles" [value]="role.id">{{ role.name }}</mat-option>
         </mat-select>
@@ -84,7 +84,7 @@ export interface UserEditDialogData {
         </button>
       </ng-container>
       <ng-template #editActions>
-        <button mat-button (click)="dialogRef.close()" [disabled]="saving">Cancel</button>
+        <button mat-button (click)="dialogRef.close()" [disabled]="saving">{{ 'common.cancel' | transloco }}</button>
         <button mat-raised-button color="primary" (click)="submit()" [disabled]="!valid || saving">
           {{ saving ? 'Saving…' : 'Save' }}
         </button>

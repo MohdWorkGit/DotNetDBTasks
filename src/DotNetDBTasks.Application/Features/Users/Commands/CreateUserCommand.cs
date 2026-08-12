@@ -42,15 +42,18 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserD
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly AdminAccountGuard _adminGuard;
+    private readonly IAppLocalizer _messages;
 
     public CreateUserCommandHandler(
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
-        AdminAccountGuard adminGuard)
+        AdminAccountGuard adminGuard,
+        IAppLocalizer messages)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _adminGuard = adminGuard;
+        _messages = messages;
     }
 
     public async Task<UserDto> Handle(CreateUserCommand request, CancellationToken cancellationToken)
@@ -62,7 +65,7 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserD
         var exists = await _unitOfWork.Users.ExistsAsync(
             u => u.Username == request.Username, cancellationToken);
         if (exists)
-            throw new DomainException($"Username '{request.Username}' is already taken.");
+            throw new DomainException(_messages[MessageKeys.UsernameTaken, request.Username]);
 
         // "" would violate the unique index on the second address-less user (Oracle stores
         // it as NULL on the way in but the in-memory comparison above would not catch it),
@@ -74,7 +77,7 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserD
             var emailExists = await _unitOfWork.Users.ExistsAsync(
                 u => u.Email == email, cancellationToken);
             if (emailExists)
-                throw new DomainException($"Email '{email}' is already in use.");
+                throw new DomainException(_messages[MessageKeys.EmailInUse, email]);
         }
 
         var user = new User

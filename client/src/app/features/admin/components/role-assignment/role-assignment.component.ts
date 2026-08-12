@@ -13,7 +13,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
   selector: 'app-role-assignment',
   template: `
     <div class="container">
-      <h2>Manage Query Access</h2>
+      <h2>{{ 'admin.access.queryTitle' | transloco }}</h2>
 
       <div *ngIf="loading" class="loading">
         <mat-spinner diameter="40"></mat-spinner>
@@ -28,7 +28,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
 
       <mat-card *ngIf="!loading && query">
         <mat-card-header>
-          <mat-card-title>{{ query.name }}</mat-card-title>
+          <mat-card-title dir="auto">{{ query.name }}</mat-card-title>
           <mat-card-subtitle>{{ query.description }}</mat-card-subtitle>
         </mat-card-header>
 
@@ -38,7 +38,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
             <mat-tab label="Roles">
               <form [formGroup]="rolesForm" (ngSubmit)="onSaveRoles()" class="tab-content">
                 <mat-form-field class="full-width" appearance="outline">
-                  <mat-label>Assigned Roles</mat-label>
+                  <mat-label>{{ 'admin.access.assignedRoles' | transloco }}</mat-label>
                   <mat-select formControlName="roleIds" multiple>
                     <mat-option *ngFor="let role of roles" [value]="role.id">
                       {{ roleLabel(role.name) }} <span *ngIf="role.description">- {{ role.description }}</span>
@@ -47,7 +47,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
                 </mat-form-field>
 
                 <div class="actions">
-                  <button mat-button type="button" routerLink="/admin/queries">Cancel</button>
+                  <button mat-button type="button" routerLink="/admin/queries">{{ 'common.cancel' | transloco }}</button>
                   <button mat-raised-button color="primary" type="submit" [disabled]="saving">
                     {{ saving ? 'Saving...' : 'Save Roles' }}
                   </button>
@@ -59,7 +59,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
             <mat-tab label="Departments">
               <form [formGroup]="departmentsForm" (ngSubmit)="onSaveDepartments()" class="tab-content">
                 <mat-form-field class="full-width" appearance="outline">
-                  <mat-label>Assigned Departments</mat-label>
+                  <mat-label>{{ 'admin.access.assignedDepartments' | transloco }}</mat-label>
                   <mat-select formControlName="departments" multiple>
                     <mat-option *ngFor="let dept of departments" [value]="dept">
                       {{ dept }}
@@ -68,7 +68,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
                 </mat-form-field>
 
                 <div class="actions">
-                  <button mat-button type="button" routerLink="/admin/queries">Cancel</button>
+                  <button mat-button type="button" routerLink="/admin/queries">{{ 'common.cancel' | transloco }}</button>
                   <button mat-raised-button color="primary" type="submit" [disabled]="saving">
                     {{ saving ? 'Saving...' : 'Save Departments' }}
                   </button>
@@ -80,7 +80,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
             <mat-tab label="Users">
               <form [formGroup]="usersForm" (ngSubmit)="onSaveUsers()" class="tab-content">
                 <mat-form-field class="full-width" appearance="outline">
-                  <mat-label>Assigned Users</mat-label>
+                  <mat-label>{{ 'admin.access.assignedUsers' | transloco }}</mat-label>
                   <mat-select formControlName="userIds" multiple>
                     <mat-option *ngFor="let user of users" [value]="user.id">
                       {{ user.username }} ({{ user.firstName }} {{ user.lastName }})
@@ -89,7 +89,7 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
                 </mat-form-field>
 
                 <div class="actions">
-                  <button mat-button type="button" routerLink="/admin/queries">Cancel</button>
+                  <button mat-button type="button" routerLink="/admin/queries">{{ 'common.cancel' | transloco }}</button>
                   <button mat-raised-button color="primary" type="submit" [disabled]="saving">
                     {{ saving ? 'Saving...' : 'Save Users' }}
                   </button>
@@ -192,12 +192,12 @@ export class RoleAssignmentComponent implements OnInit {
     this.queryService.assignRoles(this.queryId, { roleIds: this.rolesForm.value.roleIds }).subscribe({
       next: () => {
         this.saving = false;
-        this.toast.success('Roles assigned successfully');
+        this.toast.success('admin.access.rolesAssigned');
         this.router.navigate(['/admin/queries']);
       },
       error: (err) => {
         this.saving = false;
-        this.toast.error(err, 'Failed to assign roles');
+        this.toast.error(err, 'admin.access.rolesFailed');
       }
     });
   }
@@ -207,12 +207,12 @@ export class RoleAssignmentComponent implements OnInit {
     this.queryService.assignDepartments(this.queryId, { departments: this.departmentsForm.value.departments }).subscribe({
       next: () => {
         this.saving = false;
-        this.toast.success('Departments assigned successfully');
+        this.toast.success('admin.access.departmentsAssigned');
         this.router.navigate(['/admin/queries']);
       },
       error: (err) => {
         this.saving = false;
-        this.toast.error(err, 'Failed to assign departments');
+        this.toast.error(err, 'admin.access.departmentsFailed');
       }
     });
   }
@@ -222,12 +222,12 @@ export class RoleAssignmentComponent implements OnInit {
     this.queryService.assignUsers(this.queryId, { userIds: this.usersForm.value.userIds }).subscribe({
       next: () => {
         this.saving = false;
-        this.toast.success('Users assigned successfully');
+        this.toast.success('admin.access.usersAssigned');
         this.router.navigate(['/admin/queries']);
       },
       error: (err) => {
         this.saving = false;
-        this.toast.error(err, 'Failed to assign users');
+        this.toast.error(err, 'admin.access.usersFailed');
       }
     });
   }

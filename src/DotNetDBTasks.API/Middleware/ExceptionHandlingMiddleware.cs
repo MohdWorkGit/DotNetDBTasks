@@ -2,6 +2,7 @@ using System.Data.Common;
 using System.Net;
 using System.Text.Json;
 using DotNetDBTasks.Application.Common.Exceptions;
+using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,13 +37,20 @@ public class ExceptionHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        // Resolved from the request scope: this middleware is a singleton, so IAppLocalizer
+        // cannot be a constructor dependency. UseRequestLocalization has already run by now,
+        // so the culture reflects the caller's Accept-Language header.
+        var messages = context.RequestServices.GetRequiredService<IAppLocalizer>();
+
         var (statusCode, response) = exception switch
         {
             ValidationException validationEx => (
                 HttpStatusCode.BadRequest,
                 new ErrorResponse
                 {
-                    Message = "Validation failed.",
+                    // The per-field messages come from FluentValidation and are localized at
+                    // the validator; only this envelope text belongs to the middleware.
+                    Message = messages[MessageKeys.ValidationFailed],
                     Errors = validationEx.Errors
                 }),
 
@@ -69,7 +77,7 @@ public class ExceptionHandlingMiddleware
 
             OperationCanceledException => (
                 HttpStatusCode.RequestTimeout,
-                new ErrorResponse { Message = "The operation was cancelled." }),
+                new ErrorResponse { Message = messages[MessageKeys.OperationCancelled] }),
 
             ExternalServiceException externalEx => (
                 HttpStatusCode.BadGateway,
@@ -80,7 +88,7 @@ public class ExceptionHandlingMiddleware
             // is what a unique-constraint violation on save used to look like.
             DbUpdateException updateEx => (
                 HttpStatusCode.BadRequest,
-                new ErrorResponse { Message = DescribeSaveFailure(updateEx) }),
+                new ErrorResponse { Message = DescribeSaveFailure(updateEx, messages) }),
 
             DbException dbEx => (
                 HttpStatusCode.BadRequest,
@@ -88,7 +96,7 @@ public class ExceptionHandlingMiddleware
 
             _ => (
                 HttpStatusCode.InternalServerError,
-                new ErrorResponse { Message = "An unexpected error occurred." })
+                new ErrorResponse { Message = messages[MessageKeys.UnexpectedError] })
         };
 
         if (statusCode == HttpStatusCode.InternalServerError)
@@ -123,13 +131,13 @@ public class ExceptionHandlingMiddleware
     /// Turns a failed SaveChanges into something a person can act on. The useful detail is in
     /// the provider's inner exception, not EF's generic "An error occurred while saving".
     /// </summary>
-    private static string DescribeSaveFailure(DbUpdateException exception)
+    private static string DescribeSaveFailure(DbUpdateException exception, IAppLocalizer messages)
     {
         var dbMessage = (exception.InnerException as DbException)?.Message
             ?? exception.InnerException?.Message;
 
         if (string.IsNullOrWhiteSpace(dbMessage))
-            return "The change could not be saved.";
+            return messages[MessageKeys.SaveFailed];
 
         // ORA-00001 is Oracle's unique-constraint violation. The raw text names the index
         // (e.g. "IX_Users_Email"), which tells the caller which field actually clashed.
@@ -137,15 +145,15 @@ public class ExceptionHandlingMiddleware
             || dbMessage.Contains("unique constraint", StringComparison.OrdinalIgnoreCase)
             || dbMessage.Contains("duplicate key", StringComparison.OrdinalIgnoreCase))
         {
-            return $"That value is already used by another record: {dbMessage}";
+            return messages[MessageKeys.DuplicateValue, dbMessage];
         }
 
         // ORA-01400: a required column got NULL — usually a blank string on a NOT NULL column,
         // since Oracle stores "" as NULL.
         if (dbMessage.Contains("ORA-01400", StringComparison.OrdinalIgnoreCase))
-            return $"A required field was left empty: {dbMessage}";
+            return messages[MessageKeys.RequiredFieldEmpty, dbMessage];
 
-        return $"The change could not be saved: {dbMessage}";
+        return messages[MessageKeys.SaveFailedDetail, dbMessage];
     }
 }
 

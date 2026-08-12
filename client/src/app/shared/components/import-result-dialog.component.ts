@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslocoModule } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,7 +14,7 @@ import { QueryImportResult } from '@core/models/dynamic-query.model';
 @Component({
   standalone: true,
   selector: 'app-import-result-dialog',
-  imports: [CommonModule, MatButtonModule, MatDialogModule, MatIconModule],
+  imports: [CommonModule, MatButtonModule, MatDialogModule, MatIconModule, TranslocoModule],
   template: `
     <h2 mat-dialog-title class="title">
       <mat-icon aria-hidden="true">download_done</mat-icon>
@@ -48,7 +49,7 @@ import { QueryImportResult } from '@core/models/dynamic-query.model';
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-raised-button color="primary" (click)="dialogRef.close()" cdkFocusInitial>Done</button>
+      <button mat-raised-button color="primary" (click)="dialogRef.close()" cdkFocusInitial>{{ 'common.done' | transloco }}</button>
     </mat-dialog-actions>
   `,
   styles: [`
@@ -61,16 +62,16 @@ import { QueryImportResult } from '@core/models/dynamic-query.model';
       align-items: flex-start;
       gap: 6px;
     }
-    .query-list { margin: 0; padding-left: 20px; }
+    .query-list { margin: 0; padding-inline-start: 20px; }
     .query-list li { margin-bottom: 4px; }
     .name { font-weight: 500; }
-    .from { margin-left: 6px; font-size: 12px; color: var(--text-secondary); }
+    .from { margin-inline-start: 6px; font-size: 12px; color: var(--text-secondary); }
     .warnings {
       margin-top: 16px;
       padding: 12px;
       border-radius: 8px;
       background: var(--bg-surface);
-      border-left: 3px solid var(--status-warning);
+      border-inline-start: 3px solid var(--status-warning);
     }
     .warnings-title {
       margin: 0 0 8px;
@@ -80,7 +81,7 @@ import { QueryImportResult } from '@core/models/dynamic-query.model';
       gap: 6px;
       color: var(--status-warning);
     }
-    .warnings ul { margin: 0; padding-left: 20px; }
+    .warnings ul { margin: 0; padding-inline-start: 20px; }
     .warnings li { margin-bottom: 6px; font-size: 13px; color: var(--text-primary); }
   `]
 })

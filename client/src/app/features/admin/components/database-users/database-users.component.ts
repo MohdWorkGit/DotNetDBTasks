@@ -5,6 +5,7 @@ import { ConfirmService } from '@core/services/confirm.service';
 import { QueryService } from '@core/services/query.service';
 import { DatabaseUser, DatabaseServerType, Role } from '@core/models/dynamic-query.model';
 import { roleLabel, grantsQueryAccess } from '@core/models/roles';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
   standalone: false,
@@ -12,34 +13,34 @@ import { roleLabel, grantsQueryAccess } from '@core/models/roles';
   template: `
     <div class="container">
       <div class="header">
-        <h2>Database Users</h2>
+        <h2>{{ 'admin.dbUsers.title' | transloco }}</h2>
         <button mat-raised-button color="primary" (click)="showForm = true; resetForm()">
-          <mat-icon>add</mat-icon> Add Database User
+          <mat-icon>add</mat-icon> {{ 'admin.dbUsers.add' | transloco }}
         </button>
       </div>
 
       <!-- Form Dialog -->
       <mat-card *ngIf="showForm" class="form-card">
         <mat-card-header>
-          <mat-card-title>{{ editingId ? 'Edit' : (isCopy ? 'Copy' : 'Create') }} Database User</mat-card-title>
+          <mat-card-title>{{ (editingId ? 'admin.dbUsers.editTitle' : (isCopy ? 'admin.dbUsers.copyTitle' : 'admin.dbUsers.createTitle')) | transloco }}</mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
             <div class="form-grid">
               <mat-form-field appearance="outline">
-                <mat-label>Name</mat-label>
-                <input matInput formControlName="name" placeholder="e.g. Production Read-Only">
-                <mat-hint>Friendly name for this connection</mat-hint>
+                <mat-label>{{ 'admin.dbUsers.name' | transloco }}</mat-label>
+                <input matInput formControlName="name" [attr.placeholder]="'admin.dbUsers.namePlaceholder' | transloco">
+                <mat-hint>{{ 'admin.dbUsers.nameHint' | transloco }}</mat-hint>
                 <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Description</mat-label>
+                <mat-label>{{ 'admin.dbUsers.description' | transloco }}</mat-label>
                 <input matInput formControlName="description">
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Database Type</mat-label>
+                <mat-label>{{ 'admin.dbUsers.serverType' | transloco }}</mat-label>
                 <mat-select formControlName="serverType" (selectionChange)="onServerTypeChange($event.value)">
                   <mat-option *ngFor="let st of serverTypes" [value]="st.value">{{ st.label }}</mat-option>
                 </mat-select>
@@ -47,48 +48,48 @@ import { roleLabel, grantsQueryAccess } from '@core/models/roles';
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Host</mat-label>
-                <input matInput formControlName="host" placeholder="e.g. db.example.com">
+                <mat-label>{{ 'admin.dbUsers.host' | transloco }}</mat-label>
+                <input matInput formControlName="host" [attr.placeholder]="'admin.dbUsers.hostPlaceholder' | transloco">
                 <mat-error *ngIf="form.get('host')?.hasError('required')">Host is required</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Port</mat-label>
+                <mat-label>{{ 'admin.dbUsers.port' | transloco }}</mat-label>
                 <input matInput type="number" formControlName="port">
                 <mat-error *ngIf="form.get('port')?.hasError('required')">Port is required</mat-error>
               </mat-form-field>
 
               <mat-form-field *ngIf="isOracle" appearance="outline">
-                <mat-label>Service Name</mat-label>
-                <input matInput formControlName="serviceName" placeholder="e.g. XEPDB1">
+                <mat-label>{{ 'admin.dbUsers.serviceName' | transloco }}</mat-label>
+                <input matInput formControlName="serviceName" [attr.placeholder]="'admin.dbUsers.serviceNamePlaceholder' | transloco">
               </mat-form-field>
 
               <mat-form-field *ngIf="!isOracle" appearance="outline">
-                <mat-label>Database Name</mat-label>
-                <input matInput formControlName="databaseName" placeholder="e.g. mydb">
+                <mat-label>{{ 'admin.dbUsers.databaseName' | transloco }}</mat-label>
+                <input matInput formControlName="databaseName" [attr.placeholder]="'admin.dbUsers.databaseNamePlaceholder' | transloco">
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>DB Username</mat-label>
+                <mat-label>{{ 'admin.dbUsers.dbUsername' | transloco }}</mat-label>
                 <input matInput formControlName="dbUsername">
                 <mat-error *ngIf="form.get('dbUsername')?.hasError('required')">DB username is required</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>{{ editingId ? 'New Password (leave blank to keep)' : 'Password' }}</mat-label>
+                <mat-label>{{ (editingId ? 'admin.dbUsers.newPassword' : 'admin.users.password') | transloco }}</mat-label>
                 <input matInput type="password" formControlName="password">
                 <mat-error *ngIf="form.get('password')?.hasError('required')">Password is required</mat-error>
               </mat-form-field>
 
-              <mat-slide-toggle *ngIf="editingId" formControlName="isActive">Active</mat-slide-toggle>
+              <mat-slide-toggle *ngIf="editingId" formControlName="isActive">{{ 'common.active' | transloco }}</mat-slide-toggle>
             </div>
 
             <div class="actions">
-              <button mat-button type="button" (click)="showForm = false">Cancel</button>
+              <button mat-button type="button" (click)="showForm = false">{{ 'common.cancel' | transloco }}</button>
               <!-- Kept enabled when invalid so clicking it reveals the errors rather
                    than leaving the user with a dead button and no explanation. -->
               <button mat-raised-button color="primary" type="submit" [disabled]="saving">
-                {{ saving ? 'Saving…' : (editingId ? 'Update' : 'Create') }}
+                {{ saving ? ('common.saving' | transloco) : ((editingId ? 'common.update' : 'common.create') | transloco) }}
               </button>
             </div>
           </form>
@@ -101,8 +102,8 @@ import { roleLabel, grantsQueryAccess } from '@core/models/roles';
           <mat-card-title>
             {{ du.name }}
             <mat-icon [class.active]="du.isActive" [class.inactive]="!du.isActive"
-                      [matTooltip]="du.isActive ? 'Active' : 'Inactive'"
-                      [attr.aria-label]="du.isActive ? 'Active' : 'Inactive'"
+                      [matTooltip]="(du.isActive ? 'common.active' : 'common.inactive') | transloco"
+                      [attr.aria-label]="(du.isActive ? 'common.active' : 'common.inactive') | transloco"
                       role="img">
               {{ du.isActive ? 'check_circle' : 'cancel' }}
             </mat-icon>
@@ -117,42 +118,42 @@ import { roleLabel, grantsQueryAccess } from '@core/models/roles';
           <p *ngIf="du.description" class="description">{{ du.description }}</p>
 
           <div class="access-section">
-            <strong>Allowed Roles:</strong>
+            <strong>{{ 'admin.dbUsers.allowedRoles' | transloco }}</strong>
             <mat-chip-set>
               <mat-chip *ngFor="let r of du.assignedRoles">{{ roleLabel(r.roleName) }}</mat-chip>
-              <mat-chip *ngIf="!du.assignedRoles?.length" class="none-chip">None assigned</mat-chip>
+              <mat-chip *ngIf="!du.assignedRoles?.length" class="none-chip">{{ 'admin.dbUsers.noneAssigned' | transloco }}</mat-chip>
             </mat-chip-set>
           </div>
         </mat-card-content>
 
         <mat-card-actions>
           <button mat-button (click)="editDbUser(du)">
-            <mat-icon>edit</mat-icon> Edit
+            <mat-icon>edit</mat-icon> {{ 'common.edit' | transloco }}
           </button>
           <button mat-button (click)="copyDbUser(du)">
-            <mat-icon>content_copy</mat-icon> Copy
+            <mat-icon>content_copy</mat-icon> {{ 'common.copy' | transloco }}
           </button>
           <button mat-button (click)="openAccessDialog(du)">
-            <mat-icon>people</mat-icon> Manage Access
+            <mat-icon>people</mat-icon> {{ 'admin.common.manageAccess' | transloco }}
           </button>
           <button mat-button (click)="testConnection(du)">
-            <mat-icon>wifi_tethering</mat-icon> Test Connection
+            <mat-icon>wifi_tethering</mat-icon> {{ 'admin.dbUsers.testConnection' | transloco }}
           </button>
           <button mat-button color="warn" (click)="deleteDbUser(du)">
-            <mat-icon>delete</mat-icon> Delete
+            <mat-icon>delete</mat-icon> {{ 'common.delete' | transloco }}
           </button>
         </mat-card-actions>
       </mat-card>
 
-      <p *ngIf="!dbUsers.length && !loading" class="empty">No database users configured yet.</p>
+      <p *ngIf="!dbUsers.length && !loading" class="empty">{{ 'admin.dbUsers.none' | transloco }}</p>
 
       <!-- Access Management Dialog -->
       <mat-card *ngIf="accessDialogDbUser" class="form-card">
         <mat-card-header>
-          <mat-card-title>Manage Access: {{ accessDialogDbUser.name }}</mat-card-title>
+          <mat-card-title>{{ 'admin.dbUsers.manageAccessFor' | transloco: { name: accessDialogDbUser.name } }}</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <p class="hint">Select which roles can execute queries using this database user.</p>
+          <p class="hint">{{ 'admin.dbUsers.accessHint' | transloco }}</p>
           <div class="user-checkboxes">
             <mat-checkbox *ngFor="let role of allRoles"
                           [checked]="selectedRoleIds.has(role.id)"
@@ -161,7 +162,7 @@ import { roleLabel, grantsQueryAccess } from '@core/models/roles';
             </mat-checkbox>
           </div>
           <div class="actions">
-            <button mat-button (click)="accessDialogDbUser = null">Cancel</button>
+            <button mat-button (click)="accessDialogDbUser = null">{{ 'common.cancel' | transloco }}</button>
             <button mat-raised-button color="primary" (click)="saveAccess()" [disabled]="savingAccess">
               {{ savingAccess ? 'Saving...' : 'Save Access' }}
             </button>
@@ -195,7 +196,7 @@ import { roleLabel, grantsQueryAccess } from '@core/models/roles';
       font-weight: 500;
       padding: 2px 8px;
       border-radius: 12px;
-      margin-right: 6px;
+      margin-inline-end: 6px;
       vertical-align: middle;
     }
   `]
@@ -233,6 +234,7 @@ export class DatabaseUsersComponent implements OnInit {
     private queryService: QueryService,
     private toast: ToastService,
     private confirmService: ConfirmService,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -283,7 +285,7 @@ export class DatabaseUsersComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err, 'Failed to load database users');
+        this.toast.error(err, 'admin.dbUsers.loadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -332,7 +334,7 @@ export class DatabaseUsersComponent implements OnInit {
     if (this.form.invalid) {
       // Reveal the <mat-error>s: untouched controls render no error until marked.
       this.form.markAllAsTouched();
-      this.toast.error('Please correct the highlighted fields.', 'Please correct the highlighted fields.');
+      this.toast.error('common.correctFields', 'common.correctFields');
       this.cdr.detectChanges();
       return;
     }
@@ -348,12 +350,12 @@ export class DatabaseUsersComponent implements OnInit {
         next: () => {
           this.saving = false;
           this.showForm = false;
-          this.toast.success('Database user updated');
+          this.toast.success('admin.dbUsers.updated');
           this.loadDbUsers();
         },
         error: (err) => {
           this.saving = false;
-          this.toast.error(err, 'Update failed');
+          this.toast.error(err, 'common.updateFailed');
         }
       });
     } else {
@@ -361,12 +363,12 @@ export class DatabaseUsersComponent implements OnInit {
         next: () => {
           this.saving = false;
           this.showForm = false;
-          this.toast.success('Database user created');
+          this.toast.success('admin.dbUsers.created');
           this.loadDbUsers();
         },
         error: (err) => {
           this.saving = false;
-          this.toast.error(err, 'Creation failed');
+          this.toast.error(err, 'common.createFailed');
         }
       });
     }
@@ -374,30 +376,30 @@ export class DatabaseUsersComponent implements OnInit {
 
   deleteDbUser(du: DatabaseUser): void {
     this.confirmService.askThen({
-      title: 'Delete database connection?',
-      message: `"${du.name}" will be deleted. Any query using it will fall back to the default `
-        + 'system connection. This cannot be undone.',
-      confirmText: 'Delete',
+      titleKey: 'admin.dbUsers.deleteTitle',
+      messageKey: 'admin.dbUsers.deleteMessage',
+      params: { name: du.name },
+      confirmText: this.transloco.translate('common.delete'),
       destructive: true
     }, () => {
       this.queryService.deleteDatabaseUser(du.id).subscribe({
         next: () => {
-          this.toast.success('Database user deleted');
+          this.toast.success('admin.dbUsers.deleted');
           this.loadDbUsers();
         },
         error: (err) => {
-          this.toast.error(err, 'Delete failed');
+          this.toast.error(err, 'common.deleteFailed');
         }
       });
     });
   }
 
   testConnection(du: DatabaseUser): void {
-    this.toast.info('Testing connection…', 10000);
+    this.toast.info('admin.dbUsers.testing', 10000);
     this.queryService.testDatabaseConnection(du.id).subscribe({
       next: (result) => {
         if (result.success) {
-          this.toast.success('Connection successful!');
+          this.toast.success('admin.dbUsers.testOk');
         } else {
           this.toast.error(
             `Connection failed: ${result.errorMessage}`,
@@ -407,7 +409,7 @@ export class DatabaseUsersComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toast.error(err, 'Test failed');
+        this.toast.error(err, 'admin.dbUsers.testFailed');
       }
     });
   }
@@ -434,12 +436,12 @@ export class DatabaseUsersComponent implements OnInit {
       next: () => {
         this.savingAccess = false;
         this.accessDialogDbUser = null;
-        this.toast.success('Access updated');
+        this.toast.success('admin.dbUsers.accessUpdated');
         this.loadDbUsers();
       },
       error: (err) => {
         this.savingAccess = false;
-        this.toast.error(err, 'Failed to update access');
+        this.toast.error(err, 'admin.dbUsers.accessUpdateFailed');
       }
     });
   }

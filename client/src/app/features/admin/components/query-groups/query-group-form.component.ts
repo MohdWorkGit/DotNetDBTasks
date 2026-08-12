@@ -17,19 +17,19 @@ import { QueryService } from '@core/services/query.service';
         <mat-card-content>
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
             <mat-form-field class="full-width" appearance="outline">
-              <mat-label>Name</mat-label>
+              <mat-label>{{ 'admin.groups.name' | transloco }}</mat-label>
               <input matInput formControlName="name" maxlength="200">
               <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
             </mat-form-field>
 
             <mat-form-field class="full-width" appearance="outline">
-              <mat-label>Description</mat-label>
+              <mat-label>{{ 'admin.groups.description' | transloco }}</mat-label>
               <textarea matInput formControlName="description" rows="3" maxlength="1000"></textarea>
               <mat-error *ngIf="form.get('description')?.hasError('required')">Description is required</mat-error>
             </mat-form-field>
 
             <div class="actions">
-              <button mat-button type="button" routerLink="/admin/query-groups">Cancel</button>
+              <button mat-button type="button" routerLink="/admin/query-groups">{{ 'common.cancel' | transloco }}</button>
               <button mat-raised-button color="primary" type="submit"
                       [disabled]="form.invalid || saving">
                 {{ saving ? 'Saving...' : (isEdit ? 'Update' : 'Create') }}
@@ -75,7 +75,7 @@ export class QueryGroupFormComponent implements OnInit {
           this.cdr.detectChanges();
         },
         error: (err) => {
-          this.toast.error(err, 'Failed to load group');
+          this.toast.error(err, 'admin.groups.loadOneFailed');
         }
       });
     }
@@ -101,12 +101,12 @@ export class QueryGroupFormComponent implements OnInit {
     ).subscribe({
       next: () => {
         this.saving = false;
-        this.toast.success(`Group ${this.isEdit ? 'updated' : 'created'} successfully`);
+        this.toast.success(this.isEdit ? 'admin.groups.updated' : 'admin.groups.created');
         this.router.navigate(['/admin/query-groups']);
       },
       error: (err) => {
         this.saving = false;
-        this.toast.error(err, 'Operation failed');
+        this.toast.error(err, 'common.operationFailed');
       }
     });
   }

@@ -1,19 +1,22 @@
 import { Component } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
+import { combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { TranslocoService } from '@jsverse/transloco';
 import { AuthService } from './core/services/auth.service';
 import { BrandingService } from './core/services/branding.service';
 import { ThemeService } from './core/services/theme.service';
+import { LanguageService } from './core/services/language.service';
+import { LOCALE_LABELS } from './core/models/locale';
 import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialog.component';
 
 @Component({
   standalone: false,
   selector: 'app-root',
   template: `
-    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <a class="skip-link" href="#main-content">{{ 'app.skipToContent' | transloco }}</a>
 
-    <nav aria-label="Main" *ngIf="authService.isAuthenticated$ | async">
+    <nav [attr.aria-label]="'app.mainNav' | transloco" *ngIf="authService.isAuthenticated$ | async">
       <mat-toolbar color="primary">
         <!-- Falls back to the name whenever no logo is set, so the banner is never blank. -->
         <img *ngIf="brandingService.logoUrl$ | async as logoUrl; else siteName"
@@ -22,53 +25,59 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
         <span class="spacer"></span>
 
         <button mat-button routerLink="/user/queries" routerLinkActive="nav-active"
-                matTooltip="My Queries" aria-label="My Queries">
-          <mat-icon>list</mat-icon> <span class="nav-label">My Queries</span>
+                [matTooltip]="'nav.myQueries' | transloco" [attr.aria-label]="'nav.myQueries' | transloco">
+          <mat-icon>list</mat-icon> <span class="nav-label">{{ 'nav.myQueries' | transloco }}</span>
         </button>
         <button mat-button routerLink="/user/history" routerLinkActive="nav-active"
-                matTooltip="History" aria-label="History">
-          <mat-icon>history</mat-icon> <span class="nav-label">History</span>
+                [matTooltip]="'nav.history' | transloco" [attr.aria-label]="'nav.history' | transloco">
+          <mat-icon>history</mat-icon> <span class="nav-label">{{ 'nav.history' | transloco }}</span>
         </button>
         <button mat-button routerLink="/user/schedules" routerLinkActive="nav-active"
                 *ngIf="!authService.isAdminOrAuditor()"
-                matTooltip="Schedules" aria-label="Schedules">
-          <mat-icon>schedule</mat-icon> <span class="nav-label">Schedules</span>
+                [matTooltip]="'nav.schedules' | transloco" [attr.aria-label]="'nav.schedules' | transloco">
+          <mat-icon>schedule</mat-icon> <span class="nav-label">{{ 'nav.schedules' | transloco }}</span>
         </button>
 
         <button mat-button routerLink="/admin/scheduled-tasks" routerLinkActive="nav-active"
                 *ngIf="authService.isAdminOrAuditor()"
-                matTooltip="Schedules" aria-label="Schedules">
-          <mat-icon>schedule</mat-icon> <span class="nav-label">Schedules</span>
+                [matTooltip]="'nav.schedules' | transloco" [attr.aria-label]="'nav.schedules' | transloco">
+          <mat-icon>schedule</mat-icon> <span class="nav-label">{{ 'nav.schedules' | transloco }}</span>
         </button>
         <button mat-button routerLink="/admin/queries" routerLinkActive="nav-active"
                 *ngIf="authService.isAdminOrAccessManager()"
-                matTooltip="Manage Queries" aria-label="Manage Queries">
-          <mat-icon>dashboard</mat-icon> <span class="nav-label">Manage Queries</span>
+                [matTooltip]="'nav.manageQueries' | transloco" [attr.aria-label]="'nav.manageQueries' | transloco">
+          <mat-icon>dashboard</mat-icon> <span class="nav-label">{{ 'nav.manageQueries' | transloco }}</span>
         </button>
         <button mat-button routerLink="/admin/query-groups" routerLinkActive="nav-active"
                 *ngIf="authService.isAdminOrAccessManager()"
-                matTooltip="Query Groups" aria-label="Query Groups">
-          <mat-icon>folder</mat-icon> <span class="nav-label">Query Groups</span>
+                [matTooltip]="'nav.queryGroups' | transloco" [attr.aria-label]="'nav.queryGroups' | transloco">
+          <mat-icon>folder</mat-icon> <span class="nav-label">{{ 'nav.queryGroups' | transloco }}</span>
         </button>
         <button mat-button routerLink="/admin/users" routerLinkActive="nav-active"
                 *ngIf="authService.isAdminOrAccessManager()"
-                matTooltip="Users" aria-label="Users">
-          <mat-icon>people</mat-icon> <span class="nav-label">Users</span>
+                [matTooltip]="'nav.users' | transloco" [attr.aria-label]="'nav.users' | transloco">
+          <mat-icon>people</mat-icon> <span class="nav-label">{{ 'nav.users' | transloco }}</span>
         </button>
         <button mat-button routerLink="/admin/database-users" routerLinkActive="nav-active"
                 *ngIf="authService.isAdmin()"
-                matTooltip="DB Users" aria-label="DB Users">
-          <mat-icon>storage</mat-icon> <span class="nav-label">DB Users</span>
+                [matTooltip]="'nav.dbUsers' | transloco" [attr.aria-label]="'nav.dbUsers' | transloco">
+          <mat-icon>storage</mat-icon> <span class="nav-label">{{ 'nav.dbUsers' | transloco }}</span>
         </button>
         <button mat-button routerLink="/admin/ad-users" routerLinkActive="nav-active"
                 *ngIf="authService.isAdmin()"
-                matTooltip="AD Users" aria-label="AD Users">
-          <mat-icon>group</mat-icon> <span class="nav-label">AD Users</span>
+                [matTooltip]="'nav.adUsers' | transloco" [attr.aria-label]="'nav.adUsers' | transloco">
+          <mat-icon>group</mat-icon> <span class="nav-label">{{ 'nav.adUsers' | transloco }}</span>
         </button>
         <button mat-button routerLink="/admin/logs" routerLinkActive="nav-active"
                 *ngIf="authService.isAdminOrAuditor()"
-                matTooltip="Logs" aria-label="Logs">
-          <mat-icon>receipt_long</mat-icon> <span class="nav-label">Logs</span>
+                [matTooltip]="'nav.logs' | transloco" [attr.aria-label]="'nav.logs' | transloco">
+          <mat-icon>receipt_long</mat-icon> <span class="nav-label">{{ 'nav.logs' | transloco }}</span>
+        </button>
+
+        <button mat-icon-button (click)="toggleLanguage()"
+                [matTooltip]="languageToggleLabel | async"
+                [attr.aria-label]="languageToggleLabel | async">
+          <mat-icon>translate</mat-icon>
         </button>
 
         <button mat-icon-button (click)="themeService.toggle()"
@@ -78,30 +87,39 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
         </button>
 
         <button mat-icon-button [matMenuTriggerFor]="userMenu"
-                matTooltip="Account"
-                [attr.aria-label]="'Account menu for ' + authService.getUsername()">
+                [matTooltip]="'nav.account' | transloco"
+                [attr.aria-label]="'nav.accountMenuFor' | transloco: { username: authService.getUsername() }">
           <mat-icon>account_circle</mat-icon>
         </button>
         <mat-menu #userMenu="matMenu">
           <div mat-menu-item disabled>{{ authService.getUsername() }}</div>
           <button mat-menu-item *ngIf="authService.isAdmin()" (click)="openLogoDialog()">
-            <mat-icon>image</mat-icon> Website logo
+            <mat-icon>image</mat-icon> {{ 'nav.websiteLogo' | transloco }}
           </button>
           <button mat-menu-item (click)="authService.logout()">
-            <mat-icon>exit_to_app</mat-icon> Logout
+            <mat-icon>exit_to_app</mat-icon> {{ 'nav.logout' | transloco }}
           </button>
         </mat-menu>
       </mat-toolbar>
     </nav>
 
-    <!-- Theme toggle for login page (when not authenticated) -->
-    <button *ngIf="!(authService.isAuthenticated$ | async)"
-            mat-icon-button class="login-theme-toggle"
-            (click)="themeService.toggle()"
-            [matTooltip]="themeToggleLabel | async"
-            [attr.aria-label]="themeToggleLabel | async">
-      <mat-icon>{{ (themeService.isDarkMode$ | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
-    </button>
+    <!-- Theme and language toggles for the login page (when not authenticated). The language
+         one matters most here: someone who cannot read the English form needs to switch
+         before signing in, not after. -->
+    <div *ngIf="!(authService.isAuthenticated$ | async)" class="login-toggles">
+      <button mat-icon-button
+              (click)="toggleLanguage()"
+              [matTooltip]="languageToggleLabel | async"
+              [attr.aria-label]="languageToggleLabel | async">
+        <mat-icon>translate</mat-icon>
+      </button>
+      <button mat-icon-button
+              (click)="themeService.toggle()"
+              [matTooltip]="themeToggleLabel | async"
+              [attr.aria-label]="themeToggleLabel | async">
+        <mat-icon>{{ (themeService.isDarkMode$ | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+    </div>
 
     <main id="main-content" tabindex="-1">
       <router-outlet></router-outlet>
@@ -119,7 +137,7 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
       display: block;
     }
     mat-toolbar button { margin: 0 4px; }
-    .nav-label { margin-left: 4px; }
+    .nav-label { margin-inline-start: 4px; }
     /* An Admin sees 9 nav buttons plus theme and account. On a 1366px laptop the
        row overflows and pushes the account menu off-screen, so below 1400px the
        labels collapse and the tooltip + aria-label carry the name. */
@@ -129,11 +147,15 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
       /* The nav needs the room more than the logo does once labels collapse. */
       .brand-logo { max-width: 140px; }
     }
-    .login-theme-toggle {
+    /* inset-inline-end, not right: the toggles belong in the trailing corner, which is the
+       left-hand side once the page flips to RTL. */
+    .login-toggles {
       position: fixed;
       top: 16px;
-      right: 16px;
+      inset-inline-end: 16px;
       z-index: 100;
+      display: flex;
+      gap: 4px;
       color: var(--text-secondary);
     }
   `]
@@ -142,14 +164,33 @@ export class AppComponent {
   /** Serves both the tooltip and the accessible name of the theme toggle. */
   readonly themeToggleLabel: Observable<string>;
 
+  /** Names the language being switched *to*, in that language — "التبديل إلى العربية". */
+  readonly languageToggleLabel: Observable<string>;
+
   constructor(
     public authService: AuthService,
     public themeService: ThemeService,
     public brandingService: BrandingService,
+    public languageService: LanguageService,
+    private transloco: TranslocoService,
     private dialog: MatDialog
   ) {
-    this.themeToggleLabel = this.themeService.isDarkMode$.pipe(
-      map(dark => dark ? 'Switch to light mode' : 'Switch to dark mode')
+    // Re-derive on language change as well as theme change, otherwise the tooltip keeps the
+    // wording of the language you just left.
+    this.themeToggleLabel = combineLatest([
+      this.themeService.isDarkMode$,
+      this.transloco.langChanges$
+    ]).pipe(
+      map(([dark]) => this.transloco.translate(dark ? 'nav.switchToLight' : 'nav.switchToDark'))
+    );
+
+    this.languageToggleLabel = combineLatest([
+      this.languageService.activeLocale$,
+      this.transloco.langChanges$
+    ]).pipe(
+      map(() => this.transloco.translate('nav.switchLanguageTo', {
+        language: LOCALE_LABELS[this.languageService.other()]
+      }))
     );
 
     // The info endpoint needs a token, so wait for sign-in rather than firing at startup —
@@ -157,6 +198,19 @@ export class AppComponent {
     this.authService.isAuthenticated$.subscribe(authenticated => {
       if (authenticated) this.brandingService.refresh();
     });
+  }
+
+  /**
+   * Flips between the two locales.
+   *
+   * Angular Material reads direction from the document when an overlay is *created*
+   * (@angular/cdk/bidi), so any menu, dialog or snackbar already on screen would keep the old
+   * direction and render half-mirrored. Closing open overlays first avoids that; components
+   * themselves re-render because Transloco is configured with reRenderOnLangChange.
+   */
+  toggleLanguage(): void {
+    this.dialog.closeAll();
+    this.languageService.use(this.languageService.other());
   }
 
   openLogoDialog(): void {

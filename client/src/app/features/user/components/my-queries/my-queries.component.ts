@@ -3,13 +3,14 @@ import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { MyQueryGroup } from '@core/models/dynamic-query.model';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
   standalone: false,
   selector: 'app-my-queries',
   template: `
     <div class="container">
-      <h2>My Queries</h2>
+      <h2>{{ 'user.queries.title' | transloco }}</h2>
 
       <div *ngIf="loading" class="loading">
         <mat-spinner diameter="40"></mat-spinner>
@@ -19,7 +20,7 @@ import { MyQueryGroup } from '@core/models/dynamic-query.model';
         <mat-card-content>
           <p class="error-text">{{ errorMessage }}</p>
           <button mat-raised-button color="primary" (click)="loadGroups()">
-            <mat-icon>refresh</mat-icon> Retry
+            <mat-icon>refresh</mat-icon> {{ 'common.retry' | transloco }}
           </button>
         </mat-card-content>
       </mat-card>
@@ -31,21 +32,22 @@ import { MyQueryGroup } from '@core/models/dynamic-query.model';
             <mat-expansion-panel-header>
               <mat-panel-title>
                 <mat-icon class="folder-icon">{{ group.id ? 'folder' : 'folder_open' }}</mat-icon>
-                {{ group.name }}
+                <span dir="auto">{{ group.name }}</span>
               </mat-panel-title>
               <mat-panel-description>
-                <span class="query-count">{{ group.queries.length }} {{ group.queries.length === 1 ? 'query' : 'queries' }}</span>
-                <span *ngIf="group.description" class="group-desc">{{ group.description }}</span>
+                <span class="query-count">{{ (group.queries.length === 1 ? 'user.queries.countOne' : 'user.queries.countMany')
+              | transloco: { count: group.queries.length } }}</span>
+                <span *ngIf="group.description" class="group-desc" dir="auto">{{ group.description }}</span>
               </mat-panel-description>
             </mat-expansion-panel-header>
 
             <div class="query-grid">
               <mat-card *ngFor="let query of group.queries" class="query-card">
                 <mat-card-header>
-                  <mat-card-title>{{ query.name }}</mat-card-title>
+                  <mat-card-title dir="auto">{{ query.name }}</mat-card-title>
                 </mat-card-header>
                 <mat-card-content>
-                  <p>{{ query.description }}</p>
+                  <p dir="auto">{{ query.description }}</p>
                   <mat-chip-set>
                     <mat-chip *ngFor="let p of query.parameters">
                       {{ p.displayName }}
@@ -55,7 +57,7 @@ import { MyQueryGroup } from '@core/models/dynamic-query.model';
                 <mat-card-actions align="end">
                   <button mat-raised-button color="primary"
                           [routerLink]="['/user/queries', query.id, 'execute']">
-                    <mat-icon>play_arrow</mat-icon> Execute
+                    <mat-icon>play_arrow</mat-icon> {{ 'user.queries.execute' | transloco }}
                   </button>
                 </mat-card-actions>
               </mat-card>
@@ -65,7 +67,7 @@ import { MyQueryGroup } from '@core/models/dynamic-query.model';
 
         <mat-card *ngIf="groups.length === 0">
           <mat-card-content>
-            <p>No queries assigned to you yet.</p>
+            <p>{{ 'user.queries.none' | transloco }}</p>
           </mat-card-content>
         </mat-card>
       </ng-container>
@@ -74,8 +76,8 @@ import { MyQueryGroup } from '@core/models/dynamic-query.model';
   styles: [`
     .error-card { margin-bottom: 16px; }
     .groups { display: block; }
-    .folder-icon { margin-right: 8px; vertical-align: middle; color: var(--text-secondary); }
-    .query-count { font-size: 13px; color: var(--text-secondary); margin-right: 12px; }
+    .folder-icon { margin-inline-end: 8px; vertical-align: middle; color: var(--text-secondary); }
+    .query-count { font-size: 13px; color: var(--text-secondary); margin-inline-end: 12px; }
     .group-desc { color: var(--text-secondary); }
     .query-grid {
       display: grid;
@@ -93,6 +95,7 @@ export class MyQueriesComponent implements OnInit {
 
   constructor(
     private queryService: QueryService,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -107,7 +110,7 @@ export class MyQueriesComponent implements OnInit {
       timeout(30000),
       catchError(err => {
         if (err.name === 'TimeoutError') {
-          return throwError(() => ({ error: { message: 'Request timed out. Please try again.' } }));
+          return throwError(() => ({ error: { message: this.transloco.translate('common.requestTimedOut') } }));
         }
         return throwError(() => err);
       })
@@ -119,7 +122,7 @@ export class MyQueriesComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.message || 'Failed to load queries. Please try again.';
+        this.errorMessage = err.error?.message || this.transloco.translate('user.queries.loadFailed');
         this.cdr.detectChanges();
       }
     });

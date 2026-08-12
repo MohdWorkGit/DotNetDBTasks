@@ -1,6 +1,7 @@
 import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { TranslocoModule } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,7 +24,7 @@ import { ToastService } from '@core/services/toast.service';
 @Component({
   standalone: true,
   selector: 'app-logo-upload-dialog',
-  imports: [CommonModule, MatButtonModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [CommonModule, MatButtonModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule, TranslocoModule],
   template: `
     <h2 mat-dialog-title class="title">
       <mat-icon aria-hidden="true">image</mat-icon> Website logo
@@ -60,7 +61,7 @@ import { ToastService } from '@core/services/toast.service';
       </button>
       <span class="spacer"></span>
       <mat-spinner *ngIf="busy" diameter="24"></mat-spinner>
-      <button mat-button (click)="dialogRef.close()" [disabled]="busy">Close</button>
+      <button mat-button (click)="dialogRef.close()" [disabled]="busy">{{ 'common.close' | transloco }}</button>
       <button mat-raised-button color="primary" (click)="fileInput.click()" [disabled]="busy">
         <mat-icon>upload</mat-icon> {{ hasLogo ? 'Replace' : 'Upload' }}
       </button>

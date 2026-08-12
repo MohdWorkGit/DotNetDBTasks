@@ -16,6 +16,7 @@ namespace DotNetDBTasks.Infrastructure.Services;
 public class LdapService : ILdapService
 {
     private readonly ILogger<LdapService> _logger;
+    private readonly IAppLocalizer _messages;
     private readonly string _host;
     private readonly int _port;
     private readonly string _usersDn;
@@ -25,9 +26,10 @@ public class LdapService : ILdapService
     private readonly string _deptAttr;
     private readonly string _userObjectFilter;
 
-    public LdapService(IConfiguration configuration, ILogger<LdapService> logger)
+    public LdapService(IConfiguration configuration, ILogger<LdapService> logger, IAppLocalizer messages)
     {
         _logger = logger;
+        _messages = messages;
         _host = configuration["Ldap:Host"] ?? "localhost";
         _port = int.Parse(configuration["Ldap:Port"] ?? "389");
         _usersDn = configuration["Ldap:UsersDn"] ?? "ou=users,dc=dotnetdbtasks,dc=local";
@@ -135,7 +137,7 @@ public class LdapService : ILdapService
         catch (LdapException ex)
         {
             _logger.LogError(ex, "LDAP search failed for term {SearchTerm}", searchTerm);
-            throw Unavailable($"searching for \"{searchTerm}\"", ex);
+            throw Unavailable(_messages[MessageKeys.AdOpSearching, searchTerm], ex);
         }
 
         return Task.FromResult<IReadOnlyList<LdapUserInfo>>(results);
@@ -170,7 +172,7 @@ public class LdapService : ILdapService
         catch (LdapException ex)
         {
             _logger.LogError(ex, "Failed to retrieve LDAP departments");
-            throw Unavailable("listing departments", ex);
+            throw Unavailable(_messages[MessageKeys.AdOpListingDepartments], ex);
         }
 
         return Task.FromResult<IReadOnlyList<string>>(departments.OrderBy(d => d).ToList());
@@ -205,7 +207,7 @@ public class LdapService : ILdapService
         catch (LdapException ex)
         {
             _logger.LogError(ex, "LDAP department search failed for {Department}", department);
-            throw Unavailable($"listing members of \"{department}\"", ex);
+            throw Unavailable(_messages[MessageKeys.AdOpListingMembers, department], ex);
         }
 
         return Task.FromResult<IReadOnlyList<LdapUserInfo>>(results);
@@ -220,7 +222,7 @@ public class LdapService : ILdapService
     {
         var detail = string.IsNullOrWhiteSpace(ex.LdapErrorMessage) ? ex.Message : ex.LdapErrorMessage;
         return new ExternalServiceException(
-            $"Active Directory at {_host}:{_port} could not be reached while {operation}. {detail}", ex);
+            _messages[MessageKeys.AdUnreachable, $"{_host}:{_port}", operation, detail], ex);
     }
 
     private LdapUserInfo? MapEntry(LdapEntry entry)

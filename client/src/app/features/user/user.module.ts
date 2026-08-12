@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslocoModule } from '@jsverse/transloco';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { RouterModule } from '@angular/router';
@@ -38,6 +39,7 @@ import { ScheduleStatusComponent } from './components/schedule-status/schedule-s
   ],
   imports: [
     CommonModule,
+    TranslocoModule,
     ReactiveFormsModule,
     FormsModule,
     MatCheckboxModule,

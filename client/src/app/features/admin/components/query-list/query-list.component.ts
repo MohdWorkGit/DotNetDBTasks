@@ -13,6 +13,7 @@ import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { AuthService } from '@core/services/auth.service';
 import { DynamicQuery, isWriteQueryType, QUERY_TYPE_LABELS, QueryType } from '@core/models/dynamic-query.model';
+import { TranslocoService } from '@jsverse/transloco';
 
 /** What survives navigating away from the list and back. */
 interface QueryListState {
@@ -32,61 +33,64 @@ interface QueryListState {
   template: `
     <div class="container">
       <div class="header">
-        <h2>Dynamic Queries</h2>
+        <h2>{{ 'admin.queries.title' | transloco }}</h2>
         <div class="header-actions">
           <input #defaultTplInput type="file" accept=".docx" hidden
                  (change)="onDefaultTemplateSelected($event)">
           <button mat-stroked-button [matMenuTriggerFor]="defaultTplMenu"
                   *ngIf="authService.isAdmin()"
-                  matTooltip="The Word document layout used by exports when a query has no template of its own">
+                  [matTooltip]="'admin.queries.defaultTemplateTip' | transloco">
             <mat-icon>article</mat-icon>
-            Default Word Template
+            {{ 'admin.queries.defaultWordTemplate' | transloco }}
             <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
           </button>
           <mat-menu #defaultTplMenu="matMenu">
             <div class="tpl-menu-status" (click)="$event.stopPropagation()">
-              <ng-container *ngIf="templateInfoFailed">Template status unavailable</ng-container>
-              <ng-container *ngIf="!templateInfoFailed && !defaultTemplateInfo">Checking template…</ng-container>
+              <ng-container *ngIf="templateInfoFailed">{{ 'admin.queries.templateStatusUnavailable' | transloco }}</ng-container>
+              <ng-container *ngIf="!templateInfoFailed && !defaultTemplateInfo">{{ 'admin.queries.checkingTemplate' | transloco }}</ng-container>
               <ng-container *ngIf="defaultTemplateInfo">
                 {{ defaultTemplateInfo.isBuiltIn
-                    ? 'Using the built-in layout'
-                    : 'Custom: ' + (defaultTemplateInfo.fileName || 'unnamed file') }}
+                    ? ('admin.queries.usingBuiltIn' | transloco)
+                    : ('admin.queries.customTemplate' | transloco: { fileName: defaultTemplateInfo.fileName
+                        || ('admin.queries.unnamedFile' | transloco) }) }}
               </ng-container>
             </div>
             <button mat-menu-item (click)="downloadDefaultTemplate()"
                     [disabled]="!defaultTemplateInfo">
               <mat-icon>download</mat-icon>
-              Download {{ defaultTemplateInfo?.isBuiltIn ? 'starter template (edit and re-upload)' : 'current template' }}
+              {{ (defaultTemplateInfo?.isBuiltIn
+                    ? 'admin.queries.downloadStarter'
+                    : 'admin.queries.downloadCurrent') | transloco }}
             </button>
             <button mat-menu-item (click)="defaultTplInput.click()">
-              <mat-icon>upload_file</mat-icon> Upload new default
+              <mat-icon>upload_file</mat-icon> {{ 'admin.queries.uploadDefault' | transloco }}
             </button>
             <button mat-menu-item (click)="resetDefaultTemplate()"
                     [disabled]="!defaultTemplateInfo || defaultTemplateInfo.isBuiltIn">
-              <mat-icon>restart_alt</mat-icon> Reset to built-in layout
+              <mat-icon>restart_alt</mat-icon> {{ 'admin.queries.resetToBuiltIn' | transloco }}
             </button>
           </mat-menu>
           <input #importInput type="file" accept=".json,application/json" hidden
                  (change)="onImportFileSelected($event)">
           <button mat-stroked-button [matMenuTriggerFor]="backupMenu"
                   *ngIf="authService.isAdmin()"
-                  matTooltip="Back up every query, or restore from a backup file">
+                  [matTooltip]="'admin.queries.backupTip' | transloco">
             <mat-icon>backup</mat-icon>
-            Backup
+            {{ 'admin.queries.backup' | transloco }}
             <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
           </button>
           <mat-menu #backupMenu="matMenu">
             <button mat-menu-item (click)="exportAllQueries()" [disabled]="importing">
-              <mat-icon>file_download</mat-icon> Export all queries
+              <mat-icon>file_download</mat-icon> {{ 'admin.queries.exportAll' | transloco }}
             </button>
             <button mat-menu-item (click)="importInput.click()"
                     *ngIf="authService.isAdmin()" [disabled]="importing">
-              <mat-icon>file_upload</mat-icon> Import from backup…
+              <mat-icon>file_upload</mat-icon> {{ 'admin.queries.importFromBackup' | transloco }}
             </button>
           </mat-menu>
           <button mat-raised-button color="primary" routerLink="/admin/queries/create"
                   *ngIf="authService.isAdmin()">
-            <mat-icon>add</mat-icon> Create Query
+            <mat-icon>add</mat-icon> {{ 'admin.queries.create' | transloco }}
           </button>
         </div>
       </div>
@@ -99,46 +103,46 @@ interface QueryListState {
 
           <div *ngIf="!loading" class="table-toolbar">
             <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Filter queries</mat-label>
+              <mat-label>{{ 'admin.queries.filter' | transloco }}</mat-label>
               <input matInput [value]="textFilter" (keyup)="applyFilter($event)"
-                     placeholder="Search by name, description, group, DB user...">
+                     [attr.placeholder]="'admin.queries.filterPlaceholder' | transloco">
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="status-filter">
-              <mat-label>Status</mat-label>
+              <mat-label>{{ 'admin.queries.status' | transloco }}</mat-label>
               <mat-select [(value)]="statusFilter" (selectionChange)="refreshFilter()">
-                <mat-option value="all">All</mat-option>
-                <mat-option value="active">Active</mat-option>
-                <mat-option value="disabled">Disabled</mat-option>
+                <mat-option value="all">{{ 'common.all' | transloco }}</mat-option>
+                <mat-option value="active">{{ 'common.active' | transloco }}</mat-option>
+                <mat-option value="disabled">{{ 'common.disabled' | transloco }}</mat-option>
               </mat-select>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="select-filter">
-              <mat-label>Type</mat-label>
+              <mat-label>{{ 'admin.queries.type' | transloco }}</mat-label>
               <mat-select [(value)]="typeFilter" (selectionChange)="refreshFilter()">
-                <mat-option value="all">All</mat-option>
+                <mat-option value="all">{{ 'common.all' | transloco }}</mat-option>
                 <mat-option [value]="QueryType.Select">SELECT</mat-option>
                 <mat-option [value]="QueryType.Insert">INSERT</mat-option>
                 <mat-option [value]="QueryType.Update">UPDATE</mat-option>
                 <mat-option [value]="QueryType.Delete">DELETE</mat-option>
-                <mat-option [value]="QueryType.Other">Other</mat-option>
+                <mat-option [value]="QueryType.Other">{{ 'admin.queries.typeOther' | transloco }}</mat-option>
               </mat-select>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="select-filter">
-              <mat-label>Group</mat-label>
+              <mat-label>{{ 'admin.queries.group' | transloco }}</mat-label>
               <mat-select [(value)]="groupFilter" (selectionChange)="refreshFilter()">
-                <mat-option value="all">All</mat-option>
-                <mat-option [value]="UNGROUPED">Ungrouped</mat-option>
+                <mat-option value="all">{{ 'common.all' | transloco }}</mat-option>
+                <mat-option [value]="UNGROUPED">{{ 'admin.queries.ungrouped' | transloco }}</mat-option>
                 <mat-option *ngFor="let g of groupOptions" [value]="g">{{ g }}</mat-option>
               </mat-select>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="select-filter">
-              <mat-label>DB User</mat-label>
+              <mat-label>{{ 'admin.queries.dbUser' | transloco }}</mat-label>
               <mat-select [(value)]="dbUserFilter" (selectionChange)="refreshFilter()">
-                <mat-option value="all">All</mat-option>
+                <mat-option value="all">{{ 'common.all' | transloco }}</mat-option>
                 <mat-option *ngFor="let u of dbUserOptions" [value]="u">{{ u }}</mat-option>
               </mat-select>
             </mat-form-field>
@@ -154,17 +158,17 @@ interface QueryListState {
           <div class="table-wrapper">
           <table mat-table [dataSource]="dataSource" matSort *ngIf="!loading">
             <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-              <td mat-cell *matCellDef="let q">{{ q.name }}</td>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.queries.name' | transloco }}</th>
+              <td mat-cell *matCellDef="let q" dir="auto">{{ q.name }}</td>
             </ng-container>
 
             <ng-container matColumnDef="description">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Description</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.queries.description' | transloco }}</th>
               <td mat-cell *matCellDef="let q">{{ q.description | slice:0:80 }}{{ q.description?.length > 80 ? '…' : '' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="queryType">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.queries.type' | transloco }}</th>
               <td mat-cell *matCellDef="let q">
                 <span class="type-chip" [class.type-write]="isWriteType(q.queryType)">
                   {{ typeLabel(q.queryType) }}
@@ -173,21 +177,21 @@ interface QueryListState {
             </ng-container>
 
             <ng-container matColumnDef="isEnabled">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.queries.status' | transloco }}</th>
               <td mat-cell *matCellDef="let q">
                 <span [class]="q.isEnabled ? 'status-active' : 'status-inactive'">
-                  {{ q.isEnabled ? 'Active' : 'Disabled' }}
+                  {{ (q.isEnabled ? 'common.active' : 'common.disabled') | transloco }}
                 </span>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="databaseUserName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>DB User</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.queries.dbUser' | transloco }}</th>
               <td mat-cell *matCellDef="let q">{{ q.databaseUserName || 'Default' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="queryGroupName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Group</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.queries.group' | transloco }}</th>
               <td mat-cell *matCellDef="let q">
                 <span *ngIf="q.queryGroupName; else ungrouped">{{ q.queryGroupName }}</span>
                 <ng-template #ungrouped><span class="ungrouped">—</span></ng-template>
@@ -195,25 +199,25 @@ interface QueryListState {
             </ng-container>
 
             <ng-container matColumnDef="parameters">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Parameters</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.queries.parameters' | transloco }}</th>
               <td mat-cell *matCellDef="let q">{{ q.parameters?.length || 0 }}</td>
             </ng-container>
 
             <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | transloco }}</th>
               <td mat-cell *matCellDef="let q">
-                <button mat-icon-button matTooltip="Edit" aria-label="Edit"
+                <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
                         [routerLink]="['/admin/queries/edit', q.id]"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Copy" aria-label="Copy"
+                <button mat-icon-button [matTooltip]="'common.copy' | transloco" [attr.aria-label]="'common.copy' | transloco"
                         routerLink="/admin/queries/create"
                         [queryParams]="{ copyFrom: q.id }"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>content_copy</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Manage Access" aria-label="Manage Access"
+                <button mat-icon-button [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
                         [routerLink]="['/admin/queries', q.id, 'roles']">
                   <mat-icon>security</mat-icon>
                 </button>
@@ -223,7 +227,7 @@ interface QueryListState {
                         [attr.aria-label]="'Export ' + q.name">
                   <mat-icon>file_download</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Delete" aria-label="Delete" color="warn"
+                <button mat-icon-button [matTooltip]="'common.delete' | transloco" [attr.aria-label]="'common.delete' | transloco" color="warn"
                         (click)="deleteQuery(q.id, q.name)"
                         *ngIf="authService.isAdmin()">
                   <mat-icon>delete</mat-icon>
@@ -308,6 +312,7 @@ export class QueryListComponent implements OnInit {
     private route: ActivatedRoute,
     private listState: ListStateService,
     private dialog: MatDialog,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -350,7 +355,7 @@ export class QueryListComponent implements OnInit {
   exportQuery(query: DynamicQuery): void {
     this.queryService.exportQuery(query.id).subscribe({
       next: (blob) => this.saveBlob(blob, `${this.slug(query.name)}.json`),
-      error: (err) => this.toast.error(err, 'Failed to export the query')
+      error: (err) => this.toast.error(err, 'admin.queries.exportOneFailed')
     });
   }
 
@@ -359,9 +364,9 @@ export class QueryListComponent implements OnInit {
       next: (blob) => {
         const stamp = new Date().toISOString().slice(0, 10);
         this.saveBlob(blob, `queries-backup-${stamp}.json`);
-        this.toast.success('Backup downloaded');
+        this.toast.success('admin.queries.backupDownloaded');
       },
-      error: (err) => this.toast.error(err, 'Failed to export queries')
+      error: (err) => this.toast.error(err, 'admin.queries.exportFailed')
     });
   }
 
@@ -373,11 +378,10 @@ export class QueryListComponent implements OnInit {
     if (!file) return;
 
     this.confirmService.askThen({
-      title: 'Import queries?',
-      message: `Import from "${file.name}"?\n\n`
-        + 'Nothing existing is modified or deleted. Any query whose name is already taken '
-        + 'is added as a copy for you to reconcile.',
-      confirmText: 'Import'
+      titleKey: 'admin.queries.importTitle',
+      messageKey: 'admin.queries.importMessage',
+      params: { fileName: file.name },
+      confirmText: this.transloco.translate('admin.queries.import')
     }, () => this.runImport(file));
   }
 
@@ -398,7 +402,7 @@ export class QueryListComponent implements OnInit {
       },
       error: (err) => {
         this.importing = false;
-        this.toast.error(err, 'Failed to import queries');
+        this.toast.error(err, 'admin.queries.importFailed');
         this.cdr.detectChanges();
       }
     });
@@ -429,7 +433,7 @@ export class QueryListComponent implements OnInit {
         a.click();
         window.URL.revokeObjectURL(url);
       },
-      error: (err) => this.toast.error(err, 'Failed to download template')
+      error: (err) => this.toast.error(err, 'admin.queryForm.templateDownloadFailed')
     });
   }
 
@@ -440,11 +444,11 @@ export class QueryListComponent implements OnInit {
     if (!file) return;
     this.queryService.uploadDefaultWordTemplate(file).subscribe({
       next: () => {
-        this.toast.success('Default Word template updated');
+        this.toast.success('admin.queries.defaultTemplateUpdated');
         this.loadDefaultTemplateInfo();
       },
       error: (err) => {
-        this.toast.error(err, 'Failed to upload template');
+        this.toast.error(err, 'admin.queryForm.templateUploadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -452,20 +456,18 @@ export class QueryListComponent implements OnInit {
 
   resetDefaultTemplate(): void {
     this.confirmService.askThen({
-      title: 'Reset default template?',
-      message: 'This deletes the uploaded system-wide Word template and restores the built-in '
-        + 'layout. Every query without its own template will use the built-in layout from now on. '
-        + 'This cannot be undone.',
-      confirmText: 'Reset template',
+      titleKey: 'admin.queries.resetTemplateTitle',
+      messageKey: 'admin.queries.resetTemplateMessage',
+      confirmText: this.transloco.translate('admin.queries.resetTemplateConfirm'),
       destructive: true
     }, () => {
       this.queryService.deleteDefaultWordTemplate().subscribe({
         next: () => {
-          this.toast.success('Default template reset to the built-in layout');
+          this.toast.success('admin.queries.defaultTemplateReset');
           this.loadDefaultTemplateInfo();
         },
         error: (err) => {
-          this.toast.error(err, 'Failed to reset template');
+          this.toast.error(err, 'admin.queries.resetTemplateFailed');
           this.cdr.detectChanges();
         }
       });
@@ -563,7 +565,7 @@ export class QueryListComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err, 'Failed to load queries');
+        this.toast.error(err, 'admin.queries.loadFailed');
         this.cdr.detectChanges();
       }
     });
@@ -641,19 +643,19 @@ export class QueryListComponent implements OnInit {
 
   deleteQuery(id: string, name: string): void {
     this.confirmService.askThen({
-      title: 'Delete query?',
-      message: `"${name}" will be permanently deleted, along with its parameters and access `
-        + 'assignments. This cannot be undone.',
-      confirmText: 'Delete',
+      titleKey: 'admin.queries.deleteTitle',
+      messageKey: 'admin.queries.deleteMessage',
+      params: { name },
+      confirmText: this.transloco.translate('common.delete'),
       destructive: true
     }, () => {
       this.queryService.deleteQuery(id).subscribe({
         next: () => {
-          this.toast.success('Query deleted');
+          this.toast.success('admin.queries.deleted');
           this.loadQueries();
         },
         error: (err) => {
-          this.toast.error(err, 'Failed to delete query');
+          this.toast.error(err, 'admin.queries.deleteFailed');
         }
       });
     });

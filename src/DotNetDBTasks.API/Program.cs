@@ -5,8 +5,11 @@ using DotNetDBTasks.Application;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Infrastructure;
 using DotNetDBTasks.Infrastructure.Data;
+using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -34,6 +37,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // HTTP context accessor for current user service
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IAppLocalizer, AppLocalizer>();
 
 // Background worker that executes submitted query jobs off the request thread
 builder.Services.AddHostedService<QueryJobWorker>();
@@ -46,6 +50,28 @@ builder.Services.AddHostedService<ScheduledTaskWorker>();
 
 // Controllers
 builder.Services.AddControllers();
+
+// Localization. Messages the client displays verbatim (validation failures, permission
+// denials, AD import summaries) live in Resources/Messages.*.resx in the Application project.
+// ResourcesPath must match the folder holding Messages.resx in the Application project;
+// the lookup is by convention, so a mismatch degrades silently to raw keys.
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supported = new[] { new CultureInfo("en"), new CultureInfo("ar") };
+    options.DefaultRequestCulture = new RequestCulture("en");
+    options.SupportedCultures = supported;
+    options.SupportedUICultures = supported;
+
+    // The Angular client sends Accept-Language on every request (language.interceptor.ts).
+    // Query-string and cookie providers are dropped: the header is the single source of
+    // truth, so a stale cookie cannot outrank the language the user is actually looking at.
+    options.RequestCultureProviders = new List<IRequestCultureProvider>
+    {
+        new AcceptLanguageHeaderRequestCultureProvider()
+    };
+});
 
 // CORS
 builder.Services.AddCors(options =>
@@ -140,6 +166,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+// Before the exception middleware: a localized message is only produced if the request
+// culture is already set by the time a handler throws.
+app.UseRequestLocalization(app.Services.GetRequiredService<IOptions<RequestLocalizationOptions>>().Value);
 
 // Serve the Angular SPA from wwwroot (single-site IIS hosting). Static assets are
 // served directly; unmatched non-API routes fall back to index.html further below.

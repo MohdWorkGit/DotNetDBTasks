@@ -1,5 +1,8 @@
 <!doctype html>
-<html lang="en">
+<!-- lang/dir are the default for first paint only; LanguageService overwrites both from the
+     stored preference as soon as it is constructed. Keeping static values here avoids a
+     flash of unstyled direction before Angular boots. -->
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <title>DotNetDBTasks</title>

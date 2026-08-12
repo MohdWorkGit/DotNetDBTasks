@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export interface ConfirmDialogData {
+  /** Already-translated text — ConfirmService resolves keys before opening the dialog. */
   title: string;
   message: string;
   confirmText?: string;
@@ -24,7 +26,7 @@ export interface ConfirmDialogData {
 @Component({
   standalone: true,
   selector: 'app-confirm-dialog',
-  imports: [CommonModule, MatButtonModule, MatDialogModule, MatIconModule],
+  imports: [CommonModule, MatButtonModule, MatDialogModule, MatIconModule, TranslocoModule],
   template: `
     <h2 mat-dialog-title class="title">
       <mat-icon *ngIf="data.destructive" class="warn-icon" aria-hidden="true">warning</mat-icon>
@@ -35,13 +37,13 @@ export interface ConfirmDialogData {
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="dialogRef.close()">
-        {{ data.cancelText || 'Cancel' }}
+        {{ data.cancelText || ('common.cancel' | transloco) }}
       </button>
       <button mat-raised-button
               [color]="data.destructive ? 'warn' : 'primary'"
               (click)="dialogRef.close(true)"
               cdkFocusInitial>
-        {{ data.confirmText || 'Confirm' }}
+        {{ data.confirmText || ('common.confirm' | transloco) }}
       </button>
     </mat-dialog-actions>
   `,

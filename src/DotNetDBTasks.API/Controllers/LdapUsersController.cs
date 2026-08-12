@@ -24,11 +24,13 @@ public class LdapUsersController : ControllerBase
 {
     private readonly ILdapService _ldapService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAppLocalizer _messages;
 
-    public LdapUsersController(ILdapService ldapService, IUnitOfWork unitOfWork)
+    public LdapUsersController(ILdapService ldapService, IUnitOfWork unitOfWork, IAppLocalizer messages)
     {
         _ldapService = ldapService;
         _unitOfWork = unitOfWork;
+        _messages = messages;
     }
 
     /// <summary>
@@ -159,16 +161,16 @@ public class LdapUsersController : ControllerBase
     private async Task<string?> DescribeBlockerAsync(LdapUserInfo ldapUser, HashSet<string> claimedEmails)
     {
         if (await _unitOfWork.Users.ExistsAsync(u => u.Username == ldapUser.Username))
-            return $"A local account named \"{ldapUser.Username}\" already exists.";
+            return _messages[MessageKeys.ImportLocalAccountExists, ldapUser.Username];
 
         if (string.IsNullOrWhiteSpace(ldapUser.Email))
             return null;
 
         if (claimedEmails.Contains(ldapUser.Email))
-            return $"Another account in this same import already uses {ldapUser.Email}.";
+            return _messages[MessageKeys.ImportEmailClashInBatch, ldapUser.Email!];
 
         if (await _unitOfWork.Users.ExistsAsync(u => u.Email == ldapUser.Email))
-            return $"The email {ldapUser.Email} is already used by another account.";
+            return _messages[MessageKeys.ImportEmailTaken, ldapUser.Email!];
 
         return null;
     }
@@ -206,16 +208,16 @@ public class LdapUsersController : ControllerBase
     }
 
     /// <summary>Builds the one-line message the client shows after an import.</summary>
-    private static string Summarise(ImportResultDto result)
+    private string Summarise(ImportResultDto result)
     {
-        var parts = new List<string> { $"{result.Imported} imported" };
+        var parts = new List<string> { _messages[MessageKeys.ImportSummaryImported, result.Imported] };
 
         if (result.AlreadyImported.Count > 0)
-            parts.Add($"{result.AlreadyImported.Count} already present");
+            parts.Add(_messages[MessageKeys.ImportSummaryAlreadyPresent, result.AlreadyImported.Count]);
         if (result.NotFound.Count > 0)
-            parts.Add($"{result.NotFound.Count} not found in the directory");
+            parts.Add(_messages[MessageKeys.ImportSummaryNotFound, result.NotFound.Count]);
         if (result.Skipped.Count > 0)
-            parts.Add($"{result.Skipped.Count} skipped");
+            parts.Add(_messages[MessageKeys.ImportSummarySkipped, result.Skipped.Count]);
 
         var summary = string.Join(", ", parts) + ".";
 
@@ -226,7 +228,7 @@ public class LdapUsersController : ControllerBase
             var reasons = result.Skipped.Take(5).Select(s => $"{s.Username}: {s.Reason}");
             summary += " " + string.Join(" ", reasons);
             if (result.Skipped.Count > 5)
-                summary += $" (+{result.Skipped.Count - 5} more)";
+                summary += " " + _messages[MessageKeys.ImportSummaryMore, result.Skipped.Count - 5];
         }
 
         return summary;
@@ -246,7 +248,7 @@ public class LdapUsersController : ControllerBase
         if (ldapUsers.Count == 0)
             return Ok(new ImportResultDto
             {
-                Summary = $"No accounts found in the directory for department \"{request.Department}\"."
+                Summary = _messages[MessageKeys.ImportNoDepartmentMatches, request.Department]
             });
 
         var userRole = (await _unitOfWork.Roles.FindAsync(r => r.Name == RoleNames.User)).FirstOrDefault();
