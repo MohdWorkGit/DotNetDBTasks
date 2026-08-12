@@ -1,0 +1,14 @@
+{
+  "name": "dotnetdbtasks-user-manual",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Regenerates the DotNetDBTasks user manual (.docx) and its screenshots.",
+  "scripts": {
+    "capture": "node capture-screenshots.js",
+    "build": "python build-docx.py",
+    "manual": "node capture-screenshots.js && python build-docx.py"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}
