@@ -476,3 +476,12 @@ export interface AuditActionCatalog {
   categories: string[];
   actions: string[];
 }
+
+/** Runtime toggles an administrator can change without a restart. */
+export interface SystemSettings {
+  /**
+   * When false (the default), an Access Manager may only change access on query *groups*,
+   * not on individual queries. Admins are unaffected either way.
+   */
+  accessManagerCanManageQueryAccess: boolean;
+}

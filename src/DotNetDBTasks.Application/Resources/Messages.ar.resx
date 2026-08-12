@@ -168,4 +168,7 @@
   <data name="ImportNoDepartmentMatches" xml:space="preserve">
     <value>لم يُعثر على أي حسابات في الدليل للقسم «⁨{0}⁩».</value>
   </data>
+  <data name="QueryAccessGroupsOnly" xml:space="preserve">
+    <value>يمكن لمدير الوصول تغيير الصلاحيات على مجموعات الاستعلامات فقط، وليس على الاستعلامات الفردية. يمكن للمسؤول تفعيل الوصول لكل استعلام من إعدادات النظام.</value>
+  </data>
 </root>

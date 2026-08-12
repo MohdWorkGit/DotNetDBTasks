@@ -32,6 +32,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ScheduledTaskViewer> ScheduledTaskViewers => Set<ScheduledTaskViewer>();
     public DbSet<SystemTemplate> SystemTemplates => Set<SystemTemplate>();
     public DbSet<SystemAuditLog> SystemAuditLogs => Set<SystemAuditLog>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

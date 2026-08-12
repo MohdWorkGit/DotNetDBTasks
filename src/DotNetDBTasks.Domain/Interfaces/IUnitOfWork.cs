@@ -29,5 +29,6 @@ public interface IUnitOfWork : IDisposable
     IRepository<ScheduledTaskViewer> ScheduledTaskViewers { get; }
     IRepository<SystemTemplate> SystemTemplates { get; }
     IRepository<SystemAuditLog> SystemAuditLogs { get; }
+    IRepository<SystemSetting> SystemSettings { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

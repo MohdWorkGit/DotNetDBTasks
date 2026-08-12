@@ -7,6 +7,8 @@ using DotNetDBTasks.Application.Features.QueryExecution.Queries;
 using DotNetDBTasks.Domain.Enums;
 using MediatR;
 using DotNetDBTasks.Domain.Constants;
+using DotNetDBTasks.Domain.Exceptions;
+using DotNetDBTasks.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -34,11 +36,63 @@ public class DynamicQueriesController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IResultFileExporter _resultFileExporter;
+    private readonly ICurrentUserService _currentUser;
+    private readonly ISystemSettingsService _settings;
+    private readonly IAppLocalizer _messages;
+    private readonly IAuditLogger _audit;
 
-    public DynamicQueriesController(IMediator mediator, IResultFileExporter resultFileExporter)
+    public DynamicQueriesController(
+        IMediator mediator,
+        IResultFileExporter resultFileExporter,
+        ICurrentUserService currentUser,
+        ISystemSettingsService settings,
+        IAppLocalizer messages,
+        IAuditLogger audit)
     {
         _mediator = mediator;
         _resultFileExporter = resultFileExporter;
+        _currentUser = currentUser;
+        _settings = settings;
+        _messages = messages;
+        _audit = audit;
+    }
+
+    /// <summary>
+    /// Blocks per-query access changes by an Access Manager unless an administrator has
+    /// switched them on.
+    ///
+    /// <para>The role's normal remit is query <em>groups</em>: granting a group is a
+    /// deliberate, visible act, where per-query grants accumulate quietly. The attribute
+    /// alone cannot express this because it depends on a runtime setting, so the three
+    /// assignment actions call this first. Admins are never affected.</para>
+    /// </summary>
+    private async Task EnsureMayManageQueryAccessAsync(CancellationToken cancellationToken)
+    {
+        if (_currentUser.Roles.Contains(RoleNames.Admin))
+            return;
+
+        var allowed = await _settings.GetBoolAsync(
+            SystemSettingKeys.AccessManagerCanManageQueryAccess,
+            SystemSettingKeys.AccessManagerCanManageQueryAccessDefault,
+            cancellationToken);
+
+        if (allowed)
+            return;
+
+        var reason = _messages[MessageKeys.QueryAccessGroupsOnly];
+
+        // Recorded here rather than left to the audit behavior: this check runs before
+        // _mediator.Send, so the behavior never sees the request. A refused permission change
+        // is precisely the entry an auditor is looking for, so it must not go unlogged.
+        await _audit.RecordAsync(new AuditEntry
+        {
+            Action = AuditActions.AccessQueryRefused,
+            Category = AuditActions.CategoryAccess,
+            IsSuccess = false,
+            ErrorMessage = reason
+        }, cancellationToken);
+
+        throw new ForbiddenAccessException(reason);
     }
 
     /// <summary>
@@ -351,6 +405,7 @@ public class DynamicQueriesController : ControllerBase
         [FromBody] AssignQueryToRolesCommand command,
         CancellationToken cancellationToken)
     {
+        await EnsureMayManageQueryAccessAsync(cancellationToken);
         command.QueryId = id;
         await _mediator.Send(command, cancellationToken);
         return NoContent();
@@ -367,6 +422,7 @@ public class DynamicQueriesController : ControllerBase
         [FromBody] AssignQueryToDepartmentsCommand command,
         CancellationToken cancellationToken)
     {
+        await EnsureMayManageQueryAccessAsync(cancellationToken);
         command.QueryId = id;
         await _mediator.Send(command, cancellationToken);
         return NoContent();
@@ -382,6 +438,7 @@ public class DynamicQueriesController : ControllerBase
         [FromBody] AssignQueryToUsersCommand command,
         CancellationToken cancellationToken)
     {
+        await EnsureMayManageQueryAccessAsync(cancellationToken);
         command.QueryId = id;
         await _mediator.Send(command, cancellationToken);
         return NoContent();

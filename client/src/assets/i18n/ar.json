@@ -54,7 +54,11 @@
     "switchToLight": "التبديل إلى الوضع الفاتح",
     "language": "اللغة",
     "switchLanguageTo": "التبديل إلى {{language}}",
-    "systemAudit": "سجل عمليات النظام"
+    "systemAudit": "سجل عمليات النظام",
+    "queriesGroup": "الاستعلامات",
+    "peopleGroup": "المستخدمون والصلاحيات",
+    "oversightGroup": "الرقابة",
+    "settings": "الإعدادات"
   },
   "auth": {
     "signInSubtitle": "سجّل الدخول إلى حسابك",
@@ -429,7 +433,9 @@
         "directory.restore": "استعادة وصول مستخدم AD",
         "directory.sync": "مزامنة المستخدمين من AD",
         "branding.logoSet": "تغيير شعار الموقع",
-        "branding.logoRemoved": "إزالة شعار الموقع"
+        "branding.logoRemoved": "إزالة شعار الموقع",
+        "settings.updated": "تغيير أحد إعدادات النظام",
+        "access.queryRefused": "رُفض تغيير صلاحية استعلام فردي (الإعداد يسمح بالمجموعات فقط)"
       },
       "categories": {
         "users": "المستخدمون",
@@ -440,8 +446,17 @@
         "scheduledTasks": "المهام المجدولة",
         "directory": "Active Directory",
         "branding": "الهوية البصرية",
-        "other": "أخرى"
+        "other": "أخرى",
+        "settings": "الإعدادات"
       }
+    },
+    "settings": {
+      "title": "إعدادات النظام",
+      "perQueryAccess": "يمكن لمديري الوصول إدارة صلاحيات الاستعلامات الفردية",
+      "perQueryAccessHint": "مُعطَّل افتراضيًا. يدير مديرو الوصول صلاحيات مجموعات الاستعلامات دائمًا؛ وتفعيل هذا الخيار يتيح لهم أيضًا تخصيص الأدوار والأقسام والمستخدمين لاستعلام واحد. لا يتأثر المسؤولون في الحالتين.",
+      "saved": "تم حفظ الإعدادات",
+      "saveFailed": "تعذّر حفظ الإعدادات",
+      "loadFailed": "تعذّر تحميل الإعدادات"
     }
   },
   "user": {

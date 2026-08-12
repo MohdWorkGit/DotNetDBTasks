@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IDatabaseConnectionFactory, DatabaseConnectionFactory>();
         services.AddScoped<IEncryptionService, AesEncryptionService>();
         services.AddScoped<ILdapService, LdapService>();
+        services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddSingleton<IExcelExporter, ExcelExporter>();
         services.AddSingleton<IDocxToPdfConverter, DocxToPdfConverter>();
         services.AddSingleton<IResultFileExporter, ResultFileExporter>();

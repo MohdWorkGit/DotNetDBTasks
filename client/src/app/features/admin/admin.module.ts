@@ -36,6 +36,7 @@ import { ScheduledTasksListComponent } from './components/scheduled-tasks/schedu
 import { ScheduledTaskFormComponent } from './components/scheduled-tasks/scheduled-task-form.component';
 import { ScheduledTaskRunsComponent } from './components/scheduled-tasks/scheduled-task-runs.component';
 import { SystemAuditComponent } from './components/system-audit/system-audit.component';
+import { SystemSettingsComponent } from './components/system-settings/system-settings.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { authGuard } from '@core/guards/auth.guard';
@@ -56,7 +57,8 @@ import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
     ScheduledTasksListComponent,
     ScheduledTaskFormComponent,
     ScheduledTaskRunsComponent,
-    SystemAuditComponent
+    SystemAuditComponent,
+    SystemSettingsComponent
   ],
   imports: [
     CommonModule,
@@ -116,6 +118,8 @@ import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
         canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
       { path: 'system-audit', component: SystemAuditComponent,
         canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
+      { path: 'settings', component: SystemSettingsComponent,
+        canActivate: [authGuard], data: { roles: [ADMIN] } },
       { path: 'ad-users', component: AdUsersComponent,
         canActivate: [authGuard], data: { roles: [ADMIN] } },
       { path: 'users', component: UserManagementComponent,

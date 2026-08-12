@@ -64,7 +64,8 @@ the JWT's role claims.
 | Read a query's SQL | ✅ | — | — | assigned only |
 | **Run queries** | ✅ | **never** | **never** | assigned only |
 | Export / import query definitions | ✅ | — | — | — |
-| Assign queries and groups to roles / departments / users | ✅ | — | ✅ | — |
+| Assign **query groups** to roles / departments / users | ✅ | — | ✅ | — |
+| Assign an **individual query** to roles / departments / users | ✅ | — | setting | — |
 | List queries and groups (names, no SQL) | ✅ | — | ✅ | — |
 | User management | ✅ | — | ✅ (not admins) | — |
 | Execution logs and before-change snapshots | ✅ | ✅ | — | own history only |
@@ -82,6 +83,11 @@ Three rules are worth stating outright because they are not obvious from the tab
   the detail fetch, execution, and parameter dropdowns alike — so such an assignment is inert,
   and the pickers filter them out rather than offer a no-op. This is per role, not per person:
   an Auditor who is also a User runs whatever User is assigned.
+- **Access Manager manages group access, not per-query access, by default.** Groups are the
+  coarser and safer control: granting a group is a deliberate, visible act, where per-query
+  grants accumulate quietly. An administrator can switch per-query access on for the role under
+  **Settings** (`accessManager.canManageQueryAccess`, default off). A refused attempt is written
+  to the audit trail as `access.queryRefused`.
 - **Access Manager never sees query text.** It reaches the query list and the accessibility
   pages, but the API blanks `sqlQuery` out of every DTO bound for this role, and the export
   endpoints — which carry the SQL verbatim — are Admin-only.
@@ -95,6 +101,22 @@ Three rules are worth stating outright because they are not obvious from the tab
 Seeded accounts (development only — change or remove before deploying):
 `admin` / `Admin@123`, `user` / `User@123`, `auditor` / `Auditor@123`,
 `accessmanager` / `Access@123`.
+
+## Runtime Settings
+
+Toggles an administrator can change without a restart, stored in `SystemSettings` and edited at
+**Settings** (in the profile menu, Admin only). They live in the database rather than
+`appsettings.json` precisely so they can be flipped from the UI — restarts are a scheduled event
+on the air-gapped installs. A missing row means "use the compiled default", so an upgraded
+database behaves exactly like a fresh one until someone changes something.
+
+| Key | Default | Effect |
+|---|---|---|
+| `accessManager.canManageQueryAccess` | `false` | When on, Access Managers may also assign roles/departments/users to an **individual** query, not just to query groups. Admins are unaffected. |
+
+Settings are read on authorization paths and deliberately **not cached** — a stale value would
+mean granting access an administrator believes they just revoked. Changes are audited
+(`settings.updated`) with the new value.
 
 ## System Audit Trail
 

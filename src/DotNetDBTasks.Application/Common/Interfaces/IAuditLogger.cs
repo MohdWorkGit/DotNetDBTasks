@@ -52,6 +52,7 @@ public static class AuditActions
     public const string CategoryScheduledTasks = "scheduledTasks";
     public const string CategoryDirectory = "directory";
     public const string CategoryBranding = "branding";
+    public const string CategorySettings = "settings";
     public const string CategoryOther = "other";
 
     // Directory and branding are raised from controllers, which is why they are named here
@@ -64,6 +65,11 @@ public static class AuditActions
     public const string BrandingLogoSet = "branding.logoSet";
     public const string BrandingLogoRemoved = "branding.logoRemoved";
     public const string QueriesImport = "queries.import";
+    public const string SettingsUpdated = "settings.updated";
+
+    /// <summary>An Access Manager attempted a per-query access change while the
+    /// setting that permits it was off.</summary>
+    public const string AccessQueryRefused = "access.queryRefused";
 
     /// <summary>
     /// Command type name -> (action code, category).
@@ -159,7 +165,8 @@ public static class AuditActions
             .Concat(new[]
             {
                 DirectoryImportUsers, DirectoryImportDepartment, DirectoryRevoke,
-                DirectoryRestore, DirectorySync, BrandingLogoSet, BrandingLogoRemoved
+                DirectoryRestore, DirectorySync, BrandingLogoSet, BrandingLogoRemoved,
+                SettingsUpdated, AccessQueryRefused
             })
             .Distinct()
             .ToList();

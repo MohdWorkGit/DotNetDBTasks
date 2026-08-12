@@ -72,7 +72,8 @@ public class SystemAuditLogsController : ControllerBase
             AuditActions.CategoryUsers, AuditActions.CategoryQueries, AuditActions.CategoryGroups,
             AuditActions.CategoryAccess, AuditActions.CategoryDatabaseUsers,
             AuditActions.CategoryScheduledTasks, AuditActions.CategoryDirectory,
-            AuditActions.CategoryBranding, AuditActions.CategoryOther
+            AuditActions.CategoryBranding, AuditActions.CategorySettings,
+            AuditActions.CategoryOther
         },
         actions = AuditActions.AllActions().OrderBy(a => a).ToList()
     });

@@ -217,7 +217,8 @@ interface QueryListState {
                         *ngIf="authService.isAdmin()">
                   <mat-icon>content_copy</mat-icon>
                 </button>
-                <button mat-icon-button [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
+                <button mat-icon-button *ngIf="canManageQueryAccess"
+                        [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
                         [routerLink]="['/admin/queries', q.id, 'roles']">
                   <mat-icon>security</mat-icon>
                 </button>
@@ -273,6 +274,13 @@ interface QueryListState {
   `]
 })
 export class QueryListComponent implements OnInit {
+  /**
+   * Per-query access is Admin-only unless an administrator has switched it on for Access
+   * Managers. Hidden rather than left to 403: the server enforces it either way, but an
+   * always-failing button is worse than no button.
+   */
+  canManageQueryAccess = false;
+
   displayedColumns = ['name', 'description', 'queryType', 'isEnabled', 'queryGroupName', 'databaseUserName', 'parameters', 'actions'];
   dataSource = new MatTableDataSource<DynamicQuery>();
   loading = true;
@@ -317,6 +325,18 @@ export class QueryListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.canManageQueryAccess = this.authService.isAdmin();
+    if (!this.canManageQueryAccess && this.authService.isAccessManager()) {
+      this.queryService.getSystemSettings().subscribe({
+        next: (settings) => {
+          this.canManageQueryAccess = settings.accessManagerCanManageQueryAccess;
+          this.cdr.detectChanges();
+        },
+        // Leave it hidden on failure — the safe reading matches the server's default.
+        error: () => this.cdr.detectChanges()
+      });
+    }
+
     // Deep link from the groups list: /admin/queries?group=<name> (or "ungrouped").
     const group = this.route.snapshot.queryParamMap.get('group');
     if (group) {

@@ -54,7 +54,11 @@
     "switchToLight": "Switch to light mode",
     "language": "Language",
     "switchLanguageTo": "Switch to {{language}}",
-    "systemAudit": "System Audit"
+    "systemAudit": "System Audit",
+    "queriesGroup": "Queries",
+    "peopleGroup": "Users & Access",
+    "oversightGroup": "Oversight",
+    "settings": "Settings"
   },
   "auth": {
     "signInSubtitle": "Sign in to your account",
@@ -429,7 +433,9 @@
         "directory.restore": "Restored AD user access",
         "directory.sync": "Synced users from AD",
         "branding.logoSet": "Changed the site logo",
-        "branding.logoRemoved": "Removed the site logo"
+        "branding.logoRemoved": "Removed the site logo",
+        "settings.updated": "Changed a system setting",
+        "access.queryRefused": "Per-query access change refused (groups-only setting)"
       },
       "categories": {
         "users": "Users",
@@ -440,8 +446,17 @@
         "scheduledTasks": "Scheduled tasks",
         "directory": "Active Directory",
         "branding": "Branding",
-        "other": "Other"
+        "other": "Other",
+        "settings": "Settings"
       }
+    },
+    "settings": {
+      "title": "System Settings",
+      "perQueryAccess": "Access Managers can manage individual query access",
+      "perQueryAccessHint": "Off by default. Access Managers always manage query group access; turning this on also lets them assign roles, departments and users to a single query. Admins are unaffected either way.",
+      "saved": "Settings saved",
+      "saveFailed": "Failed to save settings",
+      "loadFailed": "Failed to load settings"
     }
   },
   "user": {

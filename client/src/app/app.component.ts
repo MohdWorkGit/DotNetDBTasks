@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
@@ -24,6 +25,12 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
         <ng-template #siteName><span>DotNetDBTasks</span></ng-template>
         <span class="spacer"></span>
 
+        <!-- Grouped into menus rather than a flat row. An Admin has nine destinations; as
+             flat buttons they overflowed a 1366px laptop and pushed the account menu off
+             screen, which the old max-width:1400px label-collapsing hack only partly hid.
+             Each group renders only if the role can reach something inside it, so a plain
+             User still sees three plain buttons and no empty dropdowns. -->
+
         <button mat-button routerLink="/user/queries" routerLinkActive="nav-active"
                 [matTooltip]="'nav.myQueries' | transloco" [attr.aria-label]="'nav.myQueries' | transloco">
           <mat-icon>list</mat-icon> <span class="nav-label">{{ 'nav.myQueries' | transloco }}</span>
@@ -38,48 +45,65 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
           <mat-icon>schedule</mat-icon> <span class="nav-label">{{ 'nav.schedules' | transloco }}</span>
         </button>
 
-        <button mat-button routerLink="/admin/scheduled-tasks" routerLinkActive="nav-active"
-                *ngIf="authService.isAdminOrAuditor()"
-                [matTooltip]="'nav.schedules' | transloco" [attr.aria-label]="'nav.schedules' | transloco">
-          <mat-icon>schedule</mat-icon> <span class="nav-label">{{ 'nav.schedules' | transloco }}</span>
+        <!-- Queries: authoring and group/query accessibility. -->
+        <button mat-button *ngIf="authService.isAdminOrAccessManager()"
+                [matMenuTriggerFor]="queriesMenu"
+                [class.nav-active]="inSection(['/admin/queries', '/admin/query-groups'])"
+                [matTooltip]="'nav.queriesGroup' | transloco">
+          <mat-icon>dashboard</mat-icon>
+          <span class="nav-label">{{ 'nav.queriesGroup' | transloco }}</span>
+          <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
         </button>
-        <button mat-button routerLink="/admin/queries" routerLinkActive="nav-active"
-                *ngIf="authService.isAdminOrAccessManager()"
-                [matTooltip]="'nav.manageQueries' | transloco" [attr.aria-label]="'nav.manageQueries' | transloco">
-          <mat-icon>dashboard</mat-icon> <span class="nav-label">{{ 'nav.manageQueries' | transloco }}</span>
+        <mat-menu #queriesMenu="matMenu">
+          <button mat-menu-item routerLink="/admin/queries">
+            <mat-icon>dashboard</mat-icon> {{ 'nav.manageQueries' | transloco }}
+          </button>
+          <button mat-menu-item routerLink="/admin/query-groups">
+            <mat-icon>folder</mat-icon> {{ 'nav.queryGroups' | transloco }}
+          </button>
+        </mat-menu>
+
+        <!-- People and the connections their queries run through. -->
+        <button mat-button *ngIf="authService.isAdminOrAccessManager()"
+                [matMenuTriggerFor]="peopleMenu"
+                [class.nav-active]="inSection(['/admin/users', '/admin/ad-users', '/admin/database-users'])"
+                [matTooltip]="'nav.peopleGroup' | transloco">
+          <mat-icon>people</mat-icon>
+          <span class="nav-label">{{ 'nav.peopleGroup' | transloco }}</span>
+          <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
         </button>
-        <button mat-button routerLink="/admin/query-groups" routerLinkActive="nav-active"
-                *ngIf="authService.isAdminOrAccessManager()"
-                [matTooltip]="'nav.queryGroups' | transloco" [attr.aria-label]="'nav.queryGroups' | transloco">
-          <mat-icon>folder</mat-icon> <span class="nav-label">{{ 'nav.queryGroups' | transloco }}</span>
-        </button>
-        <button mat-button routerLink="/admin/users" routerLinkActive="nav-active"
-                *ngIf="authService.isAdminOrAccessManager()"
-                [matTooltip]="'nav.users' | transloco" [attr.aria-label]="'nav.users' | transloco">
-          <mat-icon>people</mat-icon> <span class="nav-label">{{ 'nav.users' | transloco }}</span>
-        </button>
-        <button mat-button routerLink="/admin/database-users" routerLinkActive="nav-active"
-                *ngIf="authService.isAdmin()"
-                [matTooltip]="'nav.dbUsers' | transloco" [attr.aria-label]="'nav.dbUsers' | transloco">
-          <mat-icon>storage</mat-icon> <span class="nav-label">{{ 'nav.dbUsers' | transloco }}</span>
-        </button>
-        <button mat-button routerLink="/admin/ad-users" routerLinkActive="nav-active"
-                *ngIf="authService.isAdmin()"
-                [matTooltip]="'nav.adUsers' | transloco" [attr.aria-label]="'nav.adUsers' | transloco">
-          <mat-icon>group</mat-icon> <span class="nav-label">{{ 'nav.adUsers' | transloco }}</span>
-        </button>
-        <button mat-button routerLink="/admin/logs" routerLinkActive="nav-active"
-                *ngIf="authService.isAdminOrAuditor()"
-                [matTooltip]="'nav.logs' | transloco" [attr.aria-label]="'nav.logs' | transloco">
-          <mat-icon>receipt_long</mat-icon> <span class="nav-label">{{ 'nav.logs' | transloco }}</span>
-        </button>
-        <button mat-button routerLink="/admin/system-audit" routerLinkActive="nav-active"
-                *ngIf="authService.isAdminOrAuditor()"
-                [matTooltip]="'nav.systemAudit' | transloco"
-                [attr.aria-label]="'nav.systemAudit' | transloco">
+        <mat-menu #peopleMenu="matMenu">
+          <button mat-menu-item routerLink="/admin/users">
+            <mat-icon>people</mat-icon> {{ 'nav.users' | transloco }}
+          </button>
+          <button mat-menu-item *ngIf="authService.isAdmin()" routerLink="/admin/ad-users">
+            <mat-icon>group</mat-icon> {{ 'nav.adUsers' | transloco }}
+          </button>
+          <button mat-menu-item *ngIf="authService.isAdmin()" routerLink="/admin/database-users">
+            <mat-icon>storage</mat-icon> {{ 'nav.dbUsers' | transloco }}
+          </button>
+        </mat-menu>
+
+        <!-- Oversight: the Auditor's whole surface lives here. -->
+        <button mat-button *ngIf="authService.isAdminOrAuditor()"
+                [matMenuTriggerFor]="oversightMenu"
+                [class.nav-active]="inSection(['/admin/scheduled-tasks', '/admin/logs', '/admin/system-audit'])"
+                [matTooltip]="'nav.oversightGroup' | transloco">
           <mat-icon>fact_check</mat-icon>
-          <span class="nav-label">{{ 'nav.systemAudit' | transloco }}</span>
+          <span class="nav-label">{{ 'nav.oversightGroup' | transloco }}</span>
+          <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
         </button>
+        <mat-menu #oversightMenu="matMenu">
+          <button mat-menu-item routerLink="/admin/scheduled-tasks">
+            <mat-icon>schedule</mat-icon> {{ 'nav.schedules' | transloco }}
+          </button>
+          <button mat-menu-item routerLink="/admin/logs">
+            <mat-icon>receipt_long</mat-icon> {{ 'nav.logs' | transloco }}
+          </button>
+          <button mat-menu-item routerLink="/admin/system-audit">
+            <mat-icon>fact_check</mat-icon> {{ 'nav.systemAudit' | transloco }}
+          </button>
+        </mat-menu>
 
         <button mat-icon-button [matMenuTriggerFor]="userMenu"
                 [matTooltip]="'nav.account' | transloco"
@@ -107,6 +131,9 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
 
           <mat-divider></mat-divider>
 
+          <button mat-menu-item *ngIf="authService.isAdmin()" routerLink="/admin/settings">
+            <mat-icon>settings</mat-icon> {{ 'nav.settings' | transloco }}
+          </button>
           <button mat-menu-item *ngIf="authService.isAdmin()" (click)="openLogoDialog()">
             <mat-icon>image</mat-icon> {{ 'nav.websiteLogo' | transloco }}
           </button>
@@ -152,10 +179,11 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
     }
     mat-toolbar button { margin: 0 4px; }
     .nav-label { margin-inline-start: 4px; }
-    /* An Admin sees 9 nav buttons plus theme and account. On a 1366px laptop the
-       row overflows and pushes the account menu off-screen, so below 1400px the
-       labels collapse and the tooltip + aria-label carry the name. */
-    @media (max-width: 1400px) {
+    /* Grouping the destinations into menus cut an Admin from nine nav buttons to four,
+       so labels now fit a 1366px laptop and the old 1400px collapse point only made the
+       bar cryptic. Kept at a genuinely narrow width, where the tooltip and aria-label
+       still carry the name. */
+    @media (max-width: 1100px) {
       .nav-label { display: none; }
       mat-toolbar button { margin: 0 2px; }
       /* The nav needs the room more than the logo does once labels collapse. */
@@ -186,6 +214,7 @@ export class AppComponent {
     public themeService: ThemeService,
     public brandingService: BrandingService,
     public languageService: LanguageService,
+    private router: Router,
     private transloco: TranslocoService,
     private dialog: MatDialog
   ) {
@@ -209,6 +238,18 @@ export class AppComponent {
     this.authService.isAuthenticated$.subscribe(authenticated => {
       if (authenticated) this.brandingService.refresh();
     });
+  }
+
+  /**
+   * Whether the current route sits under one of a menu's destinations.
+   *
+   * <p>routerLinkActive cannot do this: it lives on the menu *items*, which are inside an
+   * overlay that is not rendered until the menu opens — so the trigger would never light up
+   * and there would be no indication of which section you are in.</p>
+   */
+  inSection(prefixes: string[]): boolean {
+    const url = this.router.url;
+    return prefixes.some(p => url === p || url.startsWith(p + '/'));
   }
 
   /** Flips between the two locales. LanguageService reloads the page — see its docs for why. */

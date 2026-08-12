@@ -39,6 +39,7 @@ public static class MessageKeys
     public const string LdapPasswordResetUnavailable = nameof(LdapPasswordResetUnavailable);
 
     public const string NoAccessToQuery = nameof(NoAccessToQuery);
+    public const string QueryAccessGroupsOnly = nameof(QueryAccessGroupsOnly);
     public const string QueryDisabled = nameof(QueryDisabled);
     public const string NoAccessToDatabaseUser = nameof(NoAccessToDatabaseUser);
     public const string NoAccessToScheduledTask = nameof(NoAccessToScheduledTask);

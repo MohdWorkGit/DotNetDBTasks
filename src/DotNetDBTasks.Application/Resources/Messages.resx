@@ -168,4 +168,7 @@
   <data name="ImportNoDepartmentMatches" xml:space="preserve">
     <value>No accounts found in the directory for department "{0}".</value>
   </data>
+  <data name="QueryAccessGroupsOnly" xml:space="preserve">
+    <value>An Access Manager may only change access on query groups, not on individual queries. An administrator can enable per-query access in system settings.</value>
+  </data>
 </root>

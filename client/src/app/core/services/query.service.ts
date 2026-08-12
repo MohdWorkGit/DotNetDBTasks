@@ -41,7 +41,8 @@ import {
   LdapImportResult,
   SystemAuditLog,
   SystemAuditLogListRequest,
-  AuditActionCatalog
+  AuditActionCatalog,
+  SystemSettings
 } from '../models/dynamic-query.model';
 
 /** Download format accepted by the export-file endpoint. */
@@ -68,6 +69,7 @@ export class QueryService {
   private dbUsersUrl = `${environment.apiUrl}/admin/databaseusers`;
   private groupsUrl = `${environment.apiUrl}/admin/querygroups`;
   private auditUrl = `${environment.apiUrl}/admin/systemauditlogs`;
+  private settingsUrl = `${environment.apiUrl}/admin/systemsettings`;
 
   constructor(private http: HttpClient) {}
 
@@ -130,6 +132,15 @@ export class QueryService {
     if (request.pageNumber !== undefined) params['pageNumber'] = request.pageNumber;
     if (request.pageSize !== undefined) params['pageSize'] = request.pageSize;
     return params;
+  }
+
+  // ---- Runtime settings ----
+  getSystemSettings(): Observable<SystemSettings> {
+    return this.http.get<SystemSettings>(this.settingsUrl);
+  }
+
+  updateSystemSettings(settings: SystemSettings): Observable<void> {
+    return this.http.put<void>(this.settingsUrl, settings);
   }
 
   // ---- System audit trail (Admin, Auditor) ----
