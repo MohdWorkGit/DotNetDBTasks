@@ -23,7 +23,7 @@ public class ExportQueriesQueryHandler : IRequestHandler<ExportQueriesQuery, Que
 {
     private static readonly string[] Includes =
     {
-        "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User",
+        "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
         "Parameters", "DatabaseUser", "QueryGroup"
     };
 
@@ -101,7 +101,8 @@ public class ExportQueriesQueryHandler : IRequestHandler<ExportQueriesQuery, Que
             .ToList(),
         AssignedRoles = q.DynamicQueryRoles.Select(r => r.Role?.Name ?? string.Empty)
             .Where(n => n.Length > 0).ToList(),
-        AssignedDepartments = q.DynamicQueryDepartments.Select(d => d.Department).ToList(),
+        AssignedUserGroups = q.DynamicQueryUserGroups.Select(g => g.UserGroup?.Name ?? string.Empty)
+            .Where(n => n.Length > 0).ToList(),
         AssignedUsers = q.DynamicQueryUsers.Select(u => u.User?.Username ?? string.Empty)
             .Where(n => n.Length > 0).ToList()
     };

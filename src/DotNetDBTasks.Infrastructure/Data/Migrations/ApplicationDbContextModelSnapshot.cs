@@ -182,20 +182,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.ToTable("DynamicQueries");
                 });
 
-            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQueryDepartment", b =>
-                {
-                    b.Property<Guid>("DynamicQueryId")
-                        .HasColumnType("RAW(16)");
-
-                    b.Property<string>("Department")
-                        .HasMaxLength(200)
-                        .HasColumnType("NVARCHAR2(200)");
-
-                    b.HasKey("DynamicQueryId", "Department");
-
-                    b.ToTable("DynamicQueryDepartments");
-                });
-
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQueryRole", b =>
                 {
                     b.Property<Guid>("DynamicQueryId")
@@ -224,6 +210,21 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("DynamicQueryUsers");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQueryUserGroup", b =>
+                {
+                    b.Property<Guid>("DynamicQueryId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("UserGroupId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("DynamicQueryId", "UserGroupId");
+
+                    b.HasIndex("UserGroupId");
+
+                    b.ToTable("DynamicQueryUserGroups");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryExecutionLog", b =>
@@ -311,20 +312,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.ToTable("QueryGroups");
                 });
 
-            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryGroupDepartment", b =>
-                {
-                    b.Property<Guid>("QueryGroupId")
-                        .HasColumnType("RAW(16)");
-
-                    b.Property<string>("Department")
-                        .HasMaxLength(200)
-                        .HasColumnType("NVARCHAR2(200)");
-
-                    b.HasKey("QueryGroupId", "Department");
-
-                    b.ToTable("QueryGroupDepartments");
-                });
-
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryGroupRole", b =>
                 {
                     b.Property<Guid>("QueryGroupId")
@@ -353,6 +340,21 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("QueryGroupUsers");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryGroupUserGroup", b =>
+                {
+                    b.Property<Guid>("QueryGroupId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("UserGroupId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("QueryGroupId", "UserGroupId");
+
+                    b.HasIndex("UserGroupId");
+
+                    b.ToTable("QueryGroupUserGroups");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryParameter", b =>
@@ -436,6 +438,9 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)");
 
+                    b.Property<short>("IsSeeded")
+                        .HasColumnType("NUMBER(5)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -450,6 +455,20 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.RolePermission", b =>
+                {
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("Permission")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.HasKey("RoleId", "Permission");
+
+                    b.ToTable("RolePermissions");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTask", b =>
@@ -892,6 +911,54 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("NVARCHAR2(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("UserGroups");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserGroupMember", b =>
+                {
+                    b.Property<Guid>("UserGroupId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("UserGroupId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserGroupMembers");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserRole", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -943,17 +1010,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("QueryGroup");
                 });
 
-            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQueryDepartment", b =>
-                {
-                    b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DynamicQuery")
-                        .WithMany("DynamicQueryDepartments")
-                        .HasForeignKey("DynamicQueryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DynamicQuery");
-                });
-
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQueryRole", b =>
                 {
                     b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DynamicQuery")
@@ -992,6 +1048,25 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQueryUserGroup", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DynamicQuery")
+                        .WithMany("DynamicQueryUserGroups")
+                        .HasForeignKey("DynamicQueryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DotNetDBTasks.Domain.Entities.UserGroup", "UserGroup")
+                        .WithMany("DynamicQueryUserGroups")
+                        .HasForeignKey("UserGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DynamicQuery");
+
+                    b.Navigation("UserGroup");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryExecutionLog", b =>
                 {
                     b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DynamicQuery")
@@ -1009,17 +1084,6 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("DynamicQuery");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryGroupDepartment", b =>
-                {
-                    b.HasOne("DotNetDBTasks.Domain.Entities.QueryGroup", "QueryGroup")
-                        .WithMany("QueryGroupDepartments")
-                        .HasForeignKey("QueryGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("QueryGroup");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryGroupRole", b =>
@@ -1060,6 +1124,25 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryGroupUserGroup", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.QueryGroup", "QueryGroup")
+                        .WithMany("QueryGroupUserGroups")
+                        .HasForeignKey("QueryGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DotNetDBTasks.Domain.Entities.UserGroup", "UserGroup")
+                        .WithMany("QueryGroupUserGroups")
+                        .HasForeignKey("UserGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("QueryGroup");
+
+                    b.Navigation("UserGroup");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.QueryParameter", b =>
                 {
                     b.HasOne("DotNetDBTasks.Domain.Entities.DynamicQuery", "DynamicQuery")
@@ -1069,6 +1152,17 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("DynamicQuery");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.RolePermission", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.ScheduledTaskItem", b =>
@@ -1131,6 +1225,25 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserGroupMember", b =>
+                {
+                    b.HasOne("DotNetDBTasks.Domain.Entities.UserGroup", "UserGroup")
+                        .WithMany("Members")
+                        .HasForeignKey("UserGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DotNetDBTasks.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("UserGroup");
+                });
+
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserRole", b =>
                 {
                     b.HasOne("DotNetDBTasks.Domain.Entities.Role", "Role")
@@ -1159,9 +1272,9 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("DotNetDBTasks.Domain.Entities.DynamicQuery", b =>
                 {
-                    b.Navigation("DynamicQueryDepartments");
-
                     b.Navigation("DynamicQueryRoles");
+
+                    b.Navigation("DynamicQueryUserGroups");
 
                     b.Navigation("DynamicQueryUsers");
 
@@ -1174,9 +1287,9 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                 {
                     b.Navigation("DynamicQueries");
 
-                    b.Navigation("QueryGroupDepartments");
-
                     b.Navigation("QueryGroupRoles");
+
+                    b.Navigation("QueryGroupUserGroups");
 
                     b.Navigation("QueryGroupUsers");
                 });
@@ -1186,6 +1299,8 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("DatabaseUserAccess");
 
                     b.Navigation("DynamicQueryRoles");
+
+                    b.Navigation("RolePermissions");
 
                     b.Navigation("UserRoles");
                 });
@@ -1206,6 +1321,15 @@ namespace DotNetDBTasks.Infrastructure.Data.Migrations
                     b.Navigation("QueryExecutionLogs");
 
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("DotNetDBTasks.Domain.Entities.UserGroup", b =>
+                {
+                    b.Navigation("DynamicQueryUserGroups");
+
+                    b.Navigation("Members");
+
+                    b.Navigation("QueryGroupUserGroups");
                 });
 #pragma warning restore 612, 618
         }

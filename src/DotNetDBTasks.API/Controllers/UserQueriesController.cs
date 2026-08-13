@@ -1,3 +1,5 @@
+using DotNetDBTasks.Domain.Constants;
+using DotNetDBTasks.API.Authorization;
 using System.Text.Json;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Common.Models;
@@ -23,7 +25,7 @@ public class ExecuteQueryRequest
 /// </summary>
 [ApiController]
 [Route("api/user/queries")]
-[Authorize]
+[RequirePermission(Permissions.QueriesRun)]
 public class UserQueriesController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -247,7 +249,6 @@ public class UserQueriesController : ControllerBase
         var snapshot = new UserContextSnapshot(
             _currentUser.UserId,
             _currentUser.Username,
-            _currentUser.Department,
             _currentUser.Roles);
 
         var job = _jobStore.Create(_currentUser.UserId, snapshot, command);
@@ -398,7 +399,6 @@ public class UserQueriesController : ControllerBase
         var snapshot = new UserContextSnapshot(
             _currentUser.UserId,
             _currentUser.Username,
-            _currentUser.Department,
             _currentUser.Roles);
 
         var job = _jobStore.Create(_currentUser.UserId, snapshot, command);

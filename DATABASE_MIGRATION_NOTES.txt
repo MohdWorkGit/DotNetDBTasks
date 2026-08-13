@@ -168,3 +168,23 @@ Three interrelated issues caused the "invalid identifier" errors:
      → Kept for backward-compatibility only
 
 ────────────────────────────────────────────────────────────────────────────────
+
+  (The list above stops at 20260329 and has not been kept up to date; the folder
+   is the authority. The entry below is recorded here because it moves data, not
+   just schema, which is the case this document exists to warn about.)
+
+  20260812100048_SwitchAccessFromAdDepartmentsToUserGroups
+     -> Creates: UserGroups, UserGroupMembers, DynamicQueryUserGroups,
+                 QueryGroupUserGroups
+     -> Moves data BEFORE dropping the old tables, in this order:
+          1. one UserGroup per department that appears in either grant table
+          2. UserGroupMembers from Users."Department" = UserGroups."Name"
+          3. the grants themselves, re-pointed at the new group
+     -> Drops: DynamicQueryDepartments, QueryGroupDepartments
+
+     RULE 3 applies here: the inserts must run while the old tables still exist.
+     Reordering the CreateTable/DropTable calls would silently migrate nothing —
+     the run would still succeed, and every department-based grant would be gone.
+     Matching is case-sensitive, exactly like the query the old check emitted.
+     Down() rebuilds the department tables from the group names, which is lossy
+     by nature: a group created in the application has no department to become.

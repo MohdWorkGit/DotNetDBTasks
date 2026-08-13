@@ -445,12 +445,12 @@ def build_manual(doc):
     h2(doc, T("2.1 The core idea", "٢.١ الفكرة الأساسية"))
     numbered(doc, [
         T("An administrator writes a query and declares its parameters — for example a start "
-          "date, an end date and a department.",
-          "يكتب المسؤول استعلامًا ويعرّف معاملاته — مثل تاريخ بداية وتاريخ نهاية وقسم."),
-        T("The administrator decides who may run it: by role, by department, by named user, or "
+          "date, an end date and a branch.",
+          "يكتب المسؤول استعلامًا ويعرّف معاملاته — مثل تاريخ بداية وتاريخ نهاية وفرع."),
+        T("The administrator decides who may run it: by role, by user group, by named user, or "
           "by putting it in a query group and granting the group.",
-          "يحدّد المسؤول مَن يستطيع تنفيذه: بحسب الدور، أو القسم، أو مستخدم بعينه، أو بوضعه في "
-          "مجموعة استعلامات ومنح المجموعة."),
+          "يحدّد المسؤول مَن يستطيع تنفيذه: بحسب الدور، أو مجموعة المستخدمين، أو مستخدم بعينه، "
+          "أو بوضعه في مجموعة استعلامات ومنح المجموعة."),
         T("A user opens the query, fills in a generated form, and runs it. They never see or "
           "edit the SQL.",
           "يفتح المستخدم الاستعلام ويعبّئ نموذجًا يُبنى تلقائيًا ثم ينفّذه. ولا يرى نص SQL ولا "
@@ -482,6 +482,13 @@ def build_manual(doc):
                T("A folder of queries. Granting access to the group grants all the queries "
                  "inside it.",
                  "مجلد يضم استعلامات. ومنح الوصول إلى المجموعة يمنح كل الاستعلامات داخلها.")],
+              [T("User group", "مجموعة مستخدمين"),
+               T("A named list of people, kept inside this application. Granting a query to a "
+                 "user group grants it to every member. Not an Active Directory group, and not "
+                 "the same thing as a query group.",
+                 "قائمة أشخاص لها اسم، تُحفظ داخل هذا التطبيق. ومنح استعلام لمجموعة مستخدمين "
+                 "يمنحه لكل عضو فيها. وليست مجموعة في Active Directory، وليست هي مجموعة "
+                 "الاستعلامات.")],
               [T("Database connection", "اتصال قاعدة بيانات"),
                T("A named set of database credentials (“DB User”) that a query runs through. "
                  "Passwords are encrypted at rest.",
@@ -563,12 +570,21 @@ def build_manual(doc):
            "أيقونة الشمس/القمر تبدّل بين الوضعين الفاتح والداكن.")),
     ])
     para(doc, T(
-        "After signing in you land on the first page your roles allow: administrators and "
-        "Access Managers on Manage Queries, Auditors on the execution logs, and everyone else "
-        "on My Queries.",
-        "بعد تسجيل الدخول تصل إلى أول صفحة تسمح بها أدوارك: المسؤولون ومديرو الصلاحيات إلى "
-        "«إدارة الاستعلامات»، والمدققون إلى «سجلات التنفيذ»، وسائر المستخدمين إلى "
-        "«استعلاماتي»."))
+        "After signing in you land on the first page your permissions actually open, taken in "
+        "this order: My Queries if you may run queries; then Manage Queries, the execution "
+        "logs, the system audit trail, Users, User Groups, Scheduled Tasks, and Settings. If "
+        "none of those are open to you, you land on My Schedules.",
+        "بعد تسجيل الدخول تصل إلى أول صفحة تفتحها صلاحياتك فعلًا، بهذا الترتيب: «استعلاماتي» إن "
+        "كنت تملك تنفيذ الاستعلامات، ثم «إدارة الاستعلامات»، فسجلات التنفيذ، فسجل عمليات "
+        "النظام، فالمستخدمون، فمجموعات المستخدمين، فالمهام المجدولة، فالإعدادات. فإن لم يكن "
+        "أيٌّ منها متاحًا لك وصلت إلى «مهامي المجدولة»."))
+    para(doc, T(
+        "In practice that puts an administrator on My Queries — the Admin role holds “Run "
+        "queries” like anyone else — an Access Manager on Manage Queries, an Auditor on the "
+        "execution logs, and a User on My Queries.",
+        "وعمليًا يضع ذلك المسؤولَ في «استعلاماتي» — إذ يحمل دور Admin صلاحية «تنفيذ "
+        "الاستعلامات» كغيره — ومديرَ الصلاحيات في «إدارة الاستعلامات»، والمدققَ في سجلات "
+        "التنفيذ، والمستخدمَ في «استعلاماتي»."))
 
     h2(doc, T("3.2 The main window", "٣.٢ الواجهة الرئيسية"))
     para(doc, T(
@@ -606,8 +622,9 @@ def build_manual(doc):
                T("Admin, Access Manager, Auditor (each sees only its own entries)",
                  "المسؤول ومدير الصلاحيات والمدقق (يرى كلٌّ منهم عناصره فقط)")],
               [T("Users & Access", "المستخدمون والصلاحيات"),
-               T("Users, AD Users, DB Users",
-                 "المستخدمون، ومستخدمو Active Directory، ومستخدمو قواعد البيانات"),
+               T("Users, User Groups, AD Users, DB Users",
+                 "المستخدمون، ومجموعات المستخدمين، ومستخدمو Active Directory، ومستخدمو قواعد "
+                 "البيانات"),
                T("Admin, Access Manager", "المسؤول ومدير الصلاحيات")],
               [T("Audit", "التدقيق"),
                T("Logs, System Audit", "سجلات التنفيذ، وسجل عمليات النظام"),
@@ -624,10 +641,13 @@ def build_manual(doc):
              "قائمة «الاستعلامات». يرى مدير الصلاحيات أول عنصرين فقط، ويرى المدقق «المهام "
              "المجدولة» وحدها."))
     figure(doc, "05-nav-people",
-           T("The Users & Access menu. AD Users and DB Users are administrator-only; an Access "
-             "Manager sees only Users.",
-             "قائمة «المستخدمون والصلاحيات». «مستخدمو Active Directory» و«مستخدمو قواعد "
-             "البيانات» للمسؤول وحده، ولا يرى مدير الصلاحيات سوى «المستخدمون»."))
+           T("The Users & Access menu. An Access Manager sees Users and User Groups; AD Users "
+             "and DB Users are administrator-only. AD Users also disappears entirely when the "
+             "Active Directory features are switched off in Settings.",
+             "قائمة «المستخدمون والصلاحيات». يرى مدير الصلاحيات «المستخدمون» و«مجموعات "
+             "المستخدمين»، أما «مستخدمو Active Directory» و«مستخدمو قواعد البيانات» فللمسؤول "
+             "وحده. كما تختفي «مستخدمو Active Directory» تمامًا عند تعطيل خصائص Active "
+             "Directory من «الإعدادات»."))
     figure(doc, "06-nav-audit",
            T("The Audit menu — the two read-only trails, for Admin and Auditor.",
              "قائمة «التدقيق» — السجلّان للقراءة فقط، وهما للمسؤول والمدقق."))
@@ -704,14 +724,18 @@ def build_manual(doc):
         "هذا الفصل هو المرجع المعتمد لتحديد صلاحيات كل دور. وتُطبَّق الصلاحيات على الخادم في "
         "كل طلب — أما إخفاء الواجهة لما لا تملكه فهو تسهيل، وليس هو وسيلة الضبط."))
 
-    h2(doc, T("4.1 The four roles", "٤.١ الأدوار الأربعة"))
+    h2(doc, T("4.1 The roles that ship with the system", "٤.١ الأدوار المرفقة بالنظام"))
     para(doc, T(
-        "Roles are records in the system, not fixed categories, and one account may hold "
-        "several. When an account holds more than one role, its permissions are the sum of "
-        "them — with one deliberate exception described in section 4.3.",
-        "الأدوار سجلات في النظام وليست فئات ثابتة، وقد يحمل الحساب الواحد أكثر من دور. وعندما "
-        "يحمل الحساب أكثر من دور تكون صلاحياته مجموع صلاحياتها — مع استثناء واحد مقصود يوضّحه "
-        "البند ٤.٣."))
+        "A role is a named set of permissions, and both parts are editable. Four roles are "
+        "supplied; an administrator can add more, and can change what any of them may do on "
+        "Settings → Permissions (Chapter 14). What follows is what each one holds out of the "
+        "box, not a description of what it must always be.",
+        "الدور مجموعة صلاحيات لها اسم، وكلا الجزأين قابل للتعديل. ويُزوَّد النظام بأربعة أدوار، "
+        "ويستطيع المسؤول إضافة غيرها وتغيير ما يمكن لأيٍّ منها فعله من «الإعدادات ← الصلاحيات» "
+        "(الفصل ١٤). وما يلي هو ما يحمله كل دور ابتداءً، لا وصفًا لما يجب أن يبقى عليه."))
+    para(doc, T(
+        "One account may hold several roles, and its permissions are the sum of them.",
+        "وقد يحمل الحساب الواحد أكثر من دور، فتكون صلاحياته مجموع صلاحياتها."))
     table(doc,
           [T("Role", "الدور"), T("Purpose", "الغرض")],
           [
@@ -726,127 +750,185 @@ def build_manual(doc):
                  "ينفّذ الاستعلامات المخصَّصة له ويطّلع على سجله الشخصي. وهو الدور اليومي.")],
               ["Auditor",
                T("Reads the execution logs, the before-change snapshots, the system audit "
-                 "trail and the scheduled-task history. Cannot run a query and cannot change "
-                 "anything.",
+                 "trail and the scheduled-task history. Holds no permission that changes "
+                 "anything, and none that runs a query.",
                  "يطّلع على سجلات التنفيذ، وصور الصفوف قبل التغيير، وسجل عمليات النظام، وسجل "
-                 "تشغيل المهام المجدولة. ولا يستطيع تنفيذ استعلام ولا تعديل أي شيء.")],
+                 "تشغيل المهام المجدولة. ولا يحمل أي صلاحية تُغيّر شيئًا ولا صلاحية تنفيذ "
+                 "استعلام.")],
               ["AccessManager",
-               T("Decides who may reach which queries and manages user accounts. Cannot see a "
-                 "query's SQL, cannot edit a query, and cannot run one.",
-                 "يحدّد مَن يصل إلى أي استعلام ويدير حسابات المستخدمين. ولا يرى نص SQL، ولا "
-                 "يعدّل استعلامًا، ولا ينفّذه.")],
+               T("Decides who may reach which queries and manages user accounts and user "
+                 "groups. Holds neither the permission to read a query's SQL nor to edit or "
+                 "run one.",
+                 "يحدّد مَن يصل إلى أي استعلام، ويدير حسابات المستخدمين ومجموعاتهم. ولا يحمل "
+                 "صلاحية قراءة نص SQL ولا تعديل استعلام ولا تنفيذه.")],
           ],
           widths=[1.5, 5.1])
 
-    h2(doc, T("4.2 Permission matrix", "٤.٢ جدول الصلاحيات"))
-    para(doc, T("“Yes” means the role has the permission outright. Anything else is a "
-                "condition.",
-                "«نعم» تعني أن الدور يملك الصلاحية كاملة. وما عدا ذلك فهو مشروط."))
-    yes, dash, never = T("Yes", "نعم"), "—", T("Never", "أبدًا")
-    assigned = T("Assigned only", "المخصَّص له فقط")
+    h2(doc, T("4.2 The permission catalogue", "٤.٢ فهرس الصلاحيات"))
+    para(doc, T(
+        "Every capability the system can grant, and which roles hold it when the system is "
+        "first installed. A tick is a default, not a fact: all of these are editable on "
+        "Settings → Permissions, and the Admin column cannot be changed at all.",
+        "كل ما يمكن للنظام منحه من إمكانات، والأدوار التي تحملها عند التنصيب لأول مرة. "
+        "والعلامة هنا إعداد افتراضي لا حقيقة ثابتة: فكل هذه الصلاحيات قابلة للتعديل من "
+        "«الإعدادات ← الصلاحيات»، أما عمود Admin فلا يمكن تغييره إطلاقًا."))
+    yes, dash = "✓", "—"
     table(doc,
-          [T("Capability", "الصلاحية"), "Admin", "Auditor", "AccessManager", "User"],
+          [T("Capability", "الإمكانية"), "Admin", "Auditor", "AccessManager", "User"],
           [
-              [T("Create / edit / delete queries", "إنشاء الاستعلامات وتعديلها وحذفها"),
-               yes, dash, dash, dash],
-              [T("Read a query's SQL", "الاطلاع على نص SQL للاستعلام"),
-               yes, dash, never, assigned],
-              [T("Run a query", "تنفيذ استعلام"), yes, never, never, assigned],
-              [T("Export / import query definitions", "تصدير تعريفات الاستعلامات واستيرادها"),
-               yes, dash, dash, dash],
-              [T("Create / edit / delete query groups", "إنشاء مجموعات الاستعلامات وتعديلها وحذفها"),
-               yes, dash, dash, dash],
-              [T("Assign a query group to roles / departments / users",
-                 "إسناد مجموعة استعلامات إلى أدوار أو أقسام أو مستخدمين"),
+              [T("See the query list",
+                 "عرض قائمة الاستعلامات"),
                yes, dash, yes, dash],
-              [T("Assign a single query to roles / departments / users",
-                 "إسناد استعلام مفرد إلى أدوار أو أقسام أو مستخدمين"),
-               yes, dash, T("Only if enabled in Settings", "إذا فُعِّل في الإعدادات"), dash],
-              [T("List queries and groups (names, no SQL)",
-                 "عرض قوائم الاستعلامات والمجموعات (الأسماء دون SQL)"),
-               yes, dash, yes, assigned],
-              [T("Create and manage user accounts", "إنشاء حسابات المستخدمين وإدارتها"),
-               yes, dash, T("Yes, except administrators", "نعم، عدا المسؤولين"), dash],
-              [T("Import users from Active Directory", "استيراد المستخدمين من Active Directory"),
+              [T("Read a query's SQL",
+                 "قراءة نص SQL للاستعلام"),
                yes, dash, dash, dash],
-              [T("Manage database connections", "إدارة اتصالات قواعد البيانات"),
+              [T("Create and edit queries",
+                 "إنشاء الاستعلامات وتعديلها"),
                yes, dash, dash, dash],
-              [T("Read execution logs and before-change values",
-                 "الاطلاع على سجلات التنفيذ وقيم ما قبل التغيير"),
-               yes, yes, dash, T("Own history only", "سجله الشخصي فقط")],
-              [T("Read the system audit trail", "الاطلاع على سجل عمليات النظام"),
+              [T("Export and import query definitions",
+                 "تصدير تعريفات الاستعلامات واستيرادها"),
+               yes, dash, dash, dash],
+              [T("Run queries",
+                 "تنفيذ الاستعلامات"),
+               yes, dash, dash, yes],
+              [T("Grant an individual query",
+                 "منح استعلام مفرد"),
+               yes, dash, dash, dash],
+              [T("Grant a query group",
+                 "منح مجموعة استعلامات"),
+               yes, dash, yes, dash],
+              [T("Create and edit query groups",
+                 "إنشاء مجموعات الاستعلامات وتعديلها"),
+               yes, dash, dash, dash],
+              [T("See the user list",
+                 "عرض قائمة المستخدمين"),
+               yes, dash, yes, dash],
+              [T("Create and edit users",
+                 "إنشاء المستخدمين وتعديلهم"),
+               yes, dash, yes, dash],
+              [T("See user groups",
+                 "عرض مجموعات المستخدمين"),
+               yes, dash, yes, dash],
+              [T("Create user groups and set membership",
+                 "إنشاء مجموعات المستخدمين وتحديد أعضائها"),
+               yes, dash, yes, dash],
+              [T("See directory data",
+                 "عرض بيانات الدليل"),
+               yes, dash, yes, dash],
+              [T("Search and import from Active Directory",
+                 "البحث والاستيراد من Active Directory"),
+               yes, dash, dash, dash],
+              [T("Manage database connections",
+                 "إدارة اتصالات قواعد البيانات"),
+               yes, dash, dash, dash],
+              [T("See every scheduled task",
+                 "عرض جميع المهام المجدولة"),
                yes, yes, dash, dash],
-              [T("View scheduled tasks and their run history",
-                 "عرض المهام المجدولة وسجل تشغيلها"),
-               yes, yes, dash, T("If named as a viewer", "إذا سُمّي مشاهدًا")],
-              [T("Download scheduled-task output files", "تنزيل ملفات مخرجات المهام المجدولة"),
-               yes, T("No", "لا"), dash, T("If named as a downloader", "إذا سُمّي مُنزِّلًا")],
-              [T("Create / edit / run / cancel scheduled tasks",
-                 "إنشاء المهام المجدولة وتعديلها وتشغيلها وإلغاؤها"),
+              [T("Create and run scheduled tasks",
+                 "إنشاء المهام المجدولة وتشغيلها"),
                yes, dash, dash, dash],
-              [T("Change system settings and the site logo", "تغيير إعدادات النظام وشعار الموقع"),
+              [T("Download scheduled task files",
+                 "تنزيل ملفات المهام المجدولة"),
+               yes, dash, dash, dash],
+              [T("Read execution logs",
+                 "قراءة سجلات التنفيذ"),
+               yes, yes, dash, dash],
+              [T("Read the system audit trail",
+                 "قراءة سجل عمليات النظام"),
+               yes, yes, dash, dash],
+              [T("Change the site logo",
+                 "تغيير شعار الموقع"),
+               yes, dash, dash, dash],
+              [T("Change system settings",
+                 "تغيير إعدادات النظام"),
+               yes, dash, dash, dash],
+              [T("Manage roles and permissions",
+                 "إدارة الأدوار والصلاحيات"),
                yes, dash, dash, dash],
           ],
           widths=[2.9, 0.75, 0.8, 1.3, 1.0],
           font_size=8.5)
+    para(doc, T(
+        "Three of these are worth reading twice. “See the query list” and “Read a query's SQL” "
+        "are separate, which is what lets a role manage access without reading the queries. "
+        "“Run queries” is what puts My Queries and History in the top bar at all. And “Manage "
+        "roles and permissions” is the one that edits this table — grant it sparingly.",
+        "وثلاث منها تستحق قراءة متأنية. فـ«عرض قائمة الاستعلامات» و«قراءة نص SQL» صلاحيتان "
+        "منفصلتان، وهذا ما يتيح لدور أن يدير الصلاحيات دون أن يقرأ الاستعلامات. و«تنفيذ "
+        "الاستعلامات» هي ما يضع «استعلاماتي» و«السجل» في الشريط العلوي أصلًا. و«إدارة الأدوار "
+        "والصلاحيات» هي التي تعدّل هذا الجدول نفسه — فامنحها بحذر."))
 
-    h2(doc, T("4.3 Four rules worth stating outright", "٤.٣ أربع قواعد يجدر ذكرها صراحة"))
-    h3(doc, T("Neither oversight role can ever run a query",
-              "لا يستطيع أيٌّ من دورَي الرقابة تنفيذ استعلام مطلقًا"))
-    para(doc, T(
-        "Auditor and Access Manager appear in the access pickers like any other role, but a "
-        "query assigned to either of them stays unrunnable: the server drops those two roles "
-        "when it works out who may run what. The assignment is inert rather than refused.",
-        "يظهر دورا Auditor وAccessManager في قوائم اختيار الصلاحيات كأي دور آخر، لكن الاستعلام "
-        "المسنَد إلى أيٍّ منهما يبقى غير قابل للتنفيذ: إذ يستبعد الخادم هذين الدورين عند تحديد "
-        "من يحق له التنفيذ. فالإسناد يبقى بلا أثر بدل أن يُرفض."))
-    para(doc, T(
-        "This applies to the role, not the person. Someone who holds both Auditor and User "
-        "runs whatever the User role has been assigned — the Auditor part simply adds no query "
-        "access.",
-        "وهذا يسري على الدور لا على الشخص. فمن يحمل دورَي Auditor وUser ينفّذ ما أُسنِد إلى "
-        "دور User — ولا يضيف دور Auditor أي صلاحية تنفيذ."))
+    h2(doc, T("4.3 Rules that hold whatever the matrix says",
+              "٤.٣ قواعد تسري مهما كان جدول الصلاحيات"))
 
-    h3(doc, T("An Access Manager manages group access, not per-query access, by default",
-              "يدير مدير الصلاحيات وصول المجموعات لا الاستعلامات المفردة، افتراضيًا"))
+    h3(doc, T("Admin always holds everything", "يحمل الدور Admin كل شيء دائمًا"))
     para(doc, T(
-        "Groups are the coarser and safer control: granting a group is a deliberate, visible "
-        "act, where per-query grants accumulate quietly. An administrator can switch per-query "
-        "access on for the role under Settings (Chapter 14). While it is off, an attempt to "
-        "change per-query access is refused and the refusal is recorded in the system audit "
-        "trail.",
-        "المجموعات أداة ضبط أوسع وأكثر أمانًا: فمنح مجموعة إجراء مقصود وظاهر، بينما تتراكم "
-        "الأذونات المفردة بصمت. ويستطيع المسؤول تفعيل صلاحية الاستعلام المفرد لهذا الدور من "
-        "«الإعدادات» (الفصل ١٤). وما دامت معطَّلة، تُرفض أي محاولة لتغيير صلاحية استعلام مفرد "
-        "ويُسجَّل الرفض في سجل عمليات النظام."))
+        "The Admin column on the Permissions tab is shown but locked, and the role cannot be "
+        "deleted. This is not a convenience: it is what prevents an installation from editing "
+        "away the last account able to open that page. The server answers for Admin without "
+        "consulting the matrix at all, so even a half-saved one leaves someone able to put it "
+        "right.",
+        "يظهر عمود Admin في تبويب الصلاحيات لكنه مقفل، ولا يمكن حذف الدور. وليس هذا تسهيلًا، "
+        "بل هو ما يمنع أن يُعدَّل النظام حتى يفقد آخر حساب قادر على فتح تلك الصفحة. ويجيب "
+        "الخادم عن Admin دون الرجوع إلى الجدول أصلًا، فيبقى — حتى لو حُفظ الجدول ناقصًا — من "
+        "يستطيع إصلاحه."))
 
-    h3(doc, T("An Access Manager never sees query text",
-              "لا يرى مدير الصلاحيات نص الاستعلام إطلاقًا"))
+    h3(doc, T("A role that cannot run queries grants none",
+              "الدور الذي لا يستطيع التنفيذ لا يمنح شيئًا"))
     para(doc, T(
-        "The role reaches the query list and the access pages, but the SQL is removed from "
-        "everything sent to it, and the export endpoints — which carry the SQL verbatim — are "
-        "administrator-only.",
-        "يصل هذا الدور إلى قائمة الاستعلامات وصفحات الصلاحيات، لكن نص SQL يُحذف من كل ما "
-        "يُرسَل إليه، كما أن نقاط التصدير — التي تحمل النص حرفيًا — مقصورة على المسؤول."))
-
-    h3(doc, T("An Access Manager cannot touch administrator accounts",
-              "لا يستطيع مدير الصلاحيات المساس بحسابات المسؤولين"))
-    para(doc, T(
-        "A non-administrator cannot modify any account that holds the Admin role, cannot grant "
-        "the Admin role, and cannot edit their own roles. The last restriction matters: "
-        "without it, an Access Manager could grant themselves the User role and undo the "
-        "no-query-access rule in one click.",
-        "لا يستطيع غير المسؤول تعديل أي حساب يحمل دور Admin، ولا منح هذا الدور، ولا تعديل "
-        "أدواره هو. والقيد الأخير مهم: فبدونه يستطيع مدير الصلاحيات منح نفسه دور User وينقض "
-        "قاعدة «لا وصول إلى الاستعلامات» بنقرة واحدة."))
+        "Every role appears in the access pickers, including ones you create. Assigning a "
+        "query to a role that does not hold “Run queries” leaves it unrunnable: the server "
+        "drops such roles when working out who may run what, so the assignment is inert rather "
+        "than refused. Grant that permission first, or assign the query elsewhere.",
+        "يظهر كل دور في قوائم اختيار الصلاحيات، بما فيها ما تنشئه أنت. وإسناد استعلام إلى دور "
+        "لا يحمل صلاحية «تنفيذ الاستعلامات» يتركه غير قابل للتنفيذ: إذ يستبعد الخادم هذه "
+        "الأدوار عند تحديد من يحق له التنفيذ، فيبقى الإسناد بلا أثر بدل أن يُرفض. فامنح تلك "
+        "الصلاحية أولًا، أو أسنِد الاستعلام إلى غيرها."))
     note(doc, T(
-        "An Access Manager can still create a separate account and sign in as it. That is "
-        "inherent in one role both creating users and controlling query access — but unlike a "
-        "self-grant it leaves an account and an audit entry behind.",
-        "يظل بإمكان مدير الصلاحيات إنشاء حساب منفصل وتسجيل الدخول به. وهذا أمر ملازم لكون دور "
-        "واحد ينشئ المستخدمين ويتحكم في صلاحيات الاستعلامات — لكنه، بخلاف المنح الذاتي، يترك "
-        "خلفه حسابًا وقيدًا في سجل التدقيق."),
+        "“Run queries” is not held by Auditor or Access Manager, and that separation is the "
+        "reason those roles exist — but it is a default, not a law. An administrator can grant "
+        "it to either of them deliberately, and the grant is recorded in the audit trail.",
+        "لا يحمل Auditor ولا AccessManager صلاحية «تنفيذ الاستعلامات»، وهذا الفصل هو سبب وجود "
+        "الدورين — لكنه إعداد افتراضي لا قاعدة ثابتة. ويستطيع المسؤول منحها لأيٍّ منهما عن "
+        "قصد، ويُسجَّل المنح في سجل التدقيق."),
         kind="warning")
+
+    h3(doc, T("Reading a query and reading its SQL are separate",
+              "قراءة الاستعلام غير قراءة نص SQL الخاص به"))
+    para(doc, T(
+        "“See the query list” opens the list and the access pages; “Read a query's SQL” is what "
+        "lets the text itself through. A role with the first and not the second — which is how "
+        "Access Manager is set up — can decide who reaches a query without ever reading it. "
+        "Exports carry the SQL, so they follow the export permission, not the list one.",
+        "تفتح صلاحية «عرض قائمة الاستعلامات» القائمةَ وصفحات الصلاحيات، أما «قراءة نص SQL» فهي "
+        "ما يسمح بمرور النص نفسه. والدور الذي يحمل الأولى دون الثانية — وهكذا أُعدّ "
+        "AccessManager — يستطيع تحديد من يصل إلى استعلام دون أن يقرأه قط. أما التصدير فيحمل "
+        "النص، ولذلك يتبع صلاحية التصدير لا صلاحية العرض."))
+
+    h3(doc, T("Nobody grants themselves", "لا أحد يمنح نفسه"))
+    para(doc, T(
+        "A non-administrator cannot modify an account holding the Admin role, cannot grant that "
+        "role, cannot edit their own roles, and cannot add their own account to a user group. "
+        "The last two matter most: without them, anyone who manages permissions could hand "
+        "themselves a capability and use it a moment later.",
+        "لا يستطيع غير المسؤول تعديل حساب يحمل دور Admin، ولا منح ذلك الدور، ولا تعديل أدواره "
+        "هو، ولا إضافة حسابه إلى مجموعة مستخدمين. والقيدان الأخيران هما الأهم: فبدونهما يستطيع "
+        "كل من يدير الصلاحيات أن يمنح نفسه إمكانية ثم يستخدمها بعد لحظة."))
+    note(doc, T(
+        "Someone who can create users can still create a separate account and sign in as it. "
+        "That is inherent in one role both creating users and controlling access — but unlike a "
+        "self-grant it leaves an account and an audit entry behind.",
+        "يظل بإمكان من ينشئ المستخدمين إنشاء حساب منفصل وتسجيل الدخول به. وهذا ملازم لكون دور "
+        "واحد ينشئ المستخدمين ويتحكم في الصلاحيات — لكنه، بخلاف المنح الذاتي، يترك خلفه حسابًا "
+        "وقيدًا في سجل التدقيق."),
+        kind="warning")
+
+    h3(doc, T("Changes take effect immediately", "تسري التغييرات فورًا"))
+    para(doc, T(
+        "Permissions are read on every request, not taken from the token issued at sign-in. "
+        "Revoking one stops the next click; nobody has to sign out and back in.",
+        "تُقرأ الصلاحيات مع كل طلب، ولا تُؤخذ من الرمز الصادر عند تسجيل الدخول. فسحب صلاحية "
+        "يوقف النقرة التالية، دون حاجة إلى تسجيل خروج ودخول."))
 
     h2(doc, T("4.4 What each role sees", "٤.٤ ما يراه كل دور"))
     para(doc, T(
@@ -856,22 +938,26 @@ def build_manual(doc):
         "يُبنى شريط التنقل من أدوارك، لذا فأسرع طريقة لمعرفة ما يستطيع الحساب فعله هي النظر "
         "إلى شريطه العلوي. قارن شريط المسؤول في الشكل ٢ بشريط المدقق أدناه."))
     figure(doc, "90-auditor-landing",
-           T("An Auditor signs in to the execution logs. The bar carries only My Queries, "
-             "History, Queries (containing Schedules alone) and Audit — there is no way to "
-             "reach the query editor, users or settings.",
-             "يصل المدقق بعد تسجيل الدخول إلى سجلات التنفيذ. ولا يحمل الشريط سوى «استعلاماتي» "
-             "و«السجل» و«الاستعلامات» (وفيها «المهام المجدولة» وحدها) و«التدقيق» — ولا سبيل "
-             "إلى محرر الاستعلامات أو المستخدمين أو الإعدادات."))
+           T("An Auditor signs in to the execution logs. The bar carries only Queries "
+             "(containing the read-only scheduled tasks) and Audit. My Queries and History "
+             "are absent: the role can never be granted a query, so both pages could only "
+             "ever be empty.",
+             "يصل المدقق بعد تسجيل الدخول إلى سجلات التنفيذ. ولا يحمل الشريط سوى "
+             "«الاستعلامات» (وفيها المهام المجدولة للاطلاع فقط) و«التدقيق». ولا يظهر "
+             "«استعلاماتي» ولا «السجل»: فلا يمكن إسناد أي استعلام إلى هذا الدور، ومن ثمّ "
+             "تبقى الصفحتان فارغتين دائمًا."))
     figure(doc, "91-auditor-account-menu",
            T("The Auditor's account menu: language, theme and logout only — no Settings and no "
              "Website logo.",
              "قائمة حساب المدقق: اللغة والنمط وتسجيل الخروج فقط — دون «الإعدادات» ودون «شعار "
              "الموقع»."))
-    figure(doc, "93-auditor-my-queries",
-           T("My Queries for an Auditor. The page exists but stays empty: the role can never "
-             "be granted a query.",
-             "صفحة «استعلاماتي» للمدقق. الصفحة موجودة لكنها تبقى فارغة: فلا يمكن إسناد أي "
-             "استعلام إلى هذا الدور."))
+    note(doc, T(
+        "The same applies to an Access Manager. Typing the address of one of those pages "
+        "does not get around it — the application returns you to the page your role does "
+        "have. An account holding a second role that does grant queries keeps both pages.",
+        "وينطبق الأمر نفسه على مدير الصلاحيات. ولا تُجدي كتابة عنوان إحدى تلك الصفحتين — إذ "
+        "يعيدك التطبيق إلى الصفحة التي يملكها دورك. أما الحساب الذي يحمل دورًا آخر يمنح "
+        "الاستعلامات فيحتفظ بالصفحتين."))
 
     h2(doc, T("4.5 How access to a query is decided",
               "٤.٥ كيف يُحدَّد الوصول إلى استعلام"))
@@ -884,11 +970,13 @@ def build_manual(doc):
           [T("Route", "الطريق"), T("Granted on", "يُمنح عبر")],
           [
               [T("Role", "الدور"),
-               T("The query (or its group) is assigned to a role the user holds.",
-                 "الاستعلام (أو مجموعته) مسنَد إلى دور يحمله المستخدم.")],
-              [T("Department", "القسم"),
-               T("The query (or its group) is assigned to the user's department.",
-                 "الاستعلام (أو مجموعته) مسنَد إلى قسم المستخدم.")],
+               T("The query (or its group) is assigned to a role the user holds — and that "
+                 "role holds “Run queries”.",
+                 "الاستعلام (أو مجموعته) مسنَد إلى دور يحمله المستخدم، ويحمل ذلك الدور صلاحية "
+                 "«تنفيذ الاستعلامات».")],
+              [T("User group", "مجموعة المستخدمين"),
+               T("The query (or its group) is assigned to a user group the user belongs to.",
+                 "الاستعلام (أو مجموعته) مسنَد إلى مجموعة مستخدمين ينتمي إليها المستخدم.")],
               [T("Named user", "مستخدم بعينه"),
                T("The user is assigned to the query (or its group) individually.",
                  "المستخدم مسنَد إلى الاستعلام (أو مجموعته) بصفة فردية.")],
@@ -910,39 +998,62 @@ def build_manual(doc):
 
     h2(doc, T("4.6 Page-by-page permission reference",
               "٤.٦ مرجع الصلاحيات صفحةً صفحة"))
+    para(doc, T(
+        "Which capability opens each page. Roles are not named here on purpose — any role "
+        "holding the capability opens the page, including one you created.",
+        "الإمكانية التي تفتح كل صفحة. ولا تُذكر الأدوار هنا عمدًا — فأي دور يحمل الإمكانية "
+        "يفتح الصفحة، بما في ذلك دور أنشأته أنت."))
     table(doc,
-          [T("Page", "الصفحة"), T("Address", "العنوان"), T("Who can open it", "من يفتحها")],
+          [T("Page", "الصفحة"), T("Address", "العنوان"), T("Capability needed", "الإمكانية المطلوبة")],
           [
-              [T("My Queries", "استعلاماتي"), "/user/queries", T("Everyone", "الجميع")],
+              [T("My Queries", "استعلاماتي"), "/user/queries",
+               T("Run queries", "تنفيذ الاستعلامات")],
               [T("Run a query", "تنفيذ استعلام"), "/user/queries/…/execute",
-               T("Everyone (query must be assigned)", "الجميع (بشرط إسناد الاستعلام)")],
-              [T("My History", "سجلي"), "/user/history", T("Everyone", "الجميع")],
+               T("Run queries, and the query must be assigned",
+                 "تنفيذ الاستعلامات، مع اشتراط إسناد الاستعلام")],
+              [T("My History", "سجلي"), "/user/history",
+               T("Run queries", "تنفيذ الاستعلامات")],
               [T("My Schedules", "مهامي المجدولة"), "/user/schedules",
                T("Users named as task viewers", "المستخدمون المسمَّون مشاهدين للمهام")],
               [T("Manage Queries", "إدارة الاستعلامات"), "/admin/queries",
-               "Admin, AccessManager"],
+               T("See the query list", "عرض قائمة الاستعلامات")],
               [T("Create / edit query", "إنشاء/تعديل استعلام"),
-               "/admin/queries/create, /edit/…", "Admin"],
+               "/admin/queries/create, /edit/…",
+               T("Create and edit queries", "إنشاء الاستعلامات وتعديلها")],
               [T("Manage query access", "إدارة صلاحيات الاستعلام"), "/admin/queries/…/roles",
-               T("Admin; AccessManager when enabled", "Admin، وAccessManager عند التفعيل")],
+               T("Grant an individual query", "منح استعلام مفرد")],
               [T("Query Groups", "مجموعات الاستعلامات"), "/admin/query-groups",
-               "Admin, AccessManager"],
+               T("See the query list", "عرض قائمة الاستعلامات")],
               [T("Create / edit group", "إنشاء/تعديل مجموعة"),
-               "/admin/query-groups/create, /edit/…", "Admin"],
+               "/admin/query-groups/create, /edit/…",
+               T("Create and edit query groups", "إنشاء مجموعات الاستعلامات وتعديلها")],
               [T("Manage group access", "إدارة صلاحيات المجموعة"),
-               "/admin/query-groups/…/access", "Admin, AccessManager"],
+               "/admin/query-groups/…/access",
+               T("Grant a query group", "منح مجموعة استعلامات")],
               [T("Scheduled Tasks", "المهام المجدولة"), "/admin/scheduled-tasks",
-               "Admin, Auditor"],
+               T("See every scheduled task", "عرض جميع المهام المجدولة")],
               [T("Create / edit task", "إنشاء/تعديل مهمة"),
-               "/admin/scheduled-tasks/create, /edit/…", "Admin"],
+               "/admin/scheduled-tasks/create, /edit/…",
+               T("Create and run scheduled tasks", "إنشاء المهام المجدولة وتشغيلها")],
               [T("Task run history", "سجل تشغيل المهمة"), "/admin/scheduled-tasks/…/runs",
-               "Admin, Auditor"],
-              [T("Execution Logs", "سجلات التنفيذ"), "/admin/logs", "Admin, Auditor"],
-              [T("System Audit", "سجل عمليات النظام"), "/admin/system-audit", "Admin, Auditor"],
-              [T("Settings", "الإعدادات"), "/admin/settings", "Admin"],
-              [T("Users", "المستخدمون"), "/admin/users", "Admin, AccessManager"],
-              [T("AD Users", "مستخدمو Active Directory"), "/admin/ad-users", "Admin"],
-              [T("DB Users", "مستخدمو قواعد البيانات"), "/admin/database-users", "Admin"],
+               T("See every scheduled task", "عرض جميع المهام المجدولة")],
+              [T("Execution Logs", "سجلات التنفيذ"), "/admin/logs",
+               T("Read execution logs", "قراءة سجلات التنفيذ")],
+              [T("System Audit", "سجل عمليات النظام"), "/admin/system-audit",
+               T("Read the system audit trail", "قراءة سجل عمليات النظام")],
+              [T("Settings", "الإعدادات"), "/admin/settings",
+               T("Change system settings, or manage roles", "تغيير إعدادات النظام أو إدارة الأدوار")],
+              [T("Users", "المستخدمون"), "/admin/users",
+               T("See the user list", "عرض قائمة المستخدمين")],
+              [T("User Groups", "مجموعات المستخدمين"), "/admin/user-groups",
+               T("See user groups", "عرض مجموعات المستخدمين")],
+              [T("Create / edit user group", "إنشاء/تعديل مجموعة مستخدمين"),
+               "/admin/user-groups/create, /edit/…",
+               T("Create user groups", "إنشاء مجموعات المستخدمين")],
+              [T("AD Users", "مستخدمو Active Directory"), "/admin/ad-users",
+               T("Search and import from AD", "البحث والاستيراد من Active Directory")],
+              [T("DB Users", "مستخدمو قواعد البيانات"), "/admin/database-users",
+               T("Manage database connections", "إدارة اتصالات قواعد البيانات")],
           ],
           widths=[1.8, 2.4, 2.4],
           font_size=8.5)
@@ -969,9 +1080,9 @@ def build_manual(doc):
              "الاستعلامات التي يمكنك الوصول إليها داخلها."))
     para(doc, T(
         "If the page is empty, nothing has been assigned to you yet — ask an administrator or "
-        "an Access Manager to grant the query, the group, or your department.",
+        "an Access Manager to grant the query or its group to you, or to a user group you are in.",
         "إذا كانت الصفحة فارغة فلم يُسنَد إليك شيء بعد — اطلب من المسؤول أو مدير الصلاحيات منح "
-        "الاستعلام أو المجموعة أو قسمك."))
+        "الاستعلام أو مجموعته لك أو لمجموعة مستخدمين تنتمي إليها."))
 
     h2(doc, T("5.2 Filling in parameters", "٥.٢ تعبئة المعاملات"))
     para(doc, T(
@@ -1227,9 +1338,10 @@ def build_manual(doc):
                T("Opens the create form pre-filled from this query",
                  "يفتح نموذج الإنشاء معبّأً من هذا الاستعلام"), "Admin"],
               [T("Manage access", "إدارة الصلاحيات"),
-               T("Assign roles, departments and users", "إسناد الأدوار والأقسام والمستخدمين"),
-               T("Admin; AccessManager when enabled in Settings",
-                 "Admin، وAccessManager عند تفعيله في الإعدادات")],
+               T("Assign roles, user groups and users",
+                 "إسناد الأدوار ومجموعات المستخدمين والمستخدمين"),
+               T("Holders of “Grant an individual query”",
+                 "من يحمل «منح استعلام مفرد»")],
               [T("Export", "تصدير"),
                T("Downloads this query as a JSON definition",
                  "ينزّل هذا الاستعلام كتعريف JSON"), "Admin"],
@@ -1417,8 +1529,11 @@ def build_manual(doc):
               [T("Roles and users", "الأدوار والمستخدمون"),
                T("Matched by name; assignments that do not match are dropped and reported.",
                  "تُطابَق بالاسم، وتُسقَط التخصيصات غير المطابقة مع الإبلاغ عنها.")],
-              [T("Departments", "الأقسام"),
-               T("Carried across as written.", "تُنقل كما كُتبت.")],
+              [T("User groups", "مجموعات المستخدمين"),
+               T("Matched by name; grants to a group that does not exist here are dropped and "
+                 "reported. Membership is never exported.",
+                 "تُطابَق بالاسم، وتُسقَط المنوحات لمجموعة غير موجودة هنا مع الإبلاغ عنها. ولا "
+                 "تُصدَّر عضوية المجموعات إطلاقًا.")],
               [T("Dropdown source query", "استعلام مصدر القائمة المنسدلة"),
                T("Resolved after every query in the file exists, so a dropdown can point at "
                  "another query from the same backup.",
@@ -1486,10 +1601,11 @@ def build_manual(doc):
              "granted a query.",
              "تبويب الأدوار. ولا يظهر Auditor وAccessManager عمدًا: فلا يمكن منح أيٍّ منهما "
              "استعلامًا."))
-    figure(doc, "16-query-access-departments",
-           T("The Departments tab. Everyone whose account carries that department gets the "
-             "query.",
-             "تبويب الأقسام. ويحصل على الاستعلام كل من يحمل حسابه ذلك القسم."))
+    figure(doc, "16-query-access-user-groups",
+           T("The User Groups tab. Every member of a group listed here gets the query, and the "
+             "member count is shown beside each group.",
+             "تبويب مجموعات المستخدمين. ويحصل على الاستعلام كل عضو في مجموعة مدرجة هنا، ويظهر "
+             "عدد الأعضاء بجانب كل مجموعة."))
     figure(doc, "17-query-access-users",
            T("The Users tab, for granting the query to named individuals.",
              "تبويب المستخدمين، لمنح الاستعلام لأشخاص بأعيانهم."))
@@ -1506,14 +1622,16 @@ def build_manual(doc):
     h2(doc, T("8.3 How the grants combine", "٨.٣ كيف تتجمّع الأذونات"))
     para(doc, T(
         "Grants add up and there is no “deny”. A user reaches a query if any one of the "
-        "following is true: a role they hold is granted the query or its group; their "
-        "department is granted it; they are granted it by name; or they are an administrator. "
-        "Removing one route leaves the others in place — to remove access completely, check "
-        "all three tabs on both the query and its group.",
+        "following is true: a role they hold is granted the query or its group; a user group "
+        "they belong to is granted it; they are granted it by name; or they are an "
+        "administrator. Removing one route leaves the others in place — to remove access "
+        "completely, check all three tabs on both the query and its group, and the membership "
+        "of any group that was granted it.",
         "تتراكم الأذونات ولا يوجد «منع». فيصل المستخدم إلى الاستعلام إذا تحقّق أي مما يلي: أن "
-        "يكون دور يحمله ممنوحًا الاستعلام أو مجموعته، أو أن يكون قسمه ممنوحًا إياه، أو أن "
-        "يُمنح باسمه، أو أن يكون مسؤولًا. وإزالة طريق واحد تبقي البقية قائمة — ولإزالة "
-        "الصلاحية تمامًا راجع التبويبات الثلاثة على الاستعلام وعلى مجموعته معًا."))
+        "يكون دور يحمله ممنوحًا الاستعلام أو مجموعته، أو أن تكون مجموعة مستخدمين ينتمي إليها "
+        "ممنوحة إياه، أو أن يُمنح باسمه، أو أن يكون مسؤولًا. وإزالة طريق واحد تبقي البقية "
+        "قائمة — ولإزالة الصلاحية تمامًا راجع التبويبات الثلاثة على الاستعلام وعلى مجموعته "
+        "معًا، وراجع أعضاء أي مجموعة مُنِحت إياه."))
 
     page_break(doc)
 
@@ -1678,7 +1796,8 @@ def build_manual(doc):
     page_break(doc)
 
     # ===================================================================== 10
-    h1(doc, T("10. Users and Active Directory", "١٠. المستخدمون وActive Directory"))
+    h1(doc, T("10. Users, user groups and Active Directory",
+              "١٠. المستخدمون ومجموعات المستخدمين وActive Directory"))
     para(doc, T("For: Administrators. Access Managers can use the Users page with "
                 "restrictions.",
                 "لمن: المسؤولون. ويستطيع مديرو الصلاحيات استخدام صفحة المستخدمين بقيود."),
@@ -1691,16 +1810,16 @@ def build_manual(doc):
              "إدارة المستخدمين. تعرض القائمة أدوار كل حساب، وهل هو محلي أم من Active "
              "Directory، وهل هو نشط."))
     figure(doc, "52-user-create-form",
-           T("Creating a local user. Email is optional; a department here is what "
-             "department-based query access matches on.",
-             "إنشاء مستخدم محلي. البريد الإلكتروني اختياري، والقسم هنا هو ما تطابقه صلاحيات "
-             "الاستعلامات المبنية على الأقسام."))
+           T("Creating a local user. Email is optional. Access comes from the roles chosen "
+             "here and from any user group the account is later added to.",
+             "إنشاء مستخدم محلي. البريد الإلكتروني اختياري. وتأتي الصلاحيات من الأدوار "
+             "المختارة هنا ومن أي مجموعة مستخدمين يُضاف إليها الحساب لاحقًا."))
     table(doc,
           [T("Action", "الإجراء"), T("Effect", "الأثر")],
           [
               [T("Create User", "إنشاء مستخدم"),
-               T("Adds a local account with a password, department and roles.",
-                 "يضيف حسابًا محليًا بكلمة مرور وقسم وأدوار.")],
+               T("Adds a local account with a password and roles.",
+                 "يضيف حسابًا محليًا بكلمة مرور وأدوار.")],
               [T("Edit", "تعديل"),
                T("Changes the username, the roles, or both.",
                  "يغيّر اسم المستخدم أو الأدوار أو كليهما.")],
@@ -1724,12 +1843,75 @@ def build_manual(doc):
         "النظام."),
         kind="warning")
 
-    h2(doc, T("10.2 Active Directory", "١٠.٢ Active Directory"))
+    h2(doc, T("10.2 User groups", "١٠.٢ مجموعات المستخدمين"))
     para(doc, T(
-        "AD Users imports accounts from the directory so they can be granted queries. It has "
-        "three tabs.",
-        "تستورد صفحة «مستخدمو Active Directory» الحسابات من الدليل ليتسنى منحها استعلامات، "
-        "وفيها ثلاثة تبويبات."))
+        "A user group is a named list of people, kept inside this application. Granting a "
+        "query or a query group to a user group grants it to every member — which is how one "
+        "change gives a whole team access, and one change takes it away again.",
+        "مجموعة المستخدمين قائمة أشخاص لها اسم، تُحفظ داخل هذا التطبيق. ومنح استعلام أو مجموعة "
+        "استعلامات لمجموعة مستخدمين يمنحها لكل عضو فيها — وبهذا يمنح تغييرٌ واحد فريقًا كاملًا "
+        "الوصول، ويسحبه تغييرٌ واحد أيضًا."))
+    note(doc, T(
+        "These groups are not Active Directory groups and do not mirror the AD department. "
+        "Membership is whatever an administrator set here, so it covers accounts created "
+        "locally as well as imported ones, and a reorganisation in the directory does not "
+        "silently change who can reach a query.",
+        "هذه المجموعات ليست مجموعات Active Directory ولا تعكس قسم الحساب في الدليل. والعضوية "
+        "هي ما حدّده المسؤول هنا، فتشمل الحسابات المُنشأة محليًا والمستوردة معًا، ولا تغيّر "
+        "إعادةُ التنظيم في الدليل صامتةً مَن يصل إلى الاستعلامات."))
+    figure(doc, "52a-user-groups",
+           T("User Groups. The Members column is the number of people a grant to that group "
+             "would reach; the filter searches member names too.",
+             "مجموعات المستخدمين. عمود الأعضاء هو عدد الأشخاص الذين يصل إليهم المنح لتلك "
+             "المجموعة، وتبحث التصفية في أسماء الأعضاء أيضًا."))
+    figure(doc, "52b-user-group-create",
+           T("Creating a group. Filter the account list, then tick the members; the field "
+             "reports how many are selected.",
+             "إنشاء مجموعة. صفِّ قائمة الحسابات ثم علّم الأعضاء، ويعرض الحقل عدد المحدَّدين."))
+    table(doc,
+          [T("Action", "الإجراء"), T("Effect", "الأثر")],
+          [
+              [T("Create Group", "إنشاء مجموعة"),
+               T("Adds a group with a name, a description and its starting members. Names are "
+                 "unique.",
+                 "يضيف مجموعة باسم ووصف وأعضائها الأوليين. والأسماء فريدة.")],
+              [T("Edit", "تعديل"),
+               T("Renames the group or changes who is in it. Removing someone takes away every "
+                 "query the group grants them, on their very next request — they do not have "
+                 "to sign out and back in.",
+                 "يعيد تسمية المجموعة أو يغيّر أعضاءها. وإخراج شخص منها يسحب كل استعلام "
+                 "تمنحه المجموعة إياه عند أول طلب تالٍ له — دون حاجة إلى تسجيل الخروج والدخول.")],
+              [T("Delete", "حذف"),
+               T("Deletes the group and every grant made to it. The member accounts themselves "
+                 "are untouched.",
+                 "يحذف المجموعة وكل ما مُنِح لها. ولا تتأثر حسابات الأعضاء نفسها.")],
+          ],
+          widths=[1.7, 4.9])
+    para(doc, T(
+        "Administrators and Access Managers both run this page: deciding who is in a group is "
+        "the same job as deciding what the group may reach. Query groups are a different "
+        "thing — only an administrator creates, edits or deletes those.",
+        "يدير هذه الصفحة المسؤولون ومديرو الصلاحيات معًا: فتحديد أعضاء المجموعة هو ذات العمل "
+        "الذي يحدّد ما تصل إليه المجموعة. أما مجموعات الاستعلامات فشيء آخر — ولا ينشئها أو "
+        "يعدّلها أو يحذفها إلا المسؤول."))
+    note(doc, T(
+        "Nobody may add their own account to a group — the option is greyed out, and the "
+        "server refuses it. Otherwise an Access Manager could grant a query to a group and "
+        "then walk into it, which is the same self-grant that stops them editing their own "
+        "roles. An administrator can add them; from then on they can save the group, and "
+        "leave it, without being blocked.",
+        "لا يجوز لأحد إضافة حسابه إلى مجموعة — فالخيار معطَّل، والخادم يرفض ذلك. وإلا لأمكن "
+        "لمدير الصلاحيات أن يمنح استعلامًا لمجموعة ثم ينضم إليها، وهو المنح الذاتي نفسه الذي "
+        "يمنعه من تعديل أدواره. ويستطيع المسؤول إضافته، وعندها يمكنه حفظ المجموعة ومغادرتها "
+        "دون منع."),
+        kind="warning")
+
+    h2(doc, T("10.3 Active Directory", "١٠.٣ Active Directory"))
+    para(doc, T(
+        "AD Users imports accounts from the directory so they can be granted queries — "
+        "directly, or by putting them in a user group. It has three tabs.",
+        "تستورد صفحة «مستخدمو Active Directory» الحسابات من الدليل ليتسنى منحها استعلامات — "
+        "مباشرةً أو بوضعها في مجموعة مستخدمين. وفيها ثلاثة تبويبات."))
     figure(doc, "55-ad-users-search",
            T("Search Users. Type at least two characters, tick the accounts to import, then "
              "press Import Selected Users. Already-imported accounts cannot be selected again.",
@@ -1737,8 +1919,11 @@ def build_manual(doc):
              "«استيراد المستخدمين المحددين». ولا يمكن تحديد الحسابات المستوردة مسبقًا مرة "
              "أخرى."))
     figure(doc, "56-ad-users-departments",
-           T("Departments. View a department's members, or import all of them at once.",
-             "الأقسام. اعرض أعضاء قسم ما، أو استوردهم جميعًا دفعة واحدة."))
+           T("Departments. View a directory department's members, or import all of them at "
+             "once. This is the only page that reads AD departments — they bring accounts in, "
+             "they do not grant anything.",
+             "الأقسام. اعرض أعضاء قسم في الدليل، أو استوردهم جميعًا دفعة واحدة. وهذه الصفحة "
+             "الوحيدة التي تقرأ أقسام Active Directory — فهي تستقدم الحسابات ولا تمنح شيئًا."))
     figure(doc, "57-ad-users-imported",
            T("Imported Users — the accounts already in the system, with Sync from AD to "
              "refresh their details.",
@@ -1746,8 +1931,10 @@ def build_manual(doc):
              "بياناتهم."))
     bullets(doc, [
         (T("Sync from AD — ", "مزامنة من AD — "),
-         T("refreshes names, emails and departments for accounts already imported.",
-           "يحدّث الأسماء والبُرد الإلكترونية والأقسام للحسابات المستوردة.")),
+         T("refreshes names, emails and departments for accounts already imported. It does not "
+           "change group membership or anyone's access.",
+           "يحدّث الأسماء والبُرد الإلكترونية والأقسام للحسابات المستوردة. ولا يغيّر عضوية "
+           "المجموعات ولا صلاحيات أحد.")),
         (T("Revoke access — ", "سحب الوصول — "),
          T("an imported user immediately loses access to the application. Reversible from the "
            "same page.",
@@ -1937,32 +2124,103 @@ def build_manual(doc):
 
     # ===================================================================== 14
     h1(doc, T("14. System settings", "١٤. إعدادات النظام"))
-    para(doc, T("For: Administrators only.", "لمن: المسؤولون فقط."), italic=True)
+    para(doc, T("For: holders of “Change system settings” or “Manage roles and permissions”.",
+                "لمن: من يحمل «تغيير إعدادات النظام» أو «إدارة الأدوار والصلاحيات»."),
+         italic=True)
     para(doc, T(
-        "Settings holds toggles that change what a whole role is permitted to do. They take "
-        "effect immediately, without a restart, and each change is recorded in the system "
-        "audit trail.",
-        "تضم «الإعدادات» مفاتيح تغيّر ما يُسمح لدور كامل بفعله. وتسري فورًا دون إعادة تشغيل، "
-        "ويُسجَّل كل تغيير في سجل عمليات النظام."))
+        "Settings holds the choices that apply to the whole installation — what a role is "
+        "permitted to do, how long a sign-in lasts, and which features are available. They take "
+        "effect immediately, without a restart, and each change is recorded in the system audit "
+        "trail. Switches save the moment you flip them; the numbers are edited together and "
+        "saved with the button beneath them.",
+        "تضم «الإعدادات» الخيارات التي تسري على التنصيب كله — ما يُسمح لدور بفعله، ومدة بقاء "
+        "تسجيل الدخول، والخصائص المتاحة. وتسري فورًا دون إعادة تشغيل، ويُسجَّل كل تغيير في سجل "
+        "عمليات النظام. وتُحفظ المفاتيح فور تبديلها، أما الأرقام فتُحرَّر معًا وتُحفظ بالزر أسفلها."))
+    h2(doc, T("14.1 System", "١٤.١ النظام"))
     figure(doc, "50-system-settings", T("System Settings.", "إعدادات النظام."))
     table(doc,
           [T("Setting", "الإعداد"), T("Default", "الافتراضي"), T("Effect", "الأثر")],
           [
-              [T("Access Managers can manage individual query access",
-                 "يمكن لمديري الصلاحيات إدارة صلاحيات الاستعلامات المفردة"),
-               T("Off", "معطَّل"),
-               T("When on, Access Managers may assign roles, departments and users to a single "
-                 "query as well as to a query group. Administrators are unaffected either way.",
-                 "عند تفعيله يستطيع مديرو الصلاحيات إسناد الأدوار والأقسام والمستخدمين إلى "
-                 "استعلام مفرد إضافةً إلى مجموعة الاستعلامات. ولا يتأثر المسؤولون في "
-                 "الحالتين.")],
+              [T("Active Directory features are available",
+                 "خصائص Active Directory متاحة"),
+               T("On", "مفعَّل"),
+               T("Turn it off on an installation with no directory: the AD Users page is hidden "
+                 "rather than left to report a connection failure. Signing in is not affected.",
+                 "عطّله في التنصيبات التي لا دليل لديها: فتُخفى صفحة مستخدمي Active Directory "
+                 "بدل أن تظل تعرض فشل الاتصال. ولا يتأثر تسجيل الدخول.")],
+              [T("Access token (minutes)", "رمز الوصول (بالدقائق)"),
+               "60",
+               T("How long a sign-in lasts before it is quietly renewed, between 5 and 1440. "
+                 "Shorter means a revoked account, or someone removed from a group, loses what "
+                 "their token still carries sooner.",
+                 "مدة بقاء تسجيل الدخول قبل تجديده تلقائيًا، بين ٥ و١٤٤٠. وكلما قصُرت فقد "
+                 "الحساب المسحوب، أو من أُخرج من مجموعة، ما يحمله رمزه أسرع.")],
+              [T("Refresh token (days)", "رمز التجديد (بالأيام)"),
+               "7",
+               T("How long someone may stay away and still return without signing in again, "
+                 "between 1 and 90.",
+                 "مدة الغياب التي يمكن بعدها العودة دون تسجيل دخول جديد، بين ١ و٩٠.")],
+              [T("Row limit for previews and lookups",
+                 "حد الصفوف للمعاينات وقوائم الاختيار"),
+               "10000",
+               T("Caps what is read in one go where a whole result is held in memory: a write "
+                 "query's preview, the before-change snapshot it records, and the options "
+                 "behind a dropdown parameter. The results grid and exports are not affected.",
+                 "يحدّ ممّا يُقرأ دفعةً واحدة حيث تُحفظ النتيجة كاملة في الذاكرة: معاينة "
+                 "استعلام الكتابة، ولقطة ما قبل التغيير التي يسجّلها، وخيارات القائمة "
+                 "المنسدلة. ولا يتأثر جدول النتائج ولا التصدير.")],
           ],
           widths=[2.2, 0.8, 3.6])
     note(doc, T(
-        "While the setting is off, an Access Manager's attempt to change per-query access is "
-        "refused and recorded as a refusal in the system audit trail.",
-        "ما دام الإعداد معطَّلًا، تُرفض محاولة مدير الصلاحيات تغيير صلاحية استعلام مفرد "
-        "وتُسجَّل بوصفها رفضًا في سجل عمليات النظام."))
+        "The numbers are checked against their limits when you save; a value outside them is "
+        "refused with a message naming the range. Shortening the access token does not end "
+        "sessions that are already open — it applies from the next sign-in or renewal.",
+        "تُفحص الأرقام مقابل حدودها عند الحفظ، وتُرفض القيمة الخارجة عنها برسالة تذكر المدى. "
+        "وتقصير مدة رمز الوصول لا ينهي الجلسات المفتوحة بالفعل — بل يسري من تسجيل الدخول أو "
+        "التجديد التالي."),
+        kind="warning")
+
+    h2(doc, T("14.2 Permissions", "١٤.٢ الصلاحيات"))
+    para(doc, T(
+        "The second tab is the whole authorization model in one grid: every capability the "
+        "system offers down the side, every role across the top, and a tick where the role "
+        "holds it. Everything any role may do is decided here.",
+        "التبويب الثاني هو نموذج الصلاحيات كله في جدول واحد: كل إمكانية يتيحها النظام في "
+        "الجانب، وكل دور في الأعلى، وعلامة حيث يحملها الدور. وهنا يُحدَّد كل ما يمكن لأي دور "
+        "فعله."))
+    figure(doc, "51-permissions",
+           T("Settings → Permissions. Admin's column is ticked and locked; the rest are yours "
+             "to set.",
+             "«الإعدادات ← الصلاحيات». عمود Admin معلَّم ومقفل، وما عداه متروك لك."))
+    numbered(doc, [
+        T("Tick or clear the capabilities you want a role to have. Nothing is sent yet — the "
+          "count of changed roles appears at the bottom.",
+          "علّم الإمكانيات التي تريدها لدور ما أو ألغِ تعليمها. ولا يُرسل شيء بعد — إذ يظهر "
+          "عدد الأدوار المتغيّرة في الأسفل."),
+        T("Press Save. Only the roles you touched are written, and each change is recorded in "
+          "the system audit trail with what was granted and what was revoked.",
+          "اضغط «حفظ». فلا يُكتب إلا ما لمسته من أدوار، ويُسجَّل كل تغيير في سجل عمليات النظام "
+          "مع بيان ما مُنح وما سُحب."),
+        T("The change applies to everyone holding that role on their next request. Nobody has "
+          "to sign out.",
+          "ويسري التغيير على كل من يحمل ذلك الدور من طلبه التالي، دون حاجة إلى تسجيل خروج."),
+    ])
+    para(doc, T(
+        "Add role creates a role with no permissions at all; tick what it may do and save. A "
+        "role you created can be deleted from the header of its column — but not while any "
+        "account still holds it, because moving those people somewhere is a decision, not a "
+        "side effect of a delete.",
+        "ينشئ «إضافة دور» دورًا بلا أي صلاحية؛ فعلّم ما يمكنه فعله ثم احفظ. ويمكن حذف الدور "
+        "الذي أنشأته من رأس عموده — لكن ليس ما دام أي حساب يحمله، لأن نقل هؤلاء إلى مكان آخر "
+        "قرار لا أثر جانبي للحذف."))
+    note(doc, T(
+        "The four supplied roles can be re-permissioned but not renamed or deleted, and Admin "
+        "cannot be edited at all. That last rule is what guarantees somebody can always open "
+        "this page.",
+        "الأدوار الأربعة المرفقة يمكن تغيير صلاحياتها، لا إعادة تسميتها أو حذفها، أما Admin "
+        "فلا يمكن تعديله إطلاقًا. وهذه القاعدة الأخيرة هي ما يضمن بقاء من يستطيع فتح هذه "
+        "الصفحة دائمًا."),
+        kind="warning")
 
     page_break(doc)
 
@@ -1974,9 +2232,9 @@ def build_manual(doc):
           [
               [T("My Queries is empty.", "صفحة «استعلاماتي» فارغة."),
                T("Nothing has been assigned to you. Ask an administrator or Access Manager to "
-                 "grant you the query, its group, or your department.",
+                 "grant you the query or its group, directly or through a user group.",
                  "لم يُسنَد إليك شيء. اطلب من المسؤول أو مدير الصلاحيات منحك الاستعلام أو "
-                 "مجموعته أو قسمك.")],
+                 "مجموعته، مباشرةً أو عبر مجموعة مستخدمين.")],
               [T("I can see a query but cannot run it.",
                  "أرى استعلامًا لكنني لا أستطيع تنفيذه."),
                T("It may be disabled, or you may not have access to the database connection it "

@@ -1,3 +1,4 @@
+using DotNetDBTasks.API.Authorization;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
@@ -5,6 +6,7 @@ using DotNetDBTasks.Domain.Interfaces;
 using DotNetDBTasks.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace DotNetDBTasks.API.Controllers;
 
@@ -19,24 +21,64 @@ namespace DotNetDBTasks.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/ldap")]
-[Authorize(Roles = RoleNames.AdminOrAccessManager)]
-public class LdapUsersController : ControllerBase
+[Authorize]
+public class LdapUsersController : ControllerBase, IAsyncActionFilter
 {
     private readonly ILdapService _ldapService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAppLocalizer _messages;
     private readonly IAuditLogger _audit;
+    private readonly ISystemSettingsService _settings;
 
     public LdapUsersController(
         ILdapService ldapService,
         IUnitOfWork unitOfWork,
         IAppLocalizer messages,
-        IAuditLogger audit)
+        IAuditLogger audit,
+        ISystemSettingsService settings)
     {
         _ldapService = ldapService;
         _unitOfWork = unitOfWork;
         _messages = messages;
         _audit = audit;
+        _settings = settings;
+    }
+
+    /// <summary>
+    /// Turns the whole controller off when an administrator has said this installation has no
+    /// directory.
+    ///
+    /// <para>Done here rather than per action so a newly added endpoint cannot forget it — the
+    /// mirror of the warning above about <c>[Authorize]</c>. 503 rather than 404: the feature
+    /// exists and is switched off, which is what an operator needs to be told.</para>
+    ///
+    /// <para>Nothing here is on a sign-in path, so this cannot lock anyone out. Accounts already
+    /// imported from the directory keep authenticating against it either way.</para>
+    ///
+    /// <para>The controller implements <see cref="IAsyncActionFilter"/> for this — MVC runs a
+    /// controller that is also a filter around its own actions. <c>ControllerBase</c> has no
+    /// method to override; only the heavier <c>Controller</c> does. <c>[NonAction]</c> is not
+    /// optional: every public method on a controller is a route by convention, and without it
+    /// MVC tries to bind two request bodies to this one and refuses to start.</para>
+    /// </summary>
+    [NonAction]
+    public async Task OnActionExecutionAsync(
+        ActionExecutingContext context, ActionExecutionDelegate next)
+    {
+        var enabled = await _settings.GetBoolAsync(
+            SystemSettingKeys.DirectoryEnabled,
+            SystemSettingKeys.DirectoryEnabledDefault,
+            context.HttpContext.RequestAborted);
+
+        if (!enabled)
+        {
+            context.Result = StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new { message = _messages[MessageKeys.DirectoryDisabled] });
+            return;
+        }
+
+        await next();
     }
 
     /// <summary>
@@ -56,7 +98,7 @@ public class LdapUsersController : ControllerBase
     /// Searches LDAP directory for users matching the given term.
     /// </summary>
     [HttpGet("search")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.DirectoryManage)]
     public async Task<IActionResult> SearchUsers([FromQuery] string term)
     {
         if (string.IsNullOrWhiteSpace(term) || term.Length < 2)
@@ -87,6 +129,7 @@ public class LdapUsersController : ControllerBase
     /// Returns all departments from the LDAP directory.
     /// </summary>
     [HttpGet("departments")]
+    [RequirePermission(Permissions.DirectoryView)]
     public async Task<IActionResult> GetDepartments()
     {
         var departments = await _ldapService.GetDepartmentsAsync();
@@ -97,7 +140,7 @@ public class LdapUsersController : ControllerBase
     /// Returns all LDAP users in a given department, with import status.
     /// </summary>
     [HttpGet("departments/{department}/users")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.DirectoryManage)]
     public async Task<IActionResult> GetDepartmentUsers(string department)
     {
         var ldapUsers = await _ldapService.GetUsersByDepartmentAsync(department);
@@ -125,7 +168,7 @@ public class LdapUsersController : ControllerBase
     /// Creates local user records with AuthSource=Ldap and assigns the User role.
     /// </summary>
     [HttpPost("import/users")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.DirectoryManage)]
     public async Task<IActionResult> ImportUsers([FromBody] ImportUsersRequest request)
     {
         if (request.Usernames == null || request.Usernames.Count == 0)
@@ -265,7 +308,7 @@ public class LdapUsersController : ControllerBase
     /// Imports all LDAP users from a specific department.
     /// </summary>
     [HttpPost("import/department")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.DirectoryManage)]
     public async Task<IActionResult> ImportDepartment([FromBody] ImportDepartmentRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Department))
@@ -325,7 +368,7 @@ public class LdapUsersController : ControllerBase
     /// Revokes access for an LDAP user by deactivating their local account.
     /// </summary>
     [HttpPost("revoke/{username}")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.DirectoryManage)]
     public async Task<IActionResult> RevokeAccess(string username)
     {
         var users = await _unitOfWork.Users.FindAsync(
@@ -348,7 +391,7 @@ public class LdapUsersController : ControllerBase
     /// Restores access for a previously revoked LDAP user.
     /// </summary>
     [HttpPost("restore/{username}")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.DirectoryManage)]
     public async Task<IActionResult> RestoreAccess(string username)
     {
         var users = await _unitOfWork.Users.FindAsync(
@@ -371,7 +414,7 @@ public class LdapUsersController : ControllerBase
     /// Syncs department (and profile fields) for all imported LDAP users from the directory.
     /// </summary>
     [HttpPost("sync")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.DirectoryManage)]
     public async Task<IActionResult> SyncImportedUsers()
     {
         var importedUsers = await _unitOfWork.Users.FindAsync(u => u.AuthSource == AuthSource.Ldap);
@@ -420,6 +463,7 @@ public class LdapUsersController : ControllerBase
     /// Lists all imported LDAP users with their status.
     /// </summary>
     [HttpGet("imported")]
+    [RequirePermission(Permissions.DirectoryView)]
     public async Task<IActionResult> GetImportedUsers()
     {
         var users = await _unitOfWork.Users.FindAsync(u => u.AuthSource == AuthSource.Ldap);

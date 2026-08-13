@@ -8,6 +8,7 @@ import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { AuthService } from '@core/services/auth.service';
+import { PERM } from '@core/models/permissions';
 import { QueryGroup } from '@core/models/dynamic-query.model';
 import { TranslocoService } from '@jsverse/transloco';
 
@@ -19,7 +20,7 @@ import { TranslocoService } from '@jsverse/transloco';
       <div class="header">
         <h2>{{ 'admin.groups.title' | transloco }}</h2>
         <button mat-raised-button color="primary" routerLink="/admin/query-groups/create"
-                *ngIf="authService.isAdmin()">
+                *ngIf="authService.has(PERM.queryGroupsManage)">
           <mat-icon>add</mat-icon> {{ 'admin.groups.create' | transloco }}
         </button>
       </div>
@@ -63,7 +64,7 @@ import { TranslocoService } from '@jsverse/transloco';
               <td mat-cell *matCellDef="let g">
                 <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
                         [routerLink]="['/admin/query-groups/edit', g.id]"
-                        *ngIf="authService.isAdmin()">
+                        *ngIf="authService.has(PERM.queryGroupsManage)">
                   <mat-icon>edit</mat-icon>
                 </button>
                 <button mat-icon-button [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
@@ -72,7 +73,7 @@ import { TranslocoService } from '@jsverse/transloco';
                 </button>
                 <button mat-icon-button [matTooltip]="'common.delete' | transloco" [attr.aria-label]="'common.delete' | transloco" color="warn"
                         (click)="deleteGroup(g.id, g.name)"
-                        *ngIf="authService.isAdmin()">
+                        *ngIf="authService.has(PERM.queryGroupsManage)">
                   <mat-icon>delete</mat-icon>
                 </button>
               </td>
@@ -102,6 +103,7 @@ import { TranslocoService } from '@jsverse/transloco';
   `]
 })
 export class QueryGroupsListComponent implements OnInit {
+  readonly PERM = PERM;
   displayedColumns = ['name', 'description', 'queryCount', 'actions'];
   dataSource = new MatTableDataSource<QueryGroup>();
   loading = true;

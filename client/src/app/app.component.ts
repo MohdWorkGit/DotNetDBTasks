@@ -10,6 +10,8 @@ import { ThemeService } from './core/services/theme.service';
 import { LanguageService } from './core/services/language.service';
 import { LOCALE_LABELS } from './core/models/locale';
 import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialog.component';
+import { QueryService } from './core/services/query.service';
+import { PERM } from './core/models/permissions';
 
 @Component({
   standalone: false,
@@ -31,16 +33,22 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
              Each group renders only if the role can reach something inside it, so a plain
              User still sees three plain buttons and no empty dropdowns. -->
 
+        <!-- Both pages are about queries this account can run, so neither shows for a role
+             that never runs one: an Auditor's My Queries and History are empty by
+             definition, not by configuration. A second role that does grant access brings
+             them back — see AuthService.canRunQueries. -->
         <button mat-button routerLink="/user/queries" routerLinkActive="nav-active"
+                *ngIf="authService.canRunQueries()"
                 [matTooltip]="'nav.myQueries' | transloco" [attr.aria-label]="'nav.myQueries' | transloco">
           <mat-icon>list</mat-icon> <span class="nav-label">{{ 'nav.myQueries' | transloco }}</span>
         </button>
         <button mat-button routerLink="/user/history" routerLinkActive="nav-active"
+                *ngIf="authService.canRunQueries()"
                 [matTooltip]="'nav.history' | transloco" [attr.aria-label]="'nav.history' | transloco">
           <mat-icon>history</mat-icon> <span class="nav-label">{{ 'nav.history' | transloco }}</span>
         </button>
         <button mat-button routerLink="/user/schedules" routerLinkActive="nav-active"
-                *ngIf="!authService.isAdminOrAuditor()"
+                *ngIf="!authService.hasAny(PERM.scheduledTasksViewAll, PERM.scheduledTasksManage)"
                 [matTooltip]="'nav.schedules' | transloco" [attr.aria-label]="'nav.schedules' | transloco">
           <mat-icon>schedule</mat-icon> <span class="nav-label">{{ 'nav.schedules' | transloco }}</span>
         </button>
@@ -49,7 +57,7 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
              queries. The trigger also shows for an Auditor, who reaches nothing here except
              the read-only scheduled tasks — without that they would lose the entry entirely
              when it moved out of the audit menu. -->
-        <button mat-button *ngIf="authService.isAdminOrAccessManager() || authService.isAdminOrAuditor()"
+        <button mat-button *ngIf="authService.hasAny(PERM.queriesView, PERM.queryGroupsManage, PERM.scheduledTasksViewAll, PERM.scheduledTasksManage)"
                 [matMenuTriggerFor]="queriesMenu"
                 [class.nav-active]="inSection(['/admin/queries', '/admin/query-groups', '/admin/scheduled-tasks'])"
                 [matTooltip]="'nav.queriesGroup' | transloco">
@@ -58,40 +66,43 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
           <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
         </button>
         <mat-menu #queriesMenu="matMenu">
-          <button mat-menu-item *ngIf="authService.isAdminOrAccessManager()" routerLink="/admin/queries">
+          <button mat-menu-item *ngIf="authService.has(PERM.queriesView)" routerLink="/admin/queries">
             <mat-icon>dashboard</mat-icon> {{ 'nav.manageQueries' | transloco }}
           </button>
-          <button mat-menu-item *ngIf="authService.isAdminOrAccessManager()" routerLink="/admin/query-groups">
+          <button mat-menu-item *ngIf="authService.has(PERM.queriesView)" routerLink="/admin/query-groups">
             <mat-icon>folder</mat-icon> {{ 'nav.queryGroups' | transloco }}
           </button>
-          <button mat-menu-item *ngIf="authService.isAdminOrAuditor()" routerLink="/admin/scheduled-tasks">
+          <button mat-menu-item *ngIf="authService.hasAny(PERM.scheduledTasksViewAll, PERM.scheduledTasksManage)" routerLink="/admin/scheduled-tasks">
             <mat-icon>schedule</mat-icon> {{ 'nav.schedules' | transloco }}
           </button>
         </mat-menu>
 
         <!-- People and the connections their queries run through. -->
-        <button mat-button *ngIf="authService.isAdminOrAccessManager()"
+        <button mat-button *ngIf="authService.hasAny(PERM.usersView, PERM.userGroupsView, PERM.directoryManage, PERM.databaseUsersManage)"
                 [matMenuTriggerFor]="peopleMenu"
-                [class.nav-active]="inSection(['/admin/users', '/admin/ad-users', '/admin/database-users'])"
+                [class.nav-active]="inSection(['/admin/users', '/admin/user-groups', '/admin/ad-users', '/admin/database-users'])"
                 [matTooltip]="'nav.peopleGroup' | transloco">
           <mat-icon>people</mat-icon>
           <span class="nav-label">{{ 'nav.peopleGroup' | transloco }}</span>
           <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
         </button>
         <mat-menu #peopleMenu="matMenu">
-          <button mat-menu-item routerLink="/admin/users">
+          <button mat-menu-item *ngIf="authService.has(PERM.usersView)" routerLink="/admin/users">
             <mat-icon>people</mat-icon> {{ 'nav.users' | transloco }}
           </button>
-          <button mat-menu-item *ngIf="authService.isAdmin()" routerLink="/admin/ad-users">
+          <button mat-menu-item *ngIf="authService.has(PERM.userGroupsView)" routerLink="/admin/user-groups">
+            <mat-icon>groups</mat-icon> {{ 'nav.userGroups' | transloco }}
+          </button>
+          <button mat-menu-item *ngIf="authService.has(PERM.directoryManage) && directoryEnabled" routerLink="/admin/ad-users">
             <mat-icon>group</mat-icon> {{ 'nav.adUsers' | transloco }}
           </button>
-          <button mat-menu-item *ngIf="authService.isAdmin()" routerLink="/admin/database-users">
+          <button mat-menu-item *ngIf="authService.has(PERM.databaseUsersManage)" routerLink="/admin/database-users">
             <mat-icon>storage</mat-icon> {{ 'nav.dbUsers' | transloco }}
           </button>
         </mat-menu>
 
         <!-- Audit: the two read-only trails. -->
-        <button mat-button *ngIf="authService.isAdminOrAuditor()"
+        <button mat-button *ngIf="authService.hasAny(PERM.logsView, PERM.auditView)"
                 [matMenuTriggerFor]="auditMenu"
                 [class.nav-active]="inSection(['/admin/logs', '/admin/system-audit'])"
                 [matTooltip]="'nav.auditGroup' | transloco">
@@ -100,10 +111,10 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
           <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
         </button>
         <mat-menu #auditMenu="matMenu">
-          <button mat-menu-item routerLink="/admin/logs">
+          <button mat-menu-item *ngIf="authService.has(PERM.logsView)" routerLink="/admin/logs">
             <mat-icon>receipt_long</mat-icon> {{ 'nav.logs' | transloco }}
           </button>
-          <button mat-menu-item routerLink="/admin/system-audit">
+          <button mat-menu-item *ngIf="authService.has(PERM.auditView)" routerLink="/admin/system-audit">
             <mat-icon>fact_check</mat-icon> {{ 'nav.systemAudit' | transloco }}
           </button>
         </mat-menu>
@@ -134,10 +145,10 @@ import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialo
 
           <mat-divider></mat-divider>
 
-          <button mat-menu-item *ngIf="authService.isAdmin()" routerLink="/admin/settings">
+          <button mat-menu-item *ngIf="authService.hasAny(PERM.settingsManage, PERM.rolesManage)" routerLink="/admin/settings">
             <mat-icon>settings</mat-icon> {{ 'nav.settings' | transloco }}
           </button>
-          <button mat-menu-item *ngIf="authService.isAdmin()" (click)="openLogoDialog()">
+          <button mat-menu-item *ngIf="authService.has(PERM.brandingManage)" (click)="openLogoDialog()">
             <mat-icon>image</mat-icon> {{ 'nav.websiteLogo' | transloco }}
           </button>
           <button mat-menu-item (click)="authService.logout()">
@@ -212,6 +223,18 @@ export class AppComponent {
   /** Names the language being switched *to*, in that language — "التبديل إلى العربية". */
   readonly languageToggleLabel: Observable<string>;
 
+  /**
+   * Whether to offer the AD Users page. False on an installation that has told us it has no
+   * directory, where the page could only ever report a connection failure.
+   *
+   * <p>Starts true and is corrected once the settings arrive: the setting defaults to on, so
+   * assuming otherwise would blink the entry out of the menu on every page load.</p>
+   */
+  directoryEnabled = true;
+
+  /** Exposed so the template can name capabilities instead of repeating strings. */
+  readonly PERM = PERM;
+
   constructor(
     public authService: AuthService,
     public themeService: ThemeService,
@@ -219,7 +242,8 @@ export class AppComponent {
     public languageService: LanguageService,
     private router: Router,
     private transloco: TranslocoService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private queryService: QueryService
   ) {
     // selectTranslate, not translate(): LanguageService applies the stored preference in
     // its own constructor, which runs before this one, so the langChanged event has already
@@ -240,6 +264,26 @@ export class AppComponent {
     // and re-fetch on each sign-in so a logo changed by another admin shows up.
     this.authService.isAuthenticated$.subscribe(authenticated => {
       if (authenticated) this.brandingService.refresh();
+      if (authenticated) this.refreshDirectoryVisibility();
+      // Permissions are edited at runtime, so the nav asks the server what this account may do
+      // rather than trusting what the token said when it was issued.
+      if (authenticated) this.authService.loadPermissions().subscribe();
+    });
+  }
+
+  /**
+   * Reads the directory switch. Only the roles that can see the AD entry ask for it — the
+   * settings endpoint 403s for a plain User, and a console error on every sign-in is not
+   * worth a menu item they were never shown.
+   */
+  private refreshDirectoryVisibility(): void {
+    if (!this.authService.has(PERM.directoryManage)) return;
+
+    this.queryService.getSystemSettings().subscribe({
+      next: settings => this.directoryEnabled = settings.directoryEnabled,
+      // Leave it visible: hiding a page because one request failed is the worse guess, and
+      // the page reports its own 503 clearly enough.
+      error: () => { }
     });
   }
 

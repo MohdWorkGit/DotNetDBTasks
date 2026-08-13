@@ -12,6 +12,7 @@ import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { AuthService } from '@core/services/auth.service';
+import { PERM } from '@core/models/permissions';
 import { DynamicQuery, isWriteQueryType, QUERY_TYPE_LABELS, QueryType } from '@core/models/dynamic-query.model';
 import { TranslocoService } from '@jsverse/transloco';
 
@@ -38,7 +39,7 @@ interface QueryListState {
           <input #defaultTplInput type="file" accept=".docx" hidden
                  (change)="onDefaultTemplateSelected($event)">
           <button mat-stroked-button [matMenuTriggerFor]="defaultTplMenu"
-                  *ngIf="authService.isAdmin()"
+                  *ngIf="authService.has(PERM.queriesManage)"
                   [matTooltip]="'admin.queries.defaultTemplateTip' | transloco">
             <mat-icon>article</mat-icon>
             {{ 'admin.queries.defaultWordTemplate' | transloco }}
@@ -73,7 +74,7 @@ interface QueryListState {
           <input #importInput type="file" accept=".json,application/json" hidden
                  (change)="onImportFileSelected($event)">
           <button mat-stroked-button [matMenuTriggerFor]="backupMenu"
-                  *ngIf="authService.isAdmin()"
+                  *ngIf="authService.has(PERM.queriesManage)"
                   [matTooltip]="'admin.queries.backupTip' | transloco">
             <mat-icon>backup</mat-icon>
             {{ 'admin.queries.backup' | transloco }}
@@ -84,12 +85,12 @@ interface QueryListState {
               <mat-icon>file_download</mat-icon> {{ 'admin.queries.exportAll' | transloco }}
             </button>
             <button mat-menu-item (click)="importInput.click()"
-                    *ngIf="authService.isAdmin()" [disabled]="importing">
+                    *ngIf="authService.has(PERM.queriesManage)" [disabled]="importing">
               <mat-icon>file_upload</mat-icon> {{ 'admin.queries.importFromBackup' | transloco }}
             </button>
           </mat-menu>
           <button mat-raised-button color="primary" routerLink="/admin/queries/create"
-                  *ngIf="authService.isAdmin()">
+                  *ngIf="authService.has(PERM.queriesManage)">
             <mat-icon>add</mat-icon> {{ 'admin.queries.create' | transloco }}
           </button>
         </div>
@@ -208,13 +209,13 @@ interface QueryListState {
               <td mat-cell *matCellDef="let q">
                 <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
                         [routerLink]="['/admin/queries/edit', q.id]"
-                        *ngIf="authService.isAdmin()">
+                        *ngIf="authService.has(PERM.queriesManage)">
                   <mat-icon>edit</mat-icon>
                 </button>
                 <button mat-icon-button [matTooltip]="'common.copy' | transloco" [attr.aria-label]="'common.copy' | transloco"
                         routerLink="/admin/queries/create"
                         [queryParams]="{ copyFrom: q.id }"
-                        *ngIf="authService.isAdmin()">
+                        *ngIf="authService.has(PERM.queriesManage)">
                   <mat-icon>content_copy</mat-icon>
                 </button>
                 <button mat-icon-button *ngIf="canManageQueryAccess"
@@ -223,14 +224,14 @@ interface QueryListState {
                   <mat-icon>security</mat-icon>
                 </button>
                 <button mat-icon-button (click)="exportQuery(q)"
-                        *ngIf="authService.isAdmin()"
+                        *ngIf="authService.has(PERM.queriesManage)"
                         [matTooltip]="'Export ' + q.name + ' as a JSON definition'"
                         [attr.aria-label]="'Export ' + q.name">
                   <mat-icon>file_download</mat-icon>
                 </button>
                 <button mat-icon-button [matTooltip]="'common.delete' | transloco" [attr.aria-label]="'common.delete' | transloco" color="warn"
                         (click)="deleteQuery(q.id, q.name)"
-                        *ngIf="authService.isAdmin()">
+                        *ngIf="authService.has(PERM.queriesManage)">
                   <mat-icon>delete</mat-icon>
                 </button>
               </td>
@@ -274,6 +275,7 @@ interface QueryListState {
   `]
 })
 export class QueryListComponent implements OnInit {
+  readonly PERM = PERM;
   /**
    * Per-query access is Admin-only unless an administrator has switched it on for Access
    * Managers. Hidden rather than left to 403: the server enforces it either way, but an
@@ -325,17 +327,8 @@ export class QueryListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.canManageQueryAccess = this.authService.isAdmin();
-    if (!this.canManageQueryAccess && this.authService.isAccessManager()) {
-      this.queryService.getSystemSettings().subscribe({
-        next: (settings) => {
-          this.canManageQueryAccess = settings.accessManagerCanManageQueryAccess;
-          this.cdr.detectChanges();
-        },
-        // Leave it hidden on failure — the safe reading matches the server's default.
-        error: () => this.cdr.detectChanges()
-      });
-    }
+    // One permission, asked once — the runtime setting this used to consult is a permission now.
+    this.canManageQueryAccess = this.authService.has(PERM.accessManageQuery);
 
     // Deep link from the groups list: /admin/queries?group=<name> (or "ungrouped").
     const group = this.route.snapshot.queryParamMap.get('group');
@@ -348,7 +341,7 @@ export class QueryListComponent implements OnInit {
       this.restoreState();
     }
     this.loadQueries();
-    if (this.authService.isAdmin()) this.loadDefaultTemplateInfo();
+    if (this.authService.has(PERM.queriesManage)) this.loadDefaultTemplateInfo();
   }
 
   // ---- Default Word template ----

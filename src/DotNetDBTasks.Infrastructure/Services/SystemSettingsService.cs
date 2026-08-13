@@ -1,3 +1,4 @@
+using System.Globalization;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Interfaces;
@@ -25,23 +26,47 @@ public class SystemSettingsService : ISystemSettingsService
 
     public async Task<bool> GetBoolAsync(string key, bool defaultValue, CancellationToken cancellationToken = default)
     {
-        var setting = (await _unitOfWork.SystemSettings.FindAsync(
-            s => s.Key == key, cancellationToken)).FirstOrDefault();
-
-        if (setting is null || string.IsNullOrWhiteSpace(setting.Value))
+        var text = await ReadAsync(key, cancellationToken);
+        if (text is null)
             return defaultValue;
 
         // An unparseable value falls back rather than throwing: a corrupt row must not take
         // the endpoint down, and for a permission toggle the safe reading is the default.
-        return bool.TryParse(setting.Value, out var parsed) ? parsed : defaultValue;
+        return bool.TryParse(text, out var parsed) ? parsed : defaultValue;
     }
 
-    public async Task SetBoolAsync(string key, bool value, CancellationToken cancellationToken = default)
+    public Task SetBoolAsync(string key, bool value, CancellationToken cancellationToken = default) =>
+        WriteAsync(key, value ? "true" : "false", cancellationToken);
+
+    public async Task<int> GetIntAsync(string key, int defaultValue, CancellationToken cancellationToken = default)
+    {
+        var text = await ReadAsync(key, cancellationToken);
+        if (text is null)
+            return defaultValue;
+
+        // Invariant culture both ways, so a row written on one server reads the same on
+        // another whose locale formats numbers differently.
+        return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : defaultValue;
+    }
+
+    public Task SetIntAsync(string key, int value, CancellationToken cancellationToken = default) =>
+        WriteAsync(key, value.ToString(CultureInfo.InvariantCulture), cancellationToken);
+
+    /// <summary>The stored text, or null when there is no row or it is blank.</summary>
+    private async Task<string?> ReadAsync(string key, CancellationToken cancellationToken)
     {
         var setting = (await _unitOfWork.SystemSettings.FindAsync(
             s => s.Key == key, cancellationToken)).FirstOrDefault();
 
-        var text = value ? "true" : "false";
+        return setting is null || string.IsNullOrWhiteSpace(setting.Value) ? null : setting.Value;
+    }
+
+    private async Task WriteAsync(string key, string text, CancellationToken cancellationToken)
+    {
+        var setting = (await _unitOfWork.SystemSettings.FindAsync(
+            s => s.Key == key, cancellationToken)).FirstOrDefault();
 
         if (setting is null)
         {

@@ -24,7 +24,7 @@ public class DynamicQueryDto
     public DateTime CreatedAt { get; set; }
     public List<QueryParameterDto> Parameters { get; set; } = new();
     public List<RoleAssignmentDto> AssignedRoles { get; set; } = new();
-    public List<DepartmentAssignmentDto> AssignedDepartments { get; set; } = new();
+    public List<UserGroupAssignmentDto> AssignedUserGroups { get; set; } = new();
     public List<UserAssignmentDto> AssignedUsers { get; set; } = new();
 }
 
@@ -59,9 +59,10 @@ public class RoleAssignmentDto
     public string RoleName { get; set; } = string.Empty;
 }
 
-public class DepartmentAssignmentDto
+public class UserGroupAssignmentDto
 {
-    public string Department { get; set; } = string.Empty;
+    public Guid UserGroupId { get; set; }
+    public string UserGroupName { get; set; } = string.Empty;
 }
 
 public class UserAssignmentDto

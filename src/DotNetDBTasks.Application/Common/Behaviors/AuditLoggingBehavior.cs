@@ -179,7 +179,7 @@ public class AuditLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequ
     {
         if (details is null) return null;
 
-        foreach (var candidate in new[] { "name", "username", "newUsername", "department" })
+        foreach (var candidate in new[] { "name", "username", "newUsername" })
         {
             var match = details.FirstOrDefault(p =>
                 string.Equals(p.Key, candidate, StringComparison.OrdinalIgnoreCase));

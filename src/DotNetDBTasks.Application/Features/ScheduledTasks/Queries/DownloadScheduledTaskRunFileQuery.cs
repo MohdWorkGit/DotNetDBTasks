@@ -29,11 +29,14 @@ public class DownloadScheduledTaskRunFileQueryHandler
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
+    private readonly IPermissionService _permissions;
 
-    public DownloadScheduledTaskRunFileQueryHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUser)
+    public DownloadScheduledTaskRunFileQueryHandler(
+        IUnitOfWork unitOfWork, ICurrentUserService currentUser, IPermissionService permissions)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
+        _permissions = permissions;
     }
 
     public async Task<ScheduledTaskRunFileDto> Handle(
@@ -43,7 +46,8 @@ public class DownloadScheduledTaskRunFileQueryHandler
             t => t.Id == request.TaskId, cancellationToken, "Viewers")).FirstOrDefault()
             ?? throw new NotFoundException(nameof(ScheduledTask), request.TaskId);
 
-        ScheduledTaskAccess.EnsureCanDownloadFiles(task, _currentUser);
+        await ScheduledTaskAccess.EnsureCanDownloadFilesAsync(
+            task, _currentUser, _permissions, cancellationToken);
 
         var run = (await _unitOfWork.ScheduledTaskRuns.FindAsync(
             r => r.Id == request.RunId && r.ScheduledTaskId == task.Id, cancellationToken)).FirstOrDefault()

@@ -50,6 +50,8 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
             .ToDictionary(u => u.Username, u => u.Id, StringComparer.OrdinalIgnoreCase);
         var databaseUsers = (await _unitOfWork.DatabaseUsers.GetAllAsync(cancellationToken))
             .ToDictionary(d => d.Name, d => d.Id, StringComparer.OrdinalIgnoreCase);
+        var userGroups = (await _unitOfWork.UserGroups.GetAllAsync(cancellationToken))
+            .ToDictionary(g => g.Name, g => g.Id, StringComparer.OrdinalIgnoreCase);
         var groups = (await _unitOfWork.QueryGroups.GetAllAsync(cancellationToken))
             .ToDictionary(g => g.Name, g => g.Id, StringComparer.OrdinalIgnoreCase);
 
@@ -112,7 +114,7 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
                 });
             }
 
-            AddAssignments(entity, exported, roles, users, name, result);
+            AddAssignments(entity, exported, roles, users, userGroups, name, result);
 
             await _unitOfWork.DynamicQueries.AddAsync(entity, cancellationToken);
             importedByOriginalName[exported.Name] = entity;
@@ -262,6 +264,7 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
         ExportedQuery exported,
         IReadOnlyDictionary<string, Guid> roles,
         IReadOnlyDictionary<string, Guid> users,
+        IReadOnlyDictionary<string, Guid> userGroups,
         string importedName,
         QueryImportResult result)
     {
@@ -273,10 +276,16 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
                 result.Warnings.Add($"'{importedName}': role '{roleName}' does not exist here and was not assigned.");
         }
 
-        foreach (var department in exported.AssignedDepartments)
+        // Groups are matched by name, like roles and users: an export carries no membership,
+        // so a group that does not exist here would be an empty grant nobody could see.
+        foreach (var groupName in exported.AssignedUserGroups)
         {
-            entity.DynamicQueryDepartments.Add(
-                new DynamicQueryDepartment { DynamicQueryId = entity.Id, Department = department });
+            if (userGroups.TryGetValue(groupName, out var userGroupId))
+                entity.DynamicQueryUserGroups.Add(
+                    new DynamicQueryUserGroup { DynamicQueryId = entity.Id, UserGroupId = userGroupId });
+            else
+                result.Warnings.Add(
+                    $"'{importedName}': user group '{groupName}' does not exist here and was not assigned.");
         }
 
         foreach (var username in exported.AssignedUsers)

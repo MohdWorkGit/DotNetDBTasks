@@ -433,7 +433,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
     }
 
     /// <summary>
-    /// Reconstructs the creator's identity (roles/department) from the database so
+    /// Reconstructs the creator's identity (roles) from the database so
     /// scheduled runs honor their *current* permissions, not those at creation time.
     /// </summary>
     private async Task<UserContextSnapshot> BuildCreatorSnapshotAsync(Guid userId, CancellationToken cancellationToken)
@@ -448,7 +448,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             .Select(r => r.Name)
             .ToList();
 
-        return new UserContextSnapshot(user.Id, user.Username, user.Department, roles);
+        return new UserContextSnapshot(user.Id, user.Username, roles);
     }
 
     private static string Truncate(string value, int maxLength) =>

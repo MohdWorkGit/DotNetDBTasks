@@ -5,7 +5,7 @@ import { first, switchMap } from 'rxjs/operators';
 import { environment } from '@env/environment';
 import {
   AssignDatabaseUserAccessRequest,
-  AssignDepartmentsRequest,
+  AssignUserGroupsRequest,
   AssignRolesRequest,
   AssignUsersRequest,
   ChangePasswordRequest,
@@ -32,7 +32,13 @@ import {
   QueryImportResult,
   ResetPasswordResult,
   Role,
+  PermissionMatrix,
+  SaveRoleRequest,
   SystemUser,
+  UserGroup,
+  CreateUserGroupRequest,
+  UpdateUserGroupRequest,
+  SetUserGroupMembersRequest,
   TestConnectionResult,
   ToggleUserActiveRequest,
   UpdateDatabaseUserRequest,
@@ -68,6 +74,7 @@ export class QueryService {
   private ldapUrl = `${environment.apiUrl}/admin/ldap`;
   private dbUsersUrl = `${environment.apiUrl}/admin/databaseusers`;
   private groupsUrl = `${environment.apiUrl}/admin/querygroups`;
+  private userGroupsUrl = `${environment.apiUrl}/admin/usergroups`;
   private auditUrl = `${environment.apiUrl}/admin/systemauditlogs`;
   private settingsUrl = `${environment.apiUrl}/admin/systemsettings`;
 
@@ -98,8 +105,8 @@ export class QueryService {
     return this.http.post<void>(`${this.adminUrl}/${queryId}/roles`, request);
   }
 
-  assignDepartments(queryId: string, request: AssignDepartmentsRequest): Observable<void> {
-    return this.http.post<void>(`${this.adminUrl}/${queryId}/departments`, request);
+  assignUserGroups(queryId: string, request: AssignUserGroupsRequest): Observable<void> {
+    return this.http.post<void>(`${this.adminUrl}/${queryId}/user-groups`, request);
   }
 
   assignUsers(queryId: string, request: AssignUsersRequest): Observable<void> {
@@ -157,6 +164,27 @@ export class QueryService {
 
   getAuditActionCatalog(): Observable<AuditActionCatalog> {
     return this.http.get<AuditActionCatalog>(`${this.auditUrl}/actions`);
+  }
+
+  // Roles and the permission matrix (Settings -> Permissions)
+  getPermissionMatrix(): Observable<PermissionMatrix> {
+    return this.http.get<PermissionMatrix>(`${this.rolesUrl}/permissions`);
+  }
+
+  setRolePermissions(roleId: string, permissions: string[]): Observable<void> {
+    return this.http.put<void>(`${this.rolesUrl}/${roleId}/permissions`, { permissions });
+  }
+
+  createRole(request: SaveRoleRequest): Observable<Role> {
+    return this.http.post<Role>(this.rolesUrl, request);
+  }
+
+  updateRole(roleId: string, request: SaveRoleRequest): Observable<void> {
+    return this.http.put<void>(`${this.rolesUrl}/${roleId}`, request);
+  }
+
+  deleteRole(roleId: string): Observable<void> {
+    return this.http.delete<void>(`${this.rolesUrl}/${roleId}`);
   }
 
   getRoles(): Observable<Role[]> {
@@ -217,12 +245,37 @@ export class QueryService {
     return this.http.post<void>(`${this.groupsUrl}/${groupId}/roles`, request);
   }
 
-  assignGroupDepartments(groupId: string, request: AssignDepartmentsRequest): Observable<void> {
-    return this.http.post<void>(`${this.groupsUrl}/${groupId}/departments`, request);
+  assignGroupUserGroups(groupId: string, request: AssignUserGroupsRequest): Observable<void> {
+    return this.http.post<void>(`${this.groupsUrl}/${groupId}/user-groups`, request);
   }
 
   assignGroupUsers(groupId: string, request: AssignUsersRequest): Observable<void> {
     return this.http.post<void>(`${this.groupsUrl}/${groupId}/users`, request);
+  }
+
+  // User groups (Admin reads and writes; Access Manager reads, to populate the access pickers)
+  getAllUserGroups(): Observable<UserGroup[]> {
+    return this.http.get<UserGroup[]>(this.userGroupsUrl);
+  }
+
+  getUserGroupById(id: string): Observable<UserGroup> {
+    return this.http.get<UserGroup>(`${this.userGroupsUrl}/${id}`);
+  }
+
+  createUserGroup(request: CreateUserGroupRequest): Observable<UserGroup> {
+    return this.http.post<UserGroup>(this.userGroupsUrl, request);
+  }
+
+  updateUserGroup(id: string, request: UpdateUserGroupRequest): Observable<UserGroup> {
+    return this.http.put<UserGroup>(`${this.userGroupsUrl}/${id}`, request);
+  }
+
+  deleteUserGroup(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.userGroupsUrl}/${id}`);
+  }
+
+  setUserGroupMembers(id: string, request: SetUserGroupMembersRequest): Observable<void> {
+    return this.http.put<void>(`${this.userGroupsUrl}/${id}/members`, request);
   }
 
   // User operations

@@ -1,3 +1,4 @@
+using DotNetDBTasks.API.Authorization;
 using DotNetDBTasks.Application.Features.ScheduledTasks.Commands;
 using DotNetDBTasks.Application.Features.ScheduledTasks.Queries;
 using MediatR;
@@ -63,7 +64,7 @@ public class ScheduledTasksController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.ScheduledTasksManage)]
     public async Task<IActionResult> Create(
         [FromBody] CreateScheduledTaskCommand command,
         CancellationToken cancellationToken)
@@ -73,7 +74,7 @@ public class ScheduledTasksController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.ScheduledTasksManage)]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateScheduledTaskCommand command,
@@ -85,7 +86,7 @@ public class ScheduledTasksController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.ScheduledTasksManage)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteScheduledTaskCommand(id), cancellationToken);
@@ -94,7 +95,7 @@ public class ScheduledTasksController : ControllerBase
 
     /// <summary>Queues an immediate run of the task; the outcome appears in its run history.</summary>
     [HttpPost("{id:guid}/run")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.ScheduledTasksManage)]
     public async Task<IActionResult> RunNow(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new RunScheduledTaskNowCommand(id), cancellationToken);
@@ -106,7 +107,7 @@ public class ScheduledTasksController : ControllerBase
     /// not in progress (already finished, or not running on this instance).
     /// </summary>
     [HttpPost("{id:guid}/runs/{runId:guid}/cancel")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.ScheduledTasksManage)]
     public async Task<IActionResult> CancelRun(Guid id, Guid runId, CancellationToken cancellationToken)
     {
         var canceled = await _mediator.Send(new CancelScheduledTaskRunCommand(id, runId), cancellationToken);

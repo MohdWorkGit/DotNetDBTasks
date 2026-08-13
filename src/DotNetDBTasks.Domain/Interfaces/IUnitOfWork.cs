@@ -13,12 +13,15 @@ public interface IUnitOfWork : IDisposable
     IRepository<QueryParameter> QueryParameters { get; }
     IRepository<QueryExecutionLog> QueryExecutionLogs { get; }
     IRepository<UserRole> UserRoles { get; }
+    IRepository<RolePermission> RolePermissions { get; }
+    IRepository<UserGroup> UserGroups { get; }
+    IRepository<UserGroupMember> UserGroupMembers { get; }
     IRepository<DynamicQueryRole> DynamicQueryRoles { get; }
-    IRepository<DynamicQueryDepartment> DynamicQueryDepartments { get; }
+    IRepository<DynamicQueryUserGroup> DynamicQueryUserGroups { get; }
     IRepository<DynamicQueryUser> DynamicQueryUsers { get; }
     IRepository<QueryGroup> QueryGroups { get; }
     IRepository<QueryGroupRole> QueryGroupRoles { get; }
-    IRepository<QueryGroupDepartment> QueryGroupDepartments { get; }
+    IRepository<QueryGroupUserGroup> QueryGroupUserGroups { get; }
     IRepository<QueryGroupUser> QueryGroupUsers { get; }
     IRepository<DatabaseUser> DatabaseUsers { get; }
     IRepository<DatabaseUserRoleAccess> DatabaseUserRoleAccess { get; }

@@ -3,7 +3,7 @@ namespace DotNetDBTasks.Domain.Entities;
 /// <summary>
 /// A named folder that groups related DynamicQueries together. On the user-facing
 /// "My Queries" page, queries are organised by their group. Groups themselves
-/// have their own role/department/user access assignments — granting group access
+/// have their own role/user-group/user access assignments — granting group access
 /// is a shortcut for granting access to every query inside the group.
 /// </summary>
 public class QueryGroup : BaseEntity
@@ -15,6 +15,6 @@ public class QueryGroup : BaseEntity
 
     public ICollection<DynamicQuery> DynamicQueries { get; set; } = new List<DynamicQuery>();
     public ICollection<QueryGroupRole> QueryGroupRoles { get; set; } = new List<QueryGroupRole>();
-    public ICollection<QueryGroupDepartment> QueryGroupDepartments { get; set; } = new List<QueryGroupDepartment>();
+    public ICollection<QueryGroupUserGroup> QueryGroupUserGroups { get; set; } = new List<QueryGroupUserGroup>();
     public ICollection<QueryGroupUser> QueryGroupUsers { get; set; } = new List<QueryGroupUser>();
 }

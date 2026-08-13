@@ -191,12 +191,10 @@ async function captureLocale(browser, locale, sample) {
     return route.abort();
   });
 
-  // The two "Manage Access" pages load their department list from Active Directory inside a
-  // forkJoin whose error handler is `catchError(() => [])`. An empty array is an observable
-  // that completes without emitting, so forkJoin completes without emitting either and the
-  // page spins forever whenever AD is unreachable — which it usually is on a dev machine.
-  // Substituting an empty list only when the call actually fails keeps those pages
-  // screenshotable without pretending the directory returned data it did not.
+  // The AD Users page lists directory departments, and a dev machine usually has no
+  // directory to answer. Substituting an empty list only when the call actually fails keeps
+  // that page screenshotable without pretending the directory returned data it did not.
+  // (The Manage Access pages no longer call this: their groups come from the application.)
   await ctx.route('**/admin/ldap/departments', async (route) => {
     try {
       const response = await route.fetch();
@@ -358,8 +356,8 @@ async function captureLocale(browser, locale, sample) {
   await step('query access', async () => {
     await go(`/admin/queries/${S.read}/roles`, 'mat-tab-group');
     await shot('15-query-access-roles');
-    await openTab('Departments');
-    await shot('16-query-access-departments');
+    await openTab(T('admin.access.userGroupsTab'));
+    await shot('16-query-access-user-groups');
     await openTab('Users');
     await shot('17-query-access-users');
   });
@@ -421,6 +419,19 @@ async function captureLocale(browser, locale, sample) {
     await clickLabel('admin.users.createUser');
     await settle(page, 700);
     await shot('52-user-create-form', { full: true });
+  });
+  await step('permissions tab', async () => {
+    await go('/admin/settings', 'mat-tab-group');
+    await openTab(T('admin.permissions.tab'));
+    await shot('51-permissions', { full: true });
+  });
+  await step('user groups', async () => {
+    await go('/admin/user-groups', '.container');
+    await shot('52a-user-groups');
+  });
+  await step('user group form', async () => {
+    await go('/admin/user-groups/create', 'form');
+    await shot('52b-user-group-create', { full: true });
   });
   await step('database users', async () => {
     await go('/admin/database-users', '.container');
@@ -534,8 +545,6 @@ async function captureLocale(browser, locale, sample) {
     await closeOverlay();
     await go('/admin/system-audit', 'table');
     await shot('92-auditor-system-audit');
-    await go('/user/queries', '.container');
-    await shot('93-auditor-my-queries');
   });
 
   await ctx.close();

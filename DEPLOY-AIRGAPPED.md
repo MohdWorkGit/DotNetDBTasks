@@ -143,7 +143,9 @@ Update these values to match the isolated environment. Edit the copy inside `api
 >
 > If the isolated network has **Active Directory**, the existing `sAMAccountName` / `department` attributes
 > in the default config are already correct for AD. Just point `Ldap.Host` at the AD server. For OpenLDAP,
-> use `uid` / `departmentNumber` (see `docker-compose.yml` for a working example).
+> use `uid` / `departmentNumber` (see `docker-compose.yml` for a working example). The department attribute
+> only drives the **AD Users** page — browsing and importing accounts by department. Permissions come from
+> the application's own user groups, so a wrong or missing department costs nobody their access.
 
 ---
 

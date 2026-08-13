@@ -47,6 +47,12 @@ public static class AuditActions
     public const string CategoryUsers = "users";
     public const string CategoryQueries = "queries";
     public const string CategoryGroups = "groups";
+
+    /// <summary>App-owned user groups — membership here is what a group grant resolves to.</summary>
+    public const string CategoryUserGroups = "userGroups";
+
+    /// <summary>Roles and what they may do — the Permissions tab.</summary>
+    public const string CategoryRoles = "roles";
     public const string CategoryAccess = "access";
     public const string CategoryDatabaseUsers = "databaseUsers";
     public const string CategoryScheduledTasks = "scheduledTasks";
@@ -66,10 +72,10 @@ public static class AuditActions
     public const string BrandingLogoRemoved = "branding.logoRemoved";
     public const string QueriesImport = "queries.import";
     public const string SettingsUpdated = "settings.updated";
-
-    /// <summary>An Access Manager attempted a per-query access change while the
-    /// setting that permits it was off.</summary>
-    public const string AccessQueryRefused = "access.queryRefused";
+    public const string RolesCreate = "roles.create";
+    public const string RolesUpdate = "roles.update";
+    public const string RolesDelete = "roles.delete";
+    public const string RolesSetPermissions = "roles.setPermissions";
 
     /// <summary>
     /// Command type name -> (action code, category).
@@ -95,16 +101,21 @@ public static class AuditActions
         ["DeleteDefaultWordTemplateCommand"] = ("queries.removeDefaultTemplate", CategoryQueries),
         ["ImportQueriesCommand"] = (QueriesImport, CategoryQueries),
 
+        ["CreateUserGroupCommand"] = ("userGroups.create", CategoryUserGroups),
+        ["UpdateUserGroupCommand"] = ("userGroups.update", CategoryUserGroups),
+        ["DeleteUserGroupCommand"] = ("userGroups.delete", CategoryUserGroups),
+        ["SetUserGroupMembersCommand"] = ("userGroups.setMembers", CategoryUserGroups),
+
         ["CreateQueryGroupCommand"] = ("groups.create", CategoryGroups),
         ["UpdateQueryGroupCommand"] = ("groups.update", CategoryGroups),
         ["DeleteQueryGroupCommand"] = ("groups.delete", CategoryGroups),
 
         // Permission changes — the reason an auditor opens this page.
         ["AssignQueryToRolesCommand"] = ("access.queryRoles", CategoryAccess),
-        ["AssignQueryToDepartmentsCommand"] = ("access.queryDepartments", CategoryAccess),
+        ["AssignQueryToUserGroupsCommand"] = ("access.queryUserGroups", CategoryAccess),
         ["AssignQueryToUsersCommand"] = ("access.queryUsers", CategoryAccess),
         ["AssignQueryGroupToRolesCommand"] = ("access.groupRoles", CategoryAccess),
-        ["AssignQueryGroupToDepartmentsCommand"] = ("access.groupDepartments", CategoryAccess),
+        ["AssignQueryGroupToUserGroupsCommand"] = ("access.groupUserGroups", CategoryAccess),
         ["AssignQueryGroupToUsersCommand"] = ("access.groupUsers", CategoryAccess),
         ["AssignDatabaseUserAccessCommand"] = ("access.databaseUser", CategoryAccess),
 
@@ -166,7 +177,7 @@ public static class AuditActions
             {
                 DirectoryImportUsers, DirectoryImportDepartment, DirectoryRevoke,
                 DirectoryRestore, DirectorySync, BrandingLogoSet, BrandingLogoRemoved,
-                SettingsUpdated, AccessQueryRefused
+                SettingsUpdated, RolesCreate, RolesUpdate, RolesDelete, RolesSetPermissions
             })
             .Distinct()
             .ToList();

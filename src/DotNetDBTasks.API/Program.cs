@@ -1,3 +1,5 @@
+using DotNetDBTasks.API.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using DotNetDBTasks.API.BackgroundJobs;
 using DotNetDBTasks.API.Extensions;
 using DotNetDBTasks.API.Middleware;
@@ -33,6 +35,12 @@ builder.Host.UseWindowsService();
 // Clean Architecture layer registration
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// [RequirePermission("...")] resolves through these two: the provider mints a policy for any
+// permission name, the handler answers it from the role -> permission matrix in the database.
+// Registered here rather than in AddInfrastructure because both are ASP.NET authorization types.
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 // HTTP context accessor for current user service
 builder.Services.AddHttpContextAccessor();

@@ -46,10 +46,6 @@ public class CurrentUserService : ICurrentUserService
         ?? _userExecutionContext.Current?.Username
         ?? string.Empty;
 
-    public string? Department =>
-        HttpUser?.FindFirst("Department")?.Value
-        ?? _userExecutionContext.Current?.Department;
-
     public IReadOnlyList<string> Roles =>
         HttpUser?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList()
         ?? _userExecutionContext.Current?.Roles

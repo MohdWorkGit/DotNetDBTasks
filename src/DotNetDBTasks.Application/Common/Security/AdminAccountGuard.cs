@@ -90,6 +90,34 @@ public sealed class AdminAccountGuard
             throw new ForbiddenAccessException(_messages[MessageKeys.CannotChangeOwnRoles]);
     }
 
+    /// <summary>
+    /// Throws when a non-Admin caller tries to put themselves into a user group.
+    ///
+    /// <para>
+    /// The self-grant rule above, restated for groups. An Access Manager assigns queries and
+    /// query groups to user groups; if they could also add themselves to one, they would reach
+    /// the query they just granted — the same one-click escape the role-set rule closes, taking
+    /// two clicks instead. Adding anyone else is the job and stays allowed.
+    /// </para>
+    ///
+    /// <para>
+    /// Only <em>joining</em> is refused. A caller already in the group (put there by an
+    /// administrator) may save the group without being dropped from it, and may take themselves
+    /// out — leaving a group only ever removes access.
+    /// </para>
+    /// </summary>
+    /// <param name="memberIds">The membership being saved.</param>
+    /// <param name="currentMemberIds">Who is in the group now; empty for a new group.</param>
+    public void EnsureNotJoiningGroup(IEnumerable<Guid> memberIds, IReadOnlySet<Guid> currentMemberIds)
+    {
+        if (CallerIsAdmin)
+            return;
+
+        var callerId = _currentUser.UserId;
+        if (memberIds.Contains(callerId) && !currentMemberIds.Contains(callerId))
+            throw new ForbiddenAccessException(_messages[MessageKeys.CannotAddSelfToUserGroup]);
+    }
+
     private async Task<bool> IsAdminAsync(Guid userId, CancellationToken cancellationToken)
     {
         var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);

@@ -22,6 +22,13 @@ public class User : BaseEntity
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }
     public AuthSource AuthSource { get; set; } = AuthSource.Local;
+
+    /// <summary>
+    /// The account's department as published by Active Directory, recorded on import and
+    /// refreshed on sync/login. Directory metadata only — it is shown on the AD page and
+    /// grants nothing. Access is granted through <see cref="UserGroup"/> membership, which
+    /// this application owns.
+    /// </summary>
     public string? Department { get; set; }
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();

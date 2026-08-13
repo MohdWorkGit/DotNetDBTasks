@@ -77,18 +77,6 @@ preview runs `SELECT *`, which otherwise prints real password hashes into the ma
   `client/src/assets/i18n/{en,ar}.json`, so a renamed button does not silently break the Arabic
   run.
 - **Active Directory need not be reachable.** When `/admin/ldap/departments` fails, the capture
-  substitutes an empty list so the two Manage Access pages still render. Without that they spin
-  forever — see the known issue below.
-
-## Known application issue this pipeline works around
-
-`role-assignment.component.ts` and `query-group-access.component.ts` load their data with:
-
-```ts
-forkJoin({ …, departments: this.queryService.getLdapDepartments().pipe(catchError(() => [])) })
-```
-
-`catchError(() => [])` returns an observable that **completes without emitting**, so `forkJoin`
-also completes without emitting: `next` never runs, `loading` stays `true`, and **Manage Query
-Access / Manage Group Access spin forever whenever Active Directory is unreachable**. The fix is
-`catchError(() => of([]))`. Until then the capture script stubs the endpoint.
+  substitutes an empty list so the AD Users page still renders. That page is the only one that
+  reads the directory: access is granted through the application's own user groups, so the two
+  Manage Access pages no longer call AD at all.

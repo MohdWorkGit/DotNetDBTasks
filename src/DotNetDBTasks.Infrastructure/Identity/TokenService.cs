@@ -15,13 +15,16 @@ namespace DotNetDBTasks.Infrastructure.Identity;
 public class TokenService : ITokenService
 {
     private readonly IConfiguration _configuration;
+    private readonly ISystemSettingsService _settings;
 
-    public TokenService(IConfiguration configuration)
+    public TokenService(IConfiguration configuration, ISystemSettingsService settings)
     {
         _configuration = configuration;
+        _settings = settings;
     }
 
-    public string GenerateAccessToken(User user, IList<string> roles)
+    public async Task<AccessToken> GenerateAccessTokenAsync(
+        User user, IList<string> roles, CancellationToken cancellationToken = default)
     {
         var claims = new List<Claim>
         {
@@ -38,11 +41,6 @@ public class TokenService : ITokenService
             claims.Add(new Claim(ClaimTypes.Email, user.Email));
         }
 
-        if (!string.IsNullOrEmpty(user.Department))
-        {
-            claims.Add(new Claim("Department", user.Department));
-        }
-
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
@@ -54,14 +52,32 @@ public class TokenService : ITokenService
 
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        var minutes = await _settings.GetIntAsync(
+            SystemSettingKeys.SessionAccessTokenMinutes,
+            SystemSettingKeys.SessionAccessTokenMinutesDefault,
+            cancellationToken);
+        var expiresAt = DateTime.UtcNow.AddMinutes(minutes);
+
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),
+            expires: expiresAt,
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        // The same instant the token carries, so a client is never told it has longer than
+        // the signature actually allows. JwtSecurityToken truncates to whole seconds.
+        return new AccessToken(new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+    }
+
+    public async Task<DateTime> GetRefreshTokenExpiryAsync(CancellationToken cancellationToken = default)
+    {
+        var days = await _settings.GetIntAsync(
+            SystemSettingKeys.SessionRefreshTokenDays,
+            SystemSettingKeys.SessionRefreshTokenDaysDefault,
+            cancellationToken);
+
+        return DateTime.UtcNow.AddDays(days);
     }
 
     public string GenerateRefreshToken()

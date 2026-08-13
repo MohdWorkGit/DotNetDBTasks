@@ -39,9 +39,9 @@ const routes = [
   {
     path: 'admin',
     loadChildren: () => import('./features/admin/admin.module').then(m => m.AdminModule),
-    canActivate: [authGuard],
-    // Union of the roles with any page under /admin; each child route narrows it further.
-    data: { roles: ['Admin', 'Auditor', 'AccessManager'] }
+    canActivate: [authGuard]
+    // No permissions here: /admin is a container, and each child route names its own. A union
+    // listed here would be a second place to update every time a permission is added.
   },
   {
     path: 'user',

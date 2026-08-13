@@ -18,7 +18,7 @@ public static class RoleNames
     public const string Auditor = "Auditor";
 
     /// <summary>
-    /// Decides which roles, departments and users may reach each query and query group.
+    /// Decides which roles, user groups and users may reach each query and query group.
     /// Deliberately cannot read a query's SQL, edit anything, or run anything — and the
     /// role itself grants no query access (see <c>QueryAccessRoles</c>).
     /// </summary>

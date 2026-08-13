@@ -63,6 +63,12 @@
   <data name="UsernameTaken" xml:space="preserve">
     <value>اسم المستخدم «{0}» مستخدم بالفعل.</value>
   </data>
+  <data name="CannotAddSelfToUserGroup" xml:space="preserve">
+    <value>لا يمكنك إضافة حسابك إلى مجموعة مستخدمين. اطلب ذلك من المسؤول.</value>
+  </data>
+  <data name="UserGroupNameTaken" xml:space="preserve">
+    <value>توجد بالفعل مجموعة مستخدمين بالاسم «⁨{0}⁩».</value>
+  </data>
   <data name="EmailInUse" xml:space="preserve">
     <value>البريد الإلكتروني «{0}» مستخدم بالفعل.</value>
   </data>
@@ -167,6 +173,33 @@
   </data>
   <data name="ImportNoDepartmentMatches" xml:space="preserve">
     <value>لم يُعثر على أي حسابات في الدليل للقسم «⁨{0}⁩».</value>
+  </data>
+  <data name="DirectoryDisabled" xml:space="preserve">
+    <value>خصائص Active Directory معطّلة في هذا التنصيب. ويمكن للمسؤول إعادة تفعيلها من إعدادات النظام.</value>
+  </data>
+  <data name="RoleIsPinned" xml:space="preserve">
+    <value>يحمل الدور ⁨{0}⁩ جميع الصلاحيات دائمًا ولا يمكن تعديله، وهو ما يُبقي هذه الصفحة قابلة للوصول.</value>
+  </data>
+  <data name="RoleIsSeeded" xml:space="preserve">
+    <value>⁨{0}⁩ دور مدمج في النظام. يمكن تغيير صلاحياته، لكن لا يمكن إعادة تسميته أو حذفه.</value>
+  </data>
+  <data name="RoleNameRequired" xml:space="preserve">
+    <value>اسم الدور مطلوب.</value>
+  </data>
+  <data name="RoleNameTaken" xml:space="preserve">
+    <value>يوجد بالفعل دور بالاسم «⁨{0}⁩».</value>
+  </data>
+  <data name="RoleStillAssigned" xml:space="preserve">
+    <value>الدور ⁨{0}⁩ ما زال مُسندًا إلى ⁨{1}⁩ حسابًا. انقلهم إلى دور آخر أولاً.</value>
+  </data>
+  <data name="UserGroupsAdminOnly" xml:space="preserve">
+    <value>تقتصر إدارة مجموعات المستخدمين على المسؤولين في هذا النظام. ويمكن للمسؤول إعادتها إلى مديري الصلاحيات من إعدادات النظام.</value>
+  </data>
+  <data name="SettingOutOfRange" xml:space="preserve">
+    <value>يجب أن تكون ⁨{0}⁩ بين ⁨{1}⁩ و⁨{2}⁩.</value>
+  </data>
+  <data name="RefreshShorterThanAccess" xml:space="preserve">
+    <value>يجب أن تدوم صلاحية رمز التجديد مدة لا تقل عن مدة رمز الوصول، وإلا تعذّر تجديد الجلسة أبدًا.</value>
   </data>
   <data name="QueryAccessGroupsOnly" xml:space="preserve">
     <value>يمكن لمدير الوصول تغيير الصلاحيات على مجموعات الاستعلامات فقط، وليس على الاستعلامات الفردية. يمكن للمسؤول تفعيل الوصول لكل استعلام من إعدادات النظام.</value>

@@ -63,6 +63,7 @@ public static class DatabaseSeeder
                 // Roles introduced after the first release still have to reach databases
                 // seeded by an earlier version — the full seed below is skipped for those.
                 await EnsureRolesExistAsync(context, logger);
+                await EnsureSeededRolePermissionsAsync(context, logger);
                 return;
             }
 
@@ -101,7 +102,12 @@ public static class DatabaseSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
+            foreach (var role in new[] { adminRole, userRole, auditorRole, accessManagerRole })
+                role.IsSeeded = true;
+
             context.Roles.AddRange(adminRole, userRole, auditorRole, accessManagerRole);
+            context.RolePermissions.AddRange(DefaultPermissionsFor(
+                new[] { adminRole, userRole, auditorRole, accessManagerRole }));
 
             // Seed Admin User (password: Admin@123)
             var adminUser = new User
@@ -247,7 +253,7 @@ public static class DatabaseSeeder
         "Auditor with read access to execution logs and scheduled task history";
 
     private const string AccessManagerRoleDescription =
-        "Manages which roles, departments and users may access queries and query groups";
+        "Manages which roles, user groups and users may access queries and query groups";
 
     /// <summary>
     /// Descriptions shipped by earlier versions whose wording no longer matches what the role
@@ -260,6 +266,11 @@ public static class DatabaseSeeder
         {
             // Pre-dates the split that moved accessibility management to AccessManager.
             "Auditor with access to execution logs and query accessibility management"
+        },
+        [RoleNames.AccessManager] = new[]
+        {
+            // Pre-dates access moving off AD departments onto app-owned user groups.
+            "Manages which roles, departments and users may access queries and query groups"
         }
     };
 
@@ -321,6 +332,51 @@ public static class DatabaseSeeder
     }
 
     /// <summary>
+    /// The permission rows a set of seeded roles starts with. Admin is skipped: it is pinned to
+    /// every permission in code, so storing them would only let the two drift apart.
+    /// </summary>
+    private static IEnumerable<RolePermission> DefaultPermissionsFor(IEnumerable<Role> roles) =>
+        roles.Where(r => Permissions.SeededDefaults.ContainsKey(r.Name))
+             .SelectMany(r => Permissions.SeededDefaults[r.Name]
+                 .Select(p => new RolePermission { RoleId = r.Id, Permission = p }));
+
+    /// <summary>
+    /// Gives a seeded role its default permissions when it has none at all.
+    ///
+    /// <para>Only when it has none: a role an administrator has deliberately stripped back must
+    /// stay stripped back, and re-adding "just the missing ones" on every start would make a
+    /// removed permission impossible to remove. The migration covers databases that already had
+    /// these roles; this covers a role backfilled later by <c>EnsureRolesExistAsync</c>.</para>
+    /// </summary>
+    private static async Task EnsureSeededRolePermissionsAsync(ApplicationDbContext context, ILogger logger)
+    {
+        var seededNames = Permissions.SeededDefaults.Keys.ToList();
+        var roles = await context.Roles
+            .Where(r => seededNames.Contains(r.Name))
+            .Include(r => r.RolePermissions)
+            .ToListAsync();
+
+        var bare = roles.Where(r => r.RolePermissions.Count == 0).ToList();
+
+        // Mark the seeded four, for databases migrated before the column existed.
+        var unflagged = await context.Roles
+            .Where(r => !r.IsSeeded && (seededNames.Contains(r.Name) || r.Name == RoleNames.Admin))
+            .ToListAsync();
+        foreach (var role in unflagged)
+            role.IsSeeded = true;
+
+        if (bare.Count == 0 && unflagged.Count == 0)
+            return;
+
+        context.RolePermissions.AddRange(DefaultPermissionsFor(bare));
+        await context.SaveChangesAsync();
+
+        if (bare.Count > 0)
+            logger.LogInformation("Applied default permissions to role(s): {Roles}.",
+                string.Join(", ", bare.Select(r => r.Name)));
+    }
+
+    /// <summary>
     /// Repairs the DatabaseUsers table when migrations were recorded as applied but
     /// columns are missing due to Oracle's non-transactional DDL (auto-commit on each
     /// ALTER TABLE). This handles the permanently-broken state where:
@@ -375,8 +431,8 @@ public static class DatabaseSeeder
     {
         var tablesToDrop = new[]
         {
-            "DynamicQueryRoles", "DynamicQueryDepartments", "DynamicQueryUsers",
-            "QueryExecutionLogs", "QueryParameters", "UserRoles",
+            "DynamicQueryRoles", "DynamicQueryUserGroups", "DynamicQueryUsers",
+            "QueryExecutionLogs", "QueryParameters", "UserRoles", "UserGroupMembers", "UserGroups",
             "DatabaseUserRoleAccess", "UserDatabaseUserAccess", "DynamicQueries", "DatabaseUsers",
             "Users", "Roles", "__EFMigrationsHistory"
         };

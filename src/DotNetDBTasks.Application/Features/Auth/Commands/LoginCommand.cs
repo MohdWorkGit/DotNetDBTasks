@@ -81,19 +81,19 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResult>
             r => roleIds.Contains(r.Id), cancellationToken);
         var roleNames = roles.Select(r => r.Name).ToList();
 
-        var accessToken = _tokenService.GenerateAccessToken(user, roleNames);
+        var accessToken = await _tokenService.GenerateAccessTokenAsync(user, roleNames, cancellationToken);
         var refreshToken = _tokenService.GenerateRefreshToken();
 
         user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+        user.RefreshTokenExpiryTime = await _tokenService.GetRefreshTokenExpiryAsync(cancellationToken);
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new AuthResult
         {
-            AccessToken = accessToken,
+            AccessToken = accessToken.Value,
             RefreshToken = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            ExpiresAt = accessToken.ExpiresAtUtc,
             Username = user.Username,
             Roles = roleNames
         };

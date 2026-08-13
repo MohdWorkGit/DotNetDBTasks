@@ -17,11 +17,14 @@ public class GetScheduledTaskByIdQueryHandler : IRequestHandler<GetScheduledTask
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
+    private readonly IPermissionService _permissions;
 
-    public GetScheduledTaskByIdQueryHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUser)
+    public GetScheduledTaskByIdQueryHandler(
+        IUnitOfWork unitOfWork, ICurrentUserService currentUser, IPermissionService permissions)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
+        _permissions = permissions;
     }
 
     public async Task<ScheduledTaskDto> Handle(GetScheduledTaskByIdQuery request, CancellationToken cancellationToken)
@@ -31,15 +34,23 @@ public class GetScheduledTaskByIdQueryHandler : IRequestHandler<GetScheduledTask
             "Triggers", "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")).FirstOrDefault()
             ?? throw new NotFoundException(nameof(ScheduledTask), request.Id);
 
-        ScheduledTaskAccess.EnsureCanView(task, _currentUser);
+        await ScheduledTaskAccess.EnsureCanViewAsync(task, _currentUser, _permissions, cancellationToken);
 
-        var lastRun = (await _unitOfWork.ScheduledTaskRuns.FindAsync(
-                r => r.ScheduledTaskId == task.Id, cancellationToken))
-            .OrderByDescending(r => r.StartedAt)
-            .FirstOrDefault();
+        // Ordered and limited in the database. Reading every run to keep the newest one meant
+        // pulling every ItemResultsJson CLOB with it.
+        var (newest, _) = await _unitOfWork.ScheduledTaskRuns.GetPagedAsync(
+            r => r.ScheduledTaskId == task.Id,
+            r => r.StartedAt,
+            descending: true,
+            pageNumber: 1,
+            pageSize: 1,
+            r => r,
+            cancellationToken);
+        var lastRun = newest.FirstOrDefault();
 
         var dto = ScheduledTaskMapper.ToDto(task, lastRun);
-        dto.CanDownloadFiles = ScheduledTaskAccess.CanDownloadFiles(task, _currentUser);
+        dto.CanDownloadFiles = await ScheduledTaskAccess.CanDownloadFilesAsync(
+            task, _currentUser, _permissions, cancellationToken);
         return dto;
     }
 }
@@ -58,23 +69,42 @@ public class GetScheduledTaskByIdQueryHandler : IRequestHandler<GetScheduledTask
 /// </summary>
 public static class ScheduledTaskAccess
 {
-    public static void EnsureCanView(ScheduledTask task, ICurrentUserService currentUser)
+    public static async Task EnsureCanViewAsync(
+        ScheduledTask task,
+        ICurrentUserService currentUser,
+        IPermissionService permissions,
+        CancellationToken cancellationToken = default)
     {
-        var seesAll = currentUser.Roles.Contains(RoleNames.Admin)
-            || currentUser.Roles.Contains(RoleNames.Auditor);
+        var seesAll = await permissions.HasAsync(
+            currentUser.Roles, Permissions.ScheduledTasksViewAll, cancellationToken);
+
         if (!seesAll && task.Viewers.All(v => v.UserId != currentUser.UserId))
             throw new ForbiddenAccessException("You do not have access to this scheduled task.");
     }
 
-    /// <summary>Requires the task's Viewers navigation to be loaded.</summary>
-    public static bool CanDownloadFiles(ScheduledTask task, ICurrentUserService currentUser) =>
-        currentUser.Roles.Contains(RoleNames.Admin)
+    /// <summary>
+    /// Requires the task's Viewers navigation to be loaded. Two ways in: the blanket
+    /// <c>scheduledTasks.download</c> permission, or a viewer grant on this task that allows
+    /// downloads — the per-task grant is what lets one person have the files for one task
+    /// without being given every task's.
+    /// </summary>
+    public static async Task<bool> CanDownloadFilesAsync(
+        ScheduledTask task,
+        ICurrentUserService currentUser,
+        IPermissionService permissions,
+        CancellationToken cancellationToken = default) =>
+        await permissions.HasAsync(currentUser.Roles, Permissions.ScheduledTasksDownload, cancellationToken)
         || task.Viewers.Any(v => v.UserId == currentUser.UserId && v.CanDownloadFiles);
 
-    public static void EnsureCanDownloadFiles(ScheduledTask task, ICurrentUserService currentUser)
+    public static async Task EnsureCanDownloadFilesAsync(
+        ScheduledTask task,
+        ICurrentUserService currentUser,
+        IPermissionService permissions,
+        CancellationToken cancellationToken = default)
     {
-        EnsureCanView(task, currentUser);
-        if (!CanDownloadFiles(task, currentUser))
+        await EnsureCanViewAsync(task, currentUser, permissions, cancellationToken);
+
+        if (!await CanDownloadFilesAsync(task, currentUser, permissions, cancellationToken))
             throw new ForbiddenAccessException("You do not have permission to download this task's files.");
     }
 }

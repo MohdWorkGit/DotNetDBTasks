@@ -2,6 +2,7 @@ using AutoMapper;
 using DotNetDBTasks.Application.Features.DynamicQueries.Commands;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Application.Features.QueryGroups.Queries;
+using DotNetDBTasks.Application.Features.UserGroups.Queries;
 using DotNetDBTasks.Domain.Entities;
 
 namespace DotNetDBTasks.Application.Common.Mappings;
@@ -25,11 +26,12 @@ public class MappingProfile : Profile
                     RoleId = qr.RoleId,
                     RoleName = qr.Role != null ? qr.Role.Name : string.Empty
                 }).ToList()))
-            .ForMember(d => d.AssignedDepartments, opt => opt.MapFrom(s =>
-                s.DynamicQueryDepartments == null ? new List<DepartmentAssignmentDto>() :
-                s.DynamicQueryDepartments.Select(qd => new DepartmentAssignmentDto
+            .ForMember(d => d.AssignedUserGroups, opt => opt.MapFrom(s =>
+                s.DynamicQueryUserGroups == null ? new List<UserGroupAssignmentDto>() :
+                s.DynamicQueryUserGroups.Select(qg => new UserGroupAssignmentDto
                 {
-                    Department = qd.Department
+                    UserGroupId = qg.UserGroupId,
+                    UserGroupName = qg.UserGroup != null ? qg.UserGroup.Name : string.Empty
                 }).ToList()))
             .ForMember(d => d.AssignedUsers, opt => opt.MapFrom(s =>
                 s.DynamicQueryUsers == null ? new List<UserAssignmentDto>() :
@@ -39,13 +41,27 @@ public class MappingProfile : Profile
                     Username = qu.User != null ? qu.User.Username : string.Empty
                 }).ToList()));
 
+        CreateMap<UserGroup, UserGroupDto>()
+            .ForMember(d => d.MemberCount, opt => opt.MapFrom(s =>
+                s.Members == null ? 0 : s.Members.Count))
+            .ForMember(d => d.Members, opt => opt.MapFrom(s =>
+                s.Members == null ? new List<UserGroupMemberDto>() :
+                s.Members.Select(m => new UserGroupMemberDto
+                {
+                    UserId = m.UserId,
+                    Username = m.User != null ? m.User.Username : string.Empty,
+                    FirstName = m.User != null ? m.User.FirstName : string.Empty,
+                    LastName = m.User != null ? m.User.LastName : string.Empty,
+                    IsActive = m.User != null && m.User.IsActive
+                }).ToList()));
+
         CreateMap<QueryParameter, QueryParameterDto>();
         CreateMap<QueryParameterDto, QueryParameter>();
 
         CreateMap<CreateDynamicQueryCommand, DynamicQuery>()
             .ForMember(d => d.Parameters, opt => opt.Ignore())
             .ForMember(d => d.DynamicQueryRoles, opt => opt.Ignore())
-            .ForMember(d => d.DynamicQueryDepartments, opt => opt.Ignore())
+            .ForMember(d => d.DynamicQueryUserGroups, opt => opt.Ignore())
             .ForMember(d => d.DynamicQueryUsers, opt => opt.Ignore())
             .ForMember(d => d.DatabaseUser, opt => opt.Ignore())
             .ForMember(d => d.QueryGroup, opt => opt.Ignore());
@@ -60,11 +76,12 @@ public class MappingProfile : Profile
                     RoleId = gr.RoleId,
                     RoleName = gr.Role != null ? gr.Role.Name : string.Empty
                 }).ToList()))
-            .ForMember(d => d.AssignedDepartments, opt => opt.MapFrom(s =>
-                s.QueryGroupDepartments == null ? new List<DepartmentAssignmentDto>() :
-                s.QueryGroupDepartments.Select(gd => new DepartmentAssignmentDto
+            .ForMember(d => d.AssignedUserGroups, opt => opt.MapFrom(s =>
+                s.QueryGroupUserGroups == null ? new List<UserGroupAssignmentDto>() :
+                s.QueryGroupUserGroups.Select(gg => new UserGroupAssignmentDto
                 {
-                    Department = gd.Department
+                    UserGroupId = gg.UserGroupId,
+                    UserGroupName = gg.UserGroup != null ? gg.UserGroup.Name : string.Empty
                 }).ToList()))
             .ForMember(d => d.AssignedUsers, opt => opt.MapFrom(s =>
                 s.QueryGroupUsers == null ? new List<UserAssignmentDto>() :

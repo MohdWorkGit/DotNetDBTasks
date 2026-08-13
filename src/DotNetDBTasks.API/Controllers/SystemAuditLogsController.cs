@@ -1,3 +1,4 @@
+using DotNetDBTasks.API.Authorization;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Features.SystemAudit.Queries;
 using DotNetDBTasks.Domain.Constants;
@@ -18,7 +19,7 @@ namespace DotNetDBTasks.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = RoleNames.AdminOrAuditor)]
+[Authorize]
 public class SystemAuditLogsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -32,6 +33,7 @@ public class SystemAuditLogsController : ControllerBase
     /// One page of audit entries, newest first. All filters are optional and combine.
     /// </summary>
     [HttpGet]
+    [RequirePermission(Permissions.AuditView)]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? category,
         [FromQuery] string? action,
@@ -65,11 +67,13 @@ public class SystemAuditLogsController : ControllerBase
     /// filter dropdowns without hard-coding a list that drifts from the server's.
     /// </summary>
     [HttpGet("actions")]
+    [RequirePermission(Permissions.AuditView)]
     public IActionResult GetActions() => Ok(new
     {
         categories = new[]
         {
-            AuditActions.CategoryUsers, AuditActions.CategoryQueries, AuditActions.CategoryGroups,
+            AuditActions.CategoryUsers, AuditActions.CategoryUserGroups, AuditActions.CategoryRoles,
+            AuditActions.CategoryQueries, AuditActions.CategoryGroups,
             AuditActions.CategoryAccess, AuditActions.CategoryDatabaseUsers,
             AuditActions.CategoryScheduledTasks, AuditActions.CategoryDirectory,
             AuditActions.CategoryBranding, AuditActions.CategorySettings,

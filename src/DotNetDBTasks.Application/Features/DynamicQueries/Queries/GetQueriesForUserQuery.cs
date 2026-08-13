@@ -8,7 +8,7 @@ namespace DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 
 /// <summary>
 /// Retrieves all enabled dynamic queries accessible to the current user
-/// via role assignments, department assignments, or direct user assignments.
+/// via role assignments, user group assignments, or direct user assignments.
 /// </summary>
 public record GetQueriesForUserQuery : IRequest<IReadOnlyList<DynamicQueryDto>>;
 
@@ -35,9 +35,10 @@ public class GetQueriesForUserQueryHandler
     {
         var roleIds = await QueryAccessRoles.GrantingRoleIdsAsync(
             _unitOfWork, _currentUser.UserId, cancellationToken);
-        var department = _currentUser.Department;
+        var userGroupIds = await UserGroupMembership.GroupIdsAsync(
+            _unitOfWork, _currentUser.UserId, cancellationToken);
 
-        // Direct (query-level) access — role, department, or per-user assignment on the query itself.
+        // Direct (query-level) access — role, user group, or per-user assignment on the query itself.
         var queryIds = new HashSet<Guid>();
 
         var queryRoles = await _unitOfWork.DynamicQueryRoles.FindAsync(
@@ -45,12 +46,12 @@ public class GetQueriesForUserQueryHandler
         foreach (var qr in queryRoles)
             queryIds.Add(qr.DynamicQueryId);
 
-        if (!string.IsNullOrEmpty(department))
+        if (userGroupIds.Count > 0)
         {
-            var queryDepartments = await _unitOfWork.DynamicQueryDepartments.FindAsync(
-                qd => qd.Department == department, cancellationToken);
-            foreach (var qd in queryDepartments)
-                queryIds.Add(qd.DynamicQueryId);
+            var queryUserGroups = await _unitOfWork.DynamicQueryUserGroups.FindAsync(
+                qg => userGroupIds.Contains(qg.UserGroupId), cancellationToken);
+            foreach (var qg in queryUserGroups)
+                queryIds.Add(qg.DynamicQueryId);
         }
 
         var queryUsers = await _unitOfWork.DynamicQueryUsers.FindAsync(
@@ -65,11 +66,11 @@ public class GetQueriesForUserQueryHandler
             gr => roleIds.Contains(gr.RoleId), cancellationToken);
         foreach (var gr in groupRoles) groupIds.Add(gr.QueryGroupId);
 
-        if (!string.IsNullOrEmpty(department))
+        if (userGroupIds.Count > 0)
         {
-            var groupDepartments = await _unitOfWork.QueryGroupDepartments.FindAsync(
-                gd => gd.Department == department, cancellationToken);
-            foreach (var gd in groupDepartments) groupIds.Add(gd.QueryGroupId);
+            var groupUserGroups = await _unitOfWork.QueryGroupUserGroups.FindAsync(
+                gg => userGroupIds.Contains(gg.UserGroupId), cancellationToken);
+            foreach (var gg in groupUserGroups) groupIds.Add(gg.QueryGroupId);
         }
 
         var groupUsers = await _unitOfWork.QueryGroupUsers.FindAsync(
@@ -81,7 +82,7 @@ public class GetQueriesForUserQueryHandler
                 queryIds.Contains(q.Id) ||
                 (q.QueryGroupId.HasValue && groupIds.Contains(q.QueryGroupId.Value))),
             cancellationToken,
-            "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User",
+            "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
             "Parameters", "DatabaseUser", "QueryGroup");
 
         return _mapper.Map<IReadOnlyList<DynamicQueryDto>>(queries);

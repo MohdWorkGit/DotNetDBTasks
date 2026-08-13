@@ -73,10 +73,6 @@ import { TranslocoService } from '@jsverse/transloco';
                 <mat-error *ngIf="createForm.get('password')?.hasError('minlength')">Minimum 6 characters</mat-error>
               </mat-form-field>
 
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'admin.users.department' | transloco }}</mat-label>
-                <input matInput formControlName="department">
-              </mat-form-field>
             </div>
 
             <mat-form-field appearance="outline" class="full-width">
@@ -262,7 +258,6 @@ export class UserManagementComponent implements OnInit {
       password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(100)]],
       firstName: ['', [Validators.required, Validators.maxLength(100)]],
       lastName: ['', [Validators.required, Validators.maxLength(100)]],
-      department: [''],
       roleIds: [[], Validators.required]
     });
 

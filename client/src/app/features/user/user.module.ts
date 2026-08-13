@@ -29,6 +29,7 @@ import { MyQueriesComponent } from './components/my-queries/my-queries.component
 import { QueryExecuteComponent } from './components/query-execute/query-execute.component';
 import { ExecutionHistoryComponent } from './components/execution-history/execution-history.component';
 import { ScheduleStatusComponent } from './components/schedule-status/schedule-status.component';
+import { queryAccessGuard } from '@core/guards/query-access.guard';
 
 @NgModule({
   declarations: [
@@ -63,10 +64,13 @@ import { ScheduleStatusComponent } from './components/schedule-status/schedule-s
     MatExpansionModule,
     MatDialogModule,
     MatMenuModule,
+    // Schedules is deliberately ungated: being named a viewer on a scheduled task is a
+    // per-task grant, not a query-running one, so an Access Manager can hold it. The other
+    // three need a role that confers query access — see queryAccessGuard.
     RouterModule.forChild([
-      { path: 'queries', component: MyQueriesComponent },
-      { path: 'queries/:id/execute', component: QueryExecuteComponent },
-      { path: 'history', component: ExecutionHistoryComponent },
+      { path: 'queries', component: MyQueriesComponent, canActivate: [queryAccessGuard] },
+      { path: 'queries/:id/execute', component: QueryExecuteComponent, canActivate: [queryAccessGuard] },
+      { path: 'history', component: ExecutionHistoryComponent, canActivate: [queryAccessGuard] },
       { path: 'schedules', component: ScheduleStatusComponent },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])

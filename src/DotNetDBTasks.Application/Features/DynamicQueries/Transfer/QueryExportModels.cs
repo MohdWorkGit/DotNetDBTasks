@@ -48,7 +48,8 @@ public class ExportedQuery
 
     public List<ExportedParameter> Parameters { get; set; } = new();
     public List<string> AssignedRoles { get; set; } = new();
-    public List<string> AssignedDepartments { get; set; } = new();
+    /// <summary>User group names; import warns and skips any the target system does not have.</summary>
+    public List<string> AssignedUserGroups { get; set; } = new();
     public List<string> AssignedUsers { get; set; } = new();
 
     // QueryType is deliberately absent: it is derived from SqlQuery, and re-deriving it on

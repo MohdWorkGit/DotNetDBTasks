@@ -62,8 +62,10 @@ export interface RoleAssignment {
   roleName: string;
 }
 
-export interface DepartmentAssignment {
-  department: string;
+/** A grant made to one of the application's own user groups. */
+export interface UserGroupAssignment {
+  userGroupId: string;
+  userGroupName: string;
 }
 
 export interface UserAssignment {
@@ -161,7 +163,7 @@ export interface DynamicQuery {
   createdAt: string;
   parameters: QueryParameter[];
   assignedRoles: RoleAssignment[];
-  assignedDepartments: DepartmentAssignment[];
+  assignedUserGroups: UserGroupAssignment[];
   assignedUsers: UserAssignment[];
 }
 
@@ -172,8 +174,46 @@ export interface QueryGroup {
   createdAt: string;
   queryCount: number;
   assignedRoles: RoleAssignment[];
-  assignedDepartments: DepartmentAssignment[];
+  assignedUserGroups: UserGroupAssignment[];
   assignedUsers: UserAssignment[];
+}
+
+/**
+ * A group of users maintained in this application. Access is granted to groups, and
+ * membership is set here — deliberately not read from Active Directory, so it also covers
+ * local accounts and survives a directory reorganisation.
+ */
+export interface UserGroup {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  memberCount: number;
+  members: UserGroupMember[];
+}
+
+export interface UserGroupMember {
+  userId: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+}
+
+export interface CreateUserGroupRequest {
+  name: string;
+  description: string;
+  memberUserIds: string[];
+}
+
+export interface UpdateUserGroupRequest {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface SetUserGroupMembersRequest {
+  userIds: string[];
 }
 
 export interface CreateQueryGroupRequest {
@@ -237,8 +277,8 @@ export interface AssignRolesRequest {
   roleIds: string[];
 }
 
-export interface AssignDepartmentsRequest {
-  departments: string[];
+export interface AssignUserGroupsRequest {
+  userGroupIds: string[];
 }
 
 export interface AssignUsersRequest {
@@ -359,6 +399,30 @@ export interface Role {
   description: string;
 }
 
+/** One row of the permission matrix: a role and what it may do. */
+export interface RolePermissions {
+  id: string;
+  name: string;
+  description?: string | null;
+  /** True for the four roles the system ships; they can be re-permissioned but not renamed. */
+  isSeeded: boolean;
+  /** True for Admin, which holds everything and cannot be edited. */
+  isPinned: boolean;
+  permissions: string[];
+}
+
+/** The whole matrix: every capability the server defines, and every role's holdings. */
+export interface PermissionMatrix {
+  permissions: string[];
+  roles: RolePermissions[];
+}
+
+export interface SaveRoleRequest {
+  name: string;
+  description?: string | null;
+  permissions: string[];
+}
+
 export interface LdapUser {
   username: string;
   email: string;
@@ -399,7 +463,6 @@ export interface CreateUserRequest {
   password: string;
   firstName: string;
   lastName: string;
-  department?: string;
   roleIds: string[];
 }
 
@@ -477,11 +540,24 @@ export interface AuditActionCatalog {
   actions: string[];
 }
 
-/** Runtime toggles an administrator can change without a restart. */
+/** Runtime settings an administrator can change without a restart. */
 export interface SystemSettings {
-  /**
-   * When false (the default), an Access Manager may only change access on query *groups*,
-   * not on individual queries. Admins are unaffected either way.
-   */
-  accessManagerCanManageQueryAccess: boolean;
+  /** Access-token lifetime in minutes. */
+  sessionAccessTokenMinutes: number;
+  /** Refresh-token lifetime in days. */
+  sessionRefreshTokenDays: number;
+  /** Rows a query may return to the grid before the result is capped and flagged. */
+  queryMaxRows: number;
+  /** When false, the Active Directory pages are switched off. */
+  directoryEnabled: boolean;
 }
+
+/**
+ * The bounds the API enforces on the numeric settings. Mirrored here so the form can say no
+ * before a round trip — the server check in SystemSettingsController is the real one.
+ */
+export const SETTING_LIMITS = {
+  accessTokenMinutes: { min: 5, max: 1440 },
+  refreshTokenDays: { min: 1, max: 90 },
+  maxRows: { min: 100, max: 1000000 }
+} as const;

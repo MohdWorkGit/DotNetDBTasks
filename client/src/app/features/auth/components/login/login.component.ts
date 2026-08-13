@@ -114,7 +114,9 @@ export class LoginComponent {
       next: () => {
         this.loading = false;
         this.cdr.detectChanges();
-        this.router.navigate([this.authService.landingRoute()]);
+        // Permissions decide where they land, so they have to arrive before the redirect.
+        this.authService.loadPermissions().subscribe(() =>
+          this.router.navigate([this.authService.landingRoute()]));
       },
       error: (err) => {
         this.loading = false;

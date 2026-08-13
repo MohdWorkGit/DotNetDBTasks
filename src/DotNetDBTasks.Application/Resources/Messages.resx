@@ -63,6 +63,12 @@
   <data name="UsernameTaken" xml:space="preserve">
     <value>Username '{0}' is already taken.</value>
   </data>
+  <data name="CannotAddSelfToUserGroup" xml:space="preserve">
+    <value>You cannot add your own account to a user group. Ask an administrator.</value>
+  </data>
+  <data name="UserGroupNameTaken" xml:space="preserve">
+    <value>A user group named '{0}' already exists.</value>
+  </data>
   <data name="EmailInUse" xml:space="preserve">
     <value>Email '{0}' is already in use.</value>
   </data>
@@ -167,6 +173,33 @@
   </data>
   <data name="ImportNoDepartmentMatches" xml:space="preserve">
     <value>No accounts found in the directory for department "{0}".</value>
+  </data>
+  <data name="DirectoryDisabled" xml:space="preserve">
+    <value>Active Directory features are switched off for this installation. An administrator can turn them back on in system settings.</value>
+  </data>
+  <data name="RoleIsPinned" xml:space="preserve">
+    <value>The '{0}' role always holds every permission and cannot be edited. It is what keeps this page reachable.</value>
+  </data>
+  <data name="RoleIsSeeded" xml:space="preserve">
+    <value>'{0}' is a built-in role. Its permissions can be changed, but it cannot be renamed or deleted.</value>
+  </data>
+  <data name="RoleNameRequired" xml:space="preserve">
+    <value>A role name is required.</value>
+  </data>
+  <data name="RoleNameTaken" xml:space="preserve">
+    <value>A role named '{0}' already exists.</value>
+  </data>
+  <data name="RoleStillAssigned" xml:space="preserve">
+    <value>'{0}' is still assigned to {1} account(s). Move them to another role first.</value>
+  </data>
+  <data name="UserGroupsAdminOnly" xml:space="preserve">
+    <value>Managing user groups is restricted to administrators on this system. An administrator can hand it back to Access Managers in system settings.</value>
+  </data>
+  <data name="SettingOutOfRange" xml:space="preserve">
+    <value>{0} must be between {1} and {2}.</value>
+  </data>
+  <data name="RefreshShorterThanAccess" xml:space="preserve">
+    <value>The refresh token must last at least as long as the access token, otherwise a session could never be refreshed.</value>
   </data>
   <data name="QueryAccessGroupsOnly" xml:space="preserve">
     <value>An Access Manager may only change access on query groups, not on individual queries. An administrator can enable per-query access in system settings.</value>

@@ -16,11 +16,14 @@ public class GetScheduledTaskRunsQueryHandler : IRequestHandler<GetScheduledTask
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
+    private readonly IPermissionService _permissions;
 
-    public GetScheduledTaskRunsQueryHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUser)
+    public GetScheduledTaskRunsQueryHandler(
+        IUnitOfWork unitOfWork, ICurrentUserService currentUser, IPermissionService permissions)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
+        _permissions = permissions;
     }
 
     public async Task<List<ScheduledTaskRunDto>> Handle(GetScheduledTaskRunsQuery request, CancellationToken cancellationToken)
@@ -29,14 +32,20 @@ public class GetScheduledTaskRunsQueryHandler : IRequestHandler<GetScheduledTask
             t => t.Id == request.TaskId, cancellationToken, "Viewers")).FirstOrDefault()
             ?? throw new NotFoundException(nameof(ScheduledTask), request.TaskId);
 
-        ScheduledTaskAccess.EnsureCanView(task, _currentUser);
+        await ScheduledTaskAccess.EnsureCanViewAsync(task, _currentUser, _permissions, cancellationToken);
 
+        // Sorted and cut off by Oracle. Sorting in memory meant materializing the task's whole
+        // history — CLOBs and all — to show the most recent page of it.
         var take = Math.Clamp(request.Take, 1, 500);
-        return (await _unitOfWork.ScheduledTaskRuns.FindAsync(
-                r => r.ScheduledTaskId == task.Id, cancellationToken))
-            .OrderByDescending(r => r.StartedAt)
-            .Take(take)
-            .Select(ScheduledTaskMapper.ToRunDto)
-            .ToList();
+        var (runs, _) = await _unitOfWork.ScheduledTaskRuns.GetPagedAsync(
+            r => r.ScheduledTaskId == task.Id,
+            r => r.StartedAt,
+            descending: true,
+            pageNumber: 1,
+            pageSize: take,
+            r => r,
+            cancellationToken);
+
+        return runs.Select(ScheduledTaskMapper.ToRunDto).ToList();
     }
 }

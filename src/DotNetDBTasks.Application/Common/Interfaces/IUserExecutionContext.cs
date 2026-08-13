@@ -7,7 +7,6 @@ namespace DotNetDBTasks.Application.Common.Interfaces;
 public record UserContextSnapshot(
     Guid UserId,
     string Username,
-    string? Department,
     IReadOnlyList<string> Roles);
 
 /// <summary>

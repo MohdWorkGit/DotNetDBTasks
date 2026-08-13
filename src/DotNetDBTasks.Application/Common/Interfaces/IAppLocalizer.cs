@@ -37,9 +37,20 @@ public static class MessageKeys
     public const string LdapUsernameImmutable = nameof(LdapUsernameImmutable);
     public const string LdapPasswordImmutable = nameof(LdapPasswordImmutable);
     public const string LdapPasswordResetUnavailable = nameof(LdapPasswordResetUnavailable);
+    public const string UserGroupNameTaken = nameof(UserGroupNameTaken);
+    public const string CannotAddSelfToUserGroup = nameof(CannotAddSelfToUserGroup);
 
     public const string NoAccessToQuery = nameof(NoAccessToQuery);
     public const string QueryAccessGroupsOnly = nameof(QueryAccessGroupsOnly);
+    public const string UserGroupsAdminOnly = nameof(UserGroupsAdminOnly);
+    public const string RoleIsPinned = nameof(RoleIsPinned);
+    public const string RoleIsSeeded = nameof(RoleIsSeeded);
+    public const string RoleNameRequired = nameof(RoleNameRequired);
+    public const string RoleNameTaken = nameof(RoleNameTaken);
+    public const string RoleStillAssigned = nameof(RoleStillAssigned);
+    public const string DirectoryDisabled = nameof(DirectoryDisabled);
+    public const string SettingOutOfRange = nameof(SettingOutOfRange);
+    public const string RefreshShorterThanAccess = nameof(RefreshShorterThanAccess);
     public const string QueryDisabled = nameof(QueryDisabled);
     public const string NoAccessToDatabaseUser = nameof(NoAccessToDatabaseUser);
     public const string NoAccessToScheduledTask = nameof(NoAccessToScheduledTask);

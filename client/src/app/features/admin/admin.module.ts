@@ -28,6 +28,8 @@ import { RoleAssignmentComponent } from './components/role-assignment/role-assig
 import { ExecutionLogsComponent } from './components/execution-logs/execution-logs.component';
 import { AdUsersComponent } from './components/ad-users/ad-users.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
+import { UserGroupsListComponent } from './components/user-groups/user-groups-list.component';
+import { UserGroupFormComponent } from './components/user-groups/user-group-form.component';
 import { DatabaseUsersComponent } from './components/database-users/database-users.component';
 import { QueryGroupsListComponent } from './components/query-groups/query-groups-list.component';
 import { QueryGroupFormComponent } from './components/query-groups/query-group-form.component';
@@ -37,10 +39,11 @@ import { ScheduledTaskFormComponent } from './components/scheduled-tasks/schedul
 import { ScheduledTaskRunsComponent } from './components/scheduled-tasks/scheduled-task-runs.component';
 import { SystemAuditComponent } from './components/system-audit/system-audit.component';
 import { SystemSettingsComponent } from './components/system-settings/system-settings.component';
+import { PermissionsMatrixComponent } from './components/system-settings/permissions-matrix.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { authGuard } from '@core/guards/auth.guard';
-import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
+import { PERM } from '@core/models/permissions';
 
 @NgModule({
   declarations: [
@@ -50,6 +53,8 @@ import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
     ExecutionLogsComponent,
     AdUsersComponent,
     UserManagementComponent,
+    UserGroupsListComponent,
+    UserGroupFormComponent,
     DatabaseUsersComponent,
     QueryGroupsListComponent,
     QueryGroupFormComponent,
@@ -58,7 +63,8 @@ import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
     ScheduledTaskFormComponent,
     ScheduledTaskRunsComponent,
     SystemAuditComponent,
-    SystemSettingsComponent
+    SystemSettingsComponent,
+    PermissionsMatrixComponent
   ],
   imports: [
     CommonModule,
@@ -91,41 +97,49 @@ import { ADMIN, AUDITOR, ACCESS_MANAGER } from '@core/models/roles';
     // the server is the real gate; this keeps the UI from offering a guaranteed 403.
     RouterModule.forChild([
       { path: 'queries', component: QueryListComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+        canActivate: [authGuard], data: { permissions: [PERM.queriesView] } },
       { path: 'queries/create', component: QueryFormComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN] } },
+        canActivate: [authGuard], data: { permissions: [PERM.queriesManage] } },
       { path: 'queries/edit/:id', component: QueryFormComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN] } },
+        canActivate: [authGuard], data: { permissions: [PERM.queriesManage] } },
       { path: 'queries/:id/roles', component: RoleAssignmentComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+        canActivate: [authGuard], data: { permissions: [PERM.accessManageQuery] } },
       { path: 'query-groups', component: QueryGroupsListComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+        canActivate: [authGuard], data: { permissions: [PERM.queriesView] } },
       { path: 'query-groups/create', component: QueryGroupFormComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN] } },
+        canActivate: [authGuard], data: { permissions: [PERM.queryGroupsManage] } },
       { path: 'query-groups/edit/:id', component: QueryGroupFormComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN] } },
+        canActivate: [authGuard], data: { permissions: [PERM.queryGroupsManage] } },
       { path: 'query-groups/:id/access', component: QueryGroupAccessComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+        canActivate: [authGuard], data: { permissions: [PERM.accessManageGroup] } },
       { path: 'scheduled-tasks', component: ScheduledTasksListComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
+        canActivate: [authGuard], data: { permissions: [PERM.scheduledTasksViewAll, PERM.scheduledTasksManage] } },
       { path: 'scheduled-tasks/create', component: ScheduledTaskFormComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN] } },
+        canActivate: [authGuard], data: { permissions: [PERM.scheduledTasksManage] } },
       { path: 'scheduled-tasks/edit/:id', component: ScheduledTaskFormComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN] } },
+        canActivate: [authGuard], data: { permissions: [PERM.scheduledTasksManage] } },
       { path: 'scheduled-tasks/:id/runs', component: ScheduledTaskRunsComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
+        canActivate: [authGuard], data: { permissions: [PERM.scheduledTasksViewAll, PERM.scheduledTasksManage] } },
       { path: 'logs', component: ExecutionLogsComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
+        canActivate: [authGuard], data: { permissions: [PERM.logsView] } },
       { path: 'system-audit', component: SystemAuditComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN, AUDITOR] } },
+        canActivate: [authGuard], data: { permissions: [PERM.auditView] } },
+      // Settings holds the Permissions tab, so either capability opens the page; the tab
+      // itself is hidden without roles.manage.
       { path: 'settings', component: SystemSettingsComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN] } },
+        canActivate: [authGuard], data: { permissions: [PERM.settingsManage, PERM.rolesManage] } },
       { path: 'ad-users', component: AdUsersComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN] } },
+        canActivate: [authGuard], data: { permissions: [PERM.directoryManage] } },
       { path: 'users', component: UserManagementComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN, ACCESS_MANAGER] } },
+        canActivate: [authGuard], data: { permissions: [PERM.usersView] } },
+      { path: 'user-groups', component: UserGroupsListComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.userGroupsView] } },
+      { path: 'user-groups/create', component: UserGroupFormComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.userGroupsManage] } },
+      { path: 'user-groups/edit/:id', component: UserGroupFormComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.userGroupsManage] } },
       { path: 'database-users', component: DatabaseUsersComponent,
-        canActivate: [authGuard], data: { roles: [ADMIN] } },
+        canActivate: [authGuard], data: { permissions: [PERM.databaseUsersManage] } },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])
   ]

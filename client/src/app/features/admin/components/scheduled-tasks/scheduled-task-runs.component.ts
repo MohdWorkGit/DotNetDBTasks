@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ToastService } from '@core/services/toast.service';
 import { AuthService } from '@core/services/auth.service';
+import { PERM } from '@core/models/permissions';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
 import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '@core/models/scheduled-task.model';
 
@@ -39,7 +40,7 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
               · {{ run.triggeredByUsername ? 'manual by ' + run.triggeredByUsername : 'scheduled' }}
               <span *ngIf="run.completedAt"> · {{ duration(run) }}</span>
             </mat-panel-description>
-            <button *ngIf="run.status === 'Running' && authService.isAdmin()" mat-stroked-button color="warn" class="cancel-btn"
+            <button *ngIf="run.status === 'Running' && authService.has(PERM.scheduledTasksManage)" mat-stroked-button color="warn" class="cancel-btn"
                     (click)="$event.stopPropagation(); cancel(run)" [disabled]="cancelingId === run.id">
               <mat-icon>stop</mat-icon> {{ (cancelingId === run.id ? 'admin.tasks.canceling' : 'common.cancel') | transloco }}
             </button>
@@ -117,6 +118,7 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
   `]
 })
 export class ScheduledTaskRunsComponent implements OnInit {
+  readonly PERM = PERM;
   task: ScheduledTask | null = null;
   runs: ScheduledTaskRun[] = [];
   loading = true;

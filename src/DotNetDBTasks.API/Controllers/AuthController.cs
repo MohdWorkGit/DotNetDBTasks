@@ -27,6 +27,8 @@ public class AuthController : ControllerBase
     private readonly ILdapService _ldapService;
     private readonly IConfiguration _configuration;
     private readonly IAuthenticationSchemeProvider _schemeProvider;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IPermissionService _permissions;
 
     public AuthController(
         IMediator mediator,
@@ -34,8 +36,12 @@ public class AuthController : ControllerBase
         ITokenService tokenService,
         ILdapService ldapService,
         IConfiguration configuration,
-        IAuthenticationSchemeProvider schemeProvider)
+        IAuthenticationSchemeProvider schemeProvider,
+        ICurrentUserService currentUser,
+        IPermissionService permissions)
     {
+        _currentUser = currentUser;
+        _permissions = permissions;
         _mediator = mediator;
         _unitOfWork = unitOfWork;
         _tokenService = tokenService;
@@ -142,19 +148,19 @@ public class AuthController : ControllerBase
             r => roleIds.Contains(r.Id), cancellationToken);
         var roleNames = roles.Select(r => r.Name).ToList();
 
-        var accessToken = _tokenService.GenerateAccessToken(user, roleNames);
+        var accessToken = await _tokenService.GenerateAccessTokenAsync(user, roleNames, cancellationToken);
         var refreshToken = _tokenService.GenerateRefreshToken();
 
         user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+        user.RefreshTokenExpiryTime = await _tokenService.GetRefreshTokenExpiryAsync(cancellationToken);
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Ok(new AuthResult
         {
-            AccessToken = accessToken,
+            AccessToken = accessToken.Value,
             RefreshToken = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            ExpiresAt = accessToken.ExpiresAtUtc,
             Username = user.Username,
             Roles = roleNames
         });
@@ -184,6 +190,29 @@ public class AuthController : ControllerBase
     {
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Who the caller is and what they may currently do.
+    ///
+    /// <para>The client asks on every load rather than reading the token, because permissions
+    /// are edited at runtime and the token is not reissued when they change. A tab left open
+    /// while a role is re-permissioned picks the change up on its next navigation, and until
+    /// then the server refuses anything it should — this only decides what the UI offers.</para>
+    /// </summary>
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> Me(CancellationToken cancellationToken)
+    {
+        var roles = _currentUser.Roles;
+        var permissions = await _permissions.GetForRolesAsync(roles, cancellationToken);
+
+        return Ok(new
+        {
+            username = _currentUser.Username,
+            roles,
+            permissions = permissions.OrderBy(p => p, StringComparer.Ordinal).ToList()
+        });
     }
 
     /// <summary>

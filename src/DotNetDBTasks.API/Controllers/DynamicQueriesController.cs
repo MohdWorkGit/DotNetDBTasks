@@ -1,3 +1,4 @@
+using DotNetDBTasks.API.Authorization;
 using System.Text.Json;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Features.DynamicQueries.Commands;
@@ -17,89 +18,32 @@ namespace DotNetDBTasks.API.Controllers;
 /// <summary>
 /// Admin endpoints for managing dynamic queries.
 ///
-/// <para>Three roles reach this controller, and each gets a different slice:</para>
-/// <list type="bullet">
-/// <item><description><b>Admin</b> — everything.</description></item>
-/// <item><description><b>AccessManager</b> — lists queries and manages who may reach them
-/// (role/department/user assignments). Never sees a query's SQL: the handlers blank it out
-/// for this role. Cannot create, edit, delete, export or run anything.</description></item>
-/// <item><description><b>Auditor</b> — the execution log endpoints only.</description></item>
-/// </list>
-///
-/// <para>The class-level attribute is the union of the three; every action narrows it,
-/// so a new action without its own attribute is reachable by all three. Add one.</para>
+/// <para>Every action names the capability it needs rather than a role, so who reaches each one
+/// is decided on Settings → Permissions. The split that matters: <c>queries.view</c> lists
+/// queries, <c>queries.readSql</c> is what lets the SQL through (the handlers blank it for
+/// anyone without it), <c>queries.manage</c> edits, <c>queries.transfer</c> exports and imports,
+/// <c>access.manageQuery</c> decides who may reach one, and <c>logs.view</c> reads the execution
+/// log. An action with no attribute is reachable by any signed-in user — add one.</para>
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = RoleNames.AdminOrAuditorOrAccessManager)]
+[Authorize]
 public class DynamicQueriesController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IResultFileExporter _resultFileExporter;
-    private readonly ICurrentUserService _currentUser;
-    private readonly ISystemSettingsService _settings;
-    private readonly IAppLocalizer _messages;
-    private readonly IAuditLogger _audit;
 
-    public DynamicQueriesController(
-        IMediator mediator,
-        IResultFileExporter resultFileExporter,
-        ICurrentUserService currentUser,
-        ISystemSettingsService settings,
-        IAppLocalizer messages,
-        IAuditLogger audit)
+    public DynamicQueriesController(IMediator mediator, IResultFileExporter resultFileExporter)
     {
         _mediator = mediator;
         _resultFileExporter = resultFileExporter;
-        _currentUser = currentUser;
-        _settings = settings;
-        _messages = messages;
-        _audit = audit;
-    }
-
-    /// <summary>
-    /// Blocks per-query access changes by an Access Manager unless an administrator has
-    /// switched them on.
-    ///
-    /// <para>The role's normal remit is query <em>groups</em>: granting a group is a
-    /// deliberate, visible act, where per-query grants accumulate quietly. The attribute
-    /// alone cannot express this because it depends on a runtime setting, so the three
-    /// assignment actions call this first. Admins are never affected.</para>
-    /// </summary>
-    private async Task EnsureMayManageQueryAccessAsync(CancellationToken cancellationToken)
-    {
-        if (_currentUser.Roles.Contains(RoleNames.Admin))
-            return;
-
-        var allowed = await _settings.GetBoolAsync(
-            SystemSettingKeys.AccessManagerCanManageQueryAccess,
-            SystemSettingKeys.AccessManagerCanManageQueryAccessDefault,
-            cancellationToken);
-
-        if (allowed)
-            return;
-
-        var reason = _messages[MessageKeys.QueryAccessGroupsOnly];
-
-        // Recorded here rather than left to the audit behavior: this check runs before
-        // _mediator.Send, so the behavior never sees the request. A refused permission change
-        // is precisely the entry an auditor is looking for, so it must not go unlogged.
-        await _audit.RecordAsync(new AuditEntry
-        {
-            Action = AuditActions.AccessQueryRefused,
-            Category = AuditActions.CategoryAccess,
-            IsSuccess = false,
-            ErrorMessage = reason
-        }, cancellationToken);
-
-        throw new ForbiddenAccessException(reason);
     }
 
     /// <summary>
     /// Retrieves all dynamic queries.
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = RoleNames.AdminOrAccessManager)]
+    [RequirePermission(Permissions.QueriesView)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetAllDynamicQueriesQuery(), cancellationToken);
@@ -110,7 +54,7 @@ public class DynamicQueriesController : ControllerBase
     /// Retrieves a specific dynamic query by ID.
     /// </summary>
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = RoleNames.AdminOrAccessManager)]
+    [RequirePermission(Permissions.QueriesView)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetDynamicQueryByIdQuery(id), cancellationToken);
@@ -121,7 +65,7 @@ public class DynamicQueriesController : ControllerBase
     /// Creates a new dynamic query with parameters. Requires Admin role.
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     public async Task<IActionResult> Create(
         [FromBody] CreateDynamicQueryCommand command,
         CancellationToken cancellationToken)
@@ -134,7 +78,7 @@ public class DynamicQueriesController : ControllerBase
     /// Updates an existing dynamic query. Requires Admin role.
     /// </summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateDynamicQueryCommand command,
@@ -149,7 +93,7 @@ public class DynamicQueriesController : ControllerBase
     /// Deletes a dynamic query. Requires Admin role.
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteDynamicQueryCommand(id), cancellationToken);
@@ -162,7 +106,7 @@ public class DynamicQueriesController : ControllerBase
     /// and {{QUERY_NAME}}/{{GENERATED_AT}}/{{ROW_COUNT}} text placeholders. Requires Admin role.
     /// </summary>
     [HttpPost("{id:guid}/word-template")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     [RequestSizeLimit(MaxTemplateBytes + 1024)]
     public async Task<IActionResult> UploadWordTemplate(
         Guid id,
@@ -196,7 +140,7 @@ public class DynamicQueriesController : ControllerBase
     /// Downloads the query's current Word export template. 404 when none is uploaded.
     /// </summary>
     [HttpGet("{id:guid}/word-template")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     public async Task<IActionResult> DownloadWordTemplate(Guid id, CancellationToken cancellationToken)
     {
         var template = await _mediator.Send(new GetQueryWordTemplateQuery(id), cancellationToken);
@@ -213,7 +157,7 @@ public class DynamicQueriesController : ControllerBase
     /// default layout. Requires Admin role.
     /// </summary>
     [HttpDelete("{id:guid}/word-template")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     public async Task<IActionResult> DeleteWordTemplate(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteQueryWordTemplateCommand(id), cancellationToken);
@@ -225,7 +169,7 @@ public class DynamicQueriesController : ControllerBase
     /// query has no template of its own. Requires Admin role.
     /// </summary>
     [HttpPost("default-word-template")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     [RequestSizeLimit(MaxTemplateBytes + 1024)]
     public async Task<IActionResult> UploadDefaultWordTemplate(IFormFile file, CancellationToken cancellationToken)
     {
@@ -258,7 +202,7 @@ public class DynamicQueriesController : ControllerBase
     /// customize the default look of Word exports.
     /// </summary>
     [HttpGet("default-word-template")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     public async Task<IActionResult> DownloadDefaultWordTemplate(CancellationToken cancellationToken)
     {
         var stored = await _mediator.Send(new GetDefaultWordTemplateQuery(), cancellationToken);
@@ -272,7 +216,7 @@ public class DynamicQueriesController : ControllerBase
     /// Reports whether a custom default Word template is stored, and its file name.
     /// </summary>
     [HttpGet("default-word-template/info")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     public async Task<IActionResult> GetDefaultWordTemplateInfo(CancellationToken cancellationToken)
     {
         var stored = await _mediator.Send(new GetDefaultWordTemplateQuery(), cancellationToken);
@@ -284,7 +228,7 @@ public class DynamicQueriesController : ControllerBase
     /// back to the built-in starter layout. Requires Admin role.
     /// </summary>
     [HttpDelete("default-word-template")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesManage)]
     public async Task<IActionResult> DeleteDefaultWordTemplate(CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteDefaultWordTemplateCommand(), cancellationToken);
@@ -295,7 +239,7 @@ public class DynamicQueriesController : ControllerBase
     /// Exports one query as a portable JSON file for backup or transfer to another system.
     /// </summary>
     [HttpGet("{id:guid}/export")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesTransfer)]
     public async Task<IActionResult> ExportQuery(Guid id, CancellationToken cancellationToken)
     {
         var file = await _mediator.Send(new ExportQueriesQuery(id), cancellationToken);
@@ -308,7 +252,7 @@ public class DynamicQueriesController : ControllerBase
     /// <see cref="ExportQueriesQuery"/>.
     /// </summary>
     [HttpGet("export")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesTransfer)]
     public async Task<IActionResult> ExportAllQueries(CancellationToken cancellationToken)
     {
         var file = await _mediator.Send(new ExportQueriesQuery(null), cancellationToken);
@@ -320,7 +264,7 @@ public class DynamicQueriesController : ControllerBase
     /// clash is imported as a copy. Requires Admin role.
     /// </summary>
     [HttpPost("import")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueriesTransfer)]
     [RequestSizeLimit(MaxImportBytes + 1024)]
     public async Task<IActionResult> ImportQueries(IFormFile file, CancellationToken cancellationToken)
     {
@@ -399,30 +343,28 @@ public class DynamicQueriesController : ControllerBase
     /// Assigns a query to one or more roles.
     /// </summary>
     [HttpPost("{id:guid}/roles")]
-    [Authorize(Roles = RoleNames.AdminOrAccessManager)]
+    [RequirePermission(Permissions.AccessManageQuery)]
     public async Task<IActionResult> AssignToRoles(
         Guid id,
         [FromBody] AssignQueryToRolesCommand command,
         CancellationToken cancellationToken)
     {
-        await EnsureMayManageQueryAccessAsync(cancellationToken);
         command.QueryId = id;
         await _mediator.Send(command, cancellationToken);
         return NoContent();
     }
 
     /// <summary>
-    /// Assigns a query to one or more departments.
-    /// All users in those departments will gain access.
+    /// Assigns a query to one or more user groups.
+    /// Every member of those groups will gain access.
     /// </summary>
-    [HttpPost("{id:guid}/departments")]
-    [Authorize(Roles = RoleNames.AdminOrAccessManager)]
-    public async Task<IActionResult> AssignToDepartments(
+    [HttpPost("{id:guid}/user-groups")]
+    [RequirePermission(Permissions.AccessManageQuery)]
+    public async Task<IActionResult> AssignToUserGroups(
         Guid id,
-        [FromBody] AssignQueryToDepartmentsCommand command,
+        [FromBody] AssignQueryToUserGroupsCommand command,
         CancellationToken cancellationToken)
     {
-        await EnsureMayManageQueryAccessAsync(cancellationToken);
         command.QueryId = id;
         await _mediator.Send(command, cancellationToken);
         return NoContent();
@@ -432,13 +374,12 @@ public class DynamicQueriesController : ControllerBase
     /// Assigns a query to specific individual users.
     /// </summary>
     [HttpPost("{id:guid}/users")]
-    [Authorize(Roles = RoleNames.AdminOrAccessManager)]
+    [RequirePermission(Permissions.AccessManageQuery)]
     public async Task<IActionResult> AssignToUsers(
         Guid id,
         [FromBody] AssignQueryToUsersCommand command,
         CancellationToken cancellationToken)
     {
-        await EnsureMayManageQueryAccessAsync(cancellationToken);
         command.QueryId = id;
         await _mediator.Send(command, cancellationToken);
         return NoContent();
@@ -448,7 +389,7 @@ public class DynamicQueriesController : ControllerBase
     /// Retrieves one page of execution logs with optional filters.
     /// </summary>
     [HttpGet("logs")]
-    [Authorize(Roles = RoleNames.AdminOrAuditor)]
+    [RequirePermission(Permissions.LogsView)]
     public async Task<IActionResult> GetLogs(
         [FromQuery] Guid? queryId,
         [FromQuery] Guid? userId,
@@ -482,7 +423,7 @@ public class DynamicQueriesController : ControllerBase
     /// Retrieves one page of the pre-change row snapshots recorded for an execution log.
     /// </summary>
     [HttpGet("logs/{id:guid}/old-values")]
-    [Authorize(Roles = RoleNames.AdminOrAuditor)]
+    [RequirePermission(Permissions.LogsView)]
     public async Task<IActionResult> GetLogOldValues(
         Guid id,
         [FromQuery] int pageNumber = 1,

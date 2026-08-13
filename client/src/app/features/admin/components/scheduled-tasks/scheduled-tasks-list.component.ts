@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ToastService } from '@core/services/toast.service';
 import { AuthService } from '@core/services/auth.service';
+import { PERM } from '@core/models/permissions';
 import { ConfirmService } from '@core/services/confirm.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
 import { ScheduledTask, describeTriggers, utcDate } from '@core/models/scheduled-task.model';
@@ -14,7 +15,7 @@ import { TranslocoService } from '@jsverse/transloco';
       <div class="header">
         <h2>{{ 'admin.tasks.title' | transloco }}</h2>
         <button mat-raised-button color="primary" routerLink="/admin/scheduled-tasks/create"
-                *ngIf="authService.isAdmin()">
+                *ngIf="authService.has(PERM.scheduledTasksManage)">
           <mat-icon>add_alarm</mat-icon> {{ 'admin.tasks.create' | transloco }}
         </button>
       </div>
@@ -76,7 +77,7 @@ import { TranslocoService } from '@jsverse/transloco';
               <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | transloco }}</th>
               <td mat-cell *matCellDef="let t">
                 <button mat-icon-button [matTooltip]="'admin.tasks.runNow' | transloco" [attr.aria-label]="'admin.tasks.runNow' | transloco" (click)="runNow(t)"
-                        *ngIf="authService.isAdmin()"
+                        *ngIf="authService.has(PERM.scheduledTasksManage)"
                         [disabled]="runningIds.has(t.id)">
                   <mat-icon>play_arrow</mat-icon>
                 </button>
@@ -85,12 +86,12 @@ import { TranslocoService } from '@jsverse/transloco';
                   <mat-icon>history</mat-icon>
                 </button>
                 <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
-                        *ngIf="authService.isAdmin()"
+                        *ngIf="authService.has(PERM.scheduledTasksManage)"
                         [routerLink]="['/admin/scheduled-tasks/edit', t.id]">
                   <mat-icon>edit</mat-icon>
                 </button>
                 <button mat-icon-button [matTooltip]="'common.delete' | transloco" [attr.aria-label]="'common.delete' | transloco" color="warn"
-                        *ngIf="authService.isAdmin()" (click)="deleteTask(t)">
+                        *ngIf="authService.has(PERM.scheduledTasksManage)" (click)="deleteTask(t)">
                   <mat-icon>delete</mat-icon>
                 </button>
               </td>
@@ -101,7 +102,7 @@ import { TranslocoService } from '@jsverse/transloco';
 
             <tr class="mat-row no-data-row" *matNoDataRow>
               <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-                No scheduled tasks yet.<span *ngIf="authService.isAdmin()"> Create one to export query results on a schedule.</span>
+                No scheduled tasks yet.<span *ngIf="authService.has(PERM.scheduledTasksManage)"> Create one to export query results on a schedule.</span>
               </td>
             </tr>
           </table>
@@ -120,6 +121,7 @@ import { TranslocoService } from '@jsverse/transloco';
   `]
 })
 export class ScheduledTasksListComponent implements OnInit {
+  readonly PERM = PERM;
   displayedColumns = ['name', 'schedule', 'enabled', 'nextRun', 'lastRun', 'actions'];
   tasks: ScheduledTask[] = [];
   loading = true;

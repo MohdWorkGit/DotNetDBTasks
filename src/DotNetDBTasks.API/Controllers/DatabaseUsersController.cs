@@ -1,3 +1,4 @@
+using DotNetDBTasks.API.Authorization;
 using DotNetDBTasks.Application.Features.DatabaseUsers.Commands;
 using DotNetDBTasks.Application.Features.DatabaseUsers.Queries;
 using MediatR;
@@ -12,7 +13,7 @@ namespace DotNetDBTasks.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = RoleNames.Admin)]
+[Authorize]
 public class DatabaseUsersController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -30,6 +31,7 @@ public class DatabaseUsersController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.DatabaseUsersManage)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetDatabaseUserByIdQuery(id), cancellationToken);
@@ -46,6 +48,7 @@ public class DatabaseUsersController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.DatabaseUsersManage)]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateDatabaseUserCommand command,
@@ -57,6 +60,7 @@ public class DatabaseUsersController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.DatabaseUsersManage)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteDatabaseUserCommand(id), cancellationToken);
@@ -67,6 +71,7 @@ public class DatabaseUsersController : ControllerBase
     /// Sets which application users can use this database user.
     /// </summary>
     [HttpPost("{id:guid}/access")]
+    [RequirePermission(Permissions.DatabaseUsersManage)]
     public async Task<IActionResult> AssignAccess(
         Guid id,
         [FromBody] AssignDatabaseUserAccessCommand command,
@@ -81,6 +86,7 @@ public class DatabaseUsersController : ControllerBase
     /// Tests the database connection using the stored encrypted credentials.
     /// </summary>
     [HttpPost("{id:guid}/test-connection")]
+    [RequirePermission(Permissions.DatabaseUsersManage)]
     public async Task<IActionResult> TestConnection(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(

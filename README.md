@@ -26,7 +26,9 @@ docker/                           # Dockerfiles and nginx config
 | Define input parameters (string, number, date, boolean) | Fill dynamically generated forms |
 | Multi-value string parameters (comma-separated, `IN` support) | Execute queries with pagination |
 | Organize queries into folders | Export results to CSV |
-| Assign queries to roles | View personal execution history |
+| Assign queries to roles, user groups or individual users | View personal execution history |
+| Edit what every role may do, and add custom roles | |
+| Maintain user groups in the app — no dependency on AD groups | |
 | Enable/disable queries, configurable timeouts | |
 | Flag slow queries as long-running (async execution) | Long-running queries run as background jobs — live elapsed timer + cancel |
 | Allow or block running writes without confirmation | Skip the write preview when the query allows it |
@@ -51,52 +53,65 @@ docker/                           # Dockerfiles and nginx config
 - Query execution timeout protection (supports unlimited/infinity)
 - Full execution audit logging
 
-## Roles
+## Roles and permissions
 
-Roles are rows in the `Roles` table, not a fixed enum, and a user may hold more than one —
-permissions add up. Four are seeded; the spellings live in `RoleNames.cs` (API) and
-`core/models/roles.ts` (client), which must stay in step because they are compared against
-the JWT's role claims.
+Authorization is a **role → permission matrix**, edited at **Settings → Permissions**. Endpoints
+name a capability (`[RequirePermission(Permissions.QueriesRun)]`), not a role, so who reaches
+what is a runtime decision rather than a compiled one — and a role an installation invents is a
+first-class citizen rather than something the code has never heard of.
 
-| | **Admin** | **Auditor** | **Access Manager** | **User** |
-|---|---|---|---|---|
-| Create / edit / delete queries and groups | ✅ | — | — | — |
-| Read a query's SQL | ✅ | — | — | assigned only |
-| **Run queries** | ✅ | **never** | **never** | assigned only |
-| Export / import query definitions | ✅ | — | — | — |
-| Assign **query groups** to roles / departments / users | ✅ | — | ✅ | — |
-| Assign an **individual query** to roles / departments / users | ✅ | — | setting | — |
-| List queries and groups (names, no SQL) | ✅ | — | ✅ | — |
-| User management | ✅ | — | ✅ (not admins) | — |
-| Execution logs and before-change snapshots | ✅ | ✅ | — | own history only |
-| View scheduled tasks and run history | ✅ | ✅ | — | as named viewer |
-| Download scheduled-task output files | ✅ | — | — | with viewer grant |
-| Create / edit / run / cancel scheduled tasks | ✅ | — | — | — |
-| AD import, database users, branding | ✅ | — | — | — |
+Four roles are seeded, and any number can be added. A user may hold several; permissions add up.
 
-Three rules are worth stating outright because they are not obvious from the table:
+| Role | Holds by default |
+|---|---|
+| **Admin** | Everything, always — see the pinning rule below |
+| **User** | `queries.run` |
+| **Auditor** | `logs.view`, `audit.view`, `scheduledTasks.viewAll` |
+| **Access Manager** | `queries.view`, `access.manageGroup`, `userGroups.view`, `userGroups.manage`, `users.view`, `users.manage`, `directory.view` |
 
-- **Neither oversight role can run a query, ever.** Auditor and AccessManager are ordinary rows
-  in `Roles`, so both appear in the access pickers, and assigning a query to either would
-  otherwise grant exactly what the roles are defined not to have.
-  `QueryAccessRoles.GrantingRoleIdsAsync` drops them when resolving access — on the query list,
-  the detail fetch, execution, and parameter dropdowns alike — so such an assignment is inert,
-  and the pickers filter them out rather than offer a no-op. This is per role, not per person:
-  an Auditor who is also a User runs whatever User is assigned.
-- **Access Manager manages group access, not per-query access, by default.** Groups are the
-  coarser and safer control: granting a group is a deliberate, visible act, where per-query
-  grants accumulate quietly. An administrator can switch per-query access on for the role under
-  **Settings** (`accessManager.canManageQueryAccess`, default off). A refused attempt is written
-  to the audit trail as `access.queryRefused`.
-- **Access Manager never sees query text.** It reaches the query list and the accessibility
-  pages, but the API blanks `sqlQuery` out of every DTO bound for this role, and the export
-  endpoints — which carry the SQL verbatim — are Admin-only.
-- **Access Manager cannot touch administrator accounts.** `AdminAccountGuard` blocks a
-  non-Admin from modifying any account holding the Admin role, from granting the Admin role,
-  and from editing their own role set — the last because a self-grant of `User` would undo the
-  no-query-access rule in one click. A user manager can still create a separate account and
-  sign in as it; that is inherent in one role both creating users and controlling query access,
-  and unlike a self-grant it leaves an account and an audit trail behind.
+### The 23 capabilities
+
+| Area | Permissions |
+|---|---|
+| Queries | `queries.view`, `queries.readSql`, `queries.manage`, `queries.transfer`, `queries.run` |
+| Granting access | `access.manageQuery`, `access.manageGroup`, `queryGroups.manage` |
+| People and directory | `users.view`, `users.manage`, `userGroups.view`, `userGroups.manage`, `directory.view`, `directory.manage` |
+| Connections and tasks | `databaseUsers.manage`, `scheduledTasks.viewAll`, `scheduledTasks.manage`, `scheduledTasks.download` |
+| Oversight | `logs.view`, `audit.view` |
+| System | `branding.manage`, `settings.manage`, `roles.manage` |
+
+The names are persisted in `RolePermissions`, so renaming one silently revokes it — they are a
+contract, like the setting keys. Adding one is safe: no role holds it until someone ticks the
+box, so a new capability starts closed everywhere.
+
+### Rules that hold whatever the matrix says
+
+- **Admin is pinned.** It holds every permission, its column is read-only, and it cannot be
+  deleted. Without that, the last account able to open the Permissions tab could be edited out
+  of it. `PermissionService` answers for Admin without consulting the table at all, so even an
+  empty or half-written matrix leaves someone able to put it right.
+- **Seeded roles cannot be renamed or deleted.** Their permissions are fully editable; the names
+  are referenced by code, translations and the seeder.
+- **A role still in use cannot be deleted.** Move its holders first — reassigning people is a
+  decision, not a side effect.
+- **Nobody grants themselves.** `AdminAccountGuard` stops a non-Admin editing their own roles,
+  granting Admin, touching an administrator account, or adding themselves to a user group.
+- **Permissions resolve per request**, never from the token. Revoking one takes effect on the
+  caller's next click; nobody has to sign out. The cost is one indexed lookup per check, which is
+  deliberate — see the note on caching under Runtime Settings.
+- **Assigning a query to a role that cannot run queries does nothing.** `QueryAccessRoles` drops
+  any role without `queries.run` when resolving access, so such a grant is inert rather than
+  quietly broken.
+
+Two consequences worth stating plainly, because earlier versions promised otherwise:
+
+- `queries.run` **can** be granted to Auditor or Access Manager. It is not held by default, and
+  granting it is a deliberate act, but the old "these two roles can never run a query, ever"
+  guarantee is now a default rather than a law.
+- The `accessManager.canManageQueryAccess` and `accessManager.canManageUserGroups` settings are
+  gone. They were two hard-coded questions about one role; they are now the `access.manageQuery`
+  and `userGroups.manage` cells, askable of any role. The migration carries an existing
+  installation's answers across.
 
 Seeded accounts (development only — change or remove before deploying):
 `admin` / `Admin@123`, `user` / `User@123`, `auditor` / `Auditor@123`,
@@ -105,14 +120,21 @@ Seeded accounts (development only — change or remove before deploying):
 ## Runtime Settings
 
 Toggles an administrator can change without a restart, stored in `SystemSettings` and edited at
-**Settings** (in the profile menu, Admin only). They live in the database rather than
+**Settings** (in the profile menu, needs `settings.manage`). Who may do what is *not* here — that
+is the Permissions tab beside it, described under [Roles and permissions](#roles-and-permissions). They live in the database rather than
 `appsettings.json` precisely so they can be flipped from the UI — restarts are a scheduled event
 on the air-gapped installs. A missing row means "use the compiled default", so an upgraded
 database behaves exactly like a fresh one until someone changes something.
 
 | Key | Default | Effect |
 |---|---|---|
-| `accessManager.canManageQueryAccess` | `false` | When on, Access Managers may also assign roles/departments/users to an **individual** query, not just to query groups. Admins are unaffected. |
+| `session.accessTokenMinutes` | `60` | Access-token lifetime, 5–1440. Shorter means a revoked account or a dropped group membership stops working sooner. |
+| `session.refreshTokenDays` | `7` | Refresh-token lifetime, 1–90. How long someone may stay away and still return without signing in again. |
+| `query.maxRows` | `10000` | Rows read in one go on the paths that hold a whole result in memory — write previews, before-change snapshots, dropdown lookups. **Not** a display limit: the grid caches the full result and pages it, and exports are never capped. Overrides `MaxQueryRows` in appsettings.json, which remains the fallback. |
+| `directory.enabled` | `true` | When off, the AD Users page is hidden and `/api/admin/ldap` returns 503. Signing in is deliberately unaffected, so flipping it cannot lock out imported accounts. |
+
+The numbers are range-checked server-side; a value outside its bounds is refused with a message
+naming them. Every change is audited (`settings.updated`) with the full set of values.
 
 Settings are read on authorization paths and deliberately **not cached** — a stale value would
 mean granting access an administrator believes they just revoked. Changes are audited
@@ -279,45 +301,29 @@ Generate a key with `openssl rand -base64 32`.
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/login` — Authenticate (via LDAP/AD) and get tokens
-- `POST /api/auth/refresh` — Refresh expired access token
+**Full reference: [docs/API-REFERENCE.md](docs/API-REFERENCE.md)** — all 93 endpoints with their
+verbs, roles and query parameters. The map below is for orientation only.
 
-### Admin
-Admin unless noted — see [Roles](#roles) for what Auditor and Access Manager reach.
-- `GET /api/admin/dynamicqueries` — List all queries (Admin, Access Manager — SQL blanked for the latter)
-- `GET /api/admin/dynamicqueries/{id}` — Get query by ID (Admin, Access Manager — same)
-- `POST /api/admin/dynamicqueries` — Create query
-- `PUT /api/admin/dynamicqueries/{id}` — Update query
-- `DELETE /api/admin/dynamicqueries/{id}` — Delete query
-- `POST /api/admin/dynamicqueries/{id}/roles` — Assign roles (Admin, Access Manager)
-- `POST /api/admin/dynamicqueries/{id}/departments` — Assign departments (Admin, Access Manager)
-- `POST /api/admin/dynamicqueries/{id}/users` — Assign individual users (Admin, Access Manager)
-- `GET /api/admin/dynamicqueries/logs` — Get execution logs (Admin, Auditor). Optional filters: `queryId`, `userId`, `isSuccess`, `queryType` (0=Select, 1=Insert, 2=Update, 3=Delete, 4=Other), `search`; plus `sortBy`/`sortDescending`/`pageNumber`/`pageSize`. All applied in the database.
-- `GET /api/admin/dynamicqueries/logs/{id}/old-values` — Before-change snapshots (Admin, Auditor)
-- `GET /api/admin/roles` — List all roles (Admin, Access Manager)
-- `GET|POST|PUT /api/admin/users/...` — User management (Admin, Access Manager; administrator accounts and the caller's own roles are off limits to non-Admins)
+| Area | Base path | Who reaches it |
+|---|---|---|
+| Authentication | `/api/auth` | Anonymous — login, refresh, Windows SSO |
+| Branding | `/api/branding` | Any authenticated user; the logo image itself is anonymous |
+| Queries | `/api/admin/dynamicqueries` | Admin; AccessManager for accessibility, Auditor for logs |
+| Query groups | `/api/admin/querygroups` | Admin creates and edits; AccessManager grants |
+| User groups | `/api/admin/usergroups` | Admin and AccessManager |
+| Users and roles | `/api/admin/users`, `/api/admin/roles` | Admin and AccessManager |
+| Active Directory | `/api/admin/ldap` | Admin (two read endpoints also AccessManager) |
+| Database connections | `/api/admin/databaseusers` | Admin — except `/accessible`, open to any authenticated user |
+| Scheduled tasks | `/api/scheduledtasks` | Admin manages; viewers read what they were named on |
+| Audit trail | `/api/admin/systemauditlogs` | Admin and Auditor, read-only |
+| System settings | `/api/admin/systemsettings` | Admin writes; AccessManager reads |
+| Running queries | `/api/user/queries` | Any authenticated user, limited to what they may run |
 
-- `GET /api/admin/dynamicqueries/{id}/export` — Export one query as JSON
-- `GET /api/admin/dynamicqueries/export` — Export every query as one JSON backup
-- `POST /api/admin/dynamicqueries/import` — Restore from an export file, multipart `file` (Admin only)
-
-### Branding
-- `GET /api/branding/logo` — The site logo image, or 404 when none is set. **Anonymous** — see [Site logo](#site-logo)
-- `GET /api/branding/logo/info` — `{ hasLogo, fileName, updatedAt }` (authenticated)
-- `POST /api/branding/logo` — Upload/replace the logo, multipart `file` (Admin only)
-- `DELETE /api/branding/logo` — Remove the logo (Admin only)
-
-### User (requires authentication)
-- `GET /api/user/queries` — Get queries assigned to user
-- `POST /api/user/queries/{id}/execute` — Execute a normal query synchronously. A read result is cached server-side and the response returns execution metadata plus a `jobId`; a write result is returned inline (preview/confirm).
-- `POST /api/user/queries/{id}/execute-async` — Submit a long-running query as a background job (returns `{ jobId }`)
-- `GET /api/user/queries/jobs/{jobId}` — Poll an async job's status and result metadata (owner/Admin only)
-- `GET /api/user/queries/jobs/{jobId}/rows` — Get one page of a cached read result with server-side `pageIndex`/`pageSize`/`sortColumn`/`sortDir`/`filters` (owner/Admin only)
-- `GET /api/user/queries/jobs/{jobId}/export-file` — Download the cached read result as an Excel (.xlsx) file — no re-run (owner/Admin only)
-- `POST /api/user/queries/jobs/{jobId}/cancel` — Cancel a running async job, stopping the query server-side (owner/Admin only)
-- `DELETE /api/user/queries/jobs/{jobId}` — Release a cached result immediately (called when leaving the results page; owner/Admin only)
-- `GET /api/user/queries/history` — Get execution history
+Endpoints name a **permission**, not a role — see [Roles and permissions](#roles-and-permissions).
+Two rules are enforced in the handlers rather than by an attribute, so they are invisible in a
+route list: `AdminAccountGuard` fences off administrator accounts and self-grants, and a role
+without `queries.run` never resolves query access however a query is assigned to it. The
+reference marks each one.
 
 ## How Long-Running Queries Work (Async Execution)
 
@@ -482,7 +488,7 @@ bound individually (an empty list expands to `IN (NULL)`, matching no rows).
 ### Access control & auditing
 
 Before anything runs, the handler verifies the caller has access to the query (via role,
-department, direct user assignment, or parent query-group assignment; Admins bypass) and to
+user group, direct user assignment, or parent query-group assignment; Admins bypass) and to
 the configured database user. Then:
 
 - **Old-value capture.** For `UPDATE`/`DELETE`, the rows currently matching the `WHERE`
@@ -497,6 +503,43 @@ the configured database user. Then:
 - **Execution log.** Every execution — preview failures, successes, and errors — writes a
   `QueryExecutionLog` row recording the user, parameters (JSON), duration, affected/returned
   row count, success flag, and any error message.
+
+## User groups
+
+Access is granted to **roles**, to **user groups**, or to individual **users**. User groups are
+maintained inside the application, on **Users & Access → User Groups**, and are deliberately not
+a mirror of Active Directory.
+
+Access used to hang off the AD `department` attribute. That coupled every permission decision to
+a directory this application does not own: a reorganisation upstream silently moved people in and
+out of access, locally created accounts (which have no directory entry) could never be grouped at
+all, and reading who could see a query meant inferring it from an attribute nobody here maintains.
+A group is now an explicit list of members, and the same group can hold AD-imported and local
+accounts side by side.
+
+- **Membership resolves per request**, not from the JWT. Removing someone from a group takes their
+  access away on their next click, without waiting for the hour-long token to expire.
+- **Access Managers own them.** Deciding who is in a group is the same job as deciding what a
+  group may reach, so the role that does one does both. Query groups are a different thing and
+  stay Admin-only to create, edit and delete.
+- **Nobody can add themselves.** `AdminAccountGuard.EnsureNotJoiningGroup` refuses a non-Admin
+  who puts their own account into a group — otherwise an Access Manager could grant a query to a
+  group and then walk into it, which is exactly the self-grant the role-set rule already blocks.
+  Joining is refused, not membership: an account an administrator already placed in the group
+  stays there when the group is saved, and may still leave it.
+- **Deleting a group** removes its grants too. The member accounts are untouched.
+- Every change is audited under the `userGroups` category (`userGroups.create`, `.update`,
+  `.delete`, `.setMembers`), and grants under `access.queryUserGroups` / `access.groupUserGroups`.
+
+The AD department is still recorded on imported accounts and still drives the **AD Users** page,
+where you browse the directory by department and import people from it. It just no longer decides
+what anyone can reach.
+
+Upgrading from a department-based install carries access across: the
+`SwitchAccessFromAdDepartmentsToUserGroups` migration turns every department that currently grants
+something into a user group of the same name, seeded with the users whose department matched at
+that moment, and re-points the grants at it. Nobody's access changes on the day of the upgrade;
+from then on, membership is edited in the application.
 
 ## Query Backup (Export / Import)
 
@@ -515,7 +558,7 @@ the file references related records by name and import re-resolves each one:
 | Query group | Matched by name; **created** if missing (a group is just a folder) |
 | Database connection | Matched by name; if missing, the query is left on the default connection and a warning is reported |
 | Roles / users | Matched by name; unmatched assignments are dropped and reported |
-| Departments | Free text, carried across as-is |
+| User groups | Matched by name; unmatched grants are dropped and reported (membership is never exported) |
 | Dropdown source query | Resolved in a **second pass**, after every query in the file exists — so a dropdown can point at another query from the same backup, even one that got renamed |
 
 `QueryType` is not exported: it is re-derived from the SQL on import rather than trusted from an
@@ -571,13 +614,21 @@ Uploads are cache-busted with `?v=<updatedAt>`; the image itself is sent with a 
 ## Database Schema
 
 ```
-Users ──┐
-        ├── UserRoles ──┐
-Roles ──┘               │
-  │                     │
-  ├── DynamicQueryRoles ─── DynamicQueries ── QueryParameters
-  │                              │
-  └──────────────────── QueryExecutionLogs
+Users ──┬── UserRoles ─────── Roles
+        │                       │
+        ├── UserGroupMembers ── UserGroups
+        │                       │
+        │        ┌──────────────┴──────────────┐
+        │        │                             │
+        │  DynamicQueryUserGroups      QueryGroupUserGroups
+        │        │                             │
+        │        └── DynamicQueries ── QueryParameters
+        │                 │      └──── QueryGroups
+        │                 │
+        └──────────── QueryExecutionLogs
+
+(DynamicQueryRoles / DynamicQueryUsers and their QueryGroup twins grant the same queries
+ to a role or to one person; user groups are the third way in.)
 ```
 
 ## Tech Stack

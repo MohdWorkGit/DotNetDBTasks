@@ -46,19 +46,19 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
             r => roleIds.Contains(r.Id), cancellationToken);
         var roleNames = roles.Select(r => r.Name).ToList();
 
-        var newAccessToken = _tokenService.GenerateAccessToken(user, roleNames);
+        var newAccessToken = await _tokenService.GenerateAccessTokenAsync(user, roleNames, cancellationToken);
         var newRefreshToken = _tokenService.GenerateRefreshToken();
 
         user.RefreshToken = newRefreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+        user.RefreshTokenExpiryTime = await _tokenService.GetRefreshTokenExpiryAsync(cancellationToken);
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new AuthResult
         {
-            AccessToken = newAccessToken,
+            AccessToken = newAccessToken.Value,
             RefreshToken = newRefreshToken,
-            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            ExpiresAt = newAccessToken.ExpiresAtUtc,
             Username = user.Username,
             Roles = roleNames
         };

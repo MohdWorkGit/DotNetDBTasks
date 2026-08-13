@@ -1,3 +1,4 @@
+using DotNetDBTasks.API.Authorization;
 using DotNetDBTasks.Application.Features.Users.Commands;
 using DotNetDBTasks.Application.Features.Users.Queries;
 using MediatR;
@@ -17,7 +18,7 @@ namespace DotNetDBTasks.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = RoleNames.AdminOrAccessManager)]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -31,6 +32,7 @@ public class UsersController : ControllerBase
     /// Retrieves all users with their roles.
     /// </summary>
     [HttpGet]
+    [RequirePermission(Permissions.UsersView)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetAllUsersQuery(), cancellationToken);
@@ -41,6 +43,7 @@ public class UsersController : ControllerBase
     /// Retrieves a specific user by ID.
     /// </summary>
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.UsersView)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetUserByIdQuery(id), cancellationToken);
@@ -51,6 +54,7 @@ public class UsersController : ControllerBase
     /// Creates a new local user.
     /// </summary>
     [HttpPost]
+    [RequirePermission(Permissions.UsersManage)]
     public async Task<IActionResult> Create(
         [FromBody] CreateUserCommand command,
         CancellationToken cancellationToken)
@@ -63,6 +67,7 @@ public class UsersController : ControllerBase
     /// Changes a user's username.
     /// </summary>
     [HttpPut("{id:guid}/username")]
+    [RequirePermission(Permissions.UsersManage)]
     public async Task<IActionResult> ChangeUsername(
         Guid id,
         [FromBody] ChangeUsernameCommand command,
@@ -77,6 +82,7 @@ public class UsersController : ControllerBase
     /// Changes a user's password (admin sets new password).
     /// </summary>
     [HttpPut("{id:guid}/password")]
+    [RequirePermission(Permissions.UsersManage)]
     public async Task<IActionResult> ChangePassword(
         Guid id,
         [FromBody] ChangePasswordCommand command,
@@ -91,6 +97,7 @@ public class UsersController : ControllerBase
     /// Resets a user's password to a temporary generated password.
     /// </summary>
     [HttpPost("{id:guid}/reset-password")]
+    [RequirePermission(Permissions.UsersManage)]
     public async Task<IActionResult> ResetPassword(
         Guid id,
         CancellationToken cancellationToken)
@@ -103,6 +110,7 @@ public class UsersController : ControllerBase
     /// Updates a user's role assignments.
     /// </summary>
     [HttpPut("{id:guid}/roles")]
+    [RequirePermission(Permissions.UsersManage)]
     public async Task<IActionResult> ChangeRoles(
         Guid id,
         [FromBody] ChangeUserRoleCommand command,
@@ -117,6 +125,7 @@ public class UsersController : ControllerBase
     /// Activates or deactivates a user.
     /// </summary>
     [HttpPut("{id:guid}/active")]
+    [RequirePermission(Permissions.UsersManage)]
     public async Task<IActionResult> ToggleActive(
         Guid id,
         [FromBody] ToggleUserActiveCommand command,

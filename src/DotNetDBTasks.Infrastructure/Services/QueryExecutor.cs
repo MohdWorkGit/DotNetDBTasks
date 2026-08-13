@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using DotNetDBTasks.Application.Common.Interfaces;
 using DotNetDBTasks.Application.Common.Models;
+using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Enums;
 using DotNetDBTasks.Domain.Exceptions;
 using Microsoft.Data.SqlClient;
@@ -22,10 +23,18 @@ public class QueryExecutor : IQueryExecutor
 {
     private readonly string _defaultConnectionString;
     private readonly DatabaseServerType _defaultServerType;
-    private readonly int _maxQueryRows;
+    private readonly ISystemSettingsService _settings;
 
-    public QueryExecutor(IConfiguration configuration)
+    /// <summary>
+    /// The row cap from appsettings.json. It is the <em>default</em> the runtime setting falls
+    /// back to, not a competing value: an installation that already tuned MaxQueryRows keeps
+    /// its number until someone changes it on the Settings page.
+    /// </summary>
+    private readonly int _configuredMaxQueryRows;
+
+    public QueryExecutor(IConfiguration configuration, ISystemSettingsService settings)
     {
+        _settings = settings;
         _defaultConnectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not configured.");
 
@@ -34,19 +43,25 @@ public class QueryExecutor : IQueryExecutor
             ? parsed
             : DatabaseServerType.Oracle;
 
-        _maxQueryRows = configuration.GetValue<int>("MaxQueryRows", 10_000);
+        _configuredMaxQueryRows = configuration.GetValue(
+            "MaxQueryRows", SystemSettingKeys.QueryMaxRowsDefault);
     }
 
-    public Task<QueryExecutionResult> ExecuteAsync(
+    /// <summary>The cap in force right now: the runtime setting, or the configured default.</summary>
+    private Task<int> ResolveMaxRowsAsync(CancellationToken cancellationToken) =>
+        _settings.GetIntAsync(SystemSettingKeys.QueryMaxRows, _configuredMaxQueryRows, cancellationToken);
+
+    public async Task<QueryExecutionResult> ExecuteAsync(
         string sqlQuery,
         Dictionary<string, object?> parameters,
         int timeoutSeconds,
         CancellationToken cancellationToken = default)
     {
-        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, _defaultConnectionString, _defaultServerType, _maxQueryRows, cancellationToken);
+        var maxRows = await ResolveMaxRowsAsync(cancellationToken);
+        return await ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, _defaultConnectionString, _defaultServerType, maxRows, cancellationToken);
     }
 
-    public Task<QueryExecutionResult> ExecuteAsync(
+    public async Task<QueryExecutionResult> ExecuteAsync(
         string sqlQuery,
         Dictionary<string, object?> parameters,
         int timeoutSeconds,
@@ -54,7 +69,8 @@ public class QueryExecutor : IQueryExecutor
         DatabaseServerType serverType,
         CancellationToken cancellationToken = default)
     {
-        return ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, connectionString, serverType, _maxQueryRows, cancellationToken);
+        var maxRows = await ResolveMaxRowsAsync(cancellationToken);
+        return await ExecuteInternalAsync(sqlQuery, parameters, timeoutSeconds, connectionString, serverType, maxRows, cancellationToken);
     }
 
     public Task<QueryExecutionResult> ExecuteAsync(

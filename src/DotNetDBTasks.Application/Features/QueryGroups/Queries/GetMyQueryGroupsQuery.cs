@@ -1,5 +1,6 @@
 using AutoMapper;
 using DotNetDBTasks.Application.Common.Interfaces;
+using DotNetDBTasks.Application.Common.Security;
 using DotNetDBTasks.Application.Features.DynamicQueries.Queries;
 using DotNetDBTasks.Domain.Entities;
 using DotNetDBTasks.Domain.Interfaces;
@@ -9,8 +10,8 @@ namespace DotNetDBTasks.Application.Features.QueryGroups.Queries;
 
 /// <summary>
 /// Builds the "My Queries" view, grouped by QueryGroup. A user sees:
-///   - every query they have direct/role/department access to, and
-///   - every query inside a group they have direct/role/department access to.
+///   - every query they have direct/role/user-group access to, and
+///   - every query inside a group they have direct/role/user-group access to.
 /// Queries with no group are bucketed into a synthetic "Ungrouped" entry (Id=null).
 /// Empty groups are omitted.
 /// </summary>
@@ -37,23 +38,26 @@ public class GetMyQueryGroupsQueryHandler
         GetMyQueryGroupsQuery request,
         CancellationToken cancellationToken)
     {
-        var userRoles = await _unitOfWork.UserRoles.FindAsync(
-            ur => ur.UserId == _currentUser.UserId, cancellationToken);
-        var roleIds = userRoles.Select(ur => ur.RoleId).ToHashSet();
-        var department = _currentUser.Department;
+        // Through QueryAccessRoles, not the raw UserRoles rows: a query assigned to Auditor
+        // or AccessManager grants nothing, and listing it here would put a card on the page
+        // that refuses to open when clicked.
+        var roleIds = await QueryAccessRoles.GrantingRoleIdsAsync(
+            _unitOfWork, _currentUser.UserId, cancellationToken);
+        var userGroupIds = await UserGroupMembership.GroupIdsAsync(
+            _unitOfWork, _currentUser.UserId, cancellationToken);
 
-        // 1. Resolve query-level access (role / department / direct user).
+        // 1. Resolve query-level access (role / user group / direct user).
         var accessibleQueryIds = new HashSet<Guid>();
 
         var queryRoles = await _unitOfWork.DynamicQueryRoles.FindAsync(
             qr => roleIds.Contains(qr.RoleId), cancellationToken);
         foreach (var qr in queryRoles) accessibleQueryIds.Add(qr.DynamicQueryId);
 
-        if (!string.IsNullOrEmpty(department))
+        if (userGroupIds.Count > 0)
         {
-            var queryDepartments = await _unitOfWork.DynamicQueryDepartments.FindAsync(
-                qd => qd.Department == department, cancellationToken);
-            foreach (var qd in queryDepartments) accessibleQueryIds.Add(qd.DynamicQueryId);
+            var queryUserGroups = await _unitOfWork.DynamicQueryUserGroups.FindAsync(
+                qg => userGroupIds.Contains(qg.UserGroupId), cancellationToken);
+            foreach (var qg in queryUserGroups) accessibleQueryIds.Add(qg.DynamicQueryId);
         }
 
         var queryUsers = await _unitOfWork.DynamicQueryUsers.FindAsync(
@@ -67,11 +71,11 @@ public class GetMyQueryGroupsQueryHandler
             gr => roleIds.Contains(gr.RoleId), cancellationToken);
         foreach (var gr in groupRoles) accessibleGroupIds.Add(gr.QueryGroupId);
 
-        if (!string.IsNullOrEmpty(department))
+        if (userGroupIds.Count > 0)
         {
-            var groupDepartments = await _unitOfWork.QueryGroupDepartments.FindAsync(
-                gd => gd.Department == department, cancellationToken);
-            foreach (var gd in groupDepartments) accessibleGroupIds.Add(gd.QueryGroupId);
+            var groupUserGroups = await _unitOfWork.QueryGroupUserGroups.FindAsync(
+                gg => userGroupIds.Contains(gg.UserGroupId), cancellationToken);
+            foreach (var gg in groupUserGroups) accessibleGroupIds.Add(gg.QueryGroupId);
         }
 
         var groupUsers = await _unitOfWork.QueryGroupUsers.FindAsync(
@@ -84,7 +88,7 @@ public class GetMyQueryGroupsQueryHandler
                 accessibleQueryIds.Contains(q.Id) ||
                 (q.QueryGroupId.HasValue && accessibleGroupIds.Contains(q.QueryGroupId.Value))),
             cancellationToken,
-            "DynamicQueryRoles.Role", "DynamicQueryDepartments", "DynamicQueryUsers.User",
+            "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
             "Parameters", "DatabaseUser", "QueryGroup");
 
         // 4. Bucket queries by group, ordering groups by name and "Ungrouped" last.

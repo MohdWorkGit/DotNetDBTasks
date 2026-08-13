@@ -6,7 +6,7 @@ import { grantsQueryAccess, roleLabel } from '@core/models/roles';
 import { forkJoin, throwError } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
-import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query.model';
+import { DynamicQuery, Role, SystemUser, UserGroup } from '@core/models/dynamic-query.model';
 
 @Component({
   standalone: false,
@@ -55,22 +55,24 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
               </form>
             </mat-tab>
 
-            <!-- Departments Tab -->
-            <mat-tab label="Departments">
-              <form [formGroup]="departmentsForm" (ngSubmit)="onSaveDepartments()" class="tab-content">
+            <!-- User Groups Tab -->
+            <mat-tab [label]="'admin.access.userGroupsTab' | transloco">
+              <form [formGroup]="userGroupsForm" (ngSubmit)="onSaveUserGroups()" class="tab-content">
                 <mat-form-field class="full-width" appearance="outline">
-                  <mat-label>{{ 'admin.access.assignedDepartments' | transloco }}</mat-label>
-                  <mat-select formControlName="departments" multiple>
-                    <mat-option *ngFor="let dept of departments" [value]="dept">
-                      {{ dept }}
+                  <mat-label>{{ 'admin.access.assignedUserGroups' | transloco }}</mat-label>
+                  <mat-select formControlName="userGroupIds" multiple>
+                    <mat-option *ngFor="let group of userGroups" [value]="group.id">
+                      {{ group.name }}
+                      <span class="member-count">({{ 'admin.access.memberCount' | transloco: { count: group.memberCount } }})</span>
                     </mat-option>
                   </mat-select>
+                  <mat-hint *ngIf="userGroups.length === 0">{{ 'admin.access.noUserGroups' | transloco }}</mat-hint>
                 </mat-form-field>
 
                 <div class="actions">
                   <button mat-button type="button" routerLink="/admin/queries">{{ 'common.cancel' | transloco }}</button>
                   <button mat-raised-button color="primary" type="submit" [disabled]="saving">
-                    {{ saving ? 'Saving...' : 'Save Departments' }}
+                    {{ saving ? ('common.saving' | transloco) : ('admin.access.saveUserGroups' | transloco) }}
                   </button>
                 </div>
               </form>
@@ -104,19 +106,20 @@ import { DynamicQuery, ImportedLdapUser, Role } from '@core/models/dynamic-query
   styles: [`
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
     .tab-content { padding-top: 24px; }
+    .member-count { color: var(--text-secondary); }
   `]
 })
 export class RoleAssignmentComponent implements OnInit {
   rolesForm!: FormGroup;
-  departmentsForm!: FormGroup;
+  userGroupsForm!: FormGroup;
   usersForm!: FormGroup;
   query?: DynamicQuery;
   roles: Role[] = [];
 
   /** "AccessManager" -> "Access Manager" for display. */
   roleLabel = roleLabel;
-  departments: string[] = [];
-  users: ImportedLdapUser[] = [];
+  userGroups: UserGroup[] = [];
+  users: SystemUser[] = [];
   saving = false;
   loading = true;
   errorMessage = '';
@@ -132,7 +135,7 @@ export class RoleAssignmentComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {
     this.rolesForm = this.fb.group({ roleIds: [[]] });
-    this.departmentsForm = this.fb.group({ departments: [[]] });
+    this.userGroupsForm = this.fb.group({ userGroupIds: [[]] });
     this.usersForm = this.fb.group({ userIds: [[]] });
   }
 
@@ -148,8 +151,8 @@ export class RoleAssignmentComponent implements OnInit {
     forkJoin({
       query: this.queryService.getQueryById(this.queryId),
       roles: this.queryService.getRoles(),
-      departments: this.queryService.getLdapDepartments().pipe(catchError(() => [])),
-      users: this.queryService.getImportedLdapUsers().pipe(catchError(() => []))
+      userGroups: this.queryService.getAllUserGroups(),
+      users: this.queryService.getAllUsers()
     }).pipe(
       timeout(30000),
       catchError(err => {
@@ -165,13 +168,13 @@ export class RoleAssignmentComponent implements OnInit {
         // resolving who may open a query. Offering them here would only let someone save
         // an assignment that silently does nothing.
         this.roles = result.roles.filter(r => grantsQueryAccess(r.name));
-        this.departments = result.departments as string[];
-        this.users = result.users as ImportedLdapUser[];
+        this.userGroups = result.userGroups;
+        this.users = result.users;
         this.rolesForm.patchValue({
           roleIds: result.query.assignedRoles.map(r => r.roleId)
         });
-        this.departmentsForm.patchValue({
-          departments: result.query.assignedDepartments.map(d => d.department)
+        this.userGroupsForm.patchValue({
+          userGroupIds: result.query.assignedUserGroups.map(g => g.userGroupId)
         });
         this.usersForm.patchValue({
           userIds: result.query.assignedUsers.map(u => u.userId)
@@ -202,17 +205,17 @@ export class RoleAssignmentComponent implements OnInit {
     });
   }
 
-  onSaveDepartments(): void {
+  onSaveUserGroups(): void {
     this.saving = true;
-    this.queryService.assignDepartments(this.queryId, { departments: this.departmentsForm.value.departments }).subscribe({
+    this.queryService.assignUserGroups(this.queryId, { userGroupIds: this.userGroupsForm.value.userGroupIds }).subscribe({
       next: () => {
         this.saving = false;
-        this.toast.success('admin.access.departmentsAssigned');
+        this.toast.success('admin.access.userGroupsAssigned');
         this.router.navigate(['/admin/queries']);
       },
       error: (err) => {
         this.saving = false;
-        this.toast.error(err, 'admin.access.departmentsFailed');
+        this.toast.error(err, 'admin.access.userGroupsFailed');
       }
     });
   }

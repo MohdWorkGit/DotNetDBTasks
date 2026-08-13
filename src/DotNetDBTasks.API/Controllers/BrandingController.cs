@@ -1,3 +1,4 @@
+using DotNetDBTasks.API.Authorization;
 using DotNetDBTasks.Application.Features.Branding;
 using MediatR;
 using DotNetDBTasks.Domain.Constants;
@@ -64,7 +65,7 @@ public class BrandingController : ControllerBase
 
     /// <summary>Uploads (or replaces) the site logo. Requires Admin role.</summary>
     [HttpPost("logo")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.BrandingManage)]
     [RequestSizeLimit(MaxLogoBytes + 1024)]
     public async Task<IActionResult> UploadLogo(IFormFile file, CancellationToken cancellationToken)
     {
@@ -97,7 +98,7 @@ public class BrandingController : ControllerBase
 
     /// <summary>Removes the logo; the banner falls back to the app name. Requires Admin role.</summary>
     [HttpDelete("logo")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.BrandingManage)]
     public async Task<IActionResult> DeleteLogo(CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteBrandingLogoCommand(), cancellationToken);

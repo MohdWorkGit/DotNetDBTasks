@@ -1,3 +1,4 @@
+using DotNetDBTasks.API.Authorization;
 using DotNetDBTasks.Application.Features.QueryGroups.Commands;
 using DotNetDBTasks.Application.Features.QueryGroups.Queries;
 using MediatR;
@@ -14,7 +15,7 @@ namespace DotNetDBTasks.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = RoleNames.AdminOrAccessManager)]
+[Authorize]
 public class QueryGroupsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -25,6 +26,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.QueriesView)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetAllQueryGroupsQuery(), cancellationToken);
@@ -32,6 +34,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.QueriesView)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetQueryGroupByIdQuery(id), cancellationToken);
@@ -39,7 +42,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueryGroupsManage)]
     public async Task<IActionResult> Create(
         [FromBody] CreateQueryGroupCommand command,
         CancellationToken cancellationToken)
@@ -49,7 +52,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueryGroupsManage)]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateQueryGroupCommand command,
@@ -61,7 +64,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = RoleNames.Admin)]
+    [RequirePermission(Permissions.QueryGroupsManage)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteQueryGroupCommand(id), cancellationToken);
@@ -69,6 +72,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/roles")]
+    [RequirePermission(Permissions.AccessManageGroup)]
     public async Task<IActionResult> AssignToRoles(
         Guid id,
         [FromBody] AssignQueryGroupToRolesCommand command,
@@ -79,10 +83,11 @@ public class QueryGroupsController : ControllerBase
         return NoContent();
     }
 
-    [HttpPost("{id:guid}/departments")]
-    public async Task<IActionResult> AssignToDepartments(
+    [HttpPost("{id:guid}/user-groups")]
+    [RequirePermission(Permissions.AccessManageGroup)]
+    public async Task<IActionResult> AssignToUserGroups(
         Guid id,
-        [FromBody] AssignQueryGroupToDepartmentsCommand command,
+        [FromBody] AssignQueryGroupToUserGroupsCommand command,
         CancellationToken cancellationToken)
     {
         command.GroupId = id;
@@ -91,6 +96,7 @@ public class QueryGroupsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/users")]
+    [RequirePermission(Permissions.AccessManageGroup)]
     public async Task<IActionResult> AssignToUsers(
         Guid id,
         [FromBody] AssignQueryGroupToUsersCommand command,

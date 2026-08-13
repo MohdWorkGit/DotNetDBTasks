@@ -61,15 +61,17 @@ public class GetParameterDropdownOptionsQueryHandler
 
         var userRoleIds = await QueryAccessRoles.GrantingRoleIdsAsync(
             _unitOfWork, _currentUser.UserId, cancellationToken);
+        var userGroupIds = await UserGroupMembership.GroupIdsAsync(
+            _unitOfWork, _currentUser.UserId, cancellationToken);
 
         var queryRoles = await _unitOfWork.DynamicQueryRoles.FindAsync(
             qr => qr.DynamicQueryId == request.QueryId, cancellationToken);
         hasAccess = queryRoles.Any(qr => userRoleIds.Contains(qr.RoleId));
 
-        if (!hasAccess && !string.IsNullOrEmpty(_currentUser.Department))
+        if (!hasAccess && userGroupIds.Count > 0)
         {
-            hasAccess = await _unitOfWork.DynamicQueryDepartments.ExistsAsync(
-                qd => qd.DynamicQueryId == request.QueryId && qd.Department == _currentUser.Department,
+            hasAccess = await _unitOfWork.DynamicQueryUserGroups.ExistsAsync(
+                qg => qg.DynamicQueryId == request.QueryId && userGroupIds.Contains(qg.UserGroupId),
                 cancellationToken);
         }
 
@@ -89,10 +91,10 @@ public class GetParameterDropdownOptionsQueryHandler
                 gr => gr.QueryGroupId == groupId && userRoleIds.Contains(gr.RoleId),
                 cancellationToken);
 
-            if (!hasAccess && !string.IsNullOrEmpty(_currentUser.Department))
+            if (!hasAccess && userGroupIds.Count > 0)
             {
-                hasAccess = await _unitOfWork.QueryGroupDepartments.ExistsAsync(
-                    gd => gd.QueryGroupId == groupId && gd.Department == _currentUser.Department,
+                hasAccess = await _unitOfWork.QueryGroupUserGroups.ExistsAsync(
+                    gg => gg.QueryGroupId == groupId && userGroupIds.Contains(gg.UserGroupId),
                     cancellationToken);
             }
 

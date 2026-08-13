@@ -18,12 +18,15 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<QueryParameter> QueryParameters { get; }
     public IRepository<QueryExecutionLog> QueryExecutionLogs { get; }
     public IRepository<UserRole> UserRoles { get; }
+    public IRepository<RolePermission> RolePermissions { get; }
+    public IRepository<UserGroup> UserGroups { get; }
+    public IRepository<UserGroupMember> UserGroupMembers { get; }
     public IRepository<DynamicQueryRole> DynamicQueryRoles { get; }
-    public IRepository<DynamicQueryDepartment> DynamicQueryDepartments { get; }
+    public IRepository<DynamicQueryUserGroup> DynamicQueryUserGroups { get; }
     public IRepository<DynamicQueryUser> DynamicQueryUsers { get; }
     public IRepository<QueryGroup> QueryGroups { get; }
     public IRepository<QueryGroupRole> QueryGroupRoles { get; }
-    public IRepository<QueryGroupDepartment> QueryGroupDepartments { get; }
+    public IRepository<QueryGroupUserGroup> QueryGroupUserGroups { get; }
     public IRepository<QueryGroupUser> QueryGroupUsers { get; }
     public IRepository<DatabaseUser> DatabaseUsers { get; }
     public IRepository<DatabaseUserRoleAccess> DatabaseUserRoleAccess { get; }
@@ -45,12 +48,15 @@ public class UnitOfWork : IUnitOfWork
         QueryParameters = new Repository<QueryParameter>(context);
         QueryExecutionLogs = new Repository<QueryExecutionLog>(context);
         UserRoles = new Repository<UserRole>(context);
+        RolePermissions = new Repository<RolePermission>(context);
+        UserGroups = new Repository<UserGroup>(context);
+        UserGroupMembers = new Repository<UserGroupMember>(context);
         DynamicQueryRoles = new Repository<DynamicQueryRole>(context);
-        DynamicQueryDepartments = new Repository<DynamicQueryDepartment>(context);
+        DynamicQueryUserGroups = new Repository<DynamicQueryUserGroup>(context);
         DynamicQueryUsers = new Repository<DynamicQueryUser>(context);
         QueryGroups = new Repository<QueryGroup>(context);
         QueryGroupRoles = new Repository<QueryGroupRole>(context);
-        QueryGroupDepartments = new Repository<QueryGroupDepartment>(context);
+        QueryGroupUserGroups = new Repository<QueryGroupUserGroup>(context);
         QueryGroupUsers = new Repository<QueryGroupUser>(context);
         DatabaseUsers = new Repository<DatabaseUser>(context);
         DatabaseUserRoleAccess = new Repository<DatabaseUserRoleAccess>(context);
