@@ -450,12 +450,12 @@ async function captureLocale(browser, locale, sample) {
     await openTab(T('admin.adUsers.importedTab'));
     await shot('57-ad-users-imported');
   });
-  await step('logo dialog', async () => {
+  await step('branding dialog', async () => {
     await go('/admin/queries', 'table');
     await openAccountMenu();
-    await clickLabel('nav.websiteLogo');
+    await clickLabel('nav.websiteBranding');
     await settle(page, 900);
-    await shot('58-logo-dialog');
+    await shot('58-branding-dialog');
     await closeOverlay();
   });
 

@@ -23,4 +23,18 @@ public interface ISystemSettingsService
     Task<int> GetIntAsync(string key, int defaultValue, CancellationToken cancellationToken = default);
 
     Task SetIntAsync(string key, int value, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The stored text, or null when unset. Unlike the bool and int readers there is no
+    /// compiled default: for the site name "nothing stored" is a real state the caller has to
+    /// act on, because the banner then falls back to the translated application name.
+    /// </summary>
+    Task<string?> GetStringAsync(string key, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores the text. Null or blank clears the setting, which reads back as unset — note
+    /// that clearing removes the row rather than blanking it, because Oracle cannot hold an
+    /// empty string in a NOT NULL column.
+    /// </summary>
+    Task SetStringAsync(string key, string? value, CancellationToken cancellationToken = default);
 }

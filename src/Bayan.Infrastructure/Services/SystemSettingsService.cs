@@ -54,6 +54,35 @@ public class SystemSettingsService : ISystemSettingsService
     public Task SetIntAsync(string key, int value, CancellationToken cancellationToken = default) =>
         WriteAsync(key, value.ToString(CultureInfo.InvariantCulture), cancellationToken);
 
+    public Task<string?> GetStringAsync(string key, CancellationToken cancellationToken = default) =>
+        ReadAsync(key, cancellationToken);
+
+    /// <summary>
+    /// Clearing deletes the row rather than storing an empty string.
+    ///
+    /// <para>Oracle stores <c>''</c> as NULL, and <c>Value</c> is NOT NULL — so an empty write
+    /// fails with ORA-01407 instead of clearing anything. Deleting is also the truthful
+    /// encoding: "no row" is what this store already means by unset, so a cleared setting
+    /// looks exactly like one that was never written.</para>
+    /// </summary>
+    public async Task SetStringAsync(string key, string? value, CancellationToken cancellationToken = default)
+    {
+        var trimmed = value?.Trim();
+        if (!string.IsNullOrEmpty(trimmed))
+        {
+            await WriteAsync(key, trimmed, cancellationToken);
+            return;
+        }
+
+        var existing = (await _unitOfWork.SystemSettings.FindAsync(
+            s => s.Key == key, cancellationToken)).FirstOrDefault();
+        if (existing is null)
+            return;
+
+        _unitOfWork.SystemSettings.Delete(existing);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     /// <summary>The stored text, or null when there is no row or it is blank.</summary>
     private async Task<string?> ReadAsync(string key, CancellationToken cancellationToken)
     {

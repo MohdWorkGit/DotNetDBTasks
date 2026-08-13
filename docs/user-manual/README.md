@@ -57,7 +57,7 @@ Environment variables, all optional:
 
 Screenshots must never change data, and that is enforced rather than trusted: a Playwright
 route handler **aborts every non-GET request** except signing in and executing a query. This is
-not paranoia — the Website logo dialog's **Remove** button commits immediately with no
+not paranoia — the Website branding dialog's **Remove** button commits immediately with no
 confirmation step, and an earlier version of this script deleted a live site logo with it.
 
 The one screenshot of a data-changing query uses the server-side *preview*, which runs inside a

@@ -2,13 +2,20 @@ using Bayan.API.Authorization;
 using Bayan.Application.Features.Branding;
 using MediatR;
 using Bayan.Domain.Constants;
+using Bayan.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bayan.API.Controllers;
 
 /// <summary>
-/// Site branding: the logo shown in the top banner in place of the app name.
+/// Site branding: what the top banner shows in place of the application name — an uploaded
+/// logo, or a site name written per language, or neither.
+///
+/// <para>The banner resolves them in that order: the logo wins when one is stored, otherwise
+/// the site name for the active language, otherwise the translated application name. So an
+/// installation can be renamed without producing artwork, and removing a logo reveals the
+/// name underneath rather than emptying the banner.</para>
 /// </summary>
 [ApiController]
 [Route("api/branding")]
@@ -48,20 +55,67 @@ public class BrandingController : ControllerBase
     }
 
     /// <summary>
-    /// Reports whether a logo is stored, its file name, and when it changed. The timestamp is
-    /// the client's cache-busting token.
+    /// Everything the banner needs: whether a logo is stored, its file name, when it changed
+    /// (the client's cache-busting token), and the configured site name in each language.
     /// </summary>
-    [HttpGet("logo/info")]
-    public async Task<IActionResult> GetLogoInfo(CancellationToken cancellationToken)
+    /// <remarks>
+    /// One call rather than one per asset, because the shell reads all of it on every sign-in
+    /// to decide what the banner shows. Both site names are returned regardless of the caller's
+    /// language: the branding dialog edits the pair, and the language toggle switches between
+    /// them without a refetch.
+    /// </remarks>
+    [HttpGet]
+    public async Task<IActionResult> GetInfo(CancellationToken cancellationToken)
     {
         var logo = await _mediator.Send(new GetBrandingLogoQuery(), cancellationToken);
+        var siteName = await _mediator.Send(new GetBrandingSiteNameQuery(), cancellationToken);
         return Ok(new
         {
             hasLogo = logo is not null,
             fileName = logo?.FileName,
-            updatedAt = logo?.UpdatedAt
+            updatedAt = logo?.UpdatedAt,
+            siteNameEn = siteName.En,
+            siteNameAr = siteName.Ar
         });
     }
+
+    /// <summary>
+    /// Sets the banner's site name in either or both languages. Requires <c>branding.manage</c>.
+    /// </summary>
+    /// <remarks>
+    /// A blank value clears that language, which is a supported state rather than an error:
+    /// the banner then falls back to the translated application name. Sending both blank
+    /// restores the default name in both languages.
+    /// </remarks>
+    [HttpPut("site-name")]
+    [RequirePermission(Permissions.BrandingManage)]
+    public async Task<IActionResult> SetSiteName(
+        [FromBody] SetSiteNameRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request is null)
+            return BadRequest(new { message = "No site name was supplied." });
+
+        var en = request.SiteNameEn?.Trim();
+        var ar = request.SiteNameAr?.Trim();
+
+        // Checked before storing rather than clipped on display: a name the banner would
+        // truncate is a mistake worth reporting, not one worth hiding.
+        if (en?.Length > SystemSettingKeys.BrandingSiteNameMaxLength ||
+            ar?.Length > SystemSettingKeys.BrandingSiteNameMaxLength)
+        {
+            return BadRequest(new
+            {
+                message = $"A site name must be {SystemSettingKeys.BrandingSiteNameMaxLength} characters or fewer."
+            });
+        }
+
+        await _mediator.Send(new SetBrandingSiteNameCommand(en, ar), cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Body of <see cref="SetSiteName"/>; either member may be blank.</summary>
+    public record SetSiteNameRequest(string? SiteNameEn, string? SiteNameAr);
 
     /// <summary>Uploads (or replaces) the site logo. Requires Admin role.</summary>
     [HttpPost("logo")]
@@ -96,7 +150,10 @@ public class BrandingController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>Removes the logo; the banner falls back to the app name. Requires Admin role.</summary>
+    /// <summary>
+    /// Removes the logo; the banner falls back to the configured site name, or to the
+    /// application name when none is set. Requires <c>branding.manage</c>.
+    /// </summary>
     [HttpDelete("logo")]
     [RequirePermission(Permissions.BrandingManage)]
     public async Task<IActionResult> DeleteLogo(CancellationToken cancellationToken)

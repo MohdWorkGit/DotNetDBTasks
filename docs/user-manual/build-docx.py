@@ -589,9 +589,9 @@ def build_manual(doc):
     h2(doc, T("3.2 The main window", "٣.٢ الواجهة الرئيسية"))
     para(doc, T(
         "The bar across the top is the whole navigation. On one side is the site logo (or the "
-        "application name when no logo has been uploaded); on the other are the destinations "
+        "site name when no logo has been uploaded); on the other are the destinations "
         "your roles can reach, then the account menu.",
-        "الشريط العلوي هو كامل نظام التنقل. على أحد طرفيه شعار الموقع (أو اسم التطبيق إن لم "
+        "الشريط العلوي هو كامل نظام التنقل. على أحد طرفيه شعار الموقع (أو اسم الموقع إن لم "
         "يُرفع شعار)، وعلى الطرف الآخر الوجهات التي تسمح بها أدوارك، ثم قائمة الحساب."))
     figure(doc, "02-admin-landing",
            T("The application as an administrator sees it: My Queries, History, and the "
@@ -630,8 +630,8 @@ def build_manual(doc):
                T("Logs, System Audit", "سجلات التنفيذ، وسجل عمليات النظام"),
                T("Admin, Auditor", "المسؤول والمدقق")],
               [T("Account", "الحساب"),
-               T("Language, theme, Settings, Website logo, Logout",
-                 "اللغة، والنمط، والإعدادات، وشعار الموقع، وتسجيل الخروج"),
+               T("Language, theme, Settings, Website branding, Logout",
+                 "اللغة، والنمط، والإعدادات، وهوية الموقع، وتسجيل الخروج"),
                T("Everyone", "الجميع")],
           ],
           widths=[1.4, 2.9, 2.3])
@@ -659,9 +659,9 @@ def build_manual(doc):
         "تفتح الأيقونة الدائرية في طرف الشريط قائمة الحساب، وهي تعرض هوية المستخدم الحالي "
         "وتضم الإعدادات الشخصية."))
     figure(doc, "03-account-menu",
-           T("The account menu as an administrator sees it. Settings and Website logo appear "
+           T("The account menu as an administrator sees it. Settings and Website branding appear "
              "only for administrators.",
-             "قائمة الحساب كما يراها المسؤول. لا يظهر عنصرا «الإعدادات» و«شعار الموقع» إلا "
+             "قائمة الحساب كما يراها المسؤول. لا يظهر عنصرا «الإعدادات» و«هوية الموقع» إلا "
              "للمسؤولين."))
     bullets(doc, [
         (T("Switch to العربية / English — ", "التبديل إلى English / العربية — "),
@@ -673,9 +673,10 @@ def build_manual(doc):
         (T("Settings — ", "الإعدادات — "),
          T("system-wide toggles (administrators only, see Chapter 14).",
            "مفاتيح على مستوى النظام (للمسؤولين فقط، انظر الفصل ١٤).")),
-        (T("Website logo — ", "شعار الموقع — "),
-         T("upload or remove the logo in the top bar (administrators only, see Chapter 13).",
-           "رفع شعار الشريط العلوي أو إزالته (للمسؤولين فقط، انظر الفصل ١٣).")),
+        (T("Website branding — ", "هوية الموقع — "),
+         T("set the logo or the site name shown in the top bar (administrators only, see "
+           "Chapter 13).",
+           "ضبط الشعار أو اسم الموقع الظاهر في الشريط العلوي (للمسؤولين فقط، انظر الفصل ١٣).")),
         (T("Logout — ", "تسجيل الخروج — "),
          T("signs out and returns to the sign-in page.",
            "ينهي الجلسة ويعيدك إلى صفحة تسجيل الدخول.")),
@@ -836,8 +837,8 @@ def build_manual(doc):
               [T("Read the system audit trail",
                  "قراءة سجل عمليات النظام"),
                yes, yes, dash, dash],
-              [T("Change the site logo",
-                 "تغيير شعار الموقع"),
+              [T("Change the site logo and name",
+                 "تغيير شعار الموقع واسمه"),
                yes, dash, dash, dash],
               [T("Change system settings",
                  "تغيير إعدادات النظام"),
@@ -948,8 +949,8 @@ def build_manual(doc):
              "تبقى الصفحتان فارغتين دائمًا."))
     figure(doc, "91-auditor-account-menu",
            T("The Auditor's account menu: language, theme and logout only — no Settings and no "
-             "Website logo.",
-             "قائمة حساب المدقق: اللغة والنمط وتسجيل الخروج فقط — دون «الإعدادات» ودون «شعار "
+             "Website branding.",
+             "قائمة حساب المدقق: اللغة والنمط وتسجيل الخروج فقط — دون «الإعدادات» ودون «هوية "
              "الموقع»."))
     note(doc, T(
         "The same applies to an Access Manager. Typing the address of one of those pages "
@@ -2087,16 +2088,25 @@ def build_manual(doc):
     page_break(doc)
 
     # ===================================================================== 13
-    h1(doc, T("13. The website logo", "١٣. شعار الموقع"))
+    h1(doc, T("13. Website branding", "١٣. هوية الموقع"))
     para(doc, T("For: Administrators only.", "لمن: المسؤولون فقط."), italic=True)
     para(doc, T(
-        "The top bar shows an uploaded logo in place of the application name. Open the account "
-        "menu and choose Website logo.",
-        "يعرض الشريط العلوي الشعار المرفوع بدل اسم التطبيق. افتح قائمة الحساب واختر «شعار "
-        "الموقع»."))
-    figure(doc, "58-logo-dialog",
-           T("The logo dialog, with a preview and the recommended dimensions.",
-             "نافذة الشعار، وفيها معاينة والأبعاد الموصى بها."))
+        "What the top bar shows can be changed: an uploaded logo, or the site's name written in "
+        "each language. Open the account menu and choose Website branding.",
+        "يمكن تغيير ما يظهر في الشريط العلوي: شعار مرفوع، أو اسم الموقع مكتوبًا بكل لغة. افتح "
+        "قائمة الحساب واختر «هوية الموقع»."))
+    para(doc, T(
+        "The bar picks the first of three, in order: the logo when one is uploaded, otherwise "
+        "the site name for the language in use, otherwise the application's own name. So the "
+        "bar is never blank, and removing a logo reveals the name underneath rather than "
+        "emptying the bar.",
+        "يختار الشريط أول متوفر من ثلاثة بالترتيب: الشعار إذا كان مرفوعًا، وإلا اسم الموقع "
+        "باللغة المستخدمة، وإلا اسم التطبيق نفسه. لذا لا يبقى الشريط فارغًا أبدًا، وإزالة "
+        "الشعار تُظهر الاسم الذي تحته بدلًا من أن تُفرغه."))
+    figure(doc, "58-branding-dialog",
+           T("The branding dialog: the logo above, the site name in each language below.",
+             "نافذة هوية الموقع: الشعار في الأعلى، واسم الموقع بكل لغة في الأسفل."))
+    h2(doc, T("The logo", "الشعار"))
     bullets(doc, [
         (T("Formats — ", "الصيغ — "),
          T("PNG, JPG or WebP, up to 1 MB. SVG is not accepted.",
@@ -2111,16 +2121,41 @@ def build_manual(doc):
            "resolution, or so wide it will be cropped by the cap.",
            "تحذّرك النافذة قبل الرفع إذا كانت الصورة قصيرة أو دون الدقة الموصى بها أو عريضة "
            "لدرجة يقتصّها الحد.")),
-        (T("Remove — ", "إزالة — "),
-         T("with no logo stored, the bar falls back to the application name, so it is never "
-           "blank.",
-           "إذا لم يكن هناك شعار مخزَّن عاد الشريط إلى اسم التطبيق، فلا يبقى فارغًا أبدًا.")),
+    ])
+    h2(doc, T("The site name", "اسم الموقع"))
+    bullets(doc, [
+        (T("One name per language — ", "اسم لكل لغة — "),
+         T("the English name is shown to someone using the English interface and the Arabic "
+           "name to someone using the Arabic one. They are independent: an installation is "
+           "rarely called the same thing in both.",
+           "يظهر الاسم الإنجليزي لمن يستخدم الواجهة الإنجليزية، والعربي لمن يستخدم العربية. "
+           "وهما مستقلان: نادرًا ما تُسمّى المنظومة بالاسم نفسه في اللغتين.")),
+        (T("Either may be left empty — ", "يمكن ترك أيهما فارغًا — "),
+         T("an empty field falls back to the application's name for that language only, so "
+           "filling in the Arabic alone is a valid setup.",
+           "الحقل الفارغ يعود إلى اسم التطبيق لتلك اللغة وحدها، لذا فإن تعبئة العربي فقط "
+           "إعداد صحيح.")),
+        (T("Up to 60 characters — ", "حتى ٦٠ حرفًا — "),
+         T("a longer name is refused rather than trimmed on screen, because the bar shares its "
+           "width with the navigation.",
+           "الاسم الأطول يُرفض بدل أن يُقتطع على الشاشة، لأن الشريط يتقاسم عرضه مع شريط "
+           "التنقل.")),
+        (T("Save — ", "حفظ — "),
+         T("both names are written together, and the bar updates without a reload. Uploading a "
+           "logo is immediate and needs no Save.",
+           "يُحفَظ الاسمان معًا، ويتحدّث الشريط دون إعادة تحميل. أما رفع الشعار فيسري فورًا ولا "
+           "يحتاج إلى «حفظ».")),
     ])
     note(doc, T(
         "Remove takes effect at once, with no confirmation step. Keep a copy of the logo file "
         "before you open this dialog.",
         "تسري «الإزالة» فورًا دون خطوة تأكيد. احتفظ بنسخة من ملف الشعار قبل فتح هذه النافذة."),
         kind="warning")
+    note(doc, T(
+        "Every change here is recorded in the system audit trail — the logo under “Changed the "
+        "site logo” and the name under “Changed the site name”.",
+        "تُسجَّل كل تغييرات هذه النافذة في سجل عمليات النظام — الشعار تحت «تغيير شعار الموقع» "
+        "والاسم تحت «تغيير اسم الموقع»."))
 
     # ===================================================================== 14
     h1(doc, T("14. System settings", "١٤. إعدادات النظام"))

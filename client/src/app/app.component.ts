@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { TranslocoService } from '@jsverse/transloco';
 import { AuthService } from './core/services/auth.service';
@@ -9,7 +9,7 @@ import { BrandingService } from './core/services/branding.service';
 import { ThemeService } from './core/services/theme.service';
 import { LanguageService } from './core/services/language.service';
 import { LOCALE_LABELS } from './core/models/locale';
-import { LogoUploadDialogComponent } from './shared/components/logo-upload-dialog.component';
+import { BrandingDialogComponent } from './shared/components/branding-dialog.component';
 import { QueryService } from './core/services/query.service';
 import { PERM } from './core/models/permissions';
 
@@ -21,10 +21,12 @@ import { PERM } from './core/models/permissions';
 
     <nav [attr.aria-label]="'app.mainNav' | transloco" *ngIf="authService.isAuthenticated$ | async">
       <mat-toolbar color="primary">
-        <!-- Falls back to the name whenever no logo is set, so the banner is never blank. -->
+        <!-- Logo first, then the configured site name for this language, then the application
+             name — so the banner is never blank and removing a logo reveals the name under it.
+             dir="auto" because an admin may name an English-language install in Arabic. -->
         <img *ngIf="brandingService.logoUrl$ | async as logoUrl; else siteName"
-             [src]="logoUrl" class="brand-logo" [alt]="'app.name' | transloco">
-        <ng-template #siteName><span>{{ 'app.name' | transloco }}</span></ng-template>
+             [src]="logoUrl" class="brand-logo" [alt]="brandName | async">
+        <ng-template #siteName><span dir="auto">{{ brandName | async }}</span></ng-template>
         <span class="spacer"></span>
 
         <!-- Grouped into menus rather than a flat row. An Admin has nine destinations; as
@@ -148,8 +150,8 @@ import { PERM } from './core/models/permissions';
           <button mat-menu-item *ngIf="authService.hasAny(PERM.settingsManage, PERM.rolesManage)" routerLink="/admin/settings">
             <mat-icon>settings</mat-icon> {{ 'nav.settings' | transloco }}
           </button>
-          <button mat-menu-item *ngIf="authService.has(PERM.brandingManage)" (click)="openLogoDialog()">
-            <mat-icon>image</mat-icon> {{ 'nav.websiteLogo' | transloco }}
+          <button mat-menu-item *ngIf="authService.has(PERM.brandingManage)" (click)="openBrandingDialog()">
+            <mat-icon>branding_watermark</mat-icon> {{ 'nav.websiteBranding' | transloco }}
           </button>
           <button mat-menu-item (click)="authService.logout()">
             <mat-icon>exit_to_app</mat-icon> {{ 'nav.logout' | transloco }}
@@ -224,6 +226,15 @@ export class AppComponent {
   readonly languageToggleLabel: Observable<string>;
 
   /**
+   * What the banner shows when there is no logo: the site name an admin configured for this
+   * language, or the application name when they configured none.
+   *
+   * <p>Also the logo's alt text, so a screen reader announces the installation's own name
+   * rather than the product's.</p>
+   */
+  readonly brandName: Observable<string>;
+
+  /**
    * Whether to offer the AD Users page. False on an installation that has told us it has no
    * directory, where the page could only ever report a connection failure.
    *
@@ -258,6 +269,15 @@ export class AppComponent {
       switchMap(() => this.transloco.selectTranslate('nav.switchLanguageTo', {
         language: LOCALE_LABELS[this.languageService.other()]
       }))
+    );
+
+    // selectTranslate for the same reason as above: the catalog may not have loaded yet, and
+    // the fallback has to re-emit when the language changes.
+    this.brandName = this.brandingService.siteName$.pipe(
+      switchMap(configured =>
+        configured
+          ? of(configured)
+          : this.transloco.selectTranslate('app.name'))
     );
 
     // The info endpoint needs a token, so wait for sign-in rather than firing at startup —
@@ -304,8 +324,8 @@ export class AppComponent {
     this.languageService.use(this.languageService.other());
   }
 
-  openLogoDialog(): void {
-    this.dialog.open(LogoUploadDialogComponent, {
+  openBrandingDialog(): void {
+    this.dialog.open(BrandingDialogComponent, {
       width: '520px',
       autoFocus: 'dialog',
       ariaModal: true

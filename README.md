@@ -34,7 +34,7 @@ docker/                           # Dockerfiles and nginx config
 | Allow or block running writes without confirmation | Skip the write preview when the query allows it |
 | Turn off before-change row capture on bulk writes | |
 | Filter queries and execution logs by statement type | |
-| Upload a site logo for the top banner | |
+| Set a site logo, or a site name per language, for the top banner | |
 | Export queries to JSON and import them back / on a new system | |
 | View execution audit logs | |
 
@@ -135,6 +135,10 @@ database behaves exactly like a fresh one until someone changes something.
 
 The numbers are range-checked server-side; a value outside its bounds is refused with a message
 naming them. Every change is audited (`settings.updated`) with the full set of values.
+
+Two further rows live in this table but are **not** edited here: `branding.siteNameEn` and
+`branding.siteNameAr` belong to the branding dialog and its own permission — see
+[Site branding](#site-branding--logo-and-name).
 
 Settings are read on authorization paths and deliberately **not cached** — a stale value would
 mean granting access an administrator believes they just revoked. Changes are audited
@@ -301,7 +305,7 @@ Generate a key with `openssl rand -base64 32`.
 
 ## API Endpoints
 
-**Full reference: [docs/API-REFERENCE.md](docs/API-REFERENCE.md)** — all 93 endpoints with their
+**Full reference: [docs/API-REFERENCE.md](docs/API-REFERENCE.md)** — all 94 endpoints with their
 verbs, roles and query parameters. The map below is for orientation only.
 
 | Area | Base path | Who reaches it |
@@ -579,12 +583,30 @@ modified or deleted, so a mistaken import is undone by deleting what it added. T
 lists every query imported, which ones were renamed, and every reference that could not be
 resolved.
 
-## Site logo
+## Site branding — logo and name
 
-The top banner shows an uploaded logo in place of the app name. An Admin sets it from the
-account menu (the same menu as Logout) → **Website logo**, which opens a dialog with a preview,
-the recommended dimensions, and Upload / Replace / Remove. With no logo stored the banner falls
-back to the app name, so it is never blank.
+The top banner shows an uploaded logo, or the site's name written per language, in place of the
+app name. An Admin sets both from the account menu (the same menu as Logout) → **Website
+branding**, one dialog holding the logo (preview, recommended dimensions, Upload / Replace /
+Remove) above the name in each language.
+
+**The banner resolves three things in order** — logo, then the site name for the active
+language, then the translated app name. So it is never blank, and removing a logo reveals the
+name underneath rather than emptying the banner. Both halves live in one dialog for that
+reason: split across two places, an admin would have to guess which one is currently winning.
+
+**Two names, not one.** `branding.siteNameEn` and `branding.siteNameAr` are separate rows,
+because an installation is rarely called the same thing in both languages — a single value
+would force one audience to read the other's name. Either may be left blank on its own, so
+naming an installation in Arabic only is a valid setup; the English UI then falls back to the
+app name. Each is capped at 60 characters, refused rather than truncated, since the banner
+shares its width with the navigation.
+
+They are stored in `SystemSettings` but **edited under `branding.manage`, not
+`settings.manage`** — naming the site is a branding decision, not a system toggle, so they do
+not appear on the Settings page. Clearing one deletes its row rather than blanking it: Oracle
+stores `''` as NULL and the `Value` column is NOT NULL, and "no row" is already what that
+table means by unset.
 
 The image lives in `SystemTemplates` under the `branding-logo` key — the same keyed store as the
 default Word template, so there is no new table. Its content type is derived from the uploaded
@@ -601,7 +623,8 @@ will be capped.
 - `GET /api/branding/logo` is **anonymous**. The banner loads it with a plain `<img src>`, and
   browsers do not run image requests through the app's JWT interceptor, so an authorized
   endpoint would just 401. A logo is public branding rather than protected data. Uploading and
-  removing it still require the Admin role.
+  removing it still require `branding.manage`. The site name is *not* anonymous: it rides on
+  `GET /api/branding`, which the shell already calls after sign-in.
 - **SVG is rejected**, despite being ideal for logos. An SVG can carry script that executes if
   its URL is opened directly, and this endpoint is same-origin and anonymous. Accepting it
   safely needs a restrictive CSP response header on that action, not just an extension check.

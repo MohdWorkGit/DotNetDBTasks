@@ -42,10 +42,16 @@ Class: `[Authorize]` (any authenticated user).
 
 | Verb + path | Roles | Notes |
 |---|---|---|
+| `GET /` | Any authenticated | `{ hasLogo, fileName, updatedAt, siteNameEn, siteNameAr }` — everything the banner needs, in one call. A null site name means none is set for that language. |
 | `GET /logo` | **Anonymous** (widened) | The logo bytes, or 404 when none is set. Anonymous because an `<img src>` carries no token; clients cache-bust with `?v=<updatedAt>`. |
-| `GET /logo/info` | Any authenticated | `{ hasLogo, fileName, updatedAt }`. |
 | `POST /logo` | `branding.manage` | Upload/replace. multipart `file`, ≤1 MB, `.png/.jpg/.jpeg/.webp`, magic bytes verified (SVG is refused). |
-| `DELETE /logo` | `branding.manage` | Removes it; the banner falls back to the application name. |
+| `DELETE /logo` | `branding.manage` | Removes it; the banner falls back to the site name, then to the application name. |
+| `PUT /site-name` | `branding.manage` | `{ siteNameEn, siteNameAr }`, each ≤60 chars. Both are written together; a blank one clears that language back to the application name. |
+
+The banner resolves what to show in order: logo, then the site name for the active language,
+then the translated application name — so it is never blank. The two names are stored in
+`SystemSettings` under `branding.siteNameEn` / `branding.siteNameAr`, but they are edited here
+under `branding.manage`, not on the Settings page under `settings.manage`.
 
 ## Queries — `/api/admin/dynamicqueries`
 

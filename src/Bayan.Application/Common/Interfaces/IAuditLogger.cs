@@ -70,6 +70,7 @@ public static class AuditActions
     public const string DirectorySync = "directory.sync";
     public const string BrandingLogoSet = "branding.logoSet";
     public const string BrandingLogoRemoved = "branding.logoRemoved";
+    public const string BrandingSiteNameSet = "branding.siteNameSet";
     public const string QueriesImport = "queries.import";
     public const string SettingsUpdated = "settings.updated";
     public const string RolesCreate = "roles.create";
@@ -127,6 +128,7 @@ public static class AuditActions
         // The logo bytes are dropped by the behavior's bulk-payload rule, not stored.
         ["SetBrandingLogoCommand"] = (BrandingLogoSet, CategoryBranding),
         ["DeleteBrandingLogoCommand"] = (BrandingLogoRemoved, CategoryBranding),
+        ["SetBrandingSiteNameCommand"] = (BrandingSiteNameSet, CategoryBranding),
 
         ["CreateScheduledTaskCommand"] = ("scheduledTasks.create", CategoryScheduledTasks),
         ["UpdateScheduledTaskCommand"] = ("scheduledTasks.update", CategoryScheduledTasks),
