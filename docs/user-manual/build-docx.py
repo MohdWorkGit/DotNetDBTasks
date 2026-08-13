@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Builds the DotNetDBTasks user manual as a Word document, in English and Arabic.
+Builds the Bayan user manual as a Word document, in English and Arabic.
 
     python build-docx.py            # both languages
     python build-docx.py en         # one language
 
 Reads screenshots/<lang>/*.png (produced by capture-screenshots.js) and writes
-DotNetDBTasks-User-Manual-EN.docx / -AR.docx. A screenshot that is missing is replaced by a
+Bayan-User-Manual-EN.docx / -AR.docx. A screenshot that is missing is replaced by a
 visible placeholder rather than failing the build, so a manual is always produced.
 
 The text lives in `build_manual()` near the bottom. Every string is written once as
@@ -186,8 +186,8 @@ def add_page_footer(doc):
     footer = doc.sections[0].footer
     p = footer.paragraphs[0]
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.add_run(T("DotNetDBTasks User Manual  ·  page ",
-                "دليل مستخدم DotNetDBTasks  ·  صفحة "))
+    p.add_run(T("Bayan User Manual  ·  page ",
+                "دليل مستخدم بيان  ·  صفحة "))
     _field(p, "PAGE")
     for r in p.runs:
         r.font.size = Pt(8.5)
@@ -352,7 +352,7 @@ def cover(doc):
         run.bold = bold
         run.italic = italic
 
-    centered("DotNetDBTasks", 40, ACCENT, bold=True)
+    centered(T("Bayan", "بيان"), 40, ACCENT, bold=True)
     centered(T("User Manual", "دليل المستخدم"), 24, RGBColor(0x1F, 0x25, 0x37))
     centered(T("Features, screens and permissions",
                "الميزات والشاشات والصلاحيات"), 13, MUTED, italic=True)
@@ -392,10 +392,10 @@ def build_manual(doc):
     # ===================================================================== 1
     h1(doc, T("1. About this manual", "١. عن هذا الدليل"))
     para(doc, T(
-        "This manual describes every screen in DotNetDBTasks, what each control does, and "
+        "This manual describes every screen in Bayan, what each control does, and "
         "exactly which role is allowed to use it. It is written for four audiences, and each "
         "chapter says at the top which of them it is for:",
-        "يصف هذا الدليل كل شاشة في نظام DotNetDBTasks، ووظيفة كل عنصر فيها، والدور المسموح له "
+        "يصف هذا الدليل كل شاشة في نظام بيان، ووظيفة كل عنصر فيها، والدور المسموح له "
         "باستخدامها بالتحديد. وهو موجَّه إلى أربع فئات، ويوضّح كل فصل في بدايته الفئة التي "
         "يخاطبها:"))
     bullets(doc, [
@@ -432,12 +432,12 @@ def build_manual(doc):
     # ===================================================================== 2
     h1(doc, T("2. What the system does", "٢. ما الذي يقوم به النظام"))
     para(doc, T(
-        "DotNetDBTasks lets a small number of people write SQL queries once, and lets a much "
+        "Bayan lets a small number of people write SQL queries once, and lets a much "
         "larger number of people run those queries safely, without database access and without "
         "being able to change the SQL. Around that idea sit access control, a full audit "
         "trail, and a scheduler that runs the same queries unattended and writes the results "
         "to files.",
-        "يتيح نظام DotNetDBTasks لعدد محدود من الأشخاص كتابة استعلامات SQL مرة واحدة، ثم يتيح "
+        "يتيح نظام بيان لعدد محدود من الأشخاص كتابة استعلامات SQL مرة واحدة، ثم يتيح "
         "لعدد أكبر بكثير تنفيذ تلك الاستعلامات بأمان، دون أن يملكوا وصولًا إلى قاعدة البيانات "
         "ودون قدرة على تعديل نص SQL. وتحيط بهذه الفكرة إدارةٌ للصلاحيات، وسجلُّ تدقيق كامل، "
         "ومجدولٌ ينفّذ الاستعلامات نفسها دون تدخل ويكتب النتائج في ملفات."))
@@ -2324,7 +2324,7 @@ def build(lang):
     if is_rtl():
         apply_rtl(doc)
 
-    out = os.path.join(HERE, f"DotNetDBTasks-User-Manual-{lang.upper()}.docx")
+    out = os.path.join(HERE, f"Bayan-User-Manual-{lang.upper()}.docx")
     doc.save(out)
 
     shots = os.path.join(HERE, "screenshots", lang)

@@ -3,11 +3,11 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy solution and project files for layer caching
-COPY DotNetDBTasks.sln ./
-COPY src/DotNetDBTasks.Domain/DotNetDBTasks.Domain.csproj src/DotNetDBTasks.Domain/
-COPY src/DotNetDBTasks.Application/DotNetDBTasks.Application.csproj src/DotNetDBTasks.Application/
-COPY src/DotNetDBTasks.Infrastructure/DotNetDBTasks.Infrastructure.csproj src/DotNetDBTasks.Infrastructure/
-COPY src/DotNetDBTasks.API/DotNetDBTasks.API.csproj src/DotNetDBTasks.API/
+COPY Bayan.sln ./
+COPY src/Bayan.Domain/Bayan.Domain.csproj src/Bayan.Domain/
+COPY src/Bayan.Application/Bayan.Application.csproj src/Bayan.Application/
+COPY src/Bayan.Infrastructure/Bayan.Infrastructure.csproj src/Bayan.Infrastructure/
+COPY src/Bayan.API/Bayan.API.csproj src/Bayan.API/
 
 # Restore dependencies
 RUN dotnet restore
@@ -16,7 +16,7 @@ RUN dotnet restore
 COPY . .
 
 # Build and publish
-RUN dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj \
+RUN dotnet publish src/Bayan.API/Bayan.API.csproj \
     -c Release \
     -o /app/publish \
     --no-restore
@@ -43,4 +43,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget -qO- http://localhost:8080/swagger/index.html || exit 1
 
-ENTRYPOINT ["dotnet", "DotNetDBTasks.API.dll"]
+ENTRYPOINT ["dotnet", "Bayan.API.dll"]

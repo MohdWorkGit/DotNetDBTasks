@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "dotnet-db-tasks-client": {
+    "bayan-client": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -18,7 +18,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/dotnet-db-tasks-client",
+            "outputPath": "dist/bayan-client",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -64,10 +64,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "dotnet-db-tasks-client:build:production"
+              "buildTarget": "bayan-client:build:production"
             },
             "development": {
-              "buildTarget": "dotnet-db-tasks-client:build:development"
+              "buildTarget": "bayan-client:build:development"
             }
           },
           "defaultConfiguration": "development"

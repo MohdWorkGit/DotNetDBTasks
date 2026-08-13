@@ -1,31 +1,31 @@
 # Base OUs
-dn: ou=departments,dc=dotnetdbtasks,dc=local
+dn: ou=departments,dc=bayan,dc=local
 objectClass: organizationalUnit
 ou: departments
 
-dn: ou=users,dc=dotnetdbtasks,dc=local
+dn: ou=users,dc=bayan,dc=local
 objectClass: organizationalUnit
 ou: users
 
 # Departments
-dn: ou=Engineering,ou=departments,dc=dotnetdbtasks,dc=local
+dn: ou=Engineering,ou=departments,dc=bayan,dc=local
 objectClass: organizationalUnit
 ou: Engineering
 
-dn: ou=Finance,ou=departments,dc=dotnetdbtasks,dc=local
+dn: ou=Finance,ou=departments,dc=bayan,dc=local
 objectClass: organizationalUnit
 ou: Finance
 
-dn: ou=HR,ou=departments,dc=dotnetdbtasks,dc=local
+dn: ou=HR,ou=departments,dc=bayan,dc=local
 objectClass: organizationalUnit
 ou: HR
 
-dn: ou=Operations,ou=departments,dc=dotnetdbtasks,dc=local
+dn: ou=Operations,ou=departments,dc=bayan,dc=local
 objectClass: organizationalUnit
 ou: Operations
 
 # Engineering users
-dn: uid=jsmith,ou=users,dc=dotnetdbtasks,dc=local
+dn: uid=jsmith,ou=users,dc=bayan,dc=local
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
@@ -33,11 +33,11 @@ uid: jsmith
 cn: John Smith
 sn: Smith
 givenName: John
-mail: john.smith@dotnetdbtasks.local
+mail: john.smith@bayan.local
 departmentNumber: Engineering
 userPassword: Pass@123
 
-dn: uid=ajones,ou=users,dc=dotnetdbtasks,dc=local
+dn: uid=ajones,ou=users,dc=bayan,dc=local
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
@@ -45,11 +45,11 @@ uid: ajones
 cn: Alice Jones
 sn: Jones
 givenName: Alice
-mail: alice.jones@dotnetdbtasks.local
+mail: alice.jones@bayan.local
 departmentNumber: Engineering
 userPassword: Pass@123
 
-dn: uid=bwilliams,ou=users,dc=dotnetdbtasks,dc=local
+dn: uid=bwilliams,ou=users,dc=bayan,dc=local
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
@@ -57,12 +57,12 @@ uid: bwilliams
 cn: Bob Williams
 sn: Williams
 givenName: Bob
-mail: bob.williams@dotnetdbtasks.local
+mail: bob.williams@bayan.local
 departmentNumber: Engineering
 userPassword: Pass@123
 
 # Finance users
-dn: uid=cjohnson,ou=users,dc=dotnetdbtasks,dc=local
+dn: uid=cjohnson,ou=users,dc=bayan,dc=local
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
@@ -70,11 +70,11 @@ uid: cjohnson
 cn: Carol Johnson
 sn: Johnson
 givenName: Carol
-mail: carol.johnson@dotnetdbtasks.local
+mail: carol.johnson@bayan.local
 departmentNumber: Finance
 userPassword: Pass@123
 
-dn: uid=dbrown,ou=users,dc=dotnetdbtasks,dc=local
+dn: uid=dbrown,ou=users,dc=bayan,dc=local
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
@@ -82,12 +82,12 @@ uid: dbrown
 cn: David Brown
 sn: Brown
 givenName: David
-mail: david.brown@dotnetdbtasks.local
+mail: david.brown@bayan.local
 departmentNumber: Finance
 userPassword: Pass@123
 
 # HR users
-dn: uid=edavis,ou=users,dc=dotnetdbtasks,dc=local
+dn: uid=edavis,ou=users,dc=bayan,dc=local
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
@@ -95,11 +95,11 @@ uid: edavis
 cn: Emily Davis
 sn: Davis
 givenName: Emily
-mail: emily.davis@dotnetdbtasks.local
+mail: emily.davis@bayan.local
 departmentNumber: HR
 userPassword: Pass@123
 
-dn: uid=fmiller,ou=users,dc=dotnetdbtasks,dc=local
+dn: uid=fmiller,ou=users,dc=bayan,dc=local
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
@@ -107,12 +107,12 @@ uid: fmiller
 cn: Frank Miller
 sn: Miller
 givenName: Frank
-mail: frank.miller@dotnetdbtasks.local
+mail: frank.miller@bayan.local
 departmentNumber: HR
 userPassword: Pass@123
 
 # Operations users
-dn: uid=gwilson,ou=users,dc=dotnetdbtasks,dc=local
+dn: uid=gwilson,ou=users,dc=bayan,dc=local
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
@@ -120,11 +120,11 @@ uid: gwilson
 cn: Grace Wilson
 sn: Wilson
 givenName: Grace
-mail: grace.wilson@dotnetdbtasks.local
+mail: grace.wilson@bayan.local
 departmentNumber: Operations
 userPassword: Pass@123
 
-dn: uid=htaylor,ou=users,dc=dotnetdbtasks,dc=local
+dn: uid=htaylor,ou=users,dc=bayan,dc=local
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
@@ -132,6 +132,6 @@ uid: htaylor
 cn: Henry Taylor
 sn: Taylor
 givenName: Henry
-mail: henry.taylor@dotnetdbtasks.local
+mail: henry.taylor@bayan.local
 departmentNumber: Operations
 userPassword: Pass@123

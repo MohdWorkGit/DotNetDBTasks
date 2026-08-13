@@ -1,4 +1,4 @@
-# DotNetDBTasks
+# Bayan
 
 A production-ready dynamic database query execution platform built with .NET 10, Angular 21, Oracle, and Docker.
 
@@ -8,10 +8,10 @@ A production-ready dynamic database query execution platform built with .NET 10,
 
 ```
 src/
-├── DotNetDBTasks.Domain          # Entities, interfaces, enums, exceptions (zero dependencies)
-├── DotNetDBTasks.Application     # CQRS commands/queries, DTOs, validators, mappings
-├── DotNetDBTasks.Infrastructure  # EF Core, repositories, JWT, encryption, query executor
-└── DotNetDBTasks.API             # Controllers, middleware, DI configuration
+├── Bayan.Domain          # Entities, interfaces, enums, exceptions (zero dependencies)
+├── Bayan.Application     # CQRS commands/queries, DTOs, validators, mappings
+├── Bayan.Infrastructure  # EF Core, repositories, JWT, encryption, query executor
+└── Bayan.API             # Controllers, middleware, DI configuration
 client/                           # Angular 21 SPA with Angular Material
 docker/                           # Dockerfiles and nginx config
 ```
@@ -224,7 +224,7 @@ PDF/Word/Excel files (export rendering goes through LibreOffice/Word templates).
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
-cd DotNetDBTasks
+cd Bayan
 
 # 2. Create environment file
 cp .env.example .env
@@ -254,8 +254,8 @@ The Compose stack starts four services: **oracle** (Oracle XE 21c), **ldap** (Op
 ### Run the API
 
 ```bash
-dotnet restore DotNetDBTasks.sln
-dotnet run --project src/DotNetDBTasks.API
+dotnet restore Bayan.sln
+dotnet run --project src/Bayan.API
 # Listens on http://localhost:5000 (Swagger at /swagger)
 ```
 
@@ -273,8 +273,8 @@ npm start          # ng serve on http://localhost:4200, proxies /api to the .NET
 |----------|-------------|---------|
 | `DB_PASSWORD` | Oracle database password | `YourStrong@Passw0rd` |
 | `JWT_SECRET` | JWT signing key (min 32 chars) | Must be changed |
-| `JWT_ISSUER` | JWT token issuer | `DotNetDBTasks` |
-| `JWT_AUDIENCE` | JWT token audience | `DotNetDBTasks` |
+| `JWT_ISSUER` | JWT token issuer | `Bayan` |
+| `JWT_AUDIENCE` | JWT token audience | `Bayan` |
 | `ENCRYPTION_KEY` | Base64-encoded 32-byte AES-256 key for credential encryption | Must be changed |
 | `LDAP_ADMIN_PASSWORD` | LDAP admin bind password | `LdapAdmin@123` |
 | `APP_DOMAIN` | Public domain / allowed CORS origin | `https://tasks.example.com` |

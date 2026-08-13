@@ -33,7 +33,7 @@ Run from the repo root. Self-contained bundles the .NET runtime — no SDK or ru
 
 **Windows target:**
 ```powershell
-dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj `
+dotnet publish src/Bayan.API/Bayan.API.csproj `
   -c Release `
   -r win-x64 `
   --self-contained `
@@ -42,7 +42,7 @@ dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj `
 
 **Linux target:**
 ```bash
-dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj \
+dotnet publish src/Bayan.API/Bayan.API.csproj \
   -c Release \
   -r linux-x64 \
   --self-contained \
@@ -54,20 +54,20 @@ dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj \
 
 ### QueryRunner console tool (optional)
 
-`tools/DotNetDBTasks.QueryRunner` is a standalone console app that runs SELECT queries from a JSON
+`tools/Bayan.QueryRunner` is a standalone console app that runs SELECT queries from a JSON
 config and exports the results (Excel/CSV/JSON, with incremental checkpoints) — made to be driven by
 Windows Task Scheduler with no API, app database, or login. Publish it self-contained too if the
 target has no .NET runtime:
 
 ```powershell
-dotnet publish tools/DotNetDBTasks.QueryRunner `
+dotnet publish tools/Bayan.QueryRunner `
   -c Release `
   -r win-x64 `
   --self-contained `
   -o ./queryrunner-publish
 ```
 
-See [tools/DotNetDBTasks.QueryRunner/README.md](tools/DotNetDBTasks.QueryRunner/README.md) for
+See [tools/Bayan.QueryRunner/README.md](tools/Bayan.QueryRunner/README.md) for
 configuration (`appsettings.json` next to the exe, or a config path per scheduled job) and the
 Task Scheduler setup.
 
@@ -80,7 +80,7 @@ npm ci
 npm run build:prod
 ```
 
-Output: `client/dist/dotnet-db-tasks-client/browser/`
+Output: `client/dist/bayan-client/browser/`
 
 ---
 
@@ -89,11 +89,11 @@ Output: `client/dist/dotnet-db-tasks-client/browser/`
 | Item | Source | Notes |
 |---|---|---|
 | `api-publish/` | Built in Step 1 | Entire folder |
-| `dist/dotnet-db-tasks-client/browser/` | Built in Step 1 | Entire folder |
+| `dist/bayan-client/browser/` | Built in Step 1 | Entire folder |
 | Oracle XE 21c installer | [oracle.com](https://www.oracle.com/database/technologies/xe-downloads.html) | ~1.5 GB, download before leaving |
 | nginx portable zip | [nginx.org/en/download.html](https://nginx.org/en/download.html) | Windows: `nginx/Windows-x.x.x`, no install needed |
 | `nginx.conf` | See Step 4 | Custom config for this app |
-| `appsettings.json` | `src/DotNetDBTasks.API/` | Edit before going — see Step 3 |
+| `appsettings.json` | `src/Bayan.API/` | Edit before going — see Step 3 |
 | `queryrunner-publish/` (optional) | Built in Step 1 | Only if using the standalone QueryRunner with Task Scheduler |
 | LibreOffice installer (optional) | [libreoffice.org](https://www.libreoffice.org/download/download-libreoffice/) | ~350 MB. Only for full-fidelity Word-template PDF export — see below |
 | `docker/ldap/bootstrap.ldif` | Repo | Only needed if setting up a fresh OpenLDAP server |
@@ -214,13 +214,13 @@ C:\deploy\
 
 **Run directly (for testing):**
 ```powershell
-C:\deploy\api\DotNetDBTasks.API.exe
+C:\deploy\api\Bayan.API.exe
 ```
 
 **Register as a Windows Service (for production):**
 ```powershell
-sc.exe create DotNetDBTasks binPath="C:\deploy\api\DotNetDBTasks.API.exe"
-sc.exe start DotNetDBTasks
+sc.exe create Bayan binPath="C:\deploy\api\Bayan.API.exe"
+sc.exe start Bayan
 ```
 
 > Scheduled export tasks run inside this process, so it must stay running for schedules to fire —
@@ -259,7 +259,7 @@ To stop:
 ## Startup Order
 
 1. Oracle XE (database must be up first)
-2. `DotNetDBTasks.API.exe` (waits for DB connection)
+2. `Bayan.API.exe` (waits for DB connection)
 3. nginx (serves frontend and proxies API)
 
 ---
@@ -302,12 +302,12 @@ Restore will fail offline unless these are present locally.
 
 ```powershell
 # Populate the global cache with this solution's full dependency closure
-dotnet restore DotNetDBTasks.sln
+dotnet restore Bayan.sln
 
 # The QueryRunner tool is NOT in the solution — restore it separately or its
 # packages will be missing from the cache (scripts/prepare-offline-bundle.ps1
 # already does both restores for you):
-dotnet restore tools/DotNetDBTasks.QueryRunner
+dotnet restore tools/Bayan.QueryRunner
 
 # The cache lives here:
 #   %USERPROFILE%\.nuget\packages
@@ -317,7 +317,7 @@ Copy `%USERPROFILE%\.nuget\packages` to the **same path** on the air-gapped mach
 everything locally and never hits the network.
 
 **Alternative — a self-contained folder feed** (keeps the repo portable). Create a flat folder of `.nupkg`
-files and point a `nuget.config` (next to `DotNetDBTasks.sln`) at it:
+files and point a `nuget.config` (next to `Bayan.sln`) at it:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -384,10 +384,10 @@ Prove the caches are complete by simulating offline on the prep machine (disable
 
 ```powershell
 # API — clean restore + build with no network
-dotnet build DotNetDBTasks.sln -c Release
+dotnet build Bayan.sln -c Release
 
 # QueryRunner tool (not in the solution)
-dotnet build tools/DotNetDBTasks.QueryRunner -c Release
+dotnet build tools/Bayan.QueryRunner -c Release
 
 # Frontend — clean install from cache only
 cd client
@@ -401,12 +401,12 @@ If both succeed with the network off, the air-gapped machine has everything it n
 
 ```powershell
 # After editing API code:
-dotnet build DotNetDBTasks.sln -c Release
+dotnet build Bayan.sln -c Release
 # or produce a fresh self-contained deploy:
-dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
+dotnet publish src/Bayan.API/Bayan.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
 
 # After editing the QueryRunner tool:
-dotnet publish tools/DotNetDBTasks.QueryRunner -c Release -r win-x64 --self-contained -o ./queryrunner-publish
+dotnet publish tools/Bayan.QueryRunner -c Release -r win-x64 --self-contained -o ./queryrunner-publish
 
 # After editing frontend code:
 cd client
@@ -435,17 +435,17 @@ no CORS (same origin), and Windows SSO works through IIS.
 
 ```powershell
 # Angular
-cd client; npm run build:prod        # -> client/dist/dotnet-db-tasks-client/browser/
+cd client; npm run build:prod        # -> client/dist/bayan-client/browser/
 
 # API (self-contained)
-dotnet publish src/DotNetDBTasks.API/DotNetDBTasks.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
+dotnet publish src/Bayan.API/Bayan.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
 
 # Merge the SPA into the API's wwwroot
 New-Item -ItemType Directory -Force .\api-publish\wwwroot | Out-Null
-Copy-Item .\client\dist\dotnet-db-tasks-client\browser\* .\api-publish\wwwroot\ -Recurse -Force
+Copy-Item .\client\dist\bayan-client\browser\* .\api-publish\wwwroot\ -Recurse -Force
 ```
 
-`dotnet publish` emits a `web.config` based on the one in `src/DotNetDBTasks.API/`, so the published
+`dotnet publish` emits a `web.config` based on the one in `src/Bayan.API/`, so the published
 site already carries the Windows/Anonymous authentication block. Edit `api-publish\appsettings.json`
 as in Part A, Step 3 (the `Cors:AllowedOrigins` value is unused here — same origin).
 
@@ -453,15 +453,15 @@ as in Part A, Step 3 (the `Cors:AllowedOrigins` value is unused here — same or
 
 ```powershell
 Import-Module WebAdministration
-New-WebAppPool -Name "DotNetDBTasks"
+New-WebAppPool -Name "Bayan"
 # No Managed Code: ANCM runs the .NET process, not the IIS CLR.
-Set-ItemProperty IIS:\AppPools\DotNetDBTasks -Name managedRuntimeVersion -Value ""
-New-Website -Name "DotNetDBTasks" -Port 80 -PhysicalPath "C:\inetpub\DotNetDBTasks" -ApplicationPool "DotNetDBTasks"
+Set-ItemProperty IIS:\AppPools\Bayan -Name managedRuntimeVersion -Value ""
+New-Website -Name "Bayan" -Port 80 -PhysicalPath "C:\inetpub\Bayan" -ApplicationPool "Bayan"
 # The app writes logs\ and reads wwwroot — grant the pool identity write access.
-icacls "C:\inetpub\DotNetDBTasks" /grant "IIS AppPool\DotNetDBTasks:(OI)(CI)M" /T
+icacls "C:\inetpub\Bayan" /grant "IIS AppPool\Bayan:(OI)(CI)M" /T
 ```
 
-(Copy `api-publish\` to `C:\inetpub\DotNetDBTasks` first.)
+(Copy `api-publish\` to `C:\inetpub\Bayan` first.)
 
 ## C3.5 — Keep the Background Scheduler Alive
 
@@ -475,13 +475,13 @@ schedules would silently never fire. Configure the pool/site to run permanently:
    ```powershell
    Import-Module WebAdministration
    # Never stop when idle; start with Windows instead of on first request.
-   Set-ItemProperty IIS:\AppPools\DotNetDBTasks -Name processModel.idleTimeout -Value "00:00:00"
-   Set-ItemProperty IIS:\AppPools\DotNetDBTasks -Name startMode -Value AlwaysRunning
+   Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.idleTimeout -Value "00:00:00"
+   Set-ItemProperty IIS:\AppPools\Bayan -Name startMode -Value AlwaysRunning
    # Warm the app immediately after any recycle/restart, without waiting for a visitor.
-   Set-ItemProperty "IIS:\Sites\DotNetDBTasks" -Name applicationDefaults.preloadEnabled -Value $true
+   Set-ItemProperty "IIS:\Sites\Bayan" -Name applicationDefaults.preloadEnabled -Value $true
    ```
 3. Optional: disable the daily scheduled recycle, or move it to a quiet hour
-   (`Set-ItemProperty IIS:\AppPools\DotNetDBTasks -Name recycling.periodicRestart.time -Value "00:00:00"`).
+   (`Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.time -Value "00:00:00"`).
    A recycle during a running export fails that run; it is retried-safe (incremental
    checkpoints only advance on success) but the run shows as failed.
 4. Grant the pool identity **write access to every scheduled task output folder** (same
@@ -509,10 +509,10 @@ own JWT. Every later `/api/*` call uses that JWT (Bearer). The endpoint is autho
    Windows (lets `/api/auth/sso` challenge on demand). Or skip the unlock and enable both in IIS
    Manager → the site → *Authentication*.
 2. **Silent login prerequisites:**
-   - Users reach the site by **hostname** (e.g. `http://dbtasks.corp.local`), and that host is in the
+   - Users reach the site by **hostname** (e.g. `http://bayan.corp.local`), and that host is in the
      browser's **Local Intranet** zone — otherwise the browser prompts instead of logging in silently.
    - If the app pool runs under a **custom domain account**, register an SPN:
-     `setspn -S HTTP/dbtasks.corp.local DOMAIN\svc-account`. Under `ApplicationPoolIdentity`/`NetworkService`
+     `setspn -S HTTP/bayan.corp.local DOMAIN\svc-account`. Under `ApplicationPoolIdentity`/`NetworkService`
      the machine account already covers the host's own name.
    - Keep `Ldap:*` valid — SSO supplies the username; the profile lookup still goes through AD.
    - Prefer HTTPS in production.

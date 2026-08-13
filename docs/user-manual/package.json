@@ -1,8 +1,8 @@
 {
-  "name": "dotnetdbtasks-user-manual",
+  "name": "bayan-user-manual",
   "version": "1.0.0",
   "private": true,
-  "description": "Regenerates the DotNetDBTasks user manual (.docx) and its screenshots.",
+  "description": "Regenerates the Bayan user manual (.docx) and its screenshots.",
   "scripts": {
     "capture": "node capture-screenshots.js",
     "build": "python build-docx.py",

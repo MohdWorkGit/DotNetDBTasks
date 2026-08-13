@@ -1,13 +1,13 @@
 # User manual (generated)
 
-`DotNetDBTasks-User-Manual-EN.docx` and `-AR.docx` are **generated**, not hand-edited. After a
+`Bayan-User-Manual-EN.docx` and `-AR.docx` are **generated**, not hand-edited. After a
 change to the application, regenerate them so the screenshots and the text match what shipped.
 
 ## Regenerate
 
 ```bash
 # 1. Start the app (two terminals, from the repo root)
-dotnet run --no-launch-profile --urls http://localhost:60187   # in src/DotNetDBTasks.API
+dotnet run --no-launch-profile --urls http://localhost:60187   # in src/Bayan.API
 npx ng serve --port 4200                                        # in client/
 
 # 2. Build the manual (from this folder)

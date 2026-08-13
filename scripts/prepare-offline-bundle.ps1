@@ -1,7 +1,7 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-    Gathers everything needed to edit and rebuild DotNetDBTasks on an air-gapped
+    Gathers everything needed to edit and rebuild Bayan on an air-gapped
     machine, into a single gitignored folder (offline-bundle/ by default).
 
 .DESCRIPTION
@@ -51,12 +51,12 @@ $ErrorActionPreference = 'Stop'
 
 # --- Resolve paths relative to the repo root (parent of this script's folder) ---
 $RepoRoot = Split-Path -Parent $PSScriptRoot
-$Solution = Join-Path $RepoRoot 'DotNetDBTasks.sln'
-$ApiCsproj = Join-Path $RepoRoot 'src/DotNetDBTasks.API/DotNetDBTasks.API.csproj'
+$Solution = Join-Path $RepoRoot 'Bayan.sln'
+$ApiCsproj = Join-Path $RepoRoot 'src/Bayan.API/Bayan.API.csproj'
 $ClientDir = Join-Path $RepoRoot 'client'
 
 if (-not (Test-Path $Solution)) {
-    throw "Could not find DotNetDBTasks.sln at '$Solution'. Run this from the repo (scripts/ folder)."
+    throw "Could not find Bayan.sln at '$Solution'. Run this from the repo (scripts/ folder)."
 }
 
 # Make OutDir absolute under the repo root if a relative path was given
@@ -101,7 +101,7 @@ $null = New-Item -ItemType Directory -Force -Path $NugetDir
 & dotnet restore $Solution --packages $NugetDir   # also the no-RID graph, for editing
 # The QueryRunner tool is deliberately NOT in the solution — restore it too, or
 # its packages (and any version it pins that the solution doesn't) are missing.
-$QueryRunnerCsproj = Join-Path $RepoRoot 'tools/DotNetDBTasks.QueryRunner/DotNetDBTasks.QueryRunner.csproj'
+$QueryRunnerCsproj = Join-Path $RepoRoot 'tools/Bayan.QueryRunner/Bayan.QueryRunner.csproj'
 & dotnet restore $QueryRunnerCsproj --packages $NugetDir --runtime $Runtime
 & dotnet restore $QueryRunnerCsproj --packages $NugetDir
 $nupkgCount = (Get-ChildItem -Path $NugetDir -Recurse -Filter *.nupkg -ErrorAction SilentlyContinue).Count
@@ -110,7 +110,7 @@ Write-Ok "$nupkgCount .nupkg files cached"
 # Emit a nuget.config the target can drop next to the .sln to restore offline.
 $nugetConfig = @'
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copy this file next to DotNetDBTasks.sln on the air-gapped machine. -->
+<!-- Copy this file next to Bayan.sln on the air-gapped machine. -->
 <configuration>
   <config>
     <!-- Point the global packages folder at the bundled cache. -->
@@ -173,7 +173,7 @@ if ($IncludeBuild) {
     Push-Location $ClientDir
     try {
         & npm run build:prod
-        $browser = Join-Path $ClientDir 'dist/dotnet-db-tasks-client/browser'
+        $browser = Join-Path $ClientDir 'dist/bayan-client/browser'
         if (Test-Path $browser) {
             $null = New-Item -ItemType Directory -Force -Path $ClientOut
             Copy-Item -Recurse -Force (Join-Path $browser '*') $ClientOut
@@ -223,7 +223,7 @@ if ($IncludeInstallers) {
     $installerLine = "(installers not included - rerun with -IncludeInstallers, or download manually below)"
 }
 $manifest = @"
-DotNetDBTasks - Offline Build Bundle
+Bayan - Offline Build Bundle
 Generated: $now
 Built with: .NET SDK $dotnetVersion, Node $nodeVersion, npm $npmVersion
 Target runtime: $Runtime
@@ -231,7 +231,7 @@ Target runtime: $Runtime
 CONTENTS
 --------
 nuget-packages/        NuGet dependency closure ($nupkgCount packages).
-nuget.config.template  Drop next to DotNetDBTasks.sln (replace OFFLINE_BUNDLE_PATH).
+nuget.config.template  Drop next to Bayan.sln (replace OFFLINE_BUNDLE_PATH).
 npm-cache/             npm cache for the Angular client.
 $buildLine
 $installerLine
@@ -248,17 +248,17 @@ USAGE ON THE AIR-GAPPED MACHINE
 2. Copy this whole bundle somewhere stable, e.g. C:\offline-bundle.
 
 3. NuGet (choose ONE):
-   a) Copy nuget.config.template next to DotNetDBTasks.sln, rename to nuget.config,
+   a) Copy nuget.config.template next to Bayan.sln, rename to nuget.config,
       and replace OFFLINE_BUNDLE_PATH with the bundle's full path; then:
-         dotnet restore DotNetDBTasks.sln
+         dotnet restore Bayan.sln
    b) Or restore straight against the cache:
-         dotnet restore DotNetDBTasks.sln --packages C:\offline-bundle\nuget-packages
+         dotnet restore Bayan.sln --packages C:\offline-bundle\nuget-packages
 
 4. npm (in client/):
       npm ci --offline --cache C:\offline-bundle\npm-cache
 
 5. Rebuild:
-      dotnet build DotNetDBTasks.sln -c Release
+      dotnet build Bayan.sln -c Release
       cd client; npm run build:prod
 
 See DEPLOY-AIRGAPPED.md (Part B) for the full walkthrough.

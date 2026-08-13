@@ -1,12 +1,12 @@
 ---
 name: verify
-description: Build, launch and drive DotNetDBTasks (API + Angular client) to verify changes end-to-end.
+description: Build, launch and drive Bayan (API + Angular client) to verify changes end-to-end.
 ---
 
-# Verify DotNetDBTasks
+# Verify Bayan
 
 ## Launch
-- API: `dotnet run --no-launch-profile --urls http://localhost:60187` in `src/DotNetDBTasks.API` (background). Oracle reachable; migrations/schema repair auto-apply. If port 60187 is busy, kill the owner (`Get-NetTCPConnection -LocalPort 60187`) — it's usually a stale API with old code.
+- API: `dotnet run --no-launch-profile --urls http://localhost:60187` in `src/Bayan.API` (background). Oracle reachable; migrations/schema repair auto-apply. If port 60187 is busy, kill the owner (`Get-NetTCPConnection -LocalPort 60187`) — it's usually a stale API with old code.
 - Client: `npx ng serve --port 4200` in `client/` (often already running; vite hot-reloads edits, but the changed lazy chunk only compiles on first page hit — first automated run may hit timeouts, just retry).
 - Logins: admin/Admin@123, auditor/Auditor@123 (`user` was renamed by past e2e runs).
 

@@ -23,8 +23,8 @@ import { PERM } from './core/models/permissions';
       <mat-toolbar color="primary">
         <!-- Falls back to the name whenever no logo is set, so the banner is never blank. -->
         <img *ngIf="brandingService.logoUrl$ | async as logoUrl; else siteName"
-             [src]="logoUrl" class="brand-logo" alt="DotNetDBTasks">
-        <ng-template #siteName><span>DotNetDBTasks</span></ng-template>
+             [src]="logoUrl" class="brand-logo" [alt]="'app.name' | transloco">
+        <ng-template #siteName><span>{{ 'app.name' | transloco }}</span></ng-template>
         <span class="spacer"></span>
 
         <!-- Grouped into menus rather than a flat row. An Admin has nine destinations; as
