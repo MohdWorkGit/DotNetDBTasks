@@ -71,6 +71,8 @@ public static class AuditActions
     public const string BrandingLogoSet = "branding.logoSet";
     public const string BrandingLogoRemoved = "branding.logoRemoved";
     public const string BrandingSiteNameSet = "branding.siteNameSet";
+    public const string BrandingFaviconSet = "branding.faviconSet";
+    public const string BrandingFaviconRemoved = "branding.faviconRemoved";
     public const string QueriesImport = "queries.import";
     public const string SettingsUpdated = "settings.updated";
     public const string RolesCreate = "roles.create";
@@ -129,6 +131,8 @@ public static class AuditActions
         ["SetBrandingLogoCommand"] = (BrandingLogoSet, CategoryBranding),
         ["DeleteBrandingLogoCommand"] = (BrandingLogoRemoved, CategoryBranding),
         ["SetBrandingSiteNameCommand"] = (BrandingSiteNameSet, CategoryBranding),
+        ["SetBrandingFaviconCommand"] = (BrandingFaviconSet, CategoryBranding),
+        ["DeleteBrandingFaviconCommand"] = (BrandingFaviconRemoved, CategoryBranding),
 
         ["CreateScheduledTaskCommand"] = ("scheduledTasks.create", CategoryScheduledTasks),
         ["UpdateScheduledTaskCommand"] = ("scheduledTasks.update", CategoryScheduledTasks),

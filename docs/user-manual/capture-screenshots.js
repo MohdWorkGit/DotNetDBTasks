@@ -456,6 +456,14 @@ async function captureLocale(browser, locale, sample) {
     await clickLabel('nav.websiteBranding');
     await settle(page, 900);
     await shot('58-branding-dialog');
+    // The dialog holds three sections and its content scrolls, so the site-name fields sit
+    // below the fold — a second frame rather than a caption that describes what is cropped.
+    await page.evaluate(() => {
+      const content = document.querySelector('app-branding-dialog mat-dialog-content');
+      if (content) content.scrollTop = content.scrollHeight;
+    });
+    await settle(page, 600);
+    await shot('58b-branding-dialog-name');
     await closeOverlay();
   });
 

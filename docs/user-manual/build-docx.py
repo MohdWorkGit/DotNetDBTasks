@@ -674,9 +674,9 @@ def build_manual(doc):
          T("system-wide toggles (administrators only, see Chapter 14).",
            "مفاتيح على مستوى النظام (للمسؤولين فقط، انظر الفصل ١٤).")),
         (T("Website branding — ", "هوية الموقع — "),
-         T("set the logo or the site name shown in the top bar (administrators only, see "
+         T("set the logo, the site name and the browser tab icon (administrators only, see "
            "Chapter 13).",
-           "ضبط الشعار أو اسم الموقع الظاهر في الشريط العلوي (للمسؤولين فقط، انظر الفصل ١٣).")),
+           "ضبط الشعار واسم الموقع وأيقونة تبويب المتصفح (للمسؤولين فقط، انظر الفصل ١٣).")),
         (T("Logout — ", "تسجيل الخروج — "),
          T("signs out and returns to the sign-in page.",
            "ينهي الجلسة ويعيدك إلى صفحة تسجيل الدخول.")),
@@ -837,8 +837,8 @@ def build_manual(doc):
               [T("Read the system audit trail",
                  "قراءة سجل عمليات النظام"),
                yes, yes, dash, dash],
-              [T("Change the site logo and name",
-                 "تغيير شعار الموقع واسمه"),
+              [T("Change the site logo, name and tab icon",
+                 "تغيير شعار الموقع واسمه وأيقونة تبويبه"),
                yes, dash, dash, dash],
               [T("Change system settings",
                  "تغيير إعدادات النظام"),
@@ -2092,9 +2092,11 @@ def build_manual(doc):
     para(doc, T("For: Administrators only.", "لمن: المسؤولون فقط."), italic=True)
     para(doc, T(
         "What the top bar shows can be changed: an uploaded logo, or the site's name written in "
-        "each language. Open the account menu and choose Website branding.",
-        "يمكن تغيير ما يظهر في الشريط العلوي: شعار مرفوع، أو اسم الموقع مكتوبًا بكل لغة. افتح "
-        "قائمة الحساب واختر «هوية الموقع»."))
+        "each language. The same dialog also sets the icon browsers show on the tab. Open the "
+        "account menu and choose Website branding.",
+        "يمكن تغيير ما يظهر في الشريط العلوي: شعار مرفوع، أو اسم الموقع مكتوبًا بكل لغة. وتضبط "
+        "النافذة نفسها أيضًا الأيقونة التي يعرضها المتصفح في التبويب. افتح قائمة الحساب واختر "
+        "«هوية الموقع»."))
     para(doc, T(
         "The bar picks the first of three, in order: the logo when one is uploaded, otherwise "
         "the site name for the language in use, otherwise the application's own name. So the "
@@ -2104,8 +2106,10 @@ def build_manual(doc):
         "باللغة المستخدمة، وإلا اسم التطبيق نفسه. لذا لا يبقى الشريط فارغًا أبدًا، وإزالة "
         "الشعار تُظهر الاسم الذي تحته بدلًا من أن تُفرغه."))
     figure(doc, "58-branding-dialog",
-           T("The branding dialog: the logo above, the site name in each language below.",
-             "نافذة هوية الموقع: الشعار في الأعلى، واسم الموقع بكل لغة في الأسفل."))
+           T("The branding dialog: the logo above, the browser tab icon below it. Scrolling "
+             "down reveals the site name.",
+             "نافذة هوية الموقع: الشعار في الأعلى، وأيقونة تبويب المتصفح تحته. والتمرير للأسفل "
+             "يُظهر اسم الموقع."))
     h2(doc, T("The logo", "الشعار"))
     bullets(doc, [
         (T("Formats — ", "الصيغ — "),
@@ -2122,7 +2126,51 @@ def build_manual(doc):
            "تحذّرك النافذة قبل الرفع إذا كانت الصورة قصيرة أو دون الدقة الموصى بها أو عريضة "
            "لدرجة يقتصّها الحد.")),
     ])
+    h2(doc, T("The browser tab icon", "أيقونة تبويب المتصفح"))
+    para(doc, T(
+        "This is the small icon a browser shows on the tab, in the bookmarks bar and in "
+        "history. It is uploaded separately from the logo rather than scaled down from it: a "
+        "banner logo is wide and readable at 40 pixels tall, while a tab icon is a 16 pixel "
+        "square, and shrinking the one into the other produces a smudge.",
+        "هي الأيقونة الصغيرة التي يعرضها المتصفح في التبويب وفي شريط المفضلة وفي سجل التصفح. "
+        "وتُرفع منفصلة عن الشعار لا مصغَّرة منه: فالشعار عريض وواضح بارتفاع ٤٠ بكسل، أما أيقونة "
+        "التبويب فمربّع ١٦ بكسل، وتصغير الأول إلى الثاني يعطي صورة غير مفهومة."))
+    bullets(doc, [
+        (T("Formats — ", "الصيغ — "),
+         T("PNG, ICO or WebP, up to 256 KB. JPG is not accepted, because a tab icon needs the "
+           "transparent background JPG cannot carry.",
+           "PNG أو ICO أو WebP بحد أقصى ٢٥٦ كيلوبايت. ولا تُقبل صيغة JPG لأن أيقونة التبويب "
+           "تحتاج خلفية شفافة لا توفّرها.")),
+        (T("Size — ", "المقاس — "),
+         T("a square 32×32 pixel image suits the tab and the bookmarks bar. The dialog previews "
+           "it twice: enlarged, and at the true size the browser will use.",
+           "الصورة المربّعة بمقاس ٣٢×٣٢ بكسل تناسب التبويب وشريط المفضلة. وتعرضها النافذة "
+           "مرتين: مكبَّرة، وبالحجم الحقيقي الذي سيستخدمه المتصفح.")),
+        (T("It appears before signing in — ", "تظهر قبل تسجيل الدخول — "),
+         T("the sign-in page's tab carries it too, so the icon is part of what someone sees "
+           "before they have an account in hand.",
+           "يحملها تبويب صفحة تسجيل الدخول أيضًا، فهي جزء مما يراه المستخدم قبل أن يكون لديه "
+           "حساب.")),
+        (T("Remove — ", "إزالة — "),
+         T("with none stored the browser shows its own default icon; there is no fallback of "
+           "ours.",
+           "إذا لم تكن هناك أيقونة مخزَّنة عرض المتصفح أيقونته الافتراضية، وليس لدينا بديل "
+           "عنها.")),
+    ])
+    note(doc, T(
+        "Browsers cache tab icons aggressively. After replacing one, a tab that was already "
+        "open may keep the old icon until it is reloaded — open the site in a new tab to check "
+        "the change rather than trusting the tab you were already on.",
+        "تحتفظ المتصفحات بأيقونات التبويب في الذاكرة المؤقتة بشدة. وبعد استبدال الأيقونة قد "
+        "يُبقي التبويب المفتوح مسبقًا الأيقونة القديمة حتى يُعاد تحميله — افتح الموقع في تبويب "
+        "جديد للتحقق من التغيير بدل الاعتماد على التبويب الذي كنت فيه."))
+
     h2(doc, T("The site name", "اسم الموقع"))
+    figure(doc, "58b-branding-dialog-name",
+           T("The lower half of the same dialog: one name field per language, each counting "
+             "the characters left.",
+             "النصف السفلي من النافذة نفسها: حقل اسم لكل لغة، ويعرض كل منهما عدد الأحرف "
+             "المتبقية."))
     bullets(doc, [
         (T("One name per language — ", "اسم لكل لغة — "),
          T("the English name is shown to someone using the English interface and the Arabic "
@@ -2153,9 +2201,10 @@ def build_manual(doc):
         kind="warning")
     note(doc, T(
         "Every change here is recorded in the system audit trail — the logo under “Changed the "
-        "site logo” and the name under “Changed the site name”.",
-        "تُسجَّل كل تغييرات هذه النافذة في سجل عمليات النظام — الشعار تحت «تغيير شعار الموقع» "
-        "والاسم تحت «تغيير اسم الموقع»."))
+        "site logo”, the tab icon under “Changed the browser tab icon”, and the name under "
+        "“Changed the site name”.",
+        "تُسجَّل كل تغييرات هذه النافذة في سجل عمليات النظام — الشعار تحت «تغيير شعار الموقع»، "
+        "وأيقونة التبويب تحت «تغيير أيقونة تبويب المتصفح»، والاسم تحت «تغيير اسم الموقع»."))
 
     # ===================================================================== 14
     h1(doc, T("14. System settings", "١٤. إعدادات النظام"))

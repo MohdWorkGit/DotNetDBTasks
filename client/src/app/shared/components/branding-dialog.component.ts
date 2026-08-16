@@ -12,6 +12,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {
   BrandingService,
+  FAVICON_ACCEPT,
+  FAVICON_MAX_BYTES,
+  FAVICON_RECOMMENDED_SIZE,
   LOGO_ACCEPT,
   LOGO_DISPLAY_HEIGHT,
   LOGO_MAX_BYTES,
@@ -95,6 +98,45 @@ import { ToastService } from '@core/services/toast.service';
 
       <mat-divider class="divider"></mat-divider>
 
+      <h3 class="section">{{ 'branding.faviconSection' | transloco }}</h3>
+      <p class="hint">
+        {{ 'branding.faviconHint' | transloco: {
+             recommendedSize: faviconRecommendedSize,
+             maxKb: faviconMaxKb
+           } }}
+      </p>
+
+      <div class="favicon-row">
+        <!-- Shown at its real tab size beside a magnified copy: an icon that is legible at
+             64 px can still be a smudge at 16 px, which is the size that actually ships. -->
+        <div class="favicon-preview" [class.empty]="!(faviconUrl$ | async)">
+          <ng-container *ngIf="faviconUrl$ | async as favUrl; else noFavicon">
+            <img [src]="favUrl" [alt]="'branding.faviconPreview' | transloco" class="favicon-lg">
+            <img [src]="favUrl" [alt]="'branding.faviconActualSize' | transloco" class="favicon-sm">
+            <span class="favicon-caption">{{ 'branding.faviconActualSize' | transloco }}</span>
+          </ng-container>
+          <ng-template #noFavicon>
+            <span class="preview-placeholder">{{ 'branding.noFavicon' | transloco }}</span>
+          </ng-template>
+        </div>
+
+        <div class="logo-actions">
+          <button mat-stroked-button (click)="faviconInput.click()" [disabled]="busy">
+            <mat-icon>upload</mat-icon>
+            {{ ((faviconUrl$ | async) ? 'branding.replaceLogo' : 'branding.uploadLogo') | transloco }}
+          </button>
+          <button mat-button color="warn" *ngIf="faviconUrl$ | async" (click)="removeFavicon()"
+                  [disabled]="busy">
+            <mat-icon>delete</mat-icon> {{ 'branding.removeLogo' | transloco }}
+          </button>
+        </div>
+      </div>
+
+      <input #faviconInput type="file" [accept]="faviconAccept" hidden
+             (change)="onFaviconSelected($event)">
+
+      <mat-divider class="divider"></mat-divider>
+
       <h3 class="section">{{ 'branding.nameSection' | transloco }}</h3>
       <p class="hint">{{ 'branding.nameHint' | transloco }}</p>
 
@@ -154,6 +196,21 @@ import { ToastService } from '@core/services/toast.service';
     .logo-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
     .divider { margin: 24px 0; }
     .name-field { width: 100%; }
+    .favicon-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .favicon-preview {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 64px;
+      padding: 12px 16px;
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-surface);
+    }
+    .favicon-preview.empty { color: var(--text-secondary); }
+    .favicon-lg { width: 48px; height: 48px; object-fit: contain; }
+    .favicon-sm { width: 16px; height: 16px; object-fit: contain; }
+    .favicon-caption { font-size: 11px; color: var(--text-secondary); }
   `]
 })
 export class BrandingDialogComponent {
@@ -169,6 +226,10 @@ export class BrandingDialogComponent {
   readonly recommendedMaxWidth = LOGO_RECOMMENDED_MAX_WIDTH;
   readonly maxMb = LOGO_MAX_BYTES / (1024 * 1024);
   readonly maxNameLength = SITE_NAME_MAX_LENGTH;
+  readonly faviconAccept = FAVICON_ACCEPT;
+  readonly faviconRecommendedSize = FAVICON_RECOMMENDED_SIZE;
+  readonly faviconMaxKb = FAVICON_MAX_BYTES / 1024;
+  readonly faviconUrl$ = this.branding.faviconUrl$;
 
   previewUrl: string | null = null;
   hasLogo = false;
@@ -254,6 +315,53 @@ export class BrandingDialogComponent {
       error: (err) => {
         this.busy = false;
         this.toast.error(err, 'branding.logoUploadFailed');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onFaviconSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    if (file.size > FAVICON_MAX_BYTES) {
+      this.toast.error(null, 'branding.faviconTooLarge', {
+        size: Math.round(file.size / 1024),
+        max: this.faviconMaxKb
+      });
+      return;
+    }
+
+    this.busy = true;
+    this.cdr.markForCheck();
+    this.branding.uploadFavicon(file).subscribe({
+      next: () => {
+        this.busy = false;
+        this.toast.success('branding.faviconUpdated');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.busy = false;
+        this.toast.error(err, 'branding.faviconUploadFailed');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  removeFavicon(): void {
+    this.busy = true;
+    this.cdr.markForCheck();
+    this.branding.removeFavicon().subscribe({
+      next: () => {
+        this.busy = false;
+        this.toast.success('branding.faviconRemoved');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.busy = false;
+        this.toast.error(err, 'branding.faviconRemoveFailed');
         this.cdr.markForCheck();
       }
     });

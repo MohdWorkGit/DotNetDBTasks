@@ -34,7 +34,7 @@ docker/                           # Dockerfiles and nginx config
 | Allow or block running writes without confirmation | Skip the write preview when the query allows it |
 | Turn off before-change row capture on bulk writes | |
 | Filter queries and execution logs by statement type | |
-| Set a site logo, or a site name per language, for the top banner | |
+| Set a site logo, a site name per language, and the browser tab icon | |
 | Export queries to JSON and import them back / on a new system | |
 | View execution audit logs | |
 
@@ -138,7 +138,7 @@ naming them. Every change is audited (`settings.updated`) with the full set of v
 
 Two further rows live in this table but are **not** edited here: `branding.siteNameEn` and
 `branding.siteNameAr` belong to the branding dialog and its own permission — see
-[Site branding](#site-branding--logo-and-name).
+[Site branding](#site-branding--logo-name-and-tab-icon).
 
 Settings are read on authorization paths and deliberately **not cached** — a stale value would
 mean granting access an administrator believes they just revoked. Changes are audited
@@ -305,7 +305,7 @@ Generate a key with `openssl rand -base64 32`.
 
 ## API Endpoints
 
-**Full reference: [docs/API-REFERENCE.md](docs/API-REFERENCE.md)** — all 94 endpoints with their
+**Full reference: [docs/API-REFERENCE.md](docs/API-REFERENCE.md)** — all 97 endpoints with their
 verbs, roles and query parameters. The map below is for orientation only.
 
 | Area | Base path | Who reaches it |
@@ -583,7 +583,7 @@ modified or deleted, so a mistaken import is undone by deleting what it added. T
 lists every query imported, which ones were renamed, and every reference that could not be
 resolved.
 
-## Site branding — logo and name
+## Site branding — logo, name and tab icon
 
 The top banner shows an uploaded logo, or the site's name written per language, in place of the
 app name. An Admin sets both from the account menu (the same menu as Logout) → **Website
@@ -608,9 +608,26 @@ not appear on the Settings page. Clearing one deletes its row rather than blanki
 stores `''` as NULL and the `Value` column is NOT NULL, and "no row" is already what that
 table means by unset.
 
-The image lives in `SystemTemplates` under the `branding-logo` key — the same keyed store as the
-default Word template, so there is no new table. Its content type is derived from the uploaded
-file's extension.
+**The browser tab icon** is set in the same dialog and is deliberately independent of all
+three. A banner logo is wide and legible at 40 px tall; a favicon is a 16 px square, and
+shrinking one into the other reliably produces a smudge — so it is uploaded separately. With
+none stored the browser shows its own default, which is exactly what it did before the feature
+existed: `index.html` ships no `<link rel="icon">`, and the client adds one pointing at the
+endpoint.
+
+`GET /api/branding/favicon` is anonymous for a stronger reason than the logo: the browser
+fetches the tab icon for the **sign-in page**, before anyone has a token. It is served
+`no-cache` rather than `immutable`, because that first paint has no `updatedAt` to cache-bust
+with; once the shell knows the timestamp it re-stamps the link, which is what dislodges the
+icon Chrome otherwise holds well past its headers. Uploads are capped at 256 KB — a quarter of
+the logo's allowance, since every page load fetches it before anything is painted — and accept
+PNG, ICO or WebP. **ICO replaces JPG** in the accepted set: a favicon needs the transparency
+JPG cannot carry, and ICO is what most icon tooling still emits. An ICO must declare image
+type 1; a cursor shares the container and would otherwise pass.
+
+Both images live in `SystemTemplates`, under the `branding-logo` and `branding-favicon` keys —
+the same keyed store as the default Word template, so there is no new table. Content types are
+derived from the uploaded file's extension.
 
 **Sizing.** The banner renders it at 40 px tall and caps it at 200 px wide (140 px below 1400 px,
 where the nav labels collapse and the row is tight), with `object-fit: contain` preserving the
