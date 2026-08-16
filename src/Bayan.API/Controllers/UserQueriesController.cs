@@ -128,7 +128,7 @@ public class UserQueriesController : ControllerBase
     {
         var job = _jobStore.Get(jobId);
         if (job is null)
-            return NotFound();
+            return JobGone();
 
         if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
             return Forbid();
@@ -164,7 +164,7 @@ public class UserQueriesController : ControllerBase
     {
         var job = _jobStore.Get(jobId);
         if (job is null)
-            return NotFound();
+            return JobGone();
 
         if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
             return Forbid();
@@ -269,7 +269,7 @@ public class UserQueriesController : ControllerBase
     {
         var job = _jobStore.Get(jobId);
         if (job is null)
-            return NotFound();
+            return JobGone();
 
         if (job.UserId != _currentUser.UserId && !_currentUser.Roles.Contains("Admin"))
             return Forbid();
@@ -450,4 +450,15 @@ public class UserQueriesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// The job id is not in the store. Deliberately 410 rather than 404: the job store is
+    /// in-memory, so this is what a client sees after the result expired on its retention
+    /// window or the worker process restarted out from under an in-flight query. A bare 404
+    /// left the polling grid showing a generic "execution failed", which sent people hunting
+    /// for a problem with their query. 410 plus a message lets the client say what actually
+    /// happened and that re-running is the fix.
+    /// </summary>
+    private IActionResult JobGone() => StatusCode(
+        StatusCodes.Status410Gone,
+        new { message = "This result is no longer available. The server restarted or the result expired — please run the query again." });
 }

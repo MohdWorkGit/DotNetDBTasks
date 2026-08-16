@@ -41,6 +41,8 @@ docker/                           # Dockerfiles and nginx config
 ## Security
 
 - LDAP / Active Directory authentication
+- Windows SSO (Kerberos/NTLM) when hosted on IIS — domain users are signed in automatically
+  without a form; off by default via `Auth:EnableSso`
 - JWT access + refresh token authentication
 - AES-256 encryption of stored database credentials at rest
 - Role-based authorization — see [Roles](#roles)
@@ -288,9 +290,18 @@ Generate a key with `openssl rand -base64 32`.
 
 ## Deployment
 
+- **IIS on Windows Server (single site, with Windows SSO):** `./scripts/deploy-iis.ps1 -Hostname bayan.corp.local -EnableSso`,
+  run elevated on the server. One site serves both the SPA and the API, so there is no reverse
+  proxy and no CORS, and domain users are signed in automatically. Full walkthrough in
+  [DEPLOY-AIRGAPPED.md](DEPLOY-AIRGAPPED.md) Part C.
 - **Docker / internet-connected:** see the Quick Start above.
 - **Air-gapped (no Docker, no internet):** see [DEPLOY-AIRGAPPED.md](DEPLOY-AIRGAPPED.md) —
   covers both deploying a pre-built release **and** setting up a machine to edit and rebuild offline.
+
+> **The background workers live in the web process.** Scheduled exports, async query jobs and
+> cached results all run inside the API's own process, so whatever hosts it must keep it running
+> continuously and must run exactly one copy of it. Under IIS that means specific app pool
+> settings — see [DEPLOY-AIRGAPPED.md](DEPLOY-AIRGAPPED.md) Part C0 and C3.5.
 
 ### Production checklist
 
@@ -298,7 +309,10 @@ Generate a key with `openssl rand -base64 32`.
 - [ ] Set a strong `DB_PASSWORD`
 - [ ] Set a unique `ENCRYPTION_KEY` (base64-encoded 32 bytes) — losing it makes stored credentials unrecoverable
 - [ ] Point `Ldap.Host` at the correct AD/LDAP server and verify a test login
-- [ ] Configure HTTPS (reverse proxy with TLS termination)
+- [ ] Configure HTTPS — a binding and certificate on the IIS site, or TLS termination at the
+      reverse proxy for the nginx/Docker models
+- [ ] Confirm the background workers survive an idle period (see Part C5 — leave the site alone
+      for 30 minutes, then check that a scheduled task still fired)
 - [ ] Set up log rotation for the Serilog file sink
 - [ ] Configure backup for the database volume
 - [ ] Restrict exposed ports via firewall rules
@@ -332,10 +346,17 @@ reference marks each one.
 ## How Long-Running Queries Work (Async Execution)
 
 A synchronous request holds the HTTP connection open for the entire query, so a slow query
-is killed by whatever proxy/edge timeout sits in front of the app (nginx `proxy_read_timeout`
-~120s, Cloudflare's edge cap ~100s) regardless of the query's own `TimeoutSeconds`. To avoid
-this, an admin can flag a query as **long-running**, which switches it to an asynchronous
-**submit-and-poll** flow where every HTTP request stays short.
+is killed by whatever timeout sits in front of the app (nginx `proxy_read_timeout` ~120s,
+Cloudflare's edge cap ~100s, IIS `connectionTimeout` ~120s) regardless of the query's own
+`TimeoutSeconds`. To avoid this, an admin can flag a query as **long-running**, which switches
+it to an asynchronous **submit-and-poll** flow where every HTTP request stays short.
+
+This is also why a long query survives IIS hosting: the browser only ever makes 2-second poll
+requests, so no front-end timeout applies to the query itself. What the query does *not* survive
+is the worker process restarting — the job store is in-memory, so a recycle mid-query loses the
+result and the client is told the result is no longer available and to run it again. Part C3.5
+of [DEPLOY-AIRGAPPED.md](DEPLOY-AIRGAPPED.md) configures IIS so those restarts do not happen on
+their own.
 
 ### Choosing the mode
 
@@ -686,4 +707,4 @@ Users ──┬── UserRoles ─────── Roles
 | Logging | Serilog |
 | Auth | LDAP/AD + JWT Bearer; AES-256 credential encryption |
 | Containers | Docker + Docker Compose |
-| Web Server | nginx (Angular) + Kestrel (.NET) |
+| Web Server | IIS single site (in-process), or nginx (Angular) + Kestrel (.NET) |

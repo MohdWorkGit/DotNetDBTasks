@@ -23,6 +23,13 @@ export class AuthService {
   private readonly USER_KEY = 'user_data';
   private readonly PERMISSIONS_KEY = 'user_permissions';
 
+  /**
+   * Brake on the automatic Windows sign-in the login page attempts. sessionStorage, not
+   * localStorage: it should last as long as the tab and no longer, so closing the browser
+   * gives SSO a clean go again.
+   */
+  private readonly SSO_SUPPRESSED_KEY = 'sso_suppressed';
+
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
@@ -39,6 +46,33 @@ export class AuthService {
     return this.http.post<AuthResult>(`${environment.apiUrl}/auth/login`, request).pipe(
       tap(result => this.storeTokens(result))
     );
+  }
+
+  /**
+   * Signs in with the Windows identity the browser already holds. The server performs the
+   * Kerberos/NTLM handshake and answers with the same token payload as a password login, so
+   * this differs from {@link login} only in how the user proved who they are.
+   *
+   * withCredentials is what lets the browser answer the server's 401 challenge; without it
+   * the handshake never happens. Returns 404 when SSO is switched off server-side.
+   */
+  sso(): Observable<AuthResult> {
+    return this.http.get<AuthResult>(`${environment.apiUrl}/auth/sso`, { withCredentials: true }).pipe(
+      tap(result => this.storeTokens(result))
+    );
+  }
+
+  /**
+   * Stops the login page from attempting Windows sign-in again this session. Signing out is
+   * the case that matters: without this, logout lands on /login, which would immediately sign
+   * the same user straight back in and make signing out impossible.
+   */
+  suppressSso(): void {
+    sessionStorage.setItem(this.SSO_SUPPRESSED_KEY, '1');
+  }
+
+  isSsoSuppressed(): boolean {
+    return !!sessionStorage.getItem(this.SSO_SUPPRESSED_KEY);
   }
 
   refreshToken(): Observable<AuthResult> {
@@ -73,6 +107,8 @@ export class AuthService {
   }
 
   logout(): void {
+    // Before the redirect below, or the login page signs this user straight back in.
+    this.suppressSso();
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_KEY);
     localStorage.removeItem(this.USER_KEY);

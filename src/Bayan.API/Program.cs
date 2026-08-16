@@ -32,6 +32,19 @@ builder.Host.UseSerilog();
 // events and sets the working directory so relative paths (logs/, wwwroot) resolve.
 builder.Host.UseWindowsService();
 
+// How long a stop waits for the background workers to unwind. The default 30s is too
+// short for this app: a scheduled export that is cancelled cleanly still has to write
+// its final run status and flush the incremental checkpoints of the items that did
+// finish (ScheduledTaskRunner.RunAsync's finally block). Killed instead, it strands a
+// Running row and re-exports those items on the next run.
+//
+// Under IIS this is the innermost rung of a three-part ladder and only takes effect if
+// the outer two are raised to match — see the comment in web.config:
+//   this (90s)  <  ANCM shutdownTimeLimit (100s)  <  app pool shutdownTimeLimit (120s)
+builder.Services.Configure<HostOptions>(options =>
+    options.ShutdownTimeout = TimeSpan.FromSeconds(
+        builder.Configuration.GetValue("Host:ShutdownTimeoutSeconds", 90)));
+
 // Clean Architecture layer registration
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);

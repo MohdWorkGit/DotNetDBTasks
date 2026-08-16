@@ -424,6 +424,36 @@ calls `UseStaticFiles` + `MapFallbackToFile("index.html")`) hosts the Angular bu
 `wwwroot`, so `/api/*` hits the controllers and every other path returns the SPA. No reverse proxy,
 no CORS (same origin), and Windows SSO works through IIS.
 
+> **Fast path — one command does all of it.** `scripts/deploy-iis.ps1` performs every step in
+> Part C: it builds the client, publishes the API, merges the SPA into `wwwroot`, and creates or
+> updates the app pool and site with all of the settings below. Run it elevated, on the server:
+>
+> ```powershell
+> ./scripts/deploy-iis.ps1 -Hostname bayan.corp.local -EnableSso
+> ```
+>
+> Re-running it is an upgrade, not a reinstall — existing bindings, `appsettings.json`, `logs\`
+> and `cache\` are preserved. Read on if you would rather do it by hand, or need to understand
+> what it configures and why.
+
+## C0 — Why This App Needs More Than the Default App Pool
+
+Bayan runs three background workers **inside the IIS worker process**: the scheduled-export
+scheduler, the async query-job worker, and result-cache maintenance. Their state — the job
+store, both work queues, the cancel registry — lives in that process's memory
+(`src/Bayan.Infrastructure/DependencyInjection.cs`). Three consequences drive everything in C3
+and C3.5, and none of them are optional:
+
+- **The pool must run exactly one worker process.** A web garden (`maxProcesses > 1`) starts a
+  second scheduler that fires every due task a second time, writing duplicate export files. It
+  also splits the job store, so a browser polling for its query result can be answered by the
+  process that never ran it.
+- **Recycles must not overlap.** On startup the job store deletes everything in its spill
+  directory to clear orphans left by a crash. During an overlapped recycle the incoming process
+  does that while the outgoing one is still streaming those files to someone's browser.
+- **The pool must never stop when idle.** The scheduler polls in-process. An idled pool means
+  the export due at 02:00 simply does not happen, and nothing reports that it didn't.
+
 ## C1 — Server Prerequisites
 
 1. Enable the **IIS** role, including the **Windows Authentication** feature (needed for SSO).
@@ -456,37 +486,101 @@ Import-Module WebAdministration
 New-WebAppPool -Name "Bayan"
 # No Managed Code: ANCM runs the .NET process, not the IIS CLR.
 Set-ItemProperty IIS:\AppPools\Bayan -Name managedRuntimeVersion -Value ""
-New-Website -Name "Bayan" -Port 80 -PhysicalPath "C:\inetpub\Bayan" -ApplicationPool "Bayan"
-# The app writes logs\ and reads wwwroot — grant the pool identity write access.
+# Reach the site by hostname, not IP — silent SSO depends on it (see C4).
+New-Website -Name "Bayan" -Port 80 -HostHeader "bayan.corp.local" `
+            -PhysicalPath "C:\inetpub\Bayan" -ApplicationPool "Bayan"
+# The app writes logs\ and spills large query results to cache\ — grant the pool identity
+# write access.
 icacls "C:\inetpub\Bayan" /grant "IIS AppPool\Bayan:(OI)(CI)M" /T
 ```
 
 (Copy `api-publish\` to `C:\inetpub\Bayan` first.)
 
-## C3.5 — Keep the Background Scheduler Alive
+**Then apply the app pool settings in C3.5 — they are not optional for this app.**
 
-Scheduled export tasks run inside the app's worker process. By default IIS stops an idle
-app pool after 20 minutes and only restarts the app on the next HTTP request — so overnight
-schedules would silently never fire. Configure the pool/site to run permanently:
+### Choosing the pool identity
 
-1. Install the IIS **Application Initialization** feature (Server Manager → Web Server →
-   Application Development, or `dism /online /enable-feature /featurename:IIS-ApplicationInit`).
-2. Configure the pool and site:
-   ```powershell
-   Import-Module WebAdministration
-   # Never stop when idle; start with Windows instead of on first request.
-   Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.idleTimeout -Value "00:00:00"
-   Set-ItemProperty IIS:\AppPools\Bayan -Name startMode -Value AlwaysRunning
-   # Warm the app immediately after any recycle/restart, without waiting for a visitor.
-   Set-ItemProperty "IIS:\Sites\Bayan" -Name applicationDefaults.preloadEnabled -Value $true
-   ```
-3. Optional: disable the daily scheduled recycle, or move it to a quiet hour
-   (`Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.time -Value "00:00:00"`).
-   A recycle during a running export fails that run; it is retried-safe (incremental
-   checkpoints only advance on success) but the run shows as failed.
-4. Grant the pool identity **write access to every scheduled task output folder** (same
-   `icacls` pattern as C3) — the folders in `OutputFolder` **and** `ArchiveFolder` of your
-   scheduled tasks.
+| | `ApplicationPoolIdentity` (default) | Domain service account |
+|---|---|---|
+| SSO setup | Nothing to do — the machine account already covers this host's own name | Requires `setspn -S HTTP/<hostname> DOMAIN\svc-bayan` |
+| Scheduled exports to a **network share** | **Not possible** — output folders must be local paths | Works |
+| Windows auth to Oracle | Not available | Available |
+| Credential management | None | Password must be rotated in IIS when it changes in AD |
+
+Start with `ApplicationPoolIdentity` unless a scheduled task needs to write to a UNC path.
+To switch later:
+
+```powershell
+Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.identityType -Value SpecificUser
+Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.userName -Value "CORP\svc-bayan"
+Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.password -Value "..."
+```
+
+## C3.5 — Keep the Background Workers Alive
+
+Install the IIS **Application Initialization** feature first (Server Manager → Web Server →
+Application Development, or `dism /online /enable-feature /featurename:IIS-ApplicationInit`).
+Without it `preloadEnabled` does nothing and the app waits for a first visitor before its
+workers start.
+
+Then apply all of the following. See C0 for why each one matters:
+
+```powershell
+Import-Module WebAdministration
+
+# Never stop when idle; start with Windows instead of on first request.
+Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.idleTimeout -Value "00:00:00"
+Set-ItemProperty IIS:\AppPools\Bayan -Name startMode -Value AlwaysRunning
+
+# Exactly one worker process. A web garden duplicates every scheduled export and
+# splits the in-memory job store across processes.
+Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.maxProcesses -Value 1
+
+# No overlapped recycle: the incoming process wipes the result spill directory on
+# startup, which would pull files out from under the outgoing process's readers.
+Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.disallowOverlappingRotation -Value $true
+
+# Turn off every automatic recycle trigger. Each is an unannounced restart that drops
+# in-flight query jobs and every cached result.
+Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.time -Value "00:00:00"
+Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.requests -Value 0
+Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.memory -Value 0
+Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.privateMemory -Value 0
+Clear-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.schedule
+
+# Outermost rung of the shutdown ladder (see below).
+Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.shutdownTimeLimit -Value "00:02:00"
+
+# Warm the app immediately after any restart, without waiting for a visitor.
+Set-ItemProperty "IIS:\Sites\Bayan" -Name applicationDefaults.preloadEnabled -Value $true
+```
+
+### The shutdown ladder
+
+A restart is not always avoidable — a deploy is one. What decides whether it costs you
+anything is how much time the app gets to unwind. Given enough, a running export takes the
+cancellation path that writes its final run status **and** flushes the incremental checkpoints
+of the items that already finished; killed instead, it does neither and re-exports them next
+time. Three timeouts gate that, and the innermost must be the smallest:
+
+| Limit | Where | Value |
+|---|---|---|
+| `HostOptions.ShutdownTimeout` | `appsettings.json` → `Host:ShutdownTimeoutSeconds` | 90s |
+| ANCM `shutdownTimeLimit` | `web.config` → `<aspNetCore>` | 100s |
+| App pool `shutdownTimeLimit` | IIS, above | 120s |
+
+ANCM's default is **10 seconds**, which is far too short — leave it and every recycle is a hard
+kill regardless of what the app is configured to do. Raise all three together or none.
+
+### Still required
+
+- Grant the pool identity **write access to every scheduled task output folder** — the
+  `OutputFolder` **and** `ArchiveFolder` of each task, using the same `icacls` pattern as C3.
+  Note that `ApplicationPoolIdentity` **cannot write to remote UNC shares**: with it, every
+  output folder must be a local path. Use a domain service account if you need network shares.
+- If a run is interrupted anyway, the app now closes it out itself: on startup the scheduler
+  marks any run still sitting at `Running` as failed, so the run history cannot accumulate rows
+  that show as in-progress forever and refuse to cancel.
 
 ## C4 — Windows SSO
 
@@ -498,6 +592,19 @@ The app exposes `GET /api/auth/sso`: a domain-joined browser sends the user's Ke
 automatically, the endpoint auto-provisions/syncs the user from AD via LDAP, then issues the app's
 own JWT. Every later `/api/*` call uses that JWT (Bearer). The endpoint is authorized with
 `IISDefaults.AuthenticationScheme`, so **IIS** performs Windows auth (correct for in-process hosting).
+
+**What the user sees.** The login page attempts this automatically as it loads, so on a
+domain-joined machine people arrive already signed in and never see the form. When the attempt
+fails — SSO switched off, no ticket on offer, a non-domain machine — the form appears instead
+and nothing is reported to the user; the fallback is meant to be invisible. Two consequences
+worth knowing:
+
+- **Signing out does not bounce.** The client suppresses the automatic attempt for the rest of
+  the browser session after a sign-out, so logging out cannot immediately sign you back in.
+  Closing the browser clears that.
+- **`ng serve` cannot test this.** In development the client calls the API cross-origin, where
+  the Negotiate handshake does not happen. The attempt fails fast and the form appears — correct
+  behaviour, but it means SSO is only genuinely testable in this IIS-hosted configuration.
 
 1. **Unlock the auth sections** (they are locked at the server level by default, else IIS returns
    HTTP 500.19). Run once per server, as admin:
@@ -519,11 +626,29 @@ own JWT. Every later `/api/*` call uses that JWT (Bearer). The endpoint is autho
 
 ## C5 — Verify
 
+Basics:
+
 - `http://SERVER/` loads the SPA; refreshing a deep link (e.g. `/admin/queries`) still works (fallback).
 - `http://SERVER/api/...` responds; `http://SERVER/swagger` shows the API docs.
-- `http://SERVER/api/auth/sso` from a domain-joined machine returns a token without prompting.
+- `http://SERVER/api/auth/sso` from a domain-joined machine returns a token without prompting,
+  and opening the site itself signs you in with no form.
 - ANCM startup failures surface in **Event Viewer → Windows Logs → Application**; app logs are in
   `logs\log-*.txt`.
+
+The three that actually prove Part C worked — the ones worth doing before calling a
+deployment finished:
+
+1. **The workers survive idleness.** Leave the site completely untouched for 30+ minutes, then
+   confirm a scheduled task still fires. This is the only real test that `idleTimeout` and
+   `startMode` took effect; everything looks fine until the first quiet night otherwise.
+2. **A long query completes.** Run one that takes longer than two minutes. It should finish and
+   page normally: long work goes through `execute-async`, so the browser polls with short
+   requests and no HTTP timeout applies to the query itself.
+3. **A recycle behaves.** With a task set to run every 5 minutes, `Restart-WebAppPool Bayan`
+   mid-run, then check that the interrupted run shows `Canceled` or `Failed` rather than sitting
+   at `Running`, that the next occurrence fires within ~30s of the restart, that no duplicate
+   output file appeared, and that the output file that did land is complete rather than
+   truncated.
 
 ---
 
@@ -542,3 +667,9 @@ own JWT. Every later `/api/*` call uses that JWT (Bearer). The endpoint is autho
 | IIS: HTTP 500.19 (config locked) | `windowsAuthentication`/`anonymousAuthentication` not unlocked — run the `appcmd unlock` commands in Part C4, or set auth in IIS Manager instead |
 | IIS: HTTP 500.30 / 502.5 on start | Hosting Bundle not installed, app pool not set to *No Managed Code*, or app crashed on startup — see Event Viewer → Application and `logs\` |
 | IIS: SSO prompts for credentials | Site reached by IP not hostname, host not in the browser's Local Intranet zone, or missing SPN for a custom app-pool account |
+| IIS: login form appears on a domain machine | `Auth:EnableSso` still `false` (the endpoint 404s), or the user signed out earlier in this browser session — the automatic attempt is suppressed until the browser is closed |
+| IIS: **every scheduled export runs twice** | Web garden. `processModel.maxProcesses` must be `1` — a second worker process runs a second scheduler (C0) |
+| IIS: results vanish mid-page, "no longer available" | An overlapped recycle wiped the spill directory. Set `recycling.disallowOverlappingRotation` to `$true` and disable the periodic recycles (C3.5) |
+| Scheduled runs stuck at "Running" | Left by a process killed before it could finish. The scheduler now closes these out at startup — if they persist, the app is not restarting cleanly; check the shutdown ladder in C3.5 |
+| Overnight schedules never fire | `idleTimeout` not `00:00:00`, `startMode` not `AlwaysRunning`, or the Application Initialization feature is missing so `preloadEnabled` does nothing |
+| Scheduled export writes fail to a network share | `ApplicationPoolIdentity` cannot reach UNC paths — switch to a domain service account (C3) or use a local output folder |

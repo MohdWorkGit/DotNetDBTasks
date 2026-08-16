@@ -1,4 +1,5 @@
 using Bayan.Application.Common.Interfaces;
+using Bayan.Domain.Enums;
 using Bayan.Domain.Interfaces;
 using Bayan.Domain.Services;
 
@@ -31,9 +32,64 @@ public class ScheduledTaskWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Before anything can enqueue a new run: close out runs the previous process
+        // was still executing when it died.
+        await CloseOrphanedRunsAsync(stoppingToken);
+
         await Task.WhenAll(
             PollDueTasksAsync(stoppingToken),
             ConsumeRunsAsync(stoppingToken));
+    }
+
+    /// <summary>
+    /// Marks runs left <see cref="ScheduledTaskRunStatus.Running"/> by a previous process as
+    /// failed. A run row is written as Running before the work starts and only reaches a
+    /// terminal status in the runner's finally block, so a process that is killed outright
+    /// (an IIS app-pool recycle that outlasts the shutdown window, a crash, a power loss)
+    /// strands the row. Nothing else ever reconciles it: the cancel endpoint resolves the run
+    /// through the in-memory <c>IScheduledTaskRunRegistry</c>, which the new process starts
+    /// empty, so the row would otherwise show as in-progress forever and refuse to cancel.
+    /// </summary>
+    private async Task CloseOrphanedRunsAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+            var orphaned = await unitOfWork.ScheduledTaskRuns.FindAsync(
+                r => r.Status == ScheduledTaskRunStatus.Running && r.CompletedAt == null,
+                stoppingToken);
+
+            if (orphaned.Count == 0)
+                return;
+
+            foreach (var run in orphaned)
+            {
+                run.Status = ScheduledTaskRunStatus.Failed;
+                run.CompletedAt = DateTime.UtcNow;
+                run.Error = "Interrupted by an application restart; the run did not complete.";
+                unitOfWork.ScheduledTaskRuns.Update(run);
+            }
+
+            await unitOfWork.SaveChangesAsync(stoppingToken);
+
+            // Worth a warning rather than information: every row here is work that silently
+            // did not finish, and any incremental checkpoint it would have advanced did not
+            // move either, so the next run re-exports from the previous key.
+            _logger.LogWarning(
+                "Closed {Count} scheduled task run(s) left in progress by a previous process",
+                orphaned.Count);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Shutting down before the sweep finished; the next start will redo it.
+        }
+        catch (Exception ex)
+        {
+            // Never block the scheduler from starting over a bookkeeping failure.
+            _logger.LogError(ex, "Failed to close orphaned scheduled task runs");
+        }
     }
 
     private async Task PollDueTasksAsync(CancellationToken stoppingToken)

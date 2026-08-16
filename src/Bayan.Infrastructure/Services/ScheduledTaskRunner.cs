@@ -370,9 +370,49 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         byte[] bytes,
         CancellationToken cancellationToken)
     {
-        await File.WriteAllBytesAsync(Path.Combine(task.OutputFolder, fileName), bytes, cancellationToken);
+        await WriteFileAtomicAsync(Path.Combine(task.OutputFolder, fileName), bytes, cancellationToken);
         if (!string.IsNullOrWhiteSpace(task.ArchiveFolder))
-            await File.WriteAllBytesAsync(Path.Combine(task.ArchiveFolder, fileName), bytes, cancellationToken);
+            await WriteFileAtomicAsync(Path.Combine(task.ArchiveFolder, fileName), bytes, cancellationToken);
+    }
+
+    /// <summary>
+    /// Writes to a temporary name in the same directory and then moves it into place.
+    /// Output folders are usually watched by something downstream, and writing straight to
+    /// the final name means a cancel or a killed process leaves a truncated file sitting
+    /// there under a name that looks complete. The move is atomic on a local volume and on
+    /// SMB, so a consumer sees either the previous file or the whole new one.
+    /// </summary>
+    private static async Task WriteFileAtomicAsync(
+        string path,
+        byte[] bytes,
+        CancellationToken cancellationToken)
+    {
+        // Same directory as the target: File.Move is only atomic within a volume, and a
+        // temp folder elsewhere would silently degrade to a copy.
+        var tempPath = Path.Combine(
+            Path.GetDirectoryName(path) ?? string.Empty,
+            $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            await File.WriteAllBytesAsync(tempPath, bytes, cancellationToken);
+            File.Move(tempPath, path, overwrite: true);
+        }
+        catch
+        {
+            // Best-effort: a leftover temp file is noise, but it must not mask the real error.
+            try
+            {
+                if (File.Exists(tempPath))
+                    File.Delete(tempPath);
+            }
+            catch
+            {
+                // ignored
+            }
+
+            throw;
+        }
     }
 
     /// <summary>

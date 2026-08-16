@@ -108,7 +108,8 @@
     "hidePassword": "Hide password",
     "signIn": "Sign In",
     "loginFailed": "Login failed",
-    "loginTimedOut": "Login request timed out. Please try again."
+    "loginTimedOut": "Login request timed out. Please try again.",
+    "ssoChecking": "Checking your Windows sign-in…"
   },
   "admin": {
     "adUsers": {

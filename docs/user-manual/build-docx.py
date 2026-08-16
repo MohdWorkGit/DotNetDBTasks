@@ -552,6 +552,15 @@ def build_manual(doc):
         "افتح عنوان التطبيق في المتصفح وسجّل الدخول باسم المستخدم وكلمة المرور. والحسابات إما "
         "محلية داخل التطبيق أو مستوردة من Active Directory — وفي الحالتين يجري تسجيل الدخول من "
         "النموذج نفسه."))
+    para(doc, T(
+        "Where the administrator has enabled Windows single sign-on, none of that is needed: "
+        "on a computer joined to the organisation's domain the page signs you in as it opens "
+        "and you never see the form. When it cannot — you are on a machine outside the domain, "
+        "or you have just signed out — the form appears as normal and you sign in by hand.",
+        "وحيثما فعّل المسؤول الدخول الموحّد لـ Windows فلا حاجة إلى شيء من ذلك: إذ تسجّلك "
+        "الصفحة تلقائيًا عند فتحها على جهاز منضمّ إلى نطاق المؤسسة، فلا ترى النموذج أصلًا. "
+        "وإن تعذّر ذلك — كأن تكون على جهاز خارج النطاق أو تكون قد سجّلت الخروج للتوّ — ظهر "
+        "النموذج كالمعتاد وسجّلت الدخول يدويًا."))
     figure(doc, "01-login",
            T("The sign-in page. The two buttons in the top corner switch the language and the "
              "colour theme before you sign in.",
@@ -1212,6 +1221,15 @@ def build_manual(doc):
         "والإلغاء فعلي: فهو يوقف الجملة على قاعدة البيانات لا أن يترك الصفحة فحسب. ووُجد هذا "
         "الوضع كي لا تقطع بوابة الشبكة الاستعلامات البطيئة، ويبقى الحد الوحيد المطبَّق هو مهلة "
         "الاستعلام نفسه."))
+    para(doc, T(
+        "The result of a background run is held by the server, not by your page, and it is not "
+        "kept forever: it is released after a period of disuse, and it is lost if the server is "
+        "restarted while the query is running or before you have finished reading the result. "
+        "The page says so plainly when it happens — running the query again is the remedy.",
+        "ونتيجة التنفيذ في الخلفية يحتفظ بها الخادم لا صفحتك، وهي لا تُحفظ إلى الأبد: إذ تُحرَّر "
+        "بعد مدة من عدم الاستخدام، وتُفقد إن أُعيد تشغيل الخادم أثناء تنفيذ الاستعلام أو قبل أن "
+        "تنتهي من قراءة النتيجة. وتوضّح الصفحة ذلك صراحةً عند حدوثه، وعلاجه إعادة تنفيذ "
+        "الاستعلام."))
 
     h2(doc, T("5.7 Queries that change data", "٥.٧ الاستعلامات التي تعدّل البيانات"))
     para(doc, T(

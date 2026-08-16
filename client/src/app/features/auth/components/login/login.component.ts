@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ToastService } from '@core/services/toast.service';
@@ -19,7 +19,12 @@ import { TranslocoService } from '@jsverse/transloco';
         </mat-card-header>
 
         <mat-card-content>
-          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+          <div *ngIf="ssoProbing" class="sso-probe">
+            <mat-spinner diameter="36"></mat-spinner>
+            <span class="sso-probe-label">{{ 'auth.ssoChecking' | transloco }}</span>
+          </div>
+
+          <form *ngIf="!ssoProbing" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
             <mat-form-field class="full-width" appearance="outline">
               <mat-label>{{ 'auth.username' | transloco }}</mat-label>
               <input matInput formControlName="username" autocomplete="username">
@@ -77,12 +82,29 @@ import { TranslocoService } from '@jsverse/transloco';
     .inline-spinner {
       display: inline-block;
     }
+    .sso-probe {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      /* Roughly the height of the form it stands in for, so the card doesn't jump
+         when the probe gives up and the fields appear. */
+      padding: 48px 0;
+    }
+    .sso-probe-label {
+      color: var(--text-secondary);
+      font-size: 13px;
+      text-align: center;
+    }
   `]
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   hidePassword = true;
   loading = false;
+
+  /** Hides the form while the silent Windows sign-in attempt is in flight. */
+  ssoProbing = false;
 
   constructor(
     private fb: FormBuilder,
@@ -95,6 +117,44 @@ export class LoginComponent {
     this.loginForm = this.fb.group({
       username: ['', Validators.required],
       password: ['', Validators.required]
+    });
+  }
+
+  /**
+   * Tries the user's Windows identity before showing the form. On a domain-joined machine
+   * this signs them in without a click; anywhere else it fails and the form appears.
+   *
+   * The failure path is deliberately silent — this is something the page tried on the user's
+   * behalf, not something they asked for, so a toast would only be noise to the majority of
+   * people who are about to type a password anyway.
+   */
+  ngOnInit(): void {
+    // Suppressed by a sign-out (otherwise logging out would sign you straight back in), and
+    // pointless when a session is already established.
+    if (this.authService.isSsoSuppressed() || this.authService.getAccessToken()) return;
+
+    this.ssoProbing = true;
+    this.authService.sso().pipe(
+      // Shorter than the form's 30s: nobody should watch a spinner for half a minute before
+      // being allowed to type. A browser with no ticket to offer answers well inside this.
+      timeout(10000)
+    ).subscribe({
+      next: () => {
+        // Same ordering as onSubmit: landingRoute() reads the cached permission set, so the
+        // permissions have to arrive before the redirect.
+        this.authService.loadPermissions().subscribe(() =>
+          this.router.navigate([this.authService.landingRoute()]));
+      },
+      error: (err) => {
+        // 404 means SSO is switched off server-side and a timeout means something is wrong
+        // upstream — in both cases re-probing on every visit to this page is wasted. A 401
+        // is left un-suppressed: it just means no ticket was on offer this time.
+        if (err?.status === 404 || err?.name === 'TimeoutError') {
+          this.authService.suppressSso();
+        }
+        this.ssoProbing = false;
+        this.cdr.detectChanges();
+      }
     });
   }
 

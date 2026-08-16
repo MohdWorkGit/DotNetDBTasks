@@ -5,6 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!--
+      Explicit rather than relying on the SDK default, because the whole IIS story depends
+      on it: in-process means the workers live in w3wp, which is what the app pool settings
+      in DEPLOY-AIRGAPPED.md Part C are tuned around. Out-of-process would put them in a
+      child Kestrel process with different lifetime rules.
+    -->
+    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
   </PropertyGroup>
 
   <ItemGroup>
