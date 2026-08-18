@@ -6,7 +6,8 @@
   "scripts": {
     "capture": "node capture-screenshots.js",
     "build": "python build-docx.py",
-    "manual": "node capture-screenshots.js && python build-docx.py"
+    "seed": "node seed-demo-data.js",
+    "manual": "node seed-demo-data.js --lang en && node capture-screenshots.js --locales en && node seed-demo-data.js --lang ar && node capture-screenshots.js --locales ar && python build-docx.py"
   },
   "dependencies": {
     "playwright": "^1.49.0"

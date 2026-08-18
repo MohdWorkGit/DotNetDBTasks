@@ -6,23 +6,36 @@ change to the application, regenerate them so the screenshots and the text match
 ## Regenerate
 
 ```bash
-# 1. Start the app (two terminals, from the repo root)
+# 1. The business tables the manual's example queries read (first time, or to reset them)
+#    from the repo root, with NLS_LANG=.AL32UTF8 so the Arabic rows load intact
+sqlplus test/test@host/service @database/demo-data.sql
+
+# 2. Start the app (two terminals, from the repo root)
 dotnet run --no-launch-profile --urls http://localhost:60187   # in src/Bayan.API
 npx ng serve --port 4200                                        # in client/
 
-# 2. Build the manual (from this folder)
+# 3. Build the manual (from this folder)
 npm install            # first time only
 python -m pip install python-docx   # first time only
-npm run manual         # capture screenshots + build both .docx files
+npm run manual         # seed + capture (per language) + build both .docx files
 ```
 
-`npm run manual` runs the two halves in order. They can also be run separately:
+`npm run manual` runs four steps in order — seed English, capture English, seed Arabic,
+capture Arabic — and then builds. They can also be run separately:
 
 | Command | Does |
 |---|---|
-| `npm run capture` | Drives the running app with Playwright and writes `screenshots/en/` and `screenshots/ar/` |
+| `npm run seed` | Rebuilds the demo queries, groups, user groups, scheduled task and history (English; add `-- --lang ar` for Arabic) |
+| `npm run capture` | Drives the running app with Playwright and writes `screenshots/en/` and `screenshots/ar/` (add `-- --locales ar` for one language) |
 | `npm run build` | Reads those screenshots and writes both `.docx` files |
 | `python build-docx.py en` | Builds one language only |
+
+**Why the demo data is seeded twice.** A query, a query group and a user group each carry one
+name and one description — the application does not translate content an administrator typed.
+So the only way the Arabic manual can show Arabic query names is to seed the demo data in
+Arabic before the Arabic screenshots are taken, and back in English before the English ones.
+`seed-demo-data.js` holds both languages, one `T("English", "العربية")` pair per string, and
+the Arabic pass runs last, so the database is left holding the Arabic demo content.
 
 Finally, open each document in Word, right-click the **Contents** table and choose **Update
 Field** — Word fills in the page numbers on open, not at build time.
@@ -33,6 +46,8 @@ Field** — Word fills in the page numbers on open, not at build time.
 |---|---|
 | `build-docx.py` | **The manual's text**, both languages, plus the Word layout |
 | `capture-screenshots.js` | Which screens are photographed and how they are reached |
+| `seed-demo-data.js` | **The demo content**: the queries, groups, user groups, accounts, scheduled task and run history the screenshots show, in both languages |
+| `../../database/demo-data.sql` | The business tables those queries read — customers, orders, products, employees, invoices |
 | `screenshots/<lang>/` | Generated PNGs — safe to delete, recreated by `npm run capture` |
 
 To add a section, edit `build-docx.py`. Every string is written once as
@@ -48,7 +63,10 @@ Environment variables, all optional:
 |---|---|---|
 | `MANUAL_APP_URL` | `http://localhost:4200` | Angular client |
 | `MANUAL_API_URL` | `http://localhost:60187/api` | .NET API |
-| `MANUAL_LOCALES` | `en,ar` | Languages to capture |
+| `MANUAL_LOCALES` | `en,ar` | Languages to capture (or `--locales ar` on the command line) |
+| `MANUAL_SEED_LANG` | `en` | Language of the seeded demo content (or `--lang ar`) |
+| `MANUAL_DEMO_PASS` | `Demo@123` | Password given to the seeded demo accounts |
+| `MANUAL_TASK_FOLDER` | `C:\Bayan\exports\sales` | Output folder of the seeded scheduled task |
 | `MANUAL_THEME` | `dark` | `dark` or `light` — the theme the screenshots use |
 | `MANUAL_ADMIN_USER` / `MANUAL_ADMIN_PASS` | `admin` / `Admin@123` | Account used for most screens |
 | `MANUAL_AUDITOR_USER` / `MANUAL_AUDITOR_PASS` | `auditor` / `Auditor@123` | Used for the "what an Auditor sees" figures |
@@ -72,7 +90,14 @@ preview runs `SELECT *`, which otherwise prints real password hashes into the ma
 
 - **Sample records are discovered at run time**, not hard-coded: the script picks a read query
   with the most parameters, a multi-value query, a write query, the first query group and the
-  first scheduled task. Changing the demo data does not break the capture.
+  first scheduled task. Changing the demo data does not break the capture. The seeded set is
+  built around that: "Orders by Period and Status" is the query with the most parameters and
+  every one of them is fillable by the capture's heuristic, "Sales by Region" is the only
+  multi-value one, and "Adjust Product Stock Level" is the write query with the most.
+- **Seeding is destructive on the Bayan side.** `seed-demo-data.js` deletes every scheduled
+  task, query and group before creating its own, and deleting a query cascades to its execution
+  logs. It never deletes user accounts — the demo accounts it needs are created if missing and
+  reused otherwise.
 - **Screenshots track the app's own translations.** Selectors resolve their labels from
   `client/src/assets/i18n/{en,ar}.json`, so a renamed button does not silently break the Arabic
   run.

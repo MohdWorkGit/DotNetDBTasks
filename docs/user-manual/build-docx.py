@@ -446,7 +446,7 @@ def build_manual(doc):
     numbered(doc, [
         T("An administrator writes a query and declares its parameters — for example a start "
           "date, an end date and a branch.",
-          "يكتب المسؤول استعلامًا ويعرّف معاملاته — مثل تاريخ بداية وتاريخ نهاية وفرع."),
+          "يكتب المسؤول استعلامًا ويعرّف معايير بحثه — مثل تاريخ بداية وتاريخ نهاية وفرع."),
         T("The administrator decides who may run it: by role, by user group, by named user, or "
           "by putting it in a query group and granting the group.",
           "يحدّد المسؤول مَن يستطيع تنفيذه: بحسب الدور، أو مجموعة المستخدمين، أو مستخدم بعينه، "
@@ -471,9 +471,9 @@ def build_manual(doc):
               [T("Dynamic query", "استعلام ديناميكي"),
                T("A stored, named SQL statement with declared parameters. It may read (SELECT) "
                  "or write (INSERT / UPDATE / DELETE).",
-                 "جملة SQL محفوظة ولها اسم ومعاملات معرَّفة. وقد تكون للقراءة (SELECT) أو "
+                 "جملة SQL محفوظة ولها اسم ومعايير بحث معرَّفة. وقد تكون للقراءة (SELECT) أو "
                  "للتعديل (INSERT / UPDATE / DELETE).")],
-              [T("Parameter", "معامل"),
+              [T("Parameter", "معيار بحث"),
                T("A declared input on a query. Five types: String, Number, Date, Boolean and "
                  "Dropdown.",
                  "مُدخَل معرَّف في الاستعلام. وأنواعه خمسة: نص، ورقم، وتاريخ، وقيمة منطقية، "
@@ -515,7 +515,7 @@ def build_manual(doc):
         (T("Values are never pasted into SQL. ", "لا تُدمج القيم في نص SQL إطلاقًا. "),
          T("Every parameter is bound through the database driver, so a value cannot change the "
            "meaning of the statement.",
-           "يُمرَّر كل معامل عبر مشغّل قاعدة البيانات، فلا تستطيع أي قيمة تغيير معنى الجملة.")),
+           "يُمرَّر كل معيار بحث عبر مشغّل قاعدة البيانات، فلا تستطيع أي قيمة تغيير معنى الجملة.")),
         (T("Write queries are previewed first. ", "تُعاين استعلامات التعديل أولًا. "),
          T("An INSERT, UPDATE or DELETE runs inside a transaction that is rolled back, so you "
            "see how many rows would change — and for UPDATE and DELETE, which rows — before "
@@ -1094,19 +1094,19 @@ def build_manual(doc):
         "إذا كانت الصفحة فارغة فلم يُسنَد إليك شيء بعد — اطلب من المسؤول أو مدير الصلاحيات منح "
         "الاستعلام أو مجموعته لك أو لمجموعة مستخدمين تنتمي إليها."))
 
-    h2(doc, T("5.2 Filling in parameters", "٥.٢ تعبئة المعاملات"))
+    h2(doc, T("5.2 Filling in parameters", "٥.٢ تعبئة معايير البحث"))
     para(doc, T(
         "Opening a query shows a form built from the parameters the administrator declared. "
         "Required parameters are validated before the Execute button becomes usable.",
-        "يعرض فتح الاستعلام نموذجًا مبنيًّا من المعاملات التي عرّفها المسؤول. ويجري التحقق من "
-        "المعاملات المطلوبة قبل أن يصبح زر التنفيذ قابلًا للاستخدام."))
+        "يعرض فتح الاستعلام نموذجًا مبنيًّا من معايير البحث التي عرّفها المسؤول. ويجري التحقق من "
+        "معايير البحث المطلوبة قبل أن يصبح زر التنفيذ قابلًا للاستخدام."))
     figure(doc, "61-execute-parameters",
            T("A query's parameter form. Dates get a picker, booleans get a switch, and "
              "required fields report their own errors.",
-             "نموذج معاملات الاستعلام. تحصل التواريخ على أداة اختيار، والقيم المنطقية على "
+             "نموذج معايير بحث الاستعلام. تحصل التواريخ على أداة اختيار، والقيم المنطقية على "
              "مفتاح، وتعرض الحقول المطلوبة أخطاءها بنفسها."))
     table(doc,
-          [T("Parameter type", "نوع المعامل"), T("How it appears", "كيف يظهر"),
+          [T("Parameter type", "نوع معيار البحث"), T("How it appears", "كيف يظهر"),
            T("Notes", "ملاحظات")],
           [
               [T("String", "نص"), T("A text box", "حقل نصي"),
@@ -1127,21 +1127,21 @@ def build_manual(doc):
     para(doc, T(
         "A parameter may carry a default value, which is filled in for you and can be changed. "
         "Dropdowns whose choices come from a query show a progress bar while they load.",
-        "قد يحمل المعامل قيمة افتراضية تُعبَّأ لك ويمكنك تغييرها. وتُظهر القوائم المنسدلة التي "
+        "قد يحمل معيار البحث قيمة افتراضية تُعبَّأ لك ويمكنك تغييرها. وتُظهر القوائم المنسدلة التي "
         "تأتي خياراتها من استعلام شريط تقدّم أثناء التحميل."))
 
-    h2(doc, T("5.3 Multi-value parameters", "٥.٣ المعاملات متعددة القيم"))
+    h2(doc, T("5.3 Multi-value parameters", "٥.٣ معايير البحث متعددة القيم"))
     para(doc, T(
         "A String or Dropdown parameter can be marked as accepting several values. A String "
         "parameter then takes a comma-separated list; a Dropdown becomes a multiple-selection "
         "list. Each value is bound separately, so the query matches any of them.",
-        "يمكن وسم معامل نصي أو قائمة منسدلة بقبول عدة قيم. فيقبل المعامل النصي حينها قائمة "
+        "يمكن وسم معيار بحث نصي أو قائمة منسدلة بقبول عدة قيم. فيقبل المعيار النصي حينها قائمة "
         "مفصولة بفواصل، وتصبح القائمة المنسدلة متعددة الاختيار. وتُمرَّر كل قيمة على حدة، "
         "فيطابق الاستعلام أيًّا منها."))
     figure(doc, "64-execute-multivalue",
            T("A multi-value String parameter. The hint under the box explains the "
              "comma-separated format.",
-             "معامل نصي متعدد القيم. يشرح التلميح أسفل الحقل صيغة الفصل بالفواصل."))
+             "معيار بحث نصي متعدد القيم. يشرح التلميح أسفل الحقل صيغة الفصل بالفواصل."))
 
     h2(doc, T("5.4 Reading the results", "٥.٤ قراءة النتائج"))
     para(doc, T(
@@ -1243,7 +1243,7 @@ def build_manual(doc):
              "نموذج استعلام تعديل. يبدو كأي استعلام آخر، ويظهر الفرق بعد التنفيذ."))
     figure(doc, "66-execute-write-filled",
            T("The same form with its parameters filled in.",
-             "النموذج نفسه بعد تعبئة معاملاته."))
+             "النموذج نفسه بعد تعبئة معايير بحثه."))
     numbered(doc, [
         T("Press Execute. The statement runs inside a transaction that is then rolled back — "
           "nothing has changed yet.",
@@ -1290,7 +1290,7 @@ def build_manual(doc):
         "History lists every query you have run: when, with which parameters, how long it "
         "took, how many rows came back, and whether it succeeded. A failed run shows the error "
         "message.",
-        "يسرد «السجل» كل استعلام نفّذته: متى، وبأي معاملات، وكم استغرق، وكم صفًّا أعاد، وهل "
+        "يسرد «السجل» كل استعلام نفّذته: متى، وبأي معايير بحث، وكم استغرق، وكم صفًّا أعاد، وهل "
         "نجح. ويعرض التنفيذ الفاشل رسالة الخطأ."))
     figure(doc, "70-execution-history",
            T("My Execution History. For UPDATE and DELETE runs, the row count is a link that "
@@ -1328,7 +1328,7 @@ def build_manual(doc):
         "parameters. Five filters narrow the list and are remembered when you navigate away "
         "and come back:",
         "الأعمدة هي: الاسم والوصف والنوع والحالة والمجموعة ومستخدم قاعدة البيانات وعدد "
-        "المعاملات. وتضيّق خمسة عوامل تصفية القائمة، وتُحفظ عند مغادرة الصفحة والعودة إليها:"))
+        "معايير البحث. وتضيّق خمسة عوامل تصفية القائمة، وتُحفظ عند مغادرة الصفحة والعودة إليها:"))
     bullets(doc, [
         (T("Search — ", "البحث — "),
          T("matches name, description, group and database connection.",
@@ -1366,7 +1366,7 @@ def build_manual(doc):
                  "ينزّل هذا الاستعلام كتعريف JSON"), "Admin"],
               [T("Delete", "حذف"),
                T("Deletes the query, its parameters and its access assignments",
-                 "يحذف الاستعلام ومعاملاته وتخصيصات الوصول الخاصة به"), "Admin"],
+                 "يحذف الاستعلام ومعايير بحثه وتخصيصات الوصول الخاصة به"), "Admin"],
           ],
           widths=[1.3, 3.4, 1.9])
 
@@ -1384,7 +1384,7 @@ def build_manual(doc):
                  "يظهر تحت الاسم في صفحة «الاستعلامات». مطلوب.")],
               [T("SQL Query", "استعلام SQL"),
                T("The statement. Write parameters as @name. All statement types are supported.",
-                 "نص الجملة. تُكتب المعاملات بالصيغة ‎@name‎. وجميع أنواع الجمل مدعومة.")],
+                 "نص الجملة. تُكتب معايير البحث بالصيغة ‎@name‎. وجميع أنواع الجمل مدعومة.")],
               [T("Timeout (seconds)", "المهلة (بالثواني)"),
                T("How long the query may run. 0 means no limit.",
                  "المدة المسموح بها للتنفيذ. والقيمة ٠ تعني بلا حد.")],
@@ -1424,16 +1424,16 @@ def build_manual(doc):
         "يُستنتج نوع الجملة من نص SQL عند الحفظ، ولا يُؤخذ من اختيارك — فلا يمكن أن يتعارض "
         "عمود «النوع» ولا معاينة استعلام التعديل مع النص الذي يصفانه."))
 
-    h2(doc, T("6.3 Declaring parameters", "٦.٣ تعريف المعاملات"))
+    h2(doc, T("6.3 Declaring parameters", "٦.٣ تعريف معايير البحث"))
     para(doc, T(
         "Add Parameter appends a parameter card. Each one needs a name — the @name used in the "
         "SQL — and a display name, which is the label the user sees.",
-        "يضيف زر «إضافة معامل» بطاقة معامل. ويحتاج كل معامل إلى اسم — وهو ‎@name‎ المستخدم في "
+        "يضيف زر «إضافة معيار بحث» بطاقة معيار. ويحتاج كل معيار إلى اسم — وهو ‎@name‎ المستخدم في "
         "نص SQL — واسم عرض، وهو التسمية التي يراها المستخدم."))
     figure(doc, "14-query-edit-parameters",
            T("The parameter editor, showing a Dropdown parameter whose choices come from "
              "another query.",
-             "محرر المعاملات، ويظهر فيه معامل قائمة منسدلة تأتي خياراته من استعلام آخر."))
+             "محرر معايير البحث، ويظهر فيه معيار قائمة منسدلة تأتي خياراته من استعلام آخر."))
     bullets(doc, [
         (T("Type — ", "النوع — "),
          T("String, Number, Date, Boolean or Dropdown.",
@@ -1450,9 +1450,9 @@ def build_manual(doc):
            "للنص والقائمة المنسدلة فقط. يزوّد المستخدم عدة قيم فيطابق الاستعلام أيًّا منها، "
            "ويُكتب نص SQL بالصيغة ‎WHERE col IN (@name)‎.")),
     ])
-    h3(doc, T("Dropdown parameters", "معاملات القوائم المنسدلة"))
+    h3(doc, T("Dropdown parameters", "معايير القوائم المنسدلة"))
     para(doc, T("A Dropdown parameter draws its choices from one of two sources:",
-                "يستمد معامل القائمة المنسدلة خياراته من أحد مصدرين:"))
+                "يستمد معيار القائمة المنسدلة خياراته من أحد مصدرين:"))
     bullets(doc, [
         (T("Static list — ", "قائمة ثابتة — "),
          T("label/value pairs you type in. The value is what reaches the SQL; the label is "
@@ -1505,10 +1505,10 @@ def build_manual(doc):
               ["{{ROW_COUNT}}", T("The number of rows.", "عدد الصفوف.")],
               ["{{@paramName}}",
                T("The value the user entered for that parameter.",
-                 "القيمة التي أدخلها المستخدم لذلك المعامل.")],
+                 "القيمة التي أدخلها المستخدم لذلك المعيار.")],
               ["{{PARAMS}}",
                T("Every parameter as “Display Name: value”, one per line.",
-                 "كل معامل بصيغة «اسم العرض: القيمة»، واحد في كل سطر.")],
+                 "كل معيار بصيغة «اسم العرض: القيمة»، واحد في كل سطر.")],
           ],
           widths=[1.7, 4.9])
     para(doc, T("Markers in headers and footers are replaced too.",
@@ -1748,13 +1748,13 @@ def build_manual(doc):
          T("optional. Name a key column, the parameter that receives it, and a starting value: "
            "each run passes the highest key from the previous run into that parameter, so only "
            "new rows are exported. Order the query by the key column ascending.",
-           "اختياري. حدّد عمود المفتاح، والمعامل الذي يستقبله، وقيمة البداية: يمرّر كل تشغيل "
-           "أعلى مفتاح من التشغيل السابق إلى ذلك المعامل، فتُصدَّر الصفوف الجديدة فقط. ورتّب "
+           "اختياري. حدّد عمود المفتاح، والمعيار الذي يستقبله، وقيمة البداية: يمرّر كل تشغيل "
+           "أعلى مفتاح من التشغيل السابق إلى ذلك المعيار، فتُصدَّر الصفوف الجديدة فقط. ورتّب "
            "الاستعلام تصاعديًا حسب عمود المفتاح.")),
-        (T("Parameter values — ", "قيم المعاملات — "),
+        (T("Parameter values — ", "قيم معايير البحث — "),
          T("fixed values for the query's parameters, since there is no one present to type "
            "them.",
-           "قيم ثابتة لمعاملات الاستعلام، إذ لا يوجد من يكتبها وقت التشغيل.")),
+           "قيم ثابتة لمعايير بحث الاستعلام، إذ لا يوجد من يكتبها وقت التشغيل.")),
     ])
     note(doc, T(
         "A write query can be scheduled too. It executes and commits on every run — there is "
@@ -1764,7 +1764,7 @@ def build_manual(doc):
         kind="warning")
     figure(doc, "32-scheduled-task-edit",
            T("An existing task, showing its triggers, its queries and their parameter values.",
-             "مهمة قائمة، وتظهر فيها مُشغِّلاتها واستعلاماتها وقيم معاملاتها."))
+             "مهمة قائمة، وتظهر فيها مُشغِّلاتها واستعلاماتها وقيم معايير بحثها."))
 
     h3(doc, T("Status visibility", "ظهور الحالة"))
     para(doc, T(
@@ -2039,12 +2039,12 @@ def build_manual(doc):
     figure(doc, "40-execution-logs",
            T("Execution Logs. Each row records the query, its type, who ran it, the "
              "parameters, when, how long it took, how many rows and whether it succeeded.",
-             "سجلات التنفيذ. يسجّل كل صف الاستعلام ونوعه ومن نفّذه والمعاملات ووقت التنفيذ "
+             "سجلات التنفيذ. يسجّل كل صف الاستعلام ونوعه ومن نفّذه ومعايير البحث ووقت التنفيذ "
              "ومدته وعدد الصفوف وهل نجح."))
     bullets(doc, [
         (T("Search — ", "البحث — "),
          T("matches query name, user, parameters and error text.",
-           "يطابق اسم الاستعلام والمستخدم والمعاملات ونص الخطأ.")),
+           "يطابق اسم الاستعلام والمستخدم ومعايير البحث ونص الخطأ.")),
         (T("Status — ", "الحالة — "),
          T("successful or failed runs.", "عمليات التنفيذ الناجحة أو الفاشلة.")),
         (T("Type — ", "النوع — "),

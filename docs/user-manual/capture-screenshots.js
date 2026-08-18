@@ -3,7 +3,8 @@
  *
  * Run it against a *running* dev stack (API + `ng serve`) — see README.md.
  *
- *   MANUAL_LOCALES=en,ar   which languages to capture (default: both)
+ *   --locales ar           which languages to capture (default: both)
+ *   MANUAL_LOCALES=en,ar   same, as an environment variable
  *   MANUAL_THEME=dark      which theme the screenshots use (default: dark)
  *
  * Output lands in screenshots/<locale>/, so the English manual gets English screenshots and
@@ -31,7 +32,15 @@ const ADMIN_USER = process.env.MANUAL_ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.MANUAL_ADMIN_PASS || 'Admin@123';
 const AUDITOR_USER = process.env.MANUAL_AUDITOR_USER || 'auditor';
 const AUDITOR_PASS = process.env.MANUAL_AUDITOR_PASS || 'Auditor@123';
-const LOCALES = (process.env.MANUAL_LOCALES || 'en,ar').split(',').map(s => s.trim());
+const argv = process.argv.slice(2);
+const argOf = (name) => {
+  const i = argv.indexOf(`--${name}`);
+  return i >= 0 ? argv[i + 1] : undefined;
+};
+// `--locales ar` matters more than the environment variable here: the manual is captured one
+// language at a time, because the demo data is re-seeded in that language in between (query
+// and group names are content, not translations — see seed-demo-data.js).
+const LOCALES = (argOf('locales') || process.env.MANUAL_LOCALES || 'en,ar').split(',').map(s => s.trim());
 const THEME = process.env.MANUAL_THEME || 'dark';
 
 const I18N_DIR = path.join(__dirname, '..', '..', 'client', 'src', 'assets', 'i18n');
@@ -265,7 +274,7 @@ async function captureLocale(browser, locale, sample) {
     const sel = `${scope} button:has-text(${JSON.stringify(T(key))})`.trim();
     await page.click(sel);
   };
-  /** Material tab labels are hard-coded English in the templates, so they need no lookup. */
+  /** Opens a Material tab by its rendered label — translated, so pass T('...') for it. */
   const openTab = async (label) => {
     await page.locator('.mat-mdc-tab, [role=tab]').filter({ hasText: label }).first().click();
     await settle(page, 600);
@@ -358,7 +367,7 @@ async function captureLocale(browser, locale, sample) {
     await shot('15-query-access-roles');
     await openTab(T('admin.access.userGroupsTab'));
     await shot('16-query-access-user-groups');
-    await openTab('Users');
+    await openTab(T('admin.access.usersTab'));
     await shot('17-query-access-users');
   });
 
@@ -420,9 +429,10 @@ async function captureLocale(browser, locale, sample) {
     await settle(page, 700);
     await shot('52-user-create-form', { full: true });
   });
-  await step('permissions tab', async () => {
-    await go('/admin/settings', 'mat-tab-group');
-    await openTab(T('admin.permissions.tab'));
+  // Roles & Permissions used to be a tab inside Settings and is now its own page under
+  // Users & Access — the old step kept failing silently onto a stale screenshot.
+  await step('roles and permissions', async () => {
+    await go('/admin/roles', 'table, mat-card');
     await shot('51-permissions', { full: true });
   });
   await step('user groups', async () => {
@@ -445,7 +455,7 @@ async function captureLocale(browser, locale, sample) {
   await step('AD users', async () => {
     await go('/admin/ad-users', 'mat-tab-group');
     await shot('55-ad-users-search');
-    await openTab('Departments');
+    await openTab(T('admin.adUsers.departmentsTab'));
     await shot('56-ad-users-departments');
     await openTab(T('admin.adUsers.importedTab'));
     await shot('57-ad-users-imported');
