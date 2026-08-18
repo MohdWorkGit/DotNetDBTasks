@@ -4,6 +4,7 @@ using Bayan.Application.Features.DynamicQueries.Queries;
 using Bayan.Application.Features.QueryGroups.Queries;
 using Bayan.Application.Features.UserGroups.Queries;
 using Bayan.Domain.Entities;
+using Bayan.Domain.Services;
 
 namespace Bayan.Application.Common.Mappings;
 
@@ -15,6 +16,10 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         CreateMap<DynamicQuery, DynamicQueryDto>()
+            // Stored as one delimited column, exposed as a list: the client should never have to
+            // know the storage format, and parsing here keeps that split in a single place.
+            .ForMember(d => d.AllowedExportFormats, opt => opt.MapFrom(s =>
+                ExportPermissions.Parse(s.AllowedExportFormats).Select(f => f.ToString()).ToList()))
             .ForMember(d => d.DatabaseUserName, opt => opt.MapFrom(s =>
                 s.DatabaseUser != null ? s.DatabaseUser.Name : null))
             .ForMember(d => d.QueryGroupName, opt => opt.MapFrom(s =>
@@ -59,6 +64,9 @@ public class MappingProfile : Profile
         CreateMap<QueryParameterDto, QueryParameter>();
 
         CreateMap<CreateDynamicQueryCommand, DynamicQuery>()
+            // List<string> on the command, one delimited column on the entity: the handler
+            // serializes it through the domain parser, so AutoMapper must keep out of it.
+            .ForMember(d => d.AllowedExportFormats, opt => opt.Ignore())
             .ForMember(d => d.Parameters, opt => opt.Ignore())
             .ForMember(d => d.DynamicQueryRoles, opt => opt.Ignore())
             .ForMember(d => d.DynamicQueryUserGroups, opt => opt.Ignore())

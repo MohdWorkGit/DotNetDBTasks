@@ -34,6 +34,29 @@ public static class Permissions
     /// <summary>Run a query that has been granted to you, and see My Queries and History.</summary>
     public const string QueriesRun = "queries.run";
 
+    // ---- Export formats
+    //
+    // Export is gated twice, and a download needs both to agree: the query lists the formats it
+    // may be exported as at all, and the role says which of those this person may use. Either
+    // one alone is not enough — a query that permits PDF gives nothing to a role without
+    // queries.exportPdf, and vice versa. Neither is seeded, so export starts closed everywhere
+    // and is opened deliberately.
+
+    /// <summary>Download a result as Excel, where the query permits it.</summary>
+    public const string QueriesExportExcel = "queries.exportExcel";
+
+    /// <summary>Download a result as CSV, where the query permits it.</summary>
+    public const string QueriesExportCsv = "queries.exportCsv";
+
+    /// <summary>Download a result as JSON, where the query permits it.</summary>
+    public const string QueriesExportJson = "queries.exportJson";
+
+    /// <summary>Download a result as PDF, where the query permits it.</summary>
+    public const string QueriesExportPdf = "queries.exportPdf";
+
+    /// <summary>Download a result as Word, where the query permits it.</summary>
+    public const string QueriesExportWord = "queries.exportWord";
+
     // ---- Access assignment
     /// <summary>Decide who may reach an individual query.</summary>
     public const string AccessManageQuery = "access.manageQuery";
@@ -101,6 +124,7 @@ public static class Permissions
     public static readonly IReadOnlyList<string> All = new[]
     {
         QueriesView, QueriesReadSql, QueriesManage, QueriesTransfer, QueriesRun,
+        QueriesExportExcel, QueriesExportCsv, QueriesExportJson, QueriesExportPdf, QueriesExportWord,
         AccessManageQuery, AccessManageGroup, QueryGroupsManage,
         UserGroupsView, UserGroupsManage,
         UsersView, UsersManage,

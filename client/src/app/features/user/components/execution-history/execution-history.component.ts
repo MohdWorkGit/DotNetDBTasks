@@ -29,7 +29,7 @@ const DEFAULT_SORT_BY = 'executedAt';
           <div *ngIf="!loading && errorMessage" class="error-block">
             <p class="error-text">{{ errorMessage }}</p>
             <button mat-raised-button color="primary" (click)="loadHistory()">
-              <mat-icon>refresh</mat-icon> Retry
+              <mat-icon>refresh</mat-icon> {{ 'common.retry' | transloco }}
             </button>
           </div>
 
@@ -47,7 +47,7 @@ const DEFAULT_SORT_BY = 'executedAt';
               <td mat-cell *matCellDef="let log">
                 <ng-container *ngIf="log.hasOldValues; else plainParams">
                   <div class="update-params">
-                    <span class="update-label old-label">Before:</span>
+                    <span class="update-label old-label">{{ 'user.history.before' | transloco }}</span>
                     <button type="button" class="old-rows-trigger"
                             (click)="openOldRowsDialog(log)"
                             [matTooltip]="'user.history.viewAffectedRows' | transloco">
@@ -55,7 +55,7 @@ const DEFAULT_SORT_BY = 'executedAt';
                       <mat-icon class="open-icon">open_in_new</mat-icon>
                     </button>
                     <ng-container *ngIf="log.isUpdateQuery">
-                      <span class="update-label new-label">After:</span>
+                      <span class="update-label new-label">{{ 'user.history.after' | transloco }}</span>
                       <span class="parameters-cell new-values" [matTooltip]="formatParametersTooltip(log.parameters)">
                         {{ formatParameters(log.parameters) }}
                       </span>
@@ -89,9 +89,12 @@ const DEFAULT_SORT_BY = 'executedAt';
               <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'user.history.status' | transloco }}</th>
               <td mat-cell *matCellDef="let log">
                 <mat-icon [class]="log.isSuccess ? 'success' : 'error'"
-                          [matTooltip]="log.isSuccess ? 'Success' : (log.errorMessage || 'Unknown error')"
+                          [matTooltip]="log.isSuccess ? ('admin.logs.statusSuccess' | transloco)
+                                       : (log.errorMessage || ('common.unknownError' | transloco))"
                           [matTooltipClass]="log.isSuccess ? 'success-tooltip' : 'error-tooltip'"
-                          [attr.aria-label]="log.isSuccess ? 'Succeeded' : ('Failed: ' + (log.errorMessage || 'Unknown error'))"
+                          [attr.aria-label]="log.isSuccess ? ('admin.logs.statusSuccess' | transloco)
+                                            : (('admin.logs.statusFailed' | transloco) + ': '
+                                               + (log.errorMessage || ('common.unknownError' | transloco)))"
                           role="img">
                   {{ log.isSuccess ? 'check_circle' : 'error' }}
                 </mat-icon>

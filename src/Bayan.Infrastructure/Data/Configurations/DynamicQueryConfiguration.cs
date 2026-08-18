@@ -20,6 +20,9 @@ public class DynamicQueryConfiguration : IEntityTypeConfiguration<DynamicQuery>
         builder.Property(e => e.SaveOldValues).HasDefaultValue(true);
         builder.Property(e => e.WordTemplate).HasColumnType("BLOB");
         builder.Property(e => e.WordTemplateFileName).HasMaxLength(255);
+        // Comma-separated ExportFileFormat names; NULL means the result cannot be exported.
+        // No default value: a new query starts with export closed, like every other capability.
+        builder.Property(e => e.AllowedExportFormats).HasMaxLength(100);
 
         builder.HasMany(e => e.Parameters)
             .WithOne(p => p.DynamicQuery)

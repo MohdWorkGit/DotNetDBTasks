@@ -456,10 +456,25 @@ and C3.5, and none of them are optional:
 
 ## C1 — Server Prerequisites
 
-1. Enable the **IIS** role, including the **Windows Authentication** feature (needed for SSO).
-2. Install the **.NET 10 ASP.NET Core Hosting Bundle** (`dotnet-hosting-10.0.x-win.exe`). This
-   provides the ASP.NET Core Module (ANCM) that IIS uses to run the app — required even for a
-   self-contained publish. Then restart IIS: `net stop was /y & net start w3svc`.
+All four are required. The site will not start without them — none is an optimisation.
+
+| # | Prerequisite | Why | Install |
+|---|---|---|---|
+| 1 | **IIS role** with **Windows Authentication** | SSO. Without it `/api/auth/sso` cannot challenge. | `Web-Windows-Auth` |
+| 2 | **Application Initialization** | The shipped `web.config` contains an `<applicationInitialization>` element. If the feature is absent IIS cannot parse it and answers **HTTP 500.19** — the site does not start at all. It is also what makes `preloadEnabled` warm the app so the background workers start without a visitor. | `dism /online /enable-feature /featurename:IIS-ApplicationInit` |
+| 3 | **IIS Management Scripts and Tools** | Provides the `WebAdministration` PowerShell module that C3/C3.5 and `scripts/deploy-iis.ps1` use. | `Web-Scripting-Tools` |
+| 4 | **.NET 10 ASP.NET Core Hosting Bundle** (`dotnet-hosting-10.0.x-win.exe`) | The ASP.NET Core Module (ANCM) that IIS uses to run the app — **required even for a self-contained publish**. | Run the installer |
+
+```powershell
+Install-WindowsFeature Web-Server, Web-Windows-Auth, Web-AppInit, Web-Scripting-Tools
+# then the Hosting Bundle installer, then:
+net stop was /y & net start w3svc
+```
+
+> **Air-gapped note.** `scripts/prepare-offline-bundle.ps1 -IncludeInstallers` carries the
+> Hosting Bundle into `installers/`, but the four IIS features above come from the **Windows
+> installation media**, not from the bundle. On a server with no internet, `Install-WindowsFeature`
+> needs `-Source <path to \sources\sxs>` from the matching Windows Server ISO.
 
 ## C2 — Build and Assemble the Publish Folder
 
@@ -671,5 +686,7 @@ deployment finished:
 | IIS: **every scheduled export runs twice** | Web garden. `processModel.maxProcesses` must be `1` — a second worker process runs a second scheduler (C0) |
 | IIS: results vanish mid-page, "no longer available" | An overlapped recycle wiped the spill directory. Set `recycling.disallowOverlappingRotation` to `$true` and disable the periodic recycles (C3.5) |
 | Scheduled runs stuck at "Running" | Left by a process killed before it could finish. The scheduler now closes these out at startup — if they persist, the app is not restarting cleanly; check the shutdown ladder in C3.5 |
-| Overnight schedules never fire | `idleTimeout` not `00:00:00`, `startMode` not `AlwaysRunning`, or the Application Initialization feature is missing so `preloadEnabled` does nothing |
+| Overnight schedules never fire | `idleTimeout` not `00:00:00`, or `startMode` not `AlwaysRunning` |
+| IIS: HTTP 500.19 naming `applicationInitialization` | The Application Initialization feature is not installed, so IIS cannot parse that element in `web.config` — install it (C1 #2). Not the same as the config-lock 500.19 above |
+| `Import-Module WebAdministration` fails | IIS Management Scripts and Tools missing — `Install-WindowsFeature Web-Scripting-Tools` (C1 #3) |
 | Scheduled export writes fail to a network share | `ApplicationPoolIdentity` cannot reach UNC paths — switch to a domain service account (C3) or use a local output folder |

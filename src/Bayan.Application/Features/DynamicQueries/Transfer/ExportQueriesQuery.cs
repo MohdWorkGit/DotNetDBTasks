@@ -1,5 +1,6 @@
 using Bayan.Application.Common.Interfaces;
 using Bayan.Domain.Entities;
+using Bayan.Domain.Services;
 using Bayan.Domain.Exceptions;
 using Bayan.Domain.Interfaces;
 using MediatR;
@@ -77,6 +78,8 @@ public class ExportQueriesQueryHandler : IRequestHandler<ExportQueriesQuery, Que
         IsLongRunning = q.IsLongRunning,
         AllowRunWithoutConfirmation = q.AllowRunWithoutConfirmation,
         SaveOldValues = q.SaveOldValues,
+        AllowedExportFormats = ExportPermissions.Parse(q.AllowedExportFormats)
+            .Select(f => f.ToString()).ToList(),
         DatabaseUserName = q.DatabaseUser?.Name,
         QueryGroupName = q.QueryGroup?.Name,
         WordTemplateFileName = q.WordTemplateFileName,

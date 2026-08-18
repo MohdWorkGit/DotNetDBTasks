@@ -4,6 +4,7 @@ using Bayan.Application.Features.DynamicQueries.Queries;
 using Bayan.Domain.Entities;
 using Bayan.Domain.Enums;
 using Bayan.Domain.Interfaces;
+using Bayan.Domain.Services;
 using MediatR;
 
 namespace Bayan.Application.Features.DynamicQueries.Commands;
@@ -22,6 +23,11 @@ public class CreateDynamicQueryCommand : IRequest<DynamicQueryDto>
     public bool SaveOldValues { get; set; } = true;
     public Guid? DatabaseUserId { get; set; }
     public Guid? QueryGroupId { get; set; }
+    /// <summary>
+    /// <c>ExportFileFormat</c> names. Defaults to empty, so a new query cannot be exported
+    /// until someone says which formats are acceptable for the data it returns.
+    /// </summary>
+    public List<string> AllowedExportFormats { get; set; } = new();
     public List<QueryParameterDto> Parameters { get; set; } = new();
 }
 
@@ -56,6 +62,10 @@ public class CreateDynamicQueryCommandHandler
         entity.IsEnabled = true;
         entity.DatabaseUserId = request.DatabaseUserId;
         entity.QueryGroupId = request.QueryGroupId;
+        // Round-tripped through the domain parser so an unknown or duplicated name cannot be
+        // written straight into the column from a hand-rolled request.
+        entity.AllowedExportFormats = ExportPermissions.Serialize(
+            ExportPermissions.Parse(string.Join(',', request.AllowedExportFormats)));
 
         foreach (var paramDto in request.Parameters)
         {

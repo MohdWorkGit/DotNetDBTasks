@@ -19,7 +19,7 @@ import { TranslocoService } from '@jsverse/transloco';
 
       <mat-tab-group>
         <!-- Tab 1: Search & Import Users -->
-        <mat-tab label="Search Users">
+        <mat-tab [label]="'admin.adUsers.searchTab' | transloco">
           <div class="tab-content">
             <mat-form-field class="full-width" appearance="outline">
               <mat-label>{{ 'admin.adUsers.search' | transloco }}</mat-label>
@@ -45,7 +45,7 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-form-field appearance="outline" class="status-filter">
                 <mat-label>{{ 'admin.adUsers.importStatus' | transloco }}</mat-label>
                 <mat-select [(value)]="searchStatusFilter" (selectionChange)="refreshSearchFilter()">
-                  <mat-option value="all">All</mat-option>
+                  <mat-option value="all">{{ 'common.all' | transloco }}</mat-option>
                   <mat-option value="imported">{{ 'admin.adUsers.imported' | transloco }}</mat-option>
                   <mat-option value="not-imported">{{ 'admin.adUsers.notImported' | transloco }}</mat-option>
                 </mat-select>
@@ -107,7 +107,7 @@ import { TranslocoService } from '@jsverse/transloco';
 
               <tr class="mat-row no-data-row" *matNoDataRow>
                 <td class="mat-cell no-data-cell" [attr.colspan]="searchColumns.length">
-                  No AD users matched that search.
+                  {{ 'admin.adUsers.noSearchMatch' | transloco }}
                 </td>
               </tr>
             </table>
@@ -121,14 +121,14 @@ import { TranslocoService } from '@jsverse/transloco';
               <button mat-raised-button color="primary" (click)="importSelectedUsers()"
                       [disabled]="!hasSelectedUsers() || importing">
                 <mat-icon>person_add</mat-icon>
-                {{ importing ? 'Importing...' : 'Import Selected Users' }}
+                {{ (importing ? 'admin.adUsers.importing' : 'admin.adUsers.importSelected') | transloco }}
               </button>
             </div>
           </div>
         </mat-tab>
 
         <!-- Tab 2: Import by Department -->
-        <mat-tab label="Departments">
+        <mat-tab [label]="'admin.adUsers.departmentsTab' | transloco">
           <div class="tab-content">
             <div *ngIf="loadingDepts" class="loading">
               <mat-spinner diameter="40"></mat-spinner>
@@ -147,22 +147,22 @@ import { TranslocoService } from '@jsverse/transloco';
                 </mat-card-header>
                 <mat-card-actions>
                   <button mat-button (click)="viewDepartment(dept)">
-                    <mat-icon>people</mat-icon> View Users
+                    <mat-icon>people</mat-icon> {{ 'admin.adUsers.viewUsers' | transloco }}
                   </button>
                   <button mat-raised-button color="primary" (click)="importDepartment(dept)"
                           [disabled]="importing">
-                    <mat-icon>group_add</mat-icon> Import All
+                    <mat-icon>group_add</mat-icon> {{ 'admin.adUsers.importAll' | transloco }}
                   </button>
                 </mat-card-actions>
               </mat-card>
             </div>
 
             <p *ngIf="!loadingDepts && departments.length > 0 && filteredDepartments().length === 0"
-               class="no-data">No departments match "{{ departmentFilter }}".</p>
+               class="no-data">{{ 'admin.adUsers.noDepartmentMatch' | transloco: { filter: departmentFilter } }}</p>
 
             <!-- Department users list -->
             <div *ngIf="selectedDepartment" class="dept-users">
-              <h3>{{ selectedDepartment }} Users</h3>
+              <h3>{{ 'admin.adUsers.departmentUsers' | transloco: { department: selectedDepartment } }}</h3>
 
               <div *ngIf="deptDataSource.data.length > 0" class="table-toolbar">
                 <mat-form-field appearance="outline" class="filter-field">
@@ -202,7 +202,7 @@ import { TranslocoService } from '@jsverse/transloco';
 
                 <tr class="mat-row no-data-row" *matNoDataRow>
                   <td class="mat-cell no-data-cell" [attr.colspan]="deptColumns.length">
-                    No users match the current filter.
+                    {{ 'admin.adUsers.noUserMatch' | transloco }}
                   </td>
                 </tr>
               </table>
@@ -239,9 +239,9 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-form-field appearance="outline" class="status-filter">
                 <mat-label>{{ 'admin.users.status' | transloco }}</mat-label>
                 <mat-select [(value)]="importedStatusFilter" (selectionChange)="refreshImportedFilter()">
-                  <mat-option value="all">All</mat-option>
-                  <mat-option value="active">Active</mat-option>
-                  <mat-option value="revoked">Revoked</mat-option>
+                  <mat-option value="all">{{ 'common.all' | transloco }}</mat-option>
+                  <mat-option value="active">{{ 'common.active' | transloco }}</mat-option>
+                  <mat-option value="revoked">{{ 'admin.adUsers.statusRevoked' | transloco }}</mat-option>
                 </mat-select>
               </mat-form-field>
             </div>

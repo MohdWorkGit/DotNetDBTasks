@@ -131,7 +131,7 @@ import { SystemAuditLog } from '@core/models/dynamic-query.model';
                   <div class="detail-panel" *ngIf="expandedId === e.id">
                     <p *ngIf="e.errorMessage" class="error-text" dir="auto">{{ e.errorMessage }}</p>
                     <pre *ngIf="e.detailsJson" class="force-ltr">{{ pretty(e.detailsJson) }}</pre>
-                    <p class="meta force-ltr" *ngIf="e.ipAddress">IP: {{ e.ipAddress }}</p>
+                    <p class="meta force-ltr" *ngIf="e.ipAddress">{{ 'admin.audit.ipAddress' | transloco }} {{ e.ipAddress }}</p>
                   </div>
                 </td>
               </ng-container>

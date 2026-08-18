@@ -3,8 +3,6 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ToastService } from '@core/services/toast.service';
 import { QueryService } from '@core/services/query.service';
 import { SETTING_LIMITS, SystemSettings } from '@core/models/dynamic-query.model';
-import { AuthService } from '@core/services/auth.service';
-import { PERM } from '@core/models/permissions';
 
 /**
  * Admin-only runtime settings.
@@ -26,9 +24,7 @@ import { PERM } from '@core/models/permissions';
         <h2>{{ 'admin.settings.title' | transloco }}</h2>
       </div>
 
-      <mat-tab-group>
-        <mat-tab [label]="'admin.settings.systemTab' | transloco" *ngIf="canManageSettings">
-        <div class="tab-content">
+      <div class="tab-content">
 
       <div *ngIf="loading" class="loading">
         <mat-spinner diameter="40"></mat-spinner>
@@ -116,17 +112,7 @@ import { PERM } from '@core/models/permissions';
         <p class="error-text">{{ errorMessage }}</p>
         <button mat-stroked-button (click)="load()">{{ 'common.retry' | transloco }}</button>
       </div>
-        </div>
-        </mat-tab>
-
-        <!-- Who may do what. Its own tab because it answers a different question from the
-             switches beside it: not how the system behaves, but who it answers to. -->
-        <mat-tab [label]="'admin.permissions.tab' | transloco" *ngIf="canManageRoles">
-          <div class="tab-content">
-            <app-permissions-matrix></app-permissions-matrix>
-          </div>
-        </mat-tab>
-      </mat-tab-group>
+      </div>
     </div>
   `,
   styles: [`
@@ -151,9 +137,6 @@ import { PERM } from '@core/models/permissions';
 })
 export class SystemSettingsComponent implements OnInit {
   settings: SystemSettings | null = null;
-  /** Each tab needs its own capability — the page opens for either one. */
-  canManageSettings = false;
-  canManageRoles = false;
   numbersForm!: FormGroup;
   limits = SETTING_LIMITS;
   loading = true;
@@ -164,7 +147,6 @@ export class SystemSettingsComponent implements OnInit {
     private fb: FormBuilder,
     private queryService: QueryService,
     private toast: ToastService,
-    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {
     this.numbersForm = this.fb.group({
@@ -187,13 +169,9 @@ export class SystemSettingsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.canManageSettings = this.authService.has(PERM.settingsManage);
-    this.canManageRoles = this.authService.has(PERM.rolesManage);
-    if (this.canManageSettings) {
-      this.load();
-    } else {
-      this.loading = false;
-    }
+    // The route guard requires settings.manage, so there is no half-open state to handle:
+    // reaching this page at all means the settings are readable.
+    this.load();
   }
 
   load(): void {

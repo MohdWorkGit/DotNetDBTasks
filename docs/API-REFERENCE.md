@@ -15,6 +15,10 @@ valid token and nothing more; `Anonymous` means no token at all.
 
 - A role without `queries.run` never resolves query access, however a query is assigned to it —
   so granting a query to such a role is inert rather than quietly broken.
+- **Exporting needs two grants.** `DynamicQuery.AllowedExportFormats` says which formats a query
+  may be downloaded as, and the caller's role must hold the matching `queries.export*` capability.
+  Either one empty means no download. Both default closed, so a new query and a new role start
+  with export off.
 - `AdminAccountGuard` stops a non-Admin from touching an administrator account, granting the
   Admin role, editing their own roles, or adding themselves to a user group.
 - **Admin is pinned** to every permission and cannot be edited or deleted.
@@ -232,7 +236,7 @@ checked in code — the submitting user or an Admin, otherwise 403.
 | `POST /{id}/execute-async` | `queries.run` | Queues a background run for a long-running query. 202 `{ jobId }`. |
 | `GET /jobs/{jobId}` | Owner or Admin | Status, and result metadata once finished. **410** once the job is gone (see below). |
 | `GET /jobs/{jobId}/rows` | Owner or Admin | One page of a cached result. Query: `pageIndex` (0), `pageSize` (25), `sortColumn`, `sortDir`, `filters` (JSON object of column → substring). 409 while the result is not ready; **410** once it is gone. |
-| `GET /jobs/{jobId}/export-file` | Owner or Admin | Downloads the cached result — no re-run. Query: `format` = `xlsx`/`excel` (default), `csv`, `json`, `pdf`, `docx`/`word`; anything else is 400. Word and PDF use the query's template, else the system default, else the built-in starter. **410** once the job is gone. |
+| `GET /jobs/{jobId}/export-file` | Owner or Admin, **plus both export gates** | Downloads the cached result — no re-run. Query: `format` = `xlsx`/`excel` (default), `csv`, `json`, `pdf`, `docx`/`word`; anything else is 400. Word and PDF use the query's template, else the system default, else the built-in starter. **403** unless the query permits that format **and** the caller's role holds the matching `queries.export*` capability. **410** once the job is gone. |
 | `POST /jobs/{jobId}/cancel` | Owner or Admin | Cancels the run and stops the database command. |
 | `DELETE /jobs/{jobId}` | Owner or Admin | Releases the cached result immediately. Idempotent. |
 | `GET /{queryId}/parameters/{parameterId}/dropdown-options` | `queries.run` | Options for a dropdown parameter — a static list or a lookup query. Capped by `query.maxRows`. |

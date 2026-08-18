@@ -82,7 +82,7 @@ import { PERM } from './core/models/permissions';
         <!-- People and the connections their queries run through. -->
         <button mat-button *ngIf="authService.hasAny(PERM.usersView, PERM.userGroupsView, PERM.directoryManage, PERM.databaseUsersManage)"
                 [matMenuTriggerFor]="peopleMenu"
-                [class.nav-active]="inSection(['/admin/users', '/admin/user-groups', '/admin/ad-users', '/admin/database-users'])"
+                [class.nav-active]="inSection(['/admin/users', '/admin/user-groups', '/admin/roles', '/admin/ad-users', '/admin/database-users'])"
                 [matTooltip]="'nav.peopleGroup' | transloco">
           <mat-icon>people</mat-icon>
           <span class="nav-label">{{ 'nav.peopleGroup' | transloco }}</span>
@@ -94,6 +94,9 @@ import { PERM } from './core/models/permissions';
           </button>
           <button mat-menu-item *ngIf="authService.has(PERM.userGroupsView)" routerLink="/admin/user-groups">
             <mat-icon>groups</mat-icon> {{ 'nav.userGroups' | transloco }}
+          </button>
+          <button mat-menu-item *ngIf="authService.has(PERM.rolesManage)" routerLink="/admin/roles">
+            <mat-icon>admin_panel_settings</mat-icon> {{ 'nav.roles' | transloco }}
           </button>
           <button mat-menu-item *ngIf="authService.has(PERM.directoryManage) && directoryEnabled" routerLink="/admin/ad-users">
             <mat-icon>group</mat-icon> {{ 'nav.adUsers' | transloco }}
@@ -147,7 +150,7 @@ import { PERM } from './core/models/permissions';
 
           <mat-divider></mat-divider>
 
-          <button mat-menu-item *ngIf="authService.hasAny(PERM.settingsManage, PERM.rolesManage)" routerLink="/admin/settings">
+          <button mat-menu-item *ngIf="authService.has(PERM.settingsManage)" routerLink="/admin/settings">
             <mat-icon>settings</mat-icon> {{ 'nav.settings' | transloco }}
           </button>
           <button mat-menu-item *ngIf="authService.has(PERM.brandingManage)" (click)="openBrandingDialog()">

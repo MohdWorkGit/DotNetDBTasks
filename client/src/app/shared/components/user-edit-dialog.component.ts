@@ -50,7 +50,7 @@ export interface UserEditDialogData {
   template: `
     <h2 mat-dialog-title>{{ title }}</h2>
     <mat-dialog-content>
-      <p class="subject" *ngIf="data.mode !== 'result'">User: {{ data.username }}</p>
+      <p class="subject" *ngIf="data.mode !== 'result'">{{ 'admin.users.userLabel' | transloco }} {{ data.username }}</p>
 
       <mat-form-field *ngIf="data.mode === 'username'" appearance="outline" class="full-width">
         <mat-label>{{ 'admin.users.newUsername' | transloco }}</mat-label>
@@ -71,16 +71,16 @@ export interface UserEditDialogData {
       </mat-form-field>
 
       <ng-container *ngIf="data.mode === 'result'">
-        <p>The temporary password has been set. Please share it securely with the user:</p>
+        <p>{{ 'admin.users.tempPasswordSet' | transloco }}</p>
         <div class="temp-password">{{ data.tempPassword }}</div>
-        <p class="hint">The user should change this password on their next login.</p>
+        <p class="hint">{{ 'admin.users.tempPasswordHint' | transloco }}</p>
       </ng-container>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
       <ng-container *ngIf="data.mode === 'result'; else editActions">
         <button mat-raised-button color="primary" (click)="dialogRef.close()" cdkFocusInitial>
-          Close
+          {{ 'common.close' | transloco }}
         </button>
       </ng-container>
       <ng-template #editActions>

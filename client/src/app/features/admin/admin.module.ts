@@ -42,6 +42,7 @@ import { SystemSettingsComponent } from './components/system-settings/system-set
 import { PermissionsMatrixComponent } from './components/system-settings/permissions-matrix.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { HintIconComponent } from '@shared/components/hint-icon.component';
 import { authGuard } from '@core/guards/auth.guard';
 import { PERM } from '@core/models/permissions';
 
@@ -91,6 +92,7 @@ import { PERM } from '@core/models/permissions';
     MatRadioModule,
     MatMenuModule,
     MatExpansionModule,
+    HintIconComponent,
     // Every route carries its own roles: the parent /admin guard only checks that the
     // user has *some* admin page, so without these an Auditor could type their way into
     // the query editor. These mirror the [Authorize] attributes on the API controllers —
@@ -124,10 +126,12 @@ import { PERM } from '@core/models/permissions';
         canActivate: [authGuard], data: { permissions: [PERM.logsView] } },
       { path: 'system-audit', component: SystemAuditComponent,
         canActivate: [authGuard], data: { permissions: [PERM.auditView] } },
-      // Settings holds the Permissions tab, so either capability opens the page; the tab
-      // itself is hidden without roles.manage.
       { path: 'settings', component: SystemSettingsComponent,
-        canActivate: [authGuard], data: { permissions: [PERM.settingsManage, PERM.rolesManage] } },
+        canActivate: [authGuard], data: { permissions: [PERM.settingsManage] } },
+      // Roles live under Users & Access rather than inside Settings: the question they
+      // answer is who the system answers to, which belongs with the people pages.
+      { path: 'roles', component: PermissionsMatrixComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.rolesManage] } },
       { path: 'ad-users', component: AdUsersComponent,
         canActivate: [authGuard], data: { permissions: [PERM.directoryManage] } },
       { path: 'users', component: UserManagementComponent,

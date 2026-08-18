@@ -191,7 +191,8 @@ export class AuthService {
     if (this.has(PERM.usersView)) return '/admin/users';
     if (this.has(PERM.userGroupsView)) return '/admin/user-groups';
     if (this.has(PERM.scheduledTasksViewAll)) return '/admin/scheduled-tasks';
-    if (this.has(PERM.settingsManage) || this.has(PERM.rolesManage)) return '/admin/settings';
+    if (this.has(PERM.rolesManage)) return '/admin/roles';
+    if (this.has(PERM.settingsManage)) return '/admin/settings';
     return '/user/schedules';
   }
 

@@ -21,6 +21,13 @@ public class DynamicQueryDto
     public string? QueryGroupName { get; set; }
     /// <summary>File name of the uploaded Word export template; null when none (default layout is used).</summary>
     public string? WordTemplateFileName { get; set; }
+    /// <summary>
+    /// Formats this query's results may be downloaded as, as <c>ExportFileFormat</c> names.
+    /// Empty means export is off for this query. This is what the <em>query</em> permits; a
+    /// caller additionally needs the matching <c>queries.export*</c> permission, which the
+    /// client already knows and the API re-checks.
+    /// </summary>
+    public List<string> AllowedExportFormats { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public List<QueryParameterDto> Parameters { get; set; } = new();
     public List<RoleAssignmentDto> AssignedRoles { get; set; } = new();

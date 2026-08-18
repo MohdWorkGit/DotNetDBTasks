@@ -4,6 +4,7 @@ using Bayan.Domain.Entities;
 using Bayan.Domain.Enums;
 using Bayan.Domain.Exceptions;
 using Bayan.Domain.Interfaces;
+using Bayan.Domain.Services;
 using MediatR;
 
 namespace Bayan.Application.Features.DynamicQueries.Commands;
@@ -24,6 +25,8 @@ public class UpdateDynamicQueryCommand : IRequest<DynamicQueryDto>
     public bool SaveOldValues { get; set; }
     public Guid? DatabaseUserId { get; set; }
     public Guid? QueryGroupId { get; set; }
+    /// <summary><c>ExportFileFormat</c> names; empty turns export off for this query.</summary>
+    public List<string> AllowedExportFormats { get; set; } = new();
     public List<QueryParameterDto> Parameters { get; set; } = new();
 }
 
@@ -59,6 +62,10 @@ public class UpdateDynamicQueryCommandHandler
         entity.SaveOldValues = request.SaveOldValues;
         entity.DatabaseUserId = request.DatabaseUserId;
         entity.QueryGroupId = request.QueryGroupId;
+        // Round-tripped through the domain parser so an unknown or duplicated name cannot be
+        // written straight into the column from a hand-rolled request.
+        entity.AllowedExportFormats = ExportPermissions.Serialize(
+            ExportPermissions.Parse(string.Join(',', request.AllowedExportFormats)));
         entity.UpdatedAt = DateTime.UtcNow;
 
         // Remove old parameters

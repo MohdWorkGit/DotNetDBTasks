@@ -1,5 +1,6 @@
 using Bayan.Application.Common.Interfaces;
 using Bayan.Domain.Entities;
+using Bayan.Domain.Services;
 using Bayan.Domain.Enums;
 using Bayan.Domain.Exceptions;
 using Bayan.Domain.Interfaces;
@@ -83,6 +84,8 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
                 IsLongRunning = exported.IsLongRunning,
                 AllowRunWithoutConfirmation = exported.AllowRunWithoutConfirmation,
                 SaveOldValues = exported.SaveOldValues,
+                AllowedExportFormats = ExportPermissions.Serialize(
+                    ExportPermissions.Parse(string.Join(',', exported.AllowedExportFormats))),
                 CreatedByUserId = _currentUser.UserId,
                 CreatedAt = now,
                 WordTemplateFileName = exported.WordTemplateFileName,

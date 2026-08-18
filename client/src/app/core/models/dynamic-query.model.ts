@@ -160,6 +160,12 @@ export interface DynamicQuery {
   queryGroupName?: string | null;
   /** File name of the uploaded Word export template; null/absent when none. */
   wordTemplateFileName?: string | null;
+  /**
+   * ExportFileFormat names this query may be downloaded as. Empty means export is off for this
+   * query. What a given person actually sees is this narrowed to the export capabilities their
+   * roles hold — see EXPORT_FORMATS.
+   */
+  allowedExportFormats: string[];
   createdAt: string;
   parameters: QueryParameter[];
   assignedRoles: RoleAssignment[];
@@ -246,6 +252,8 @@ export interface CreateDynamicQueryRequest {
   saveOldValues: boolean;
   databaseUserId?: string | null;
   queryGroupId?: string | null;
+  /** ExportFileFormat names; empty turns export off for this query. */
+  allowedExportFormats: string[];
   parameters: QueryParameter[];
 }
 

@@ -22,7 +22,7 @@ import { DynamicQuery, Role, SystemUser, UserGroup } from '@core/models/dynamic-
       <div *ngIf="!loading && errorMessage" class="error-block">
         <p class="error-text">{{ errorMessage }}</p>
         <button mat-raised-button color="primary" (click)="loadData()">
-          <mat-icon>refresh</mat-icon> Retry
+          <mat-icon>refresh</mat-icon> {{ 'common.retry' | transloco }}
         </button>
       </div>
 
@@ -35,7 +35,7 @@ import { DynamicQuery, Role, SystemUser, UserGroup } from '@core/models/dynamic-
         <mat-card-content>
           <mat-tab-group>
             <!-- Roles Tab -->
-            <mat-tab label="Roles">
+            <mat-tab [label]="'admin.access.rolesTab' | transloco">
               <form [formGroup]="rolesForm" (ngSubmit)="onSaveRoles()" class="tab-content">
                 <mat-form-field class="full-width" appearance="outline">
                   <mat-label>{{ 'admin.access.assignedRoles' | transloco }}</mat-label>
@@ -49,7 +49,7 @@ import { DynamicQuery, Role, SystemUser, UserGroup } from '@core/models/dynamic-
                 <div class="actions">
                   <button mat-button type="button" routerLink="/admin/queries">{{ 'common.cancel' | transloco }}</button>
                   <button mat-raised-button color="primary" type="submit" [disabled]="saving">
-                    {{ saving ? 'Saving...' : 'Save Roles' }}
+                    {{ (saving ? 'common.saving' : 'admin.access.saveRoles') | transloco }}
                   </button>
                 </div>
               </form>
@@ -79,7 +79,7 @@ import { DynamicQuery, Role, SystemUser, UserGroup } from '@core/models/dynamic-
             </mat-tab>
 
             <!-- Users Tab -->
-            <mat-tab label="Users">
+            <mat-tab [label]="'admin.access.usersTab' | transloco">
               <form [formGroup]="usersForm" (ngSubmit)="onSaveUsers()" class="tab-content">
                 <mat-form-field class="full-width" appearance="outline">
                   <mat-label>{{ 'admin.access.assignedUsers' | transloco }}</mat-label>
@@ -93,7 +93,7 @@ import { DynamicQuery, Role, SystemUser, UserGroup } from '@core/models/dynamic-
                 <div class="actions">
                   <button mat-button type="button" routerLink="/admin/queries">{{ 'common.cancel' | transloco }}</button>
                   <button mat-raised-button color="primary" type="submit" [disabled]="saving">
-                    {{ saving ? 'Saving...' : 'Save Users' }}
+                    {{ (saving ? 'common.saving' : 'admin.access.saveUsers') | transloco }}
                   </button>
                 </div>
               </form>

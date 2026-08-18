@@ -8,6 +8,7 @@ using Bayan.Application.Features.QueryExecution.Commands;
 using Bayan.Application.Features.QueryExecution.Queries;
 using Bayan.Application.Features.QueryGroups.Queries;
 using Bayan.Domain.Enums;
+using Bayan.Domain.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -34,6 +35,7 @@ public class UserQueriesController : ControllerBase
     private readonly ICurrentUserService _currentUser;
     private readonly IResultFileExporter _resultFileExporter;
     private readonly IDocxToPdfConverter _docxToPdfConverter;
+    private readonly IPermissionService _permissions;
 
     public UserQueriesController(
         IMediator mediator,
@@ -41,7 +43,8 @@ public class UserQueriesController : ControllerBase
         IQueryJobQueue jobQueue,
         ICurrentUserService currentUser,
         IResultFileExporter resultFileExporter,
-        IDocxToPdfConverter docxToPdfConverter)
+        IDocxToPdfConverter docxToPdfConverter,
+        IPermissionService permissions)
     {
         _mediator = mediator;
         _jobStore = jobStore;
@@ -49,6 +52,7 @@ public class UserQueriesController : ControllerBase
         _currentUser = currentUser;
         _resultFileExporter = resultFileExporter;
         _docxToPdfConverter = docxToPdfConverter;
+        _permissions = permissions;
     }
 
     /// <summary>
@@ -184,6 +188,20 @@ public class UserQueriesController : ControllerBase
         if (fileFormat is null)
             return BadRequest(new { message = $"Unsupported export format '{format}'. Use xlsx, csv, json, pdf or docx." });
 
+        // Both gates, server-side. The client hides formats it cannot use, but hiding a menu
+        // item is not a control — this endpoint is reachable directly with any format string.
+        var exportedQuery = await _mediator.Send(
+            new GetDynamicQueryByIdQuery(job.Command.QueryId), cancellationToken);
+
+        // The DTO already exposes the list; re-parsing turns the names back into enum values.
+        if (!ExportPermissions.Parse(string.Join(',', exportedQuery.AllowedExportFormats))
+                .Contains(fileFormat.Value))
+            return Forbid();
+
+        if (!await _permissions.HasAsync(
+                _currentUser.Roles, ExportPermissions.PermissionFor(fileFormat.Value), cancellationToken))
+            return Forbid();
+
         byte[]? wordTemplate = null;
         var exportName = "Results";
         List<ExportParameter>? exportParameters = null;
@@ -193,15 +211,13 @@ public class UserQueriesController : ControllerBase
             (fileFormat == ExportFileFormat.Pdf && _docxToPdfConverter.IsAvailable);
         if (usesWordTemplate)
         {
-            var query = await _mediator.Send(
-                new GetDynamicQueryByIdQuery(job.Command.QueryId), cancellationToken);
-            exportName = query.Name;
+            exportName = exportedQuery.Name;
             // Per-query template, else the system default; null falls back to the built-in starter.
             wordTemplate = await _mediator.Send(
                 new GetEffectiveWordTemplateQuery(job.Command.QueryId), cancellationToken);
             // Template can print each parameter ({{@name}}) and the {{PARAMS}} summary; the
             // display names come from the query definition, the values from the executed job.
-            exportParameters = query.Parameters
+            exportParameters = exportedQuery.Parameters
                 .OrderBy(p => p.SortOrder)
                 .Select(p => new ExportParameter(
                     p.Name, p.DisplayName, job.Result.Parameters.GetValueOrDefault(p.Name)))

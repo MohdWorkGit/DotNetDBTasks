@@ -11,6 +11,11 @@ export const PERM = {
   queriesManage: 'queries.manage',
   queriesTransfer: 'queries.transfer',
   queriesRun: 'queries.run',
+  queriesExportExcel: 'queries.exportExcel',
+  queriesExportCsv: 'queries.exportCsv',
+  queriesExportJson: 'queries.exportJson',
+  queriesExportPdf: 'queries.exportPdf',
+  queriesExportWord: 'queries.exportWord',
   accessManageQuery: 'access.manageQuery',
   accessManageGroup: 'access.manageGroup',
   queryGroupsManage: 'queryGroups.manage',
@@ -42,6 +47,11 @@ export const PERMISSION_GROUPS: { titleKey: string; permissions: string[] }[] = 
     titleKey: 'admin.permissions.groups.queries',
     permissions: [PERM.queriesView, PERM.queriesReadSql, PERM.queriesManage,
                   PERM.queriesTransfer, PERM.queriesRun]
+  },
+  {
+    titleKey: 'admin.permissions.groups.export',
+    permissions: [PERM.queriesExportExcel, PERM.queriesExportCsv, PERM.queriesExportJson,
+                  PERM.queriesExportPdf, PERM.queriesExportWord]
   },
   {
     titleKey: 'admin.permissions.groups.access',

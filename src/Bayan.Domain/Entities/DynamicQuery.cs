@@ -54,6 +54,18 @@ public class DynamicQuery : BaseEntity
     /// </summary>
     public bool SaveOldValues { get; set; } = true;
 
+    /// <summary>
+    /// Which formats this query's results may be downloaded as, as a comma-separated list of
+    /// <see cref="ExportFileFormat"/> names — e.g. <c>"Excel,Csv"</c>. Null or empty means the
+    /// result cannot be exported at all and the download button does not appear.
+    ///
+    /// <para>This is only half of the gate: the caller must also hold the matching
+    /// <c>queries.export*</c> permission. See <see cref="Constants.Permissions"/>. Stored as
+    /// names rather than a bitmask so the column is legible to whoever is reading the table
+    /// during an incident.</para>
+    /// </summary>
+    public string? AllowedExportFormats { get; set; }
+
     public Guid CreatedByUserId { get; set; }
 
     /// <summary>

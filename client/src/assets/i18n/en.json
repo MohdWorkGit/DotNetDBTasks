@@ -34,7 +34,12 @@
     "deleteFailed": "Delete failed",
     "operationFailed": "Operation failed",
     "viewAffectedRows": "View affected rows",
-    "done": "Done"
+    "done": "Done",
+    "nameRequired": "Name is required",
+    "descriptionRequired": "Description is required",
+    "passwordRequired": "Password is required",
+    "fieldRequired": "{{field}} is required",
+    "unknownError": "Unknown error"
   },
   "nav": {
     "myQueries": "My Queries",
@@ -44,6 +49,7 @@
     "queryGroups": "Query Groups",
     "users": "Users",
     "userGroups": "User Groups",
+    "roles": "Roles & Permissions",
     "dbUsers": "DB Users",
     "adUsers": "AD Users",
     "logs": "Logs",
@@ -148,7 +154,18 @@
       "syncFailed": "Sync failed",
       "selectAll": "Select all users on this page",
       "revokeAction": "Revoke access",
-      "restoreAction": "Restore access"
+      "restoreAction": "Restore access",
+      "searchTab": "Search Users",
+      "departmentsTab": "Departments",
+      "statusRevoked": "Revoked",
+      "viewUsers": "View Users",
+      "importAll": "Import All",
+      "noSearchMatch": "No AD users matched that search.",
+      "noDepartmentMatch": "No departments match \"{{filter}}\".",
+      "noUserMatch": "No users match the current filter.",
+      "departmentUsers": "{{department}} Users",
+      "importing": "Importing…",
+      "importSelected": "Import Selected Users"
     },
     "dbUsers": {
       "deleteTitle": "Delete database connection?",
@@ -186,7 +203,12 @@
       "testOk": "Connection successful!",
       "testFailed": "Test failed",
       "accessUpdated": "Access updated",
-      "accessUpdateFailed": "Failed to update access"
+      "accessUpdateFailed": "Failed to update access",
+      "serverTypeRequired": "Database type is required",
+      "hostRequired": "Host is required",
+      "portRequired": "Port is required",
+      "usernameRequired": "DB username is required",
+      "saveAccess": "Save Access"
     },
     "queryForm": {
       "removeTemplateTitle": "Remove Word template?",
@@ -228,7 +250,46 @@
       "valueColumn": "Value Column",
       "valueColumnHint": "Column used as the stored value",
       "labelColumn": "Label Column",
-      "required": "Required"
+      "required": "Required",
+      "defaultConnection": "Default (system connection)",
+      "databaseUserHint": "Select which database credentials to use when executing this query",
+      "dbUsersLoadFailed": "Could not load database users — reload the page to try again.",
+      "ungrouped": "Ungrouped",
+      "typeString": "String",
+      "typeNumber": "Number",
+      "typeDate": "Date",
+      "typeBoolean": "Boolean",
+      "typeDropdown": "Dropdown",
+      "dropdownConfig": "Dropdown Configuration",
+      "dropdownStatic": "Static list (defined manually)",
+      "dropdownFromQuery": "From database query",
+      "dropdownStaticHint": "Add label/value pairs. The \"value\" is what gets passed to the SQL query.",
+      "sqlRequired": "SQL query is required",
+      "displayNameRequired": "Display name is required",
+      "enabled": "Enabled",
+      "groupHint": "Pick a folder to organise this query on the My Queries page",
+      "groupsLoadFailed": "Could not load query groups — reload the page to try again.",
+      "longRunning": "Long-running query",
+      "longRunningHint": "Enable for slow queries. They run as a background job the page polls for, so they are not cut off by proxy/gateway timeouts. Normal queries run instantly and should leave this off.",
+      "allowNoConfirm": "Allow running without confirmation",
+      "allowNoConfirmHint": "Only applies to write queries (INSERT/UPDATE/DELETE). When on, users get a \"Run directly without preview\" checkbox that commits the change in one pass. Turn it off to force every run through the row preview and confirmation step.",
+      "saveOldValues": "Save before-change values",
+      "saveOldValuesHint": "Only applies to UPDATE/DELETE queries. When on, every affected row is snapshotted into the execution log so the previous values can be reviewed later. Turn it off for statements that affect large numbers of rows — the snapshot costs an extra SELECT on each run and stores a copy of every affected row.",
+      "wordTemplateHint": "Optional .docx used when this query's results are exported as Word. Put {{results}} where the result table should go; {{queryName}}, {{generatedAt}} and {{rowCount}} are also replaced (including in headers/footers). Each parameter's value is available as {{parameter}} — the same @name you use in the SQL — and {{params}} prints every parameter as \"Display Name: value\", one per line. To style the result table, put {{results}} inside a table: its first row styles the header, the marker's row styles the data rows, and an optional row below it styles alternating rows. Without a template, the system default Word template is used (managed on the Dynamic Queries page).",
+      "templateUploading": "Uploading…",
+      "templateReplace": "Replace Template",
+      "templateUpload": "Upload Template",
+      "noTemplate": "No template — the default layout is used",
+      "allowMultiple": "Allow multiple values",
+      "multiDropdownHint": "Selected values are expanded into {{expansion}} at execution time. Use {{inClause}} in your SQL.",
+      "multiStringHint": "User enters comma-separated values (e.g. {{example}}); each is bound as a separate parameter and expanded into {{expansion}}. Use {{inClause}} in your SQL.",
+      "addOption": "Add Option",
+      "addParameter": "Add Parameter",
+      "valueColumnPlaceholder": "e.g. ID",
+      "labelColumnPlaceholder": "e.g. NAME",
+      "exportSection": "Result export",
+      "exportHint": "Which formats this query's results may be downloaded as. A person also needs the matching export permission on their role, so this narrows what is possible rather than granting it. Tick nothing to switch downloads off for this query entirely.",
+      "exportDisabled": "Export is off for this query — no download button is shown."
     },
     "groups": {
       "deleteTitle": "Delete query group?",
@@ -246,7 +307,10 @@
       "deleted": "Group deleted",
       "deleteFailed": "Failed to delete group",
       "created": "Group created successfully",
-      "create": "Create Group"
+      "create": "Create Group",
+      "noMatch": "No groups match the current filter.",
+      "createTitle": "Create Query Group",
+      "editTitle": "Edit Query Group"
     },
     "queries": {
       "import": "Import",
@@ -294,7 +358,15 @@
       "backup": "Backup",
       "exportAll": "Export all queries",
       "importFromBackup": "Import from backup…",
-      "create": "Create Query"
+      "create": "Create Query",
+      "noMatch": "No queries match the current filters.",
+      "clearFilters": "Clear filters",
+      "importedOne": "Imported {{count}} query",
+      "importedMany": "Imported {{count}} queries",
+      "renamedOne": "{{count}} already existed by name and was imported as a copy — nothing existing was changed.",
+      "renamedMany": "{{count}} already existed by name and were imported as copies — nothing existing was changed.",
+      "renamedFrom": "was \"{{name}}\"",
+      "importWarnings": "Needs your attention ({{count}})"
     },
     "tasks": {
       "deleteTitle": "Delete scheduled task?",
@@ -352,7 +424,50 @@
       "headersTip": "Off: CSV/Excel files contain data rows only",
       "fileNameQueryDefault": "Defaults to the query name",
       "timestampTip": "Off: the same file is overwritten on every run",
-      "enabledToggle": "Enabled"
+      "enabledToggle": "Enabled",
+      "taskSection": "Task",
+      "statusVisibility": "Status visibility",
+      "parameterValues": "Parameter values",
+      "freqEveryNMinutes": "Every N minutes",
+      "freqDaily": "Daily",
+      "freqWeekly": "Weekly",
+      "freqMonthly": "Monthly",
+      "emptyState": "No scheduled tasks yet.",
+      "emptyStateHint": "Create one to export query results on a schedule.",
+      "createTitle": "Create Scheduled Task",
+      "editTitle": "Edit Scheduled Task",
+      "outputFolderRequired": "Output folder is required",
+      "combineOutput": "Combine all results into one file",
+      "includeHeaders": "Include header row",
+      "timestampFormatHint": ".NET date format for the file-name suffix, e.g. -yyyy-MM-dd",
+      "separatorHint": "e.g. ; or ;; (\"tab\" = tab)",
+      "combinedWordNote": "Combined Word output merges several queries, so it always uses the system default Word template (managed on the Dynamic Queries page).",
+      "appendTimestamp": "Append timestamp",
+      "headerRowNote": "The header row (when enabled) comes from the first query, so the queries should return the same columns.",
+      "scheduleSection": "Schedule",
+      "addTrigger": "Add trigger",
+      "triggersHint": "The task runs on every trigger below — e.g. daily at 03:00 plus monthly on day 14 plus daily at 14:00.",
+      "queriesSection": "Queries to export",
+      "addQuery": "Add query",
+      "noItemsHint": "Add at least one read (SELECT) query. Each query is exported to its own file.",
+      "modifiesData": "(modifies data)",
+      "pickQuery": "Pick a query",
+      "pickFormat": "Pick an export format",
+      "writeItemNote": "This query modifies data: each run executes and commits it — no output file, only the affected-row count in the run status.",
+      "wordTemplateUsed": "Word export uses this query's template:",
+      "wordTemplateDefault": "This query has no Word template — the system default template is used. Upload one in the query's edit form, or manage the default on the Dynamic Queries page.",
+      "incrementalHint": "Incremental run (optional) — the saved key is passed into the selected parameter; order the query by the key column ascending",
+      "savedCheckpoint": "Saved checkpoint:",
+      "resetCheckpoint": "Reset on save (restart from the initial key)",
+      "multiValueHint": "Multiple values separated by commas",
+      "dataChange": "(data change)",
+      "noFile": "no file",
+      "affected": "affected",
+      "durationMsValue": "{{ms}} ms",
+      "ok": "OK",
+      "queryCountOne": "{{count}} query",
+      "queryCountMany": "{{count}} queries",
+      "keyColumnPlaceholder": "e.g. Id"
     },
     "users": {
       "resetPassword": "Reset password",
@@ -384,7 +499,21 @@
       "createFailed": "Failed to create user",
       "newUsername": "New Username",
       "newPassword": "New Password",
-      "passwordMinHint": "Minimum 6 characters"
+      "passwordMinHint": "Minimum 6 characters",
+      "tempPasswordSet": "The temporary password has been set. Please share it securely with the user:",
+      "tempPasswordHint": "The user should change this password on their next login.",
+      "usernameRequired": "Username is required",
+      "invalidEmail": "Invalid email",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "passwordMinLength": "Minimum 6 characters",
+      "roleRequired": "At least one role is required",
+      "noMatch": "No users match the current filter.",
+      "managedByAd": "Managed by Active Directory",
+      "changeUsername": "Change Username",
+      "changePassword": "Change Password",
+      "changeRoles": "Change Roles",
+      "userLabel": "User:"
     },
     "userGroups": {
       "title": "User Groups",
@@ -432,7 +561,12 @@
       "userGroupsAssigned": "User groups assigned successfully",
       "userGroupsFailed": "Failed to assign user groups",
       "usersAssigned": "Users assigned successfully",
-      "usersFailed": "Failed to assign users"
+      "usersFailed": "Failed to assign users",
+      "rolesTab": "Roles",
+      "usersTab": "Users",
+      "groupSubtitle": "Access granted here also grants access to every query inside this group.",
+      "saveRoles": "Save Roles",
+      "saveUsers": "Save Users"
     },
     "logs": {
       "title": "Execution Logs",
@@ -446,7 +580,16 @@
       "parameters": "Parameters",
       "filter": "Filter logs",
       "filterPlaceholder": "Search by query, user, parameters, error…",
-      "viewAffectedRows": "Click to view affected rows"
+      "viewAffectedRows": "Click to view affected rows",
+      "statusSuccess": "Success",
+      "statusFailed": "Failed",
+      "typeOther": "Other",
+      "before": "Before:",
+      "after": "After:",
+      "noMatch": "No logs match the current filters.",
+      "affectedRowsTitle": "Affected rows — {{query}}",
+      "oldRowsOne": "{{count}} row as it existed before the change.",
+      "oldRowsMany": "{{count}} rows as they existed before the change."
     },
     "audit": {
       "title": "System Audit",
@@ -531,7 +674,8 @@
         "branding": "Branding",
         "other": "Other",
         "settings": "Settings"
-      }
+      },
+      "ipAddress": "IP:"
     },
     "settings": {
       "title": "System Settings",
@@ -548,11 +692,9 @@
       "outOfRange": "Enter a number between {{min}} and {{max}}.",
       "saved": "Settings saved",
       "saveFailed": "Failed to save settings",
-      "loadFailed": "Failed to load settings",
-      "systemTab": "System"
+      "loadFailed": "Failed to load settings"
     },
     "permissions": {
-      "tab": "Permissions",
       "intro": "Every capability the system offers, and which roles hold it. Admin always holds everything and cannot be edited — that is what keeps this page reachable. Changes take effect on the next request; nobody has to sign in again.",
       "capability": "Capability",
       "pinned": "always all",
@@ -578,7 +720,8 @@
         "people": "People and directory",
         "data": "Connections and scheduled tasks",
         "oversight": "Oversight",
-        "system": "System"
+        "system": "System",
+        "export": "Exporting results"
       },
       "names": {
         "queries.view": "See the query list",
@@ -603,7 +746,12 @@
         "audit.view": "Read the system audit trail",
         "branding.manage": "Change the site logo",
         "settings.manage": "Change system settings",
-        "roles.manage": "Manage roles and permissions"
+        "roles.manage": "Manage roles and permissions",
+        "queries.exportExcel": "Export as Excel",
+        "queries.exportCsv": "Export as CSV",
+        "queries.exportJson": "Export as JSON",
+        "queries.exportPdf": "Export as PDF",
+        "queries.exportWord": "Export as Word"
       },
       "hints": {
         "queries.view": "Opens Manage Queries and a query definition — without the SQL unless the next one is also held.",
@@ -628,8 +776,14 @@
         "audit.view": "Read the trail of administrative actions — including changes made on this page.",
         "branding.manage": "Upload or remove the logo in the top bar.",
         "settings.manage": "Change the runtime settings on the tab beside this one.",
-        "roles.manage": "Edit this page: create roles, delete them, and change what any role may do."
-      }
+        "roles.manage": "Edit this page: create roles, delete them, and change what any role may do.",
+        "queries.exportExcel": "Download a result as .xlsx, on queries that permit it.",
+        "queries.exportCsv": "Download a result as .csv, on queries that permit it.",
+        "queries.exportJson": "Download a result as .json, on queries that permit it.",
+        "queries.exportPdf": "Download a result as .pdf, on queries that permit it.",
+        "queries.exportWord": "Download a result as .docx, on queries that permit it."
+      },
+      "title": "Roles & Permissions"
     }
   },
   "user": {
@@ -650,7 +804,9 @@
       "durationMs": "Duration (ms)",
       "rows": "Rows",
       "status": "Status",
-      "loadFailed": "Failed to load history. Please try again."
+      "loadFailed": "Failed to load history. Please try again.",
+      "before": "Before:",
+      "after": "After:"
     },
     "schedules": {
       "title": "Scheduled Tasks",
@@ -661,7 +817,10 @@
       "loadFailed": "Failed to load scheduled tasks",
       "runsLoadFailed": "Failed to load run history",
       "downloadFailed": "Failed to download the file",
-      "fileGone": "The file is no longer available on the server (it may have been moved, deleted or overwritten by a newer run)."
+      "fileGone": "The file is no longer available on the server (it may have been moved, deleted or overwritten by a newer run).",
+      "noneShared": "No scheduled tasks have been shared with you.",
+      "nextRun": "Next run:",
+      "neverRun": "This task has not run yet."
     },
     "execute": {
       "parameters": "Parameters",
@@ -697,7 +856,15 @@
       "executionFailed": "Query execution failed",
       "canceled": "Query canceled",
       "cancelFailed": "Could not cancel the query on the server — it may still be running.",
-      "exportFailed": "Export failed. The result may have expired — re-run the query."
+      "exportFailed": "Export failed. The result may have expired — re-run the query.",
+      "multiValueHint": "Enter multiple values separated by commas",
+      "sqlInjection": "Invalid input: SQL keywords or special characters are not allowed",
+      "noOptions": "No options available",
+      "formatExcel": "Excel (.xlsx)",
+      "formatCsv": "CSV (.csv)",
+      "formatPdf": "PDF (.pdf)",
+      "formatWord": "Word (.docx)",
+      "formatJson": "JSON (.json)"
     }
   },
   "paginator": {

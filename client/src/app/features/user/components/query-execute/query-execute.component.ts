@@ -7,6 +7,8 @@ import { ToastService } from '@core/services/toast.service';
 import { forkJoin, of, throwError, Subject, Subscription } from 'rxjs';
 import { catchError, debounceTime, switchMap, timeout } from 'rxjs/operators';
 import { ExportFormat, QueryService } from '@core/services/query.service';
+import { AuthService } from '@core/services/auth.service';
+import { EXPORT_FORMATS, ExportFormatOption } from '@core/models/export-formats';
 import { TranslocoService } from '@jsverse/transloco';
 import {
   DropdownOption,
@@ -57,13 +59,13 @@ import {
                   <input matInput [formControlName]="param.name"
                          [placeholder]="param.allowMultiple ? 'value1, value2, value3' : ''">
                   <mat-hint *ngIf="param.allowMultiple">
-                    Enter multiple values separated by commas
+                    {{ 'user.execute.multiValueHint' | transloco }}
                   </mat-hint>
                   <mat-error *ngIf="form.get(param.name)?.hasError('required')">
-                    {{ param.displayName }} is required
+                    {{ 'common.fieldRequired' | transloco: { field: param.displayName } }}
                   </mat-error>
                   <mat-error *ngIf="form.get(param.name)?.hasError('sqlInjection')">
-                    Invalid input: SQL keywords or special characters are not allowed
+                    {{ 'user.execute.sqlInjection' | transloco }}
                   </mat-error>
                 </mat-form-field>
 
@@ -72,7 +74,7 @@ import {
                   <mat-label>{{ param.displayName }}</mat-label>
                   <input matInput type="number" [formControlName]="param.name">
                   <mat-error *ngIf="form.get(param.name)?.hasError('required')">
-                    {{ param.displayName }} is required
+                    {{ 'common.fieldRequired' | transloco: { field: param.displayName } }}
                   </mat-error>
                 </mat-form-field>
 
@@ -83,7 +85,7 @@ import {
                   <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
                   <mat-datepicker #picker></mat-datepicker>
                   <mat-error *ngIf="form.get(param.name)?.hasError('required')">
-                    {{ param.displayName }} is required
+                    {{ 'common.fieldRequired' | transloco: { field: param.displayName } }}
                   </mat-error>
                 </mat-form-field>
 
@@ -105,10 +107,10 @@ import {
                     </mat-option>
                   </mat-select>
                   <mat-hint *ngIf="!dropdownOptions[param.name]?.length && !loadingDropdowns">
-                    No options available
+                    {{ 'user.execute.noOptions' | transloco }}
                   </mat-hint>
                   <mat-error *ngIf="form.get(param.name)?.hasError('required')">
-                    {{ param.displayName }} is required
+                    {{ 'common.fieldRequired' | transloco: { field: param.displayName } }}
                   </mat-error>
                 </mat-form-field>
               </ng-container>
@@ -145,27 +147,17 @@ import {
                 <mat-icon>cancel</mat-icon> {{ 'common.cancel' | transloco }}
               </button>
               <button mat-stroked-button type="button"
-                      *ngIf="result && result.columns.length > 0 && result.jobId"
+                      *ngIf="result && result.columns.length > 0 && result.jobId
+                             && availableExportFormats.length > 0"
                       [matMenuTriggerFor]="exportMenu" [disabled]="exporting">
                 <mat-icon>download</mat-icon>
                 {{ (exporting ? 'user.execute.exporting' : 'user.execute.export') | transloco }}
                 <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
               </button>
               <mat-menu #exportMenu="matMenu">
-                <button mat-menu-item (click)="exportResults('xlsx')">
-                  <mat-icon>table_view</mat-icon> Excel (.xlsx)
-                </button>
-                <button mat-menu-item (click)="exportResults('csv')">
-                  <mat-icon>description</mat-icon> CSV (.csv)
-                </button>
-                <button mat-menu-item (click)="exportResults('pdf')">
-                  <mat-icon>picture_as_pdf</mat-icon> PDF (.pdf)
-                </button>
-                <button mat-menu-item (click)="exportResults('docx')">
-                  <mat-icon>article</mat-icon> Word (.docx)
-                </button>
-                <button mat-menu-item (click)="exportResults('json')">
-                  <mat-icon>data_object</mat-icon> JSON (.json)
+                <button mat-menu-item *ngFor="let f of availableExportFormats"
+                        (click)="exportResults(f.apiValue)">
+                  <mat-icon>{{ f.icon }}</mat-icon> {{ f.labelKey | transloco }}
                 </button>
               </mat-menu>
             </div>
@@ -402,12 +394,23 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
 
   private queryId = '';
 
+  /**
+   * The export formats this person may actually download for this query: the formats the query
+   * permits, narrowed to the ones their roles hold. Empty hides the Export button entirely,
+   * which is the normal state for a query nobody has opened export on.
+   *
+   * <p>Recomputed when the query loads rather than evaluated in the template — an *ngFor over a
+   * method call would re-filter on every change-detection pass.</p>
+   */
+  availableExportFormats: ExportFormatOption[] = [];
+
   constructor(
     private fb: FormBuilder,
     private queryService: QueryService,
     private route: ActivatedRoute,
     private toast: ToastService,
     private transloco: TranslocoService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -438,6 +441,10 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
       next: (query) => {
         this.query = query;
         this.loadingQuery = false;
+
+        const permitted = query.allowedExportFormats ?? [];
+        this.availableExportFormats = EXPORT_FORMATS.filter(
+          f => permitted.includes(f.name) && this.authService.has(f.permission));
 
         // Build dynamic form from parameter metadata
         const sorted = [...this.query.parameters].sort((a, b) => a.sortOrder - b.sortOrder);

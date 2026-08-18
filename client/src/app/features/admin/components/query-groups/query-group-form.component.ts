@@ -11,7 +11,7 @@ import { QueryService } from '@core/services/query.service';
   selector: 'app-query-group-form',
   template: `
     <div class="container">
-      <h2>{{ isEdit ? 'Edit' : 'Create' }} Query Group</h2>
+      <h2>{{ (isEdit ? 'admin.groups.editTitle' : 'admin.groups.createTitle') | transloco }}</h2>
 
       <mat-card>
         <mat-card-content>
@@ -19,13 +19,13 @@ import { QueryService } from '@core/services/query.service';
             <mat-form-field class="full-width" appearance="outline">
               <mat-label>{{ 'admin.groups.name' | transloco }}</mat-label>
               <input matInput formControlName="name" maxlength="200">
-              <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+              <mat-error *ngIf="form.get('name')?.hasError('required')">{{ 'common.nameRequired' | transloco }}</mat-error>
             </mat-form-field>
 
             <mat-form-field class="full-width" appearance="outline">
               <mat-label>{{ 'admin.groups.description' | transloco }}</mat-label>
               <textarea matInput formControlName="description" rows="3" maxlength="1000"></textarea>
-              <mat-error *ngIf="form.get('description')?.hasError('required')">Description is required</mat-error>
+              <mat-error *ngIf="form.get('description')?.hasError('required')">{{ 'common.descriptionRequired' | transloco }}</mat-error>
             </mat-form-field>
 
             <div class="actions">

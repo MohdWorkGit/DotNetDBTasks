@@ -33,7 +33,7 @@ const DEFAULT_SORT_BY = 'executedAt';
           <div *ngIf="!loading && errorMessage" class="error-block">
             <p class="error-text">{{ errorMessage }}</p>
             <button mat-raised-button color="primary" (click)="loadLogs()">
-              <mat-icon>refresh</mat-icon> Retry
+              <mat-icon>refresh</mat-icon> {{ 'common.retry' | transloco }}
             </button>
           </div>
 
@@ -49,8 +49,8 @@ const DEFAULT_SORT_BY = 'executedAt';
               <mat-label>{{ 'admin.logs.status' | transloco }}</mat-label>
               <mat-select [(value)]="statusFilter" (selectionChange)="onFiltersChanged()">
                 <mat-option value="all">{{ 'common.all' | transloco }}</mat-option>
-                <mat-option value="success">Success</mat-option>
-                <mat-option value="failed">Failed</mat-option>
+                <mat-option value="success">{{ 'admin.logs.statusSuccess' | transloco }}</mat-option>
+                <mat-option value="failed">{{ 'admin.logs.statusFailed' | transloco }}</mat-option>
               </mat-select>
             </mat-form-field>
 
@@ -62,7 +62,7 @@ const DEFAULT_SORT_BY = 'executedAt';
                 <mat-option [value]="QueryType.Insert">INSERT</mat-option>
                 <mat-option [value]="QueryType.Update">UPDATE</mat-option>
                 <mat-option [value]="QueryType.Delete">DELETE</mat-option>
-                <mat-option [value]="QueryType.Other">Other</mat-option>
+                <mat-option [value]="QueryType.Other">{{ 'admin.logs.typeOther' | transloco }}</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
@@ -96,7 +96,7 @@ const DEFAULT_SORT_BY = 'executedAt';
               <td mat-cell *matCellDef="let log">
                 <ng-container *ngIf="log.hasOldValues; else plainParams">
                   <div class="update-params">
-                    <span class="update-label old-label">Before:</span>
+                    <span class="update-label old-label">{{ 'admin.logs.before' | transloco }}</span>
                     <button type="button" class="old-rows-trigger"
                             (click)="openOldRowsDialog(log)"
                             [matTooltip]="'admin.logs.viewAffectedRows' | transloco">
@@ -104,7 +104,7 @@ const DEFAULT_SORT_BY = 'executedAt';
                       <mat-icon class="open-icon">open_in_new</mat-icon>
                     </button>
                     <ng-container *ngIf="log.isUpdateQuery">
-                      <span class="update-label new-label">After:</span>
+                      <span class="update-label new-label">{{ 'admin.logs.after' | transloco }}</span>
                       <span class="parameters-cell new-values" [matTooltip]="formatParametersTooltip(log.parameters)">
                         {{ formatParameters(log.parameters) }}
                       </span>
@@ -138,9 +138,12 @@ const DEFAULT_SORT_BY = 'executedAt';
               <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.logs.status' | transloco }}</th>
               <td mat-cell *matCellDef="let log">
                 <mat-icon [class]="log.isSuccess ? 'success' : 'error'"
-                          [matTooltip]="log.isSuccess ? 'Success' : (log.errorMessage || 'Unknown error')"
+                          [matTooltip]="log.isSuccess ? ('admin.logs.statusSuccess' | transloco)
+                                       : (log.errorMessage || ('common.unknownError' | transloco))"
                           [matTooltipClass]="log.isSuccess ? 'success-tooltip' : 'error-tooltip'"
-                          [attr.aria-label]="log.isSuccess ? 'Succeeded' : ('Failed: ' + (log.errorMessage || 'Unknown error'))"
+                          [attr.aria-label]="log.isSuccess ? ('admin.logs.statusSuccess' | transloco)
+                                            : (('admin.logs.statusFailed' | transloco) + ': '
+                                               + (log.errorMessage || ('common.unknownError' | transloco)))"
                           role="img">
                   {{ log.isSuccess ? 'check_circle' : 'error' }}
                 </mat-icon>
@@ -152,7 +155,7 @@ const DEFAULT_SORT_BY = 'executedAt';
 
             <tr class="mat-row no-data-row" *matNoDataRow>
               <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-                No logs match the current filters.
+                {{ 'admin.logs.noMatch' | transloco }}
               </td>
             </tr>
           </table>

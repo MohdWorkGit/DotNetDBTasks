@@ -583,7 +583,7 @@ def build_manual(doc):
         "this order: My Queries if you may run queries; then Manage Queries, the execution "
         "logs, the system audit trail, Users, User Groups, Scheduled Tasks, and Settings. If "
         "none of those are open to you, you land on My Schedules.",
-        "بعد تسجيل الدخول تصل إلى أول صفحة تفتحها صلاحياتك فعلًا، بهذا الترتيب: «استعلاماتي» إن "
+        "بعد تسجيل الدخول تصل إلى أول صفحة تفتحها صلاحياتك فعلًا، بهذا الترتيب: «الاستعلامات» إن "
         "كنت تملك تنفيذ الاستعلامات، ثم «إدارة الاستعلامات»، فسجلات التنفيذ، فسجل عمليات "
         "النظام، فالمستخدمون، فمجموعات المستخدمين، فالمهام المجدولة، فالإعدادات. فإن لم يكن "
         "أيٌّ منها متاحًا لك وصلت إلى «مهامي المجدولة»."))
@@ -591,9 +591,9 @@ def build_manual(doc):
         "In practice that puts an administrator on My Queries — the Admin role holds “Run "
         "queries” like anyone else — an Access Manager on Manage Queries, an Auditor on the "
         "execution logs, and a User on My Queries.",
-        "وعمليًا يضع ذلك المسؤولَ في «استعلاماتي» — إذ يحمل دور Admin صلاحية «تنفيذ "
+        "وعمليًا يضع ذلك المسؤولَ في «الاستعلامات» — إذ يحمل دور Admin صلاحية «تنفيذ "
         "الاستعلامات» كغيره — ومديرَ الصلاحيات في «إدارة الاستعلامات»، والمدققَ في سجلات "
-        "التنفيذ، والمستخدمَ في «استعلاماتي»."))
+        "التنفيذ، والمستخدمَ في «الاستعلامات»."))
 
     h2(doc, T("3.2 The main window", "٣.٢ الواجهة الرئيسية"))
     para(doc, T(
@@ -605,7 +605,7 @@ def build_manual(doc):
     figure(doc, "02-admin-landing",
            T("The application as an administrator sees it: My Queries, History, and the "
              "Queries, Users & Access and Audit menus, with the account menu at the end.",
-             "التطبيق كما يراه المسؤول: «استعلاماتي» و«السجل» وقوائم «الاستعلامات» "
+             "التطبيق كما يراه المسؤول: «الاستعلامات» و«السجل» وقوائم «الاستعلامات» "
              "و«المستخدمون والصلاحيات» و«التدقيق»، وقائمة الحساب في الطرف."))
     para(doc, T("The navigation is grouped into three drop-down menus plus the always-visible "
                 "personal pages:",
@@ -614,7 +614,7 @@ def build_manual(doc):
     table(doc,
           [T("Menu", "القائمة"), T("Contains", "تحتوي على"), T("Visible to", "تظهر لـ")],
           [
-              [T("My Queries", "استعلاماتي"),
+              [T("My Queries", "الاستعلامات"),
                T("The queries assigned to you", "الاستعلامات المخصَّصة لك"),
                T("Everyone", "الجميع")],
               [T("History", "السجل"),
@@ -865,7 +865,7 @@ def build_manual(doc):
         "roles and permissions” is the one that edits this table — grant it sparingly.",
         "وثلاث منها تستحق قراءة متأنية. فـ«عرض قائمة الاستعلامات» و«قراءة نص SQL» صلاحيتان "
         "منفصلتان، وهذا ما يتيح لدور أن يدير الصلاحيات دون أن يقرأ الاستعلامات. و«تنفيذ "
-        "الاستعلامات» هي ما يضع «استعلاماتي» و«السجل» في الشريط العلوي أصلًا. و«إدارة الأدوار "
+        "الاستعلامات» هي ما يضع «الاستعلامات» و«السجل» في الشريط العلوي أصلًا. و«إدارة الأدوار "
         "والصلاحيات» هي التي تعدّل هذا الجدول نفسه — فامنحها بحذر."))
 
     h2(doc, T("4.3 Rules that hold whatever the matrix says",
@@ -954,7 +954,7 @@ def build_manual(doc):
              "ever be empty.",
              "يصل المدقق بعد تسجيل الدخول إلى سجلات التنفيذ. ولا يحمل الشريط سوى "
              "«الاستعلامات» (وفيها المهام المجدولة للاطلاع فقط) و«التدقيق». ولا يظهر "
-             "«استعلاماتي» ولا «السجل»: فلا يمكن إسناد أي استعلام إلى هذا الدور، ومن ثمّ "
+             "«الاستعلامات» ولا «السجل»: فلا يمكن إسناد أي استعلام إلى هذا الدور، ومن ثمّ "
              "تبقى الصفحتان فارغتين دائمًا."))
     figure(doc, "91-auditor-account-menu",
            T("The Auditor's account menu: language, theme and logout only — no Settings and no "
@@ -1016,7 +1016,7 @@ def build_manual(doc):
     table(doc,
           [T("Page", "الصفحة"), T("Address", "العنوان"), T("Capability needed", "الإمكانية المطلوبة")],
           [
-              [T("My Queries", "استعلاماتي"), "/user/queries",
+              [T("My Queries", "الاستعلامات"), "/user/queries",
                T("Run queries", "تنفيذ الاستعلامات")],
               [T("Run a query", "تنفيذ استعلام"), "/user/queries/…/execute",
                T("Run queries, and the query must be assigned",
@@ -1075,18 +1075,18 @@ def build_manual(doc):
     para(doc, T("For: Users, and administrators running their own queries.",
                 "لمن: المستخدمون، والمسؤولون عند تنفيذ استعلاماتهم."), italic=True)
 
-    h2(doc, T("5.1 My Queries", "٥.١ استعلاماتي"))
+    h2(doc, T("5.1 My Queries", "٥.١ الاستعلامات"))
     para(doc, T(
         "My Queries lists everything you have been granted, arranged by query group. Queries "
         "that belong to no group appear together at the end. Each card shows the query's name "
         "and description and a button to run it.",
-        "تعرض صفحة «استعلاماتي» كل ما أُسنِد إليك، مرتَّبًا حسب مجموعات الاستعلامات. وتظهر "
+        "تعرض صفحة «الاستعلامات» كل ما أُسنِد إليك، مرتَّبًا حسب مجموعات الاستعلامات. وتظهر "
         "الاستعلامات غير المصنَّفة معًا في النهاية. وتُظهر كل بطاقة اسم الاستعلام ووصفه وزرًا "
         "لتنفيذه."))
     figure(doc, "60-my-queries",
            T("My Queries. Groups act as folders; the count next to each heading is the number "
              "of queries you can reach inside it.",
-             "صفحة «استعلاماتي». تعمل المجموعات كمجلدات، والعدد بجانب كل عنوان هو عدد "
+             "صفحة «الاستعلامات». تعمل المجموعات كمجلدات، والعدد بجانب كل عنوان هو عدد "
              "الاستعلامات التي يمكنك الوصول إليها داخلها."))
     para(doc, T(
         "If the page is empty, nothing has been assigned to you yet — ask an administrator or "
@@ -1381,7 +1381,7 @@ def build_manual(doc):
                  "الاسم الذي يظهر للمستخدمين. مطلوب.")],
               [T("Description", "الوصف"),
                T("Shown under the name on My Queries. Required.",
-                 "يظهر تحت الاسم في صفحة «استعلاماتي». مطلوب.")],
+                 "يظهر تحت الاسم في صفحة «الاستعلامات». مطلوب.")],
               [T("SQL Query", "استعلام SQL"),
                T("The statement. Write parameters as @name. All statement types are supported.",
                  "نص الجملة. تُكتب المعاملات بالصيغة ‎@name‎. وجميع أنواع الجمل مدعومة.")],
@@ -1411,7 +1411,7 @@ def build_manual(doc):
                  "النظام.")],
               [T("Group", "المجموعة"),
                T("The folder the query appears under on My Queries.",
-                 "المجلد الذي يظهر الاستعلام تحته في «استعلاماتي».")],
+                 "المجلد الذي يظهر الاستعلام تحته في «الاستعلامات».")],
               [T("Enabled", "نشط"),
                T("Editing only. A disabled query cannot be run by anyone.",
                  "عند التعديل فقط. ولا يستطيع أحد تنفيذ استعلام معطَّل.")],
@@ -1589,7 +1589,7 @@ def build_manual(doc):
         "A query group is a folder. It organises My Queries for users, and — more importantly "
         "— it is the unit of access an Access Manager works with: granting a group grants "
         "every query inside it.",
-        "مجموعة الاستعلامات مجلد. تنظّم صفحة «استعلاماتي» للمستخدمين، والأهم أنها وحدة الصلاحية "
+        "مجموعة الاستعلامات مجلد. تنظّم صفحة «الاستعلامات» للمستخدمين، والأهم أنها وحدة الصلاحية "
         "التي يعمل بها مدير الصلاحيات: فمنح المجموعة يمنح كل استعلام داخلها."))
     figure(doc, "20-query-groups",
            T("Query Groups. The Queries column counts the queries in each group and links to "
@@ -2332,7 +2332,7 @@ def build_manual(doc):
     table(doc,
           [T("Question", "السؤال"), T("Answer", "الجواب")],
           [
-              [T("My Queries is empty.", "صفحة «استعلاماتي» فارغة."),
+              [T("My Queries is empty.", "صفحة «الاستعلامات» فارغة."),
                T("Nothing has been assigned to you. Ask an administrator or Access Manager to "
                  "grant you the query or its group, directly or through a user group.",
                  "لم يُسنَد إليك شيء. اطلب من المسؤول أو مدير الصلاحيات منحك الاستعلام أو "

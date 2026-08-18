@@ -12,7 +12,7 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
   template: `
     <div class="container">
       <div class="header">
-        <h2>Run History{{ task ? ' — ' + task.name : '' }}</h2>
+        <h2>{{ 'admin.tasks.runHistory' | transloco }}{{ task ? ' — ' + task.name : '' }}</h2>
         <div>
           <button mat-icon-button [matTooltip]="'common.refresh' | transloco" [attr.aria-label]="'common.refresh' | transloco" (click)="load()">
             <mat-icon>refresh</mat-icon>
@@ -58,25 +58,25 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
               <th>{{ 'admin.tasks.result' | transloco }}</th>
             </tr>
             <tr *ngFor="let item of run.items">
-              <td>{{ item.queryName }}<span class="muted" *ngIf="item.isWrite"> (data change)</span></td>
+              <td>{{ item.queryName }}<span class="muted" *ngIf="item.isWrite"> {{ 'admin.tasks.dataChange' | transloco }}</span></td>
               <td>
                 <button *ngIf="item.fileName && item.success && task?.canDownloadFiles"
                         type="button" class="file-link"
                         [matTooltip]="'common.download' | transloco"
-                        [attr.aria-label]="'Download ' + item.fileName"
+                        [attr.aria-label]="('common.download' | transloco) + ' ' + item.fileName"
                         (click)="download(run, item)">
                   <mat-icon class="file-icon" inline>download</mat-icon>{{ item.fileName }}
                 </button>
                 <ng-container *ngIf="!(item.fileName && item.success && task?.canDownloadFiles)">
-                  {{ item.fileName || (item.isWrite ? 'no file' : '—') }}
+                  {{ item.fileName || (item.isWrite ? ('admin.tasks.noFile' | transloco) : '—') }}
                 </ng-container>
               </td>
-              <td>{{ item.success ? item.rowCount + (item.isWrite ? ' affected' : '') : '—' }}</td>
+              <td>{{ item.success ? item.rowCount + (item.isWrite ? ' ' + ('admin.tasks.affected' | transloco) : '') : '—' }}</td>
               <td>{{ item.lastKey || '—' }}</td>
-              <td>{{ item.durationMs }} ms</td>
+              <td>{{ 'admin.tasks.durationMsValue' | transloco: { ms: item.durationMs } }}</td>
               <td>
                 <span class="status" [ngClass]="item.success ? 'status-Succeeded' : 'status-Failed'">
-                  {{ item.success ? 'OK' : (item.error || 'Failed') }}
+                  {{ item.success ? ('admin.tasks.ok' | transloco) : (item.error || ('admin.logs.statusFailed' | transloco)) }}
                 </span>
               </td>
             </tr>

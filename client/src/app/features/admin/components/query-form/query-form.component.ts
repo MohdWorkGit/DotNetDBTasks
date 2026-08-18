@@ -7,6 +7,7 @@ import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, ParameterType, QueryGroup } from '@core/models/dynamic-query.model';
+import { EXPORT_FORMATS } from '@core/models/export-formats';
 import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
@@ -22,13 +23,13 @@ import { TranslocoService } from '@jsverse/transloco';
             <mat-form-field class="full-width" appearance="outline">
               <mat-label>{{ 'admin.queries.name' | transloco }}</mat-label>
               <input matInput formControlName="name">
-              <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+              <mat-error *ngIf="form.get('name')?.hasError('required')">{{ 'common.nameRequired' | transloco }}</mat-error>
             </mat-form-field>
 
             <mat-form-field class="full-width" appearance="outline">
               <mat-label>{{ 'admin.queries.description' | transloco }}</mat-label>
               <textarea matInput formControlName="description" rows="3"></textarea>
-              <mat-error *ngIf="form.get('description')?.hasError('required')">Description is required</mat-error>
+              <mat-error *ngIf="form.get('description')?.hasError('required')">{{ 'common.descriptionRequired' | transloco }}</mat-error>
             </mat-form-field>
 
             <mat-form-field class="full-width" appearance="outline">
@@ -36,7 +37,7 @@ import { TranslocoService } from '@jsverse/transloco';
               <textarea matInput formControlName="sqlQuery" rows="5" dir="ltr" class="force-ltr"
                         [attr.placeholder]="'admin.queryForm.sqlPlaceholder' | transloco"></textarea>
               <mat-hint>{{ 'admin.queryForm.sqlHint' | transloco }}</mat-hint>
-              <mat-error *ngIf="form.get('sqlQuery')?.hasError('required')">SQL query is required</mat-error>
+              <mat-error *ngIf="form.get('sqlQuery')?.hasError('required')">{{ 'admin.queryForm.sqlRequired' | transloco }}</mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
@@ -45,86 +46,90 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-hint>{{ 'admin.queryForm.timeoutHint' | transloco }}</mat-hint>
             </mat-form-field>
 
-            <mat-slide-toggle formControlName="isLongRunning" class="toggle">
-              Long-running query
-            </mat-slide-toggle>
-            <p class="field-hint">
-              Enable for slow queries. They run as a background job the page polls for, so they
-              are not cut off by proxy/gateway timeouts. Normal queries run instantly and should
-              leave this off.
-            </p>
+            <div class="toggle-row">
+              <mat-slide-toggle formControlName="isLongRunning">
+                {{ 'admin.queryForm.longRunning' | transloco }}
+              </mat-slide-toggle>
+              <app-hint-icon [text]="'admin.queryForm.longRunningHint' | transloco"></app-hint-icon>
+            </div>
 
-            <mat-slide-toggle formControlName="allowRunWithoutConfirmation" class="toggle">
-              Allow running without confirmation
-            </mat-slide-toggle>
-            <p class="field-hint">
-              Only applies to write queries (INSERT/UPDATE/DELETE). When on, users get a
-              "Run directly without preview" checkbox that commits the change in one pass.
-              Turn it off to force every run through the row preview and confirmation step.
-            </p>
+            <div class="toggle-row">
+              <mat-slide-toggle formControlName="allowRunWithoutConfirmation">
+                {{ 'admin.queryForm.allowNoConfirm' | transloco }}
+              </mat-slide-toggle>
+              <app-hint-icon [text]="'admin.queryForm.allowNoConfirmHint' | transloco"></app-hint-icon>
+            </div>
 
-            <mat-slide-toggle formControlName="saveOldValues" class="toggle">
-              Save before-change values
-            </mat-slide-toggle>
-            <p class="field-hint">
-              Only applies to UPDATE/DELETE queries. When on, every affected row is snapshotted
-              into the execution log so the previous values can be reviewed later. Turn it off
-              for statements that affect large numbers of rows — the snapshot costs an extra
-              SELECT on each run and stores a copy of every affected row.
-            </p>
+            <div class="toggle-row">
+              <mat-slide-toggle formControlName="saveOldValues">
+                {{ 'admin.queryForm.saveOldValues' | transloco }}
+              </mat-slide-toggle>
+              <app-hint-icon [text]="'admin.queryForm.saveOldValuesHint' | transloco"></app-hint-icon>
+            </div>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>{{ 'admin.queryForm.databaseUser' | transloco }}</mat-label>
               <mat-select formControlName="databaseUserId">
-                <mat-option [value]="null">Default (system connection)</mat-option>
+                <mat-option [value]="null">{{ 'admin.queryForm.defaultConnection' | transloco }}</mat-option>
                 <mat-option *ngFor="let du of availableDbUsers" [value]="du.id">
                   {{ du.name }}
                 </mat-option>
               </mat-select>
-              <mat-hint *ngIf="!lookupLoadFailed.dbUsers">Select which database credentials to use when executing this query</mat-hint>
+              <mat-hint *ngIf="!lookupLoadFailed.dbUsers">{{ 'admin.queryForm.databaseUserHint' | transloco }}</mat-hint>
               <mat-hint *ngIf="lookupLoadFailed.dbUsers" class="load-failed-hint">
-                Could not load database users — reload the page to try again.
+                {{ 'admin.queryForm.dbUsersLoadFailed' | transloco }}
               </mat-hint>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>{{ 'admin.queries.group' | transloco }}</mat-label>
               <mat-select formControlName="queryGroupId">
-                <mat-option [value]="null">Ungrouped</mat-option>
+                <mat-option [value]="null">{{ 'admin.queryForm.ungrouped' | transloco }}</mat-option>
                 <mat-option *ngFor="let g of availableGroups" [value]="g.id">
                   {{ g.name }}
                 </mat-option>
               </mat-select>
-              <mat-hint *ngIf="!lookupLoadFailed.groups">Pick a folder to organise this query on the My Queries page</mat-hint>
+              <mat-hint *ngIf="!lookupLoadFailed.groups">{{ 'admin.queryForm.groupHint' | transloco }}</mat-hint>
               <mat-hint *ngIf="lookupLoadFailed.groups" class="load-failed-hint">
-                Could not load query groups — reload the page to try again.
+                {{ 'admin.queryForm.groupsLoadFailed' | transloco }}
               </mat-hint>
             </mat-form-field>
 
+            <div class="export-section">
+              <h3>
+                {{ 'admin.queryForm.exportSection' | transloco }}
+                <app-hint-icon [text]="'admin.queryForm.exportHint' | transloco"></app-hint-icon>
+              </h3>
+              <div class="export-formats">
+                <mat-checkbox *ngFor="let f of exportFormats"
+                              [checked]="isExportFormatAllowed(f.name)"
+                              (change)="toggleExportFormat(f.name, $event.checked)">
+                  {{ f.labelKey | transloco }}
+                </mat-checkbox>
+              </div>
+              <p class="field-hint export-off" *ngIf="allowedExportFormats.length === 0">
+                {{ 'admin.queryForm.exportDisabled' | transloco }}
+              </p>
+            </div>
+
             <mat-slide-toggle *ngIf="isEdit" formControlName="isEnabled" class="toggle">
-              Enabled
+              {{ 'admin.queryForm.enabled' | transloco }}
             </mat-slide-toggle>
 
             <div *ngIf="isEdit" class="template-section">
-              <h3>{{ 'admin.queryForm.wordTemplate' | transloco }}</h3>
-              <p class="field-hint">
-                Optional .docx used when this query's results are exported as Word. Put
-                {{ '{{RESULTS}}' }} where the result table should go; {{ '{{QUERY_NAME}}' }},
-                {{ '{{GENERATED_AT}}' }} and {{ '{{ROW_COUNT}}' }} are also replaced (including
-                in headers/footers). Each parameter's value is available as
-                {{ '{{@paramName}}' }} — the same &#64;name you use in the SQL — and
-                {{ '{{PARAMS}}' }} prints every parameter as "Display Name: value", one per line.
-                To style the result table, put {{ '{{RESULTS}}' }} inside a
-                table: its first row styles the header, the marker's row styles the data rows,
-                and an optional row below it styles alternating rows. Without a template, the
-                system default Word template is used (managed on the Dynamic Queries page).
-              </p>
+              <h3>
+                {{ 'admin.queryForm.wordTemplate' | transloco }}
+                <app-hint-icon
+                  [text]="'admin.queryForm.wordTemplateHint' | transloco: templateTokens"></app-hint-icon>
+              </h3>
               <div class="template-row">
                 <input #tplInput type="file" accept=".docx" hidden (change)="onTemplateSelected($event)">
                 <button mat-stroked-button type="button" (click)="tplInput.click()"
                         [disabled]="uploadingTemplate">
                   <mat-icon>upload_file</mat-icon>
-                  {{ uploadingTemplate ? 'Uploading…' : (templateFileName ? 'Replace Template' : 'Upload Template') }}
+                  {{ (uploadingTemplate ? 'admin.queryForm.templateUploading'
+                       : (templateFileName ? 'admin.queryForm.templateReplace'
+                                           : 'admin.queryForm.templateUpload')) | transloco }}
                 </button>
                 <ng-container *ngIf="templateFileName">
                   <span class="template-name">
@@ -140,7 +145,7 @@ import { TranslocoService } from '@jsverse/transloco';
                   </button>
                 </ng-container>
                 <span *ngIf="!templateFileName" class="template-name none">
-                  No template — the default layout is used
+                  {{ 'admin.queryForm.noTemplate' | transloco }}
                 </span>
               </div>
             </div>
@@ -153,25 +158,25 @@ import { TranslocoService } from '@jsverse/transloco';
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'admin.queries.name' | transloco }}</mat-label>
                     <input matInput formControlName="name" placeholder="paramName">
-                    <mat-error *ngIf="param.get('name')?.hasError('required')">Name is required</mat-error>
+                    <mat-error *ngIf="param.get('name')?.hasError('required')">{{ 'common.nameRequired' | transloco }}</mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'admin.queryForm.displayName' | transloco }}</mat-label>
                     <input matInput formControlName="displayName" [attr.placeholder]="'admin.queryForm.parameterLabel' | transloco">
                     <mat-error *ngIf="param.get('displayName')?.hasError('required')">
-                      Display name is required
+                      {{ 'admin.queryForm.displayNameRequired' | transloco }}
                     </mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'admin.queries.type' | transloco }}</mat-label>
                     <mat-select formControlName="parameterType">
-                      <mat-option [value]="0">String</mat-option>
-                      <mat-option [value]="1">Number</mat-option>
-                      <mat-option [value]="2">Date</mat-option>
-                      <mat-option [value]="3">Boolean</mat-option>
-                      <mat-option [value]="4">Dropdown</mat-option>
+                      <mat-option [value]="0">{{ 'admin.queryForm.typeString' | transloco }}</mat-option>
+                      <mat-option [value]="1">{{ 'admin.queryForm.typeNumber' | transloco }}</mat-option>
+                      <mat-option [value]="2">{{ 'admin.queryForm.typeDate' | transloco }}</mat-option>
+                      <mat-option [value]="3">{{ 'admin.queryForm.typeBoolean' | transloco }}</mat-option>
+                      <mat-option [value]="4">{{ 'admin.queryForm.typeDropdown' | transloco }}</mat-option>
                     </mat-select>
                   </mat-form-field>
 
@@ -193,38 +198,37 @@ import { TranslocoService } from '@jsverse/transloco';
                 <div *ngIf="getParamType(i) === ParameterType.String
                          || getParamType(i) === ParameterType.Dropdown"
                      class="multi-value-block">
-                  <mat-slide-toggle formControlName="allowMultiple" class="allow-multiple-toggle">
-                    Allow multiple values
-                  </mat-slide-toggle>
-                  <p *ngIf="isAllowMultiple(i) && getParamType(i) === ParameterType.Dropdown" class="hint">
-                    Selected values are expanded into <code>(&#64;name_0, &#64;name_1, ...)</code> at
-                    execution time. Use <code>WHERE col IN (&#64;name)</code> in your SQL.
-                  </p>
-                  <p *ngIf="isAllowMultiple(i) && getParamType(i) === ParameterType.String" class="hint">
-                    User enters comma-separated values (e.g. <code>value1, value2</code>); each is bound
-                    as a separate parameter and expanded into
-                    <code>(&#64;name_0, &#64;name_1, ...)</code>. Use <code>WHERE col IN (&#64;name)</code>
-                    in your SQL.
-                  </p>
+                  <div class="toggle-row">
+                    <mat-slide-toggle formControlName="allowMultiple">
+                      {{ 'admin.queryForm.allowMultiple' | transloco }}
+                    </mat-slide-toggle>
+                    <app-hint-icon *ngIf="isAllowMultiple(i) && getParamType(i) === ParameterType.Dropdown"
+                      [text]="'admin.queryForm.multiDropdownHint' | transloco: multiValueTokens"></app-hint-icon>
+                    <app-hint-icon *ngIf="isAllowMultiple(i) && getParamType(i) === ParameterType.String"
+                      [text]="'admin.queryForm.multiStringHint' | transloco: multiValueTokens"></app-hint-icon>
+                  </div>
                 </div>
 
                 <!-- Dropdown configuration section -->
                 <div *ngIf="getParamType(i) === ParameterType.Dropdown" class="dropdown-config">
-                  <h4>Dropdown Configuration</h4>
+                  <h4>{{ 'admin.queryForm.dropdownConfig' | transloco }}</h4>
 
                   <mat-radio-group formControlName="dropdownSourceType" class="source-radio-group">
-                    <mat-radio-button [value]="DropdownSourceType.Static">
-                      Static list (defined manually)
-                    </mat-radio-button>
+                    <span class="radio-with-hint">
+                      <mat-radio-button [value]="DropdownSourceType.Static">
+                        {{ 'admin.queryForm.dropdownStatic' | transloco }}
+                      </mat-radio-button>
+                      <app-hint-icon
+                        [text]="'admin.queryForm.dropdownStaticHint' | transloco"></app-hint-icon>
+                    </span>
                     <mat-radio-button [value]="DropdownSourceType.Query">
-                      From database query
+                      {{ 'admin.queryForm.dropdownFromQuery' | transloco }}
                     </mat-radio-button>
                   </mat-radio-group>
 
                   <!-- Static values editor -->
                   <div *ngIf="getDropdownSourceType(i) === DropdownSourceType.Static"
                        class="static-values-editor">
-                    <p class="hint">Add label/value pairs. The "value" is what gets passed to the SQL query.</p>
                     <div *ngFor="let opt of getStaticOptions(i); let j = index; trackBy: trackStaticOption"
                          class="static-option-row">
                       <mat-form-field appearance="outline" class="option-field">
@@ -244,7 +248,7 @@ import { TranslocoService } from '@jsverse/transloco';
                       </button>
                     </div>
                     <button mat-stroked-button type="button" (click)="addStaticOption(i)">
-                      <mat-icon>add</mat-icon> Add Option
+                      <mat-icon>add</mat-icon> {{ 'admin.queryForm.addOption' | transloco }}
                     </button>
                   </div>
 
@@ -268,14 +272,14 @@ import { TranslocoService } from '@jsverse/transloco';
                       <mat-form-field appearance="outline">
                         <mat-label>{{ 'admin.queryForm.valueColumn' | transloco }}</mat-label>
                         <input matInput formControlName="dropdownQueryValueColumn"
-                               placeholder="e.g. ID">
+                               [attr.placeholder]="'admin.queryForm.valueColumnPlaceholder' | transloco">
                         <mat-hint>{{ 'admin.queryForm.valueColumnHint' | transloco }}</mat-hint>
                       </mat-form-field>
 
                       <mat-form-field appearance="outline">
                         <mat-label>{{ 'admin.queryForm.labelColumn' | transloco }}</mat-label>
                         <input matInput formControlName="dropdownQueryLabelColumn"
-                               placeholder="e.g. NAME">
+                               [attr.placeholder]="'admin.queryForm.labelColumnPlaceholder' | transloco">
                         <mat-hint>{{ 'admin.queryForm.columnDisplayedHint' | transloco }}</mat-hint>
                       </mat-form-field>
                     </div>
@@ -285,7 +289,7 @@ import { TranslocoService } from '@jsverse/transloco';
             </div>
 
             <button mat-stroked-button type="button" (click)="addParameter()" class="add-btn">
-              <mat-icon>add</mat-icon> Add Parameter
+              <mat-icon>add</mat-icon> {{ 'admin.queryForm.addParameter' | transloco }}
             </button>
 
             <div class="actions">
@@ -307,6 +311,9 @@ import { TranslocoService } from '@jsverse/transloco';
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
     .add-btn { margin: 16px 0; }
     .toggle { margin: 16px 0 4px; display: block; }
+    /* A setting and its hint icon read as one control, so they share a row. */
+    .toggle-row { display: flex; align-items: center; gap: 8px; margin: 16px 0 4px; }
+    .radio-with-hint { display: inline-flex; align-items: center; gap: 6px; }
     .field-hint { font-size: 12px; color: var(--text-secondary); margin: 0 0 16px; max-width: 640px; }
 
     .dropdown-config {
@@ -318,7 +325,7 @@ import { TranslocoService } from '@jsverse/transloco';
     }
     .dropdown-config h4 { margin: 0 0 8px; font-size: 14px; color: var(--text-secondary); }
     .source-radio-group { display: flex; gap: 24px; margin-bottom: 16px; }
-    .allow-multiple-toggle { display: block; margin-bottom: 12px; }
+    .multi-value-block .toggle-row { margin: 0 0 12px; }
     .multi-value-block { margin: 8px 0 12px; }
     .hint { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
 
@@ -333,6 +340,10 @@ import { TranslocoService } from '@jsverse/transloco';
 
     .template-section { margin: 16px 0; }
     .template-section h3 { margin-bottom: 4px; }
+    .export-section { margin: 16px 0; }
+    .export-section h3 { margin-bottom: 4px; }
+    .export-formats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 8px; }
+    .export-off { color: var(--text-secondary); font-style: italic; }
     .template-row { display: flex; align-items: center; gap: 8px; }
     .template-name { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
     .template-name.none { color: var(--text-secondary); }
@@ -351,6 +362,46 @@ export class QueryFormComponent implements OnInit {
   availableGroups: QueryGroup[] = [];
   /** Set when a lookup list fails to load, so the empty dropdown can explain itself. */
   lookupLoadFailed = { dbUsers: false, queries: false, groups: false };
+
+  /**
+   * The Word-template placeholders, passed into the hint as interpolation values.
+   * They live here rather than in the translation because they are literal markers the
+   * user types into a .docx — they must read identically in every language, and writing
+   * them inline in the template would collide with Angular's own {{ }} delimiters.
+   */
+  readonly templateTokens = {
+    results: '{{RESULTS}}',
+    queryName: '{{QUERY_NAME}}',
+    generatedAt: '{{GENERATED_AT}}',
+    rowCount: '{{ROW_COUNT}}',
+    parameter: '{{@paramName}}',
+    params: '{{PARAMS}}'
+  };
+
+  /**
+   * Which formats this query may be exported as. Held outside the reactive form because it is a
+   * set rather than a field, and empty is the meaningful default: a query nobody has opened
+   * export on cannot be downloaded at all.
+   */
+  allowedExportFormats: string[] = [];
+  readonly exportFormats = EXPORT_FORMATS;
+
+  isExportFormatAllowed(name: string): boolean {
+    return this.allowedExportFormats.includes(name);
+  }
+
+  toggleExportFormat(name: string, allowed: boolean): void {
+    this.allowedExportFormats = allowed
+      ? [...this.allowedExportFormats, name]
+      : this.allowedExportFormats.filter(f => f !== name);
+  }
+
+  /** SQL fragments shown in the multi-value hints — code, so identical in every language. */
+  readonly multiValueTokens = {
+    expansion: '(@name_0, @name_1, ...)',
+    inClause: 'WHERE col IN (@name)',
+    example: 'value1, value2'
+  };
 
   readonly ParameterType = ParameterType;
   readonly DropdownSourceType = DropdownSourceType;
@@ -570,7 +621,9 @@ export class QueryFormComponent implements OnInit {
           isEnabled: this.isCopy ? true : query.isEnabled
         });
 
-        // Templates are not copied — a copy starts without one.
+        // A copy keeps the original's export settings: it is the same data, so the same
+        // formats are appropriate. (Templates are not copied — a copy starts without one.)
+        this.allowedExportFormats = [...(query.allowedExportFormats ?? [])];
         this.templateFileName = this.isCopy ? null : (query.wordTemplateFileName || null);
 
         [...query.parameters].sort((a, b) => a.sortOrder - b.sortOrder).forEach(p => {
@@ -624,7 +677,11 @@ export class QueryFormComponent implements OnInit {
       return ordered;
     });
 
-    const payload = { ...value, parameters: cleanedParams };
+    const payload = {
+      ...value,
+      parameters: cleanedParams,
+      allowedExportFormats: this.allowedExportFormats
+    };
 
     const request$ = this.isEdit
       ? this.queryService.updateQuery(this.queryId!, { ...payload, id: this.queryId })

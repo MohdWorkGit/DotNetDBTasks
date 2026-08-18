@@ -40,14 +40,14 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'admin.users.username' | transloco }}</mat-label>
                 <input matInput formControlName="username">
-                <mat-error *ngIf="createForm.get('username')?.hasError('required')">Username is required</mat-error>
+                <mat-error *ngIf="createForm.get('username')?.hasError('required')">{{ 'admin.users.usernameRequired' | transloco }}</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'admin.users.emailOptional' | transloco }}</mat-label>
                 <input matInput formControlName="email" type="email">
                 <mat-hint>{{ 'admin.users.emailHint' | transloco }}</mat-hint>
-                <mat-error *ngIf="createForm.get('email')?.hasError('email')">Invalid email</mat-error>
+                <mat-error *ngIf="createForm.get('email')?.hasError('email')">{{ 'admin.users.invalidEmail' | transloco }}</mat-error>
               </mat-form-field>
             </div>
 
@@ -55,13 +55,13 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'admin.users.firstName' | transloco }}</mat-label>
                 <input matInput formControlName="firstName">
-                <mat-error *ngIf="createForm.get('firstName')?.hasError('required')">First name is required</mat-error>
+                <mat-error *ngIf="createForm.get('firstName')?.hasError('required')">{{ 'admin.users.firstNameRequired' | transloco }}</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'admin.users.lastName' | transloco }}</mat-label>
                 <input matInput formControlName="lastName">
-                <mat-error *ngIf="createForm.get('lastName')?.hasError('required')">Last name is required</mat-error>
+                <mat-error *ngIf="createForm.get('lastName')?.hasError('required')">{{ 'admin.users.lastNameRequired' | transloco }}</mat-error>
               </mat-form-field>
             </div>
 
@@ -69,8 +69,8 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'admin.users.password' | transloco }}</mat-label>
                 <input matInput formControlName="password" type="password">
-                <mat-error *ngIf="createForm.get('password')?.hasError('required')">Password is required</mat-error>
-                <mat-error *ngIf="createForm.get('password')?.hasError('minlength')">Minimum 6 characters</mat-error>
+                <mat-error *ngIf="createForm.get('password')?.hasError('required')">{{ 'common.passwordRequired' | transloco }}</mat-error>
+                <mat-error *ngIf="createForm.get('password')?.hasError('minlength')">{{ 'admin.users.passwordMinLength' | transloco }}</mat-error>
               </mat-form-field>
 
             </div>
@@ -80,7 +80,7 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-select formControlName="roleIds" multiple>
                 <mat-option *ngFor="let role of roles" [value]="role.id">{{ roleLabel(role.name) }}</mat-option>
               </mat-select>
-              <mat-error *ngIf="createForm.get('roleIds')?.hasError('required')">At least one role is required</mat-error>
+              <mat-error *ngIf="createForm.get('roleIds')?.hasError('required')">{{ 'admin.users.roleRequired' | transloco }}</mat-error>
             </mat-form-field>
 
             <div class="form-actions">
@@ -161,24 +161,24 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-menu #actionMenu="matMenu">
                 <button mat-menu-item (click)="openEditUsername(user)"
                         [disabled]="isLdapUser(user)"
-                        [matTooltip]="isLdapUser(user) ? 'Managed by Active Directory' : ''"
+                        [matTooltip]="isLdapUser(user) ? ('admin.users.managedByAd' | transloco) : ''"
                         matTooltipPosition="left">
-                  <mat-icon>edit</mat-icon> Change Username
+                  <mat-icon>edit</mat-icon> {{ 'admin.users.changeUsername' | transloco }}
                 </button>
                 <button mat-menu-item (click)="openChangePassword(user)"
                         [disabled]="isLdapUser(user)"
-                        [matTooltip]="isLdapUser(user) ? 'Managed by Active Directory' : ''"
+                        [matTooltip]="isLdapUser(user) ? ('admin.users.managedByAd' | transloco) : ''"
                         matTooltipPosition="left">
-                  <mat-icon>lock</mat-icon> Change Password
+                  <mat-icon>lock</mat-icon> {{ 'admin.users.changePassword' | transloco }}
                 </button>
                 <button mat-menu-item (click)="resetPassword(user)"
                         [disabled]="isLdapUser(user)"
-                        [matTooltip]="isLdapUser(user) ? 'Managed by Active Directory' : ''"
+                        [matTooltip]="isLdapUser(user) ? ('admin.users.managedByAd' | transloco) : ''"
                         matTooltipPosition="left">
-                  <mat-icon>lock_reset</mat-icon> Reset Password
+                  <mat-icon>lock_reset</mat-icon> {{ 'admin.users.resetPassword' | transloco }}
                 </button>
                 <button mat-menu-item (click)="openChangeRoles(user)">
-                  <mat-icon>manage_accounts</mat-icon> Change Roles
+                  <mat-icon>manage_accounts</mat-icon> {{ 'admin.users.changeRoles' | transloco }}
                 </button>
                 <button mat-menu-item (click)="toggleActive(user)">
                   <mat-icon>{{ user.isActive ? 'block' : 'check_circle' }}</mat-icon>
@@ -193,7 +193,7 @@ import { TranslocoService } from '@jsverse/transloco';
 
           <tr class="mat-row no-data-row" *matNoDataRow>
             <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-              No users match the current filter.
+              {{ 'admin.users.noMatch' | transloco }}
             </td>
           </tr>
         </table>

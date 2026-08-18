@@ -34,6 +34,13 @@ public class ExportedQuery
     public bool SaveOldValues { get; set; } = true;
 
     /// <summary>
+    /// Which formats this query may be exported as, as <c>ExportFileFormat</c> names. Absent in
+    /// a backup taken before export permissions existed, which reads back as "none" — the same
+    /// closed default a newly created query gets, rather than silently opening export up.
+    /// </summary>
+    public List<string> AllowedExportFormats { get; set; } = new();
+
+    /// <summary>
     /// Name of the database connection this query runs against, for re-matching on the target.
     /// Credentials are never exported — see the remarks on <see cref="ExportQueriesQuery"/>.
     /// </summary>

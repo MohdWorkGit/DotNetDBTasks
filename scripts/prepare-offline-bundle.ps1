@@ -190,12 +190,17 @@ if ($IncludeBuild) {
 # These URLs are point-in-time; verify them if a download fails.
 $dotnetSdkUrl = 'https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.103/dotnet-sdk-10.0.103-win-x64.exe'
 $nodeMsiUrl   = 'https://nodejs.org/dist/v24.14.0/node-v24.14.0-x64.msi'
+# Required on the target server for IIS hosting (Part C): it supplies the ASP.NET Core Module,
+# without which IIS cannot run the app at all - and it is needed even though we publish
+# self-contained, which is the part people get caught by.
+$hostingBundleUrl = 'https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.3/dotnet-hosting-10.0.3-win.exe'
 if ($IncludeInstallers) {
     Write-Step "Downloading offline installers -> installers/"
     $null = New-Item -ItemType Directory -Force -Path $InstallerDir
     foreach ($d in @(
-        @{ Url = $dotnetSdkUrl; Name = 'dotnet-sdk-10-win-x64.exe' },
-        @{ Url = $nodeMsiUrl;   Name = 'node-v24-x64.msi' }
+        @{ Url = $dotnetSdkUrl;     Name = 'dotnet-sdk-10-win-x64.exe' },
+        @{ Url = $nodeMsiUrl;       Name = 'node-v24-x64.msi' },
+        @{ Url = $hostingBundleUrl; Name = 'dotnet-hosting-10-win.exe' }
     )) {
         $dest = Join-Path $InstallerDir $d.Name
         try {
@@ -218,7 +223,7 @@ if ($IncludeBuild) {
     $buildLine = "(api-publish / queryrunner-publish / client-dist not included - rerun with -IncludeBuild)"
 }
 if ($IncludeInstallers) {
-    $installerLine = "installers/            .NET SDK + Node.js offline installers."
+    $installerLine = "installers/            .NET SDK + Node.js + ASP.NET Core Hosting Bundle (IIS)."
 } else {
     $installerLine = "(installers not included - rerun with -IncludeInstallers, or download manually below)"
 }
@@ -240,10 +245,23 @@ INSTALLERS TO BRING (if not in installers/)
 -------------------------------------------
 .NET 10 SDK (offline, $Runtime): $dotnetSdkUrl
 Node.js 24.x (Windows MSI):      $nodeMsiUrl
+ASP.NET Core Hosting Bundle:     $hostingBundleUrl
+
+NOT IN THIS BUNDLE - IIS FEATURES COME FROM WINDOWS MEDIA
+---------------------------------------------------------
+Hosting on IIS (DEPLOY-AIRGAPPED.md Part C) also needs four Windows features,
+which ship with Windows and cannot be downloaded into this bundle:
+
+  Install-WindowsFeature Web-Server, Web-Windows-Auth, Web-AppInit, Web-Scripting-Tools
+
+On a server with no internet add -Source <ISO>\sources\sxs. Web-AppInit is not
+optional: the app's web.config declares an <applicationInitialization> element,
+and IIS answers HTTP 500.19 if the feature is absent.
 
 USAGE ON THE AIR-GAPPED MACHINE
 -------------------------------
 1. Install the .NET 10 SDK and Node.js from installers/ (or your own copies).
+   For an IIS target, also install dotnet-hosting-10-win.exe there.
 
 2. Copy this whole bundle somewhere stable, e.g. C:\offline-bundle.
 

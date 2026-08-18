@@ -18,29 +18,28 @@ import { QueryImportResult } from '@core/models/dynamic-query.model';
   template: `
     <h2 mat-dialog-title class="title">
       <mat-icon aria-hidden="true">download_done</mat-icon>
-      Imported {{ data.importedCount }}
-      {{ data.importedCount === 1 ? 'query' : 'queries' }}
+      {{ (data.importedCount === 1 ? 'admin.queries.importedOne' : 'admin.queries.importedMany')
+         | transloco: { count: data.importedCount } }}
     </h2>
 
     <mat-dialog-content>
       <p *ngIf="data.renamedCount" class="renamed-note">
         <mat-icon inline aria-hidden="true">info</mat-icon>
-        {{ data.renamedCount }} already existed by name and
-        {{ data.renamedCount === 1 ? 'was' : 'were' }} imported as
-        {{ data.renamedCount === 1 ? 'a copy' : 'copies' }} — nothing existing was changed.
+        {{ (data.renamedCount === 1 ? 'admin.queries.renamedOne' : 'admin.queries.renamedMany')
+           | transloco: { count: data.renamedCount } }}
       </p>
 
       <ul class="query-list">
         <li *ngFor="let q of data.queries">
           <span class="name">{{ q.importedName }}</span>
-          <span *ngIf="q.wasRenamed" class="from">was "{{ q.originalName }}"</span>
+          <span *ngIf="q.wasRenamed" class="from">{{ 'admin.queries.renamedFrom' | transloco: { name: q.originalName } }}</span>
         </li>
       </ul>
 
       <div *ngIf="data.warnings.length" class="warnings">
         <h3 class="warnings-title">
           <mat-icon inline aria-hidden="true">warning</mat-icon>
-          Needs your attention ({{ data.warnings.length }})
+          {{ 'admin.queries.importWarnings' | transloco: { count: data.warnings.length } }}
         </h3>
         <ul>
           <li *ngFor="let w of data.warnings">{{ w }}</li>

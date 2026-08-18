@@ -25,6 +25,11 @@ import { forkJoin, of } from 'rxjs';
   standalone: false,
   selector: 'app-permissions-matrix',
   template: `
+    <div class="container">
+      <div class="header">
+        <h2>{{ 'admin.permissions.title' | transloco }}</h2>
+      </div>
+
     <div *ngIf="loading" class="loading">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
@@ -121,6 +126,7 @@ import { forkJoin, of } from 'rxjs';
         </div>
       </mat-card-content>
     </mat-card>
+    </div>
   `,
   styles: [`
     .toolbar { display: flex; align-items: flex-start; gap: 16px; justify-content: space-between; }

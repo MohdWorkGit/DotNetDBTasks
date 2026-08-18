@@ -84,7 +84,7 @@ import { TranslocoService } from '@jsverse/transloco';
 
             <tr class="mat-row no-data-row" *matNoDataRow>
               <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-                No groups match the current filter.
+                {{ 'admin.groups.noMatch' | transloco }}
               </td>
             </tr>
           </table>

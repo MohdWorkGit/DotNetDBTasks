@@ -32,7 +32,7 @@ import { TranslocoService } from '@jsverse/transloco';
               <th mat-header-cell *matHeaderCellDef>{{ 'admin.tasks.name' | transloco }}</th>
               <td mat-cell *matCellDef="let t">
                 <div class="task-name" dir="auto">{{ t.name }}</div>
-                <div class="task-sub">{{ t.items.length }} quer{{ t.items.length === 1 ? 'y' : 'ies' }} → {{ t.outputFolder }}<span *ngIf="t.archiveFolder"> (+ {{ t.archiveFolder }})</span></div>
+                <div class="task-sub">{{ (t.items.length === 1 ? 'admin.tasks.queryCountOne' : 'admin.tasks.queryCountMany') | transloco: { count: t.items.length } }} → {{ t.outputFolder }}<span *ngIf="t.archiveFolder"> (+ {{ t.archiveFolder }})</span></div>
               </td>
             </ng-container>
 
@@ -102,7 +102,7 @@ import { TranslocoService } from '@jsverse/transloco';
 
             <tr class="mat-row no-data-row" *matNoDataRow>
               <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-                No scheduled tasks yet.<span *ngIf="authService.has(PERM.scheduledTasksManage)"> Create one to export query results on a schedule.</span>
+                {{ 'admin.tasks.emptyState' | transloco }}<span *ngIf="authService.has(PERM.scheduledTasksManage)"> {{ 'admin.tasks.emptyStateHint' | transloco }}</span>
               </td>
             </tr>
           </table>

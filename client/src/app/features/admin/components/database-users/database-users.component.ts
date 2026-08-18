@@ -31,7 +31,7 @@ import { TranslocoService } from '@jsverse/transloco';
                 <mat-label>{{ 'admin.dbUsers.name' | transloco }}</mat-label>
                 <input matInput formControlName="name" [attr.placeholder]="'admin.dbUsers.namePlaceholder' | transloco">
                 <mat-hint>{{ 'admin.dbUsers.nameHint' | transloco }}</mat-hint>
-                <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+                <mat-error *ngIf="form.get('name')?.hasError('required')">{{ 'common.nameRequired' | transloco }}</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
@@ -44,19 +44,19 @@ import { TranslocoService } from '@jsverse/transloco';
                 <mat-select formControlName="serverType" (selectionChange)="onServerTypeChange($event.value)">
                   <mat-option *ngFor="let st of serverTypes" [value]="st.value">{{ st.label }}</mat-option>
                 </mat-select>
-                <mat-error *ngIf="form.get('serverType')?.hasError('required')">Database type is required</mat-error>
+                <mat-error *ngIf="form.get('serverType')?.hasError('required')">{{ 'admin.dbUsers.serverTypeRequired' | transloco }}</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'admin.dbUsers.host' | transloco }}</mat-label>
                 <input matInput formControlName="host" [attr.placeholder]="'admin.dbUsers.hostPlaceholder' | transloco">
-                <mat-error *ngIf="form.get('host')?.hasError('required')">Host is required</mat-error>
+                <mat-error *ngIf="form.get('host')?.hasError('required')">{{ 'admin.dbUsers.hostRequired' | transloco }}</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'admin.dbUsers.port' | transloco }}</mat-label>
                 <input matInput type="number" formControlName="port">
-                <mat-error *ngIf="form.get('port')?.hasError('required')">Port is required</mat-error>
+                <mat-error *ngIf="form.get('port')?.hasError('required')">{{ 'admin.dbUsers.portRequired' | transloco }}</mat-error>
               </mat-form-field>
 
               <mat-form-field *ngIf="isOracle" appearance="outline">
@@ -72,13 +72,13 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'admin.dbUsers.dbUsername' | transloco }}</mat-label>
                 <input matInput formControlName="dbUsername">
-                <mat-error *ngIf="form.get('dbUsername')?.hasError('required')">DB username is required</mat-error>
+                <mat-error *ngIf="form.get('dbUsername')?.hasError('required')">{{ 'admin.dbUsers.usernameRequired' | transloco }}</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>{{ (editingId ? 'admin.dbUsers.newPassword' : 'admin.users.password') | transloco }}</mat-label>
                 <input matInput type="password" formControlName="password">
-                <mat-error *ngIf="form.get('password')?.hasError('required')">Password is required</mat-error>
+                <mat-error *ngIf="form.get('password')?.hasError('required')">{{ 'common.passwordRequired' | transloco }}</mat-error>
               </mat-form-field>
 
               <mat-slide-toggle *ngIf="editingId" formControlName="isActive">{{ 'common.active' | transloco }}</mat-slide-toggle>
@@ -164,7 +164,7 @@ import { TranslocoService } from '@jsverse/transloco';
           <div class="actions">
             <button mat-button (click)="accessDialogDbUser = null">{{ 'common.cancel' | transloco }}</button>
             <button mat-raised-button color="primary" (click)="saveAccess()" [disabled]="savingAccess">
-              {{ savingAccess ? 'Saving...' : 'Save Access' }}
+              {{ (savingAccess ? 'common.saving' : 'admin.dbUsers.saveAccess') | transloco }}
             </button>
           </div>
         </mat-card-content>

@@ -43,6 +43,8 @@ docker/                           # Dockerfiles and nginx config
 - LDAP / Active Directory authentication
 - Windows SSO (Kerberos/NTLM) when hosted on IIS — domain users are signed in automatically
   without a form; off by default via `Auth:EnableSso`
+- Per-query export control — each query lists which formats it may be downloaded as, and each
+  role holds which formats it may use; see [Query export permissions](#query-export-permissions)
 - JWT access + refresh token authentication
 - AES-256 encryption of stored database credentials at rest
 - Role-based authorization — see [Roles](#roles)
@@ -390,6 +392,34 @@ abandoning the poll). Only the job's owner (or an Admin) may poll or cancel it.
 > **Note:** the in-memory job store fits a single API instance. Running multiple API
 > containers would require a shared/persistent store (DB or Redis) so a poll can reach the
 > node holding the job.
+
+## Query export permissions
+
+Downloading a result is gated **twice**, and a download needs both gates to agree:
+
+1. **The query** lists the formats its results may be exported as at all (Excel, CSV, PDF, Word,
+   JSON) — set on the query's edit form under *Result export*. Tick nothing and the query cannot
+   be downloaded by anyone; the Export button does not appear.
+2. **The role** holds which formats that person may use, as five capabilities on the Roles &
+   Permissions page (`queries.exportExcel`, `…Csv`, `…Json`, `…Pdf`, `…Word`).
+
+Neither alone grants anything. A query that permits PDF gives nothing to a role without
+`queries.exportPdf`, and a role holding every export capability still cannot download a query
+that permits no formats. The export menu shows the intersection, and
+`GET /api/user/queries/jobs/{jobId}/export-file` re-checks both — hiding a menu item is not a
+control, and that endpoint is reachable directly.
+
+> **Upgrading closes export everywhere.** The `AddQueryExportPermissions` migration gives every
+> existing query an empty format list and grants no role any export capability, so downloads stop
+> working until an administrator opens them. This is deliberate — the alternative silently keeps
+> exporting data that may be exactly what you wanted to restrict — but it does mean the first
+> job after upgrading is to walk the query list and the permission matrix.
+
+**Scheduled tasks are not affected.** They write files server-side from a definition that already
+requires `scheduledTasks.manage`, and gating them on the same lists would stop every existing
+export job the moment the migration ran. A consequence worth knowing: someone who can create a
+scheduled task can still produce a file from a query whose interactive export is switched off.
+If that matters in your installation, restrict `scheduledTasks.manage` accordingly.
 
 ## How Result Paging & Export Work
 

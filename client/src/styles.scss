@@ -785,6 +785,19 @@ textarea:focus-visible,
   white-space: pre-wrap;
 }
 
+// ── Hint Tooltips ──
+// The explanatory hints on the admin forms are paragraphs, not labels, so the default
+// tooltip (narrow, single-line-ish) would either clip them or render a very tall thin
+// column. Styled here rather than in the component because the tooltip is rendered into
+// an overlay outside it, where component styles do not reach.
+.hint-tooltip .mdc-tooltip__surface {
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 420px;
+  white-space: pre-wrap;
+  text-align: start;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  Arabic typography and RTL
 // ═══════════════════════════════════════════════════════════════════════════

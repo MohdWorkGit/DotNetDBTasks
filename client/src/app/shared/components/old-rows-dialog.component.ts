@@ -32,7 +32,7 @@ export interface OldRowsDialogData {
     MatProgressSpinnerModule,
     MatTableModule, TranslocoModule],
   template: `
-    <h2 mat-dialog-title>Affected rows — {{ data.queryName }}</h2>
+    <h2 mat-dialog-title>{{ 'admin.logs.affectedRowsTitle' | transloco: { query: data.queryName } }}</h2>
     <mat-dialog-content>
       <div *ngIf="loading" class="loading">
         <mat-spinner diameter="36"></mat-spinner>
@@ -41,13 +41,14 @@ export interface OldRowsDialogData {
       <div *ngIf="!loading && errorMessage" class="error-block">
         <p class="error-text">{{ errorMessage }}</p>
         <button mat-raised-button color="primary" (click)="loadPage()">
-          <mat-icon>refresh</mat-icon> Retry
+          <mat-icon>refresh</mat-icon> {{ 'common.retry' | transloco }}
         </button>
       </div>
 
       <ng-container *ngIf="!loading && !errorMessage">
         <p class="dialog-subtitle">
-          {{ totalRows }} row{{ totalRows === 1 ? '' : 's' }} as they existed before the change.
+          {{ (totalRows === 1 ? 'admin.logs.oldRowsOne' : 'admin.logs.oldRowsMany')
+             | transloco: { count: totalRows } }}
         </p>
         <div class="rows-table-wrapper">
           <table mat-table [dataSource]="rows" class="rows-table">

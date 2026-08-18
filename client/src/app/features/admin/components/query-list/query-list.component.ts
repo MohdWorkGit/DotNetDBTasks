@@ -152,7 +152,7 @@ interface QueryListState {
                  undo them — otherwise a restored filter just looks like missing queries. -->
             <button mat-stroked-button type="button" class="clear-filters"
                     *ngIf="hasActiveFilters" (click)="clearFilters()">
-              <mat-icon>filter_alt_off</mat-icon> Clear filters
+              <mat-icon>filter_alt_off</mat-icon> {{ 'admin.queries.clearFilters' | transloco }}
             </button>
           </div>
 
@@ -242,7 +242,7 @@ interface QueryListState {
 
             <tr class="mat-row no-data-row" *matNoDataRow>
               <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-                No queries match the current filters.
+                {{ 'admin.queries.noMatch' | transloco }}
               </td>
             </tr>
           </table>

@@ -20,9 +20,9 @@ import {
   template: `
     <div class="container">
       <div class="header">
-        <h2>{{ isEdit ? 'Edit' : 'Create' }} Scheduled Task</h2>
+        <h2>{{ (isEdit ? 'admin.tasks.editTitle' : 'admin.tasks.createTitle') | transloco }}</h2>
         <button mat-button routerLink="/admin/scheduled-tasks">
-          <mat-icon>arrow_back</mat-icon> Back
+          <mat-icon class="rtl-flip">arrow_back</mat-icon> {{ 'common.back' | transloco }}
         </button>
       </div>
 
@@ -32,13 +32,13 @@ import {
 
       <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading">
         <mat-card class="section">
-          <mat-card-title>Task</mat-card-title>
+          <mat-card-title>{{ 'admin.tasks.taskSection' | transloco }}</mat-card-title>
           <mat-card-content>
             <div class="row">
               <mat-form-field appearance="outline" class="grow">
                 <mat-label>{{ 'admin.tasks.name' | transloco }}</mat-label>
                 <input matInput formControlName="name" maxlength="200" required>
-                <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+                <mat-error *ngIf="form.get('name')?.hasError('required')">{{ 'common.nameRequired' | transloco }}</mat-error>
               </mat-form-field>
               <mat-slide-toggle formControlName="isEnabled" class="toggle">{{ 'admin.tasks.enabledToggle' | transloco }}</mat-slide-toggle>
             </div>
@@ -54,7 +54,7 @@ import {
                      placeholder="D:\\Exports\\Sales" required>
               <mat-hint>{{ 'admin.tasks.outputFolderHint' | transloco }}</mat-hint>
               <mat-error *ngIf="form.get('outputFolder')?.hasError('required')">
-                Output folder is required
+                {{ 'admin.tasks.outputFolderRequired' | transloco }}
               </mat-error>
             </mat-form-field>
 
@@ -68,17 +68,17 @@ import {
             <div class="row output-options">
               <mat-slide-toggle formControlName="combineOutput"
                                 [matTooltip]="'admin.tasks.combineTip' | transloco">
-                Combine all results into one file
+                {{ 'admin.tasks.combineOutput' | transloco }}
               </mat-slide-toggle>
               <mat-slide-toggle formControlName="includeHeaders"
                                 [matTooltip]="'admin.tasks.headersTip' | transloco">
-                Include header row
+                {{ 'admin.tasks.includeHeaders' | transloco }}
               </mat-slide-toggle>
               <mat-form-field appearance="outline" class="timestamp-format">
                 <mat-label>{{ 'admin.tasks.timestampFormat' | transloco }}</mat-label>
                 <input matInput formControlName="timestampFormat" maxlength="50"
                        placeholder="_yyyyMMdd-HHmmss">
-                <mat-hint>.NET date format for the file-name suffix, e.g. -yyyy-MM-dd</mat-hint>
+                <mat-hint>{{ 'admin.tasks.timestampFormatHint' | transloco }}</mat-hint>
               </mat-form-field>
             </div>
 
@@ -93,12 +93,11 @@ import {
                               *ngIf="form.get('combinedFormat')?.value === Format.Csv">
                 <mat-label>{{ 'admin.tasks.separator' | transloco }}</mat-label>
                 <input matInput formControlName="combinedCsvSeparator" maxlength="8" placeholder=",">
-                <mat-hint>e.g. ; or ;; ("tab" = tab)</mat-hint>
+                <mat-hint>{{ 'admin.tasks.separatorHint' | transloco }}</mat-hint>
               </mat-form-field>
               <p class="word-note" *ngIf="form.get('combinedFormat')?.value === Format.Word">
                 <mat-icon inline>article</mat-icon>
-                Combined Word output merges several queries, so it always uses the system
-                default Word template (managed on the Dynamic Queries page).
+                {{ 'admin.tasks.combinedWordNote' | transloco }}
               </p>
               <mat-form-field appearance="outline" class="grow">
                 <mat-label>{{ 'admin.tasks.fileName' | transloco }}</mat-label>
@@ -107,37 +106,35 @@ import {
               </mat-form-field>
               <mat-slide-toggle formControlName="combinedAppendTimestamp" class="toggle"
                                 [matTooltip]="'admin.tasks.timestampTip' | transloco">
-                Append timestamp
+                {{ 'admin.tasks.appendTimestamp' | transloco }}
               </mat-slide-toggle>
             </div>
             <p class="hint" *ngIf="combineOutput">
-              The header row (when enabled) comes from the first query, so the queries
-              should return the same columns.
+              {{ 'admin.tasks.headerRowNote' | transloco }}
             </p>
           </mat-card-content>
         </mat-card>
 
         <mat-card class="section">
           <mat-card-title>
-            Schedule
+            {{ 'admin.tasks.scheduleSection' | transloco }}
             <button mat-stroked-button type="button" color="primary" class="add-item" (click)="addTrigger()">
-              <mat-icon>add</mat-icon> Add trigger
+              <mat-icon>add</mat-icon> {{ 'admin.tasks.addTrigger' | transloco }}
             </button>
           </mat-card-title>
           <mat-card-content formArrayName="triggers">
             <p class="hint">
-              The task runs on every trigger below — e.g. daily at 03:00 plus monthly on
-              day 14 plus daily at 14:00.
+              {{ 'admin.tasks.triggersHint' | transloco }}
             </p>
 
             <div class="row" *ngFor="let trigger of triggers.controls; let i = index" [formGroupName]="i">
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'admin.tasks.frequency' | transloco }}</mat-label>
                 <mat-select formControlName="frequency" required>
-                  <mat-option [value]="Frequency.EveryNMinutes">Every N minutes</mat-option>
-                  <mat-option [value]="Frequency.Daily">Daily</mat-option>
-                  <mat-option [value]="Frequency.Weekly">Weekly</mat-option>
-                  <mat-option [value]="Frequency.Monthly">Monthly</mat-option>
+                  <mat-option [value]="Frequency.EveryNMinutes">{{ 'admin.tasks.freqEveryNMinutes' | transloco }}</mat-option>
+                  <mat-option [value]="Frequency.Daily">{{ 'admin.tasks.freqDaily' | transloco }}</mat-option>
+                  <mat-option [value]="Frequency.Weekly">{{ 'admin.tasks.freqWeekly' | transloco }}</mat-option>
+                  <mat-option [value]="Frequency.Monthly">{{ 'admin.tasks.freqMonthly' | transloco }}</mat-option>
                 </mat-select>
               </mat-form-field>
 
@@ -173,14 +170,14 @@ import {
 
         <mat-card class="section">
           <mat-card-title>
-            Queries to export
+            {{ 'admin.tasks.queriesSection' | transloco }}
             <button mat-stroked-button type="button" color="primary" class="add-item" (click)="addItem()">
-              <mat-icon>add</mat-icon> Add query
+              <mat-icon>add</mat-icon> {{ 'admin.tasks.addQuery' | transloco }}
             </button>
           </mat-card-title>
           <mat-card-content formArrayName="items">
             <p class="hint" *ngIf="items.length === 0">
-              Add at least one read (SELECT) query. Each query is exported to its own file.
+              {{ 'admin.tasks.noItemsHint' | transloco }}
             </p>
 
             <div class="item" *ngFor="let item of items.controls; let i = index" [formGroupName]="i">
@@ -190,11 +187,11 @@ import {
                   <mat-select formControlName="dynamicQueryId" required
                               (selectionChange)="onQueryChange(i, $event.value)">
                     <mat-option *ngFor="let q of selectableQueries" [value]="q.id">
-                      {{ q.name }}<span *ngIf="isWriteQuery(q)"> (modifies data)</span>
+                      {{ q.name }}<span *ngIf="isWriteQuery(q)"> {{ 'admin.tasks.modifiesData' | transloco }}</span>
                     </mat-option>
                   </mat-select>
                   <mat-error *ngIf="item.get('dynamicQueryId')?.hasError('required')">
-                    Pick a query
+                    {{ 'admin.tasks.pickQuery' | transloco }}
                   </mat-error>
                 </mat-form-field>
 
@@ -204,7 +201,7 @@ import {
                     <mat-option *ngFor="let f of formats" [value]="f">{{ formatLabels[f] }}</mat-option>
                   </mat-select>
                   <mat-error *ngIf="item.get('exportFormat')?.hasError('required')">
-                    Pick an export format
+                    {{ 'admin.tasks.pickFormat' | transloco }}
                   </mat-error>
                 </mat-form-field>
 
@@ -212,7 +209,7 @@ import {
                                 *ngIf="!itemMeta[i]?.isWrite && !combineOutput && isCsv(i)">
                   <mat-label>{{ 'admin.tasks.separator' | transloco }}</mat-label>
                   <input matInput formControlName="csvSeparator" maxlength="8" placeholder=",">
-                  <mat-hint>e.g. ; or ;; ("tab" = tab)</mat-hint>
+                  <mat-hint>{{ 'admin.tasks.separatorHint' | transloco }}</mat-hint>
                 </mat-form-field>
 
                 <button mat-icon-button type="button" color="warn" [matTooltip]="'admin.tasks.removeQuery' | transloco" [attr.aria-label]="'admin.tasks.removeQuery' | transloco"
@@ -223,44 +220,40 @@ import {
 
               <p class="write-note" *ngIf="itemMeta[i]?.isWrite">
                 <mat-icon inline>edit_note</mat-icon>
-                This query modifies data: each run executes and commits it — no output
-                file, only the affected-row count in the run status.
+                {{ 'admin.tasks.writeItemNote' | transloco }}
               </p>
 
               <p class="word-note" *ngIf="!itemMeta[i]?.isWrite && !combineOutput && isWord(i)">
                 <mat-icon inline>article</mat-icon>
                 <ng-container *ngIf="itemTemplateName(i); else defaultWordTpl">
-                  Word export uses this query's template: <b>{{ itemTemplateName(i) }}</b>
+                  {{ 'admin.tasks.wordTemplateUsed' | transloco }} <b>{{ itemTemplateName(i) }}</b>
                 </ng-container>
                 <ng-template #defaultWordTpl>
-                  This query has no Word template — the system default template is used.
-                  Upload one in the query's edit form, or manage the default on the
-                  Dynamic Queries page.
+                  {{ 'admin.tasks.wordTemplateDefault' | transloco }}
                 </ng-template>
               </p>
 
               <div class="row" *ngIf="!itemMeta[i]?.isWrite && !combineOutput">
                 <mat-form-field appearance="outline" class="grow">
-                  <mat-label>File name (optional)</mat-label>
+                  <mat-label>{{ 'admin.tasks.fileName' | transloco }}</mat-label>
                   <input matInput formControlName="fileNamePrefix" maxlength="200"
                          [placeholder]="queryName(i) || ('admin.tasks.fileNameQueryDefault' | transloco)">
                 </mat-form-field>
                 <mat-slide-toggle formControlName="appendTimestamp" class="toggle"
                                   [matTooltip]="'admin.tasks.timestampTip' | transloco">
-                  Append timestamp
+                  {{ 'admin.tasks.appendTimestamp' | transloco }}
                 </mat-slide-toggle>
               </div>
 
               <div class="checkpoint" *ngIf="!itemMeta[i]?.isWrite">
                 <div class="params-title">
-                  Incremental run (optional) — the saved key is passed into the selected
-                  parameter; order the query by the key column ascending
+                  {{ 'admin.tasks.incrementalHint' | transloco }}
                 </div>
                 <div class="row wrap">
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'admin.tasks.keyColumn' | transloco }}</mat-label>
                     <input matInput formControlName="keyColumn" maxlength="128"
-                           placeholder="e.g. Id">
+                           [attr.placeholder]="'admin.tasks.keyColumnPlaceholder' | transloco">
                   </mat-form-field>
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'admin.tasks.keyParameter' | transloco }}</mat-label>
@@ -275,19 +268,19 @@ import {
                   </mat-form-field>
                 </div>
                 <div class="row" *ngIf="itemMeta[i]?.lastKeyValue">
-                  <span class="saved-key">Saved checkpoint: <code>{{ itemMeta[i].lastKeyValue }}</code></span>
-                  <mat-checkbox formControlName="resetKey">Reset on save (restart from the initial key)</mat-checkbox>
+                  <span class="saved-key">{{ 'admin.tasks.savedCheckpoint' | transloco }} <code>{{ itemMeta[i].lastKeyValue }}</code></span>
+                  <mat-checkbox formControlName="resetKey">{{ 'admin.tasks.resetCheckpoint' | transloco }}</mat-checkbox>
                 </div>
               </div>
 
               <div class="params" formGroupName="parameters" *ngIf="parameterDefs[i]?.length">
-                <div class="params-title">Parameter values</div>
+                <div class="params-title">{{ 'admin.tasks.parameterValues' | transloco }}</div>
                 <div class="row wrap">
                   <mat-form-field appearance="outline" *ngFor="let p of parameterDefs[i]">
                     <mat-label>{{ p.displayName }}{{ p.isRequired ? ' *' : '' }}</mat-label>
                     <input matInput [formControlName]="p.name"
                            [placeholder]="p.allowMultiple ? 'value1, value2, value3' : ''">
-                    <mat-hint *ngIf="p.allowMultiple">Multiple values separated by commas</mat-hint>
+                    <mat-hint *ngIf="p.allowMultiple">{{ 'admin.tasks.multiValueHint' | transloco }}</mat-hint>
                   </mat-form-field>
                 </div>
               </div>
@@ -296,7 +289,7 @@ import {
         </mat-card>
 
         <mat-card class="section">
-          <mat-card-title>Status visibility</mat-card-title>
+          <mat-card-title>{{ 'admin.tasks.statusVisibility' | transloco }}</mat-card-title>
           <mat-card-content>
             <mat-form-field appearance="outline" class="full">
               <mat-label>{{ 'admin.tasks.viewers' | transloco }}</mat-label>

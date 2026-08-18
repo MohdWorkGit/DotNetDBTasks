@@ -29,7 +29,7 @@ import {
       </div>
 
       <p class="hint" *ngIf="!loading && tasks.length === 0">
-        No scheduled tasks have been shared with you.
+        {{ 'user.schedules.noneShared' | transloco }}
       </p>
 
       <mat-accordion *ngIf="!loading">
@@ -42,13 +42,13 @@ import {
                 &nbsp;· {{ statusLabel(task.lastRun.status) }}
                 {{ asDate(task.lastRun.startedAt) | date:'short' }}
               </span>
-              <span *ngIf="!task.isEnabled">&nbsp;· disabled</span>
+              <span *ngIf="!task.isEnabled">&nbsp;· {{ 'common.disabled' | transloco }}</span>
             </mat-panel-description>
           </mat-expansion-panel-header>
 
           <p class="hint" *ngIf="task.description" dir="auto">{{ task.description }}</p>
           <p class="hint" *ngIf="task.isEnabled && task.nextRunAt">
-            Next run: {{ asDate(task.nextRunAt) | date:'medium' }}
+            {{ 'user.schedules.nextRun' | transloco }} {{ asDate(task.nextRunAt) | date:'medium' }}
           </p>
 
           <div *ngIf="runsLoading[task.id]" class="loading">
@@ -82,7 +82,7 @@ import {
             </tr>
           </table>
           <p class="hint" *ngIf="runs[task.id] && runs[task.id].length === 0">
-            This task has not run yet.
+            {{ 'user.schedules.neverRun' | transloco }}
           </p>
         </mat-expansion-panel>
       </mat-accordion>
