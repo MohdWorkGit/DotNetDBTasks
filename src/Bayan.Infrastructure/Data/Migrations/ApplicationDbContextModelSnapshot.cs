@@ -717,6 +717,42 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.ToTable("ScheduledTaskViewers");
                 });
 
+            modelBuilder.Entity("Bayan.Domain.Entities.ScheduledTaskViewerRole", b =>
+                {
+                    b.Property<Guid>("ScheduledTaskId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<short>("CanDownloadFiles")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.HasKey("ScheduledTaskId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("ScheduledTaskViewerRoles");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ScheduledTaskViewerUserGroup", b =>
+                {
+                    b.Property<Guid>("ScheduledTaskId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("UserGroupId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<short>("CanDownloadFiles")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.HasKey("ScheduledTaskId", "UserGroupId");
+
+                    b.HasIndex("UserGroupId");
+
+                    b.ToTable("ScheduledTaskViewerUserGroups");
+                });
+
             modelBuilder.Entity("Bayan.Domain.Entities.SystemAuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1229,6 +1265,44 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Bayan.Domain.Entities.ScheduledTaskViewerRole", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.ScheduledTask", "ScheduledTask")
+                        .WithMany("ViewerRoles")
+                        .HasForeignKey("ScheduledTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("ScheduledTask");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ScheduledTaskViewerUserGroup", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.ScheduledTask", "ScheduledTask")
+                        .WithMany("ViewerUserGroups")
+                        .HasForeignKey("ScheduledTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.UserGroup", "UserGroup")
+                        .WithMany()
+                        .HasForeignKey("UserGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ScheduledTask");
+
+                    b.Navigation("UserGroup");
+                });
+
             modelBuilder.Entity("Bayan.Domain.Entities.UserGroupMember", b =>
                 {
                     b.HasOne("Bayan.Domain.Entities.UserGroup", "UserGroup")
@@ -1316,6 +1390,10 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.Navigation("Runs");
 
                     b.Navigation("Triggers");
+
+                    b.Navigation("ViewerRoles");
+
+                    b.Navigation("ViewerUserGroups");
 
                     b.Navigation("Viewers");
                 });

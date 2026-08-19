@@ -89,10 +89,10 @@ interface QueryListState {
               <mat-icon>file_upload</mat-icon> {{ 'admin.queries.importFromBackup' | transloco }}
             </button>
           </mat-menu>
-          <button mat-raised-button color="primary" routerLink="/admin/queries/create"
-                  *ngIf="authService.has(PERM.queriesManage)">
+          <a mat-raised-button color="primary" routerLink="/admin/queries/create"
+             *ngIf="authService.has(PERM.queriesManage)">
             <mat-icon>add</mat-icon> {{ 'admin.queries.create' | transloco }}
-          </button>
+          </a>
         </div>
       </div>
 
@@ -207,22 +207,22 @@ interface QueryListState {
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | transloco }}</th>
               <td mat-cell *matCellDef="let q">
-                <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
-                        [routerLink]="['/admin/queries/edit', q.id]"
-                        *ngIf="authService.has(PERM.queriesManage)">
+                <a mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
+                   [routerLink]="['/admin/queries/edit', q.id]"
+                   *ngIf="authService.has(PERM.queriesManage)">
                   <mat-icon>edit</mat-icon>
-                </button>
-                <button mat-icon-button [matTooltip]="'common.copy' | transloco" [attr.aria-label]="'common.copy' | transloco"
-                        routerLink="/admin/queries/create"
-                        [queryParams]="{ copyFrom: q.id }"
-                        *ngIf="authService.has(PERM.queriesManage)">
+                </a>
+                <a mat-icon-button [matTooltip]="'common.copy' | transloco" [attr.aria-label]="'common.copy' | transloco"
+                   routerLink="/admin/queries/create"
+                   [queryParams]="{ copyFrom: q.id }"
+                   *ngIf="authService.has(PERM.queriesManage)">
                   <mat-icon>content_copy</mat-icon>
-                </button>
-                <button mat-icon-button *ngIf="canManageQueryAccess"
-                        [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
-                        [routerLink]="['/admin/queries', q.id, 'roles']">
+                </a>
+                <a mat-icon-button *ngIf="canManageQueryAccess"
+                   [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
+                   [routerLink]="['/admin/queries', q.id, 'roles']">
                   <mat-icon>security</mat-icon>
-                </button>
+                </a>
                 <button mat-icon-button (click)="exportQuery(q)"
                         *ngIf="authService.has(PERM.queriesManage)"
                         [matTooltip]="'Export ' + q.name + ' as a JSON definition'"

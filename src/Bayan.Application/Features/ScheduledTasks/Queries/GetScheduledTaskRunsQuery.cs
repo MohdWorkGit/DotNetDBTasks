@@ -1,4 +1,5 @@
 using Bayan.Application.Common.Interfaces;
+using Bayan.Application.Common.Security;
 using Bayan.Domain.Entities;
 using Bayan.Domain.Exceptions;
 using Bayan.Domain.Interfaces;
@@ -8,7 +9,8 @@ namespace Bayan.Application.Features.ScheduledTasks.Queries;
 
 /// <summary>
 /// Returns a scheduled task's run history, newest first. Same visibility rule as
-/// the task itself (Admin/Auditor, or explicit viewer grant).
+/// the task itself (<c>scheduledTasks.viewAll</c>, or a viewer grant by role,
+/// user group, or name).
 /// </summary>
 public record GetScheduledTaskRunsQuery(Guid TaskId, int Take = 50) : IRequest<List<ScheduledTaskRunDto>>;
 
@@ -29,10 +31,12 @@ public class GetScheduledTaskRunsQueryHandler : IRequestHandler<GetScheduledTask
     public async Task<List<ScheduledTaskRunDto>> Handle(GetScheduledTaskRunsQuery request, CancellationToken cancellationToken)
     {
         var task = (await _unitOfWork.ScheduledTasks.FindAsync(
-            t => t.Id == request.TaskId, cancellationToken, "Viewers")).FirstOrDefault()
+            t => t.Id == request.TaskId, cancellationToken,
+            ScheduledTaskAccess.GrantIncludes)).FirstOrDefault()
             ?? throw new NotFoundException(nameof(ScheduledTask), request.TaskId);
 
-        await ScheduledTaskAccess.EnsureCanViewAsync(task, _currentUser, _permissions, cancellationToken);
+        await ScheduledTaskAccess.EnsureCanViewAsync(
+            task, _unitOfWork, _currentUser, _permissions, cancellationToken);
 
         // Sorted and cut off by Oracle. Sorting in memory meant materializing the task's whole
         // history — CLOBs and all — to show the most recent page of it.

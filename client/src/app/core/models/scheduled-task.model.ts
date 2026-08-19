@@ -149,8 +149,51 @@ export interface SaveScheduledTaskRequest {
   timestampFormat?: string | null;
   triggers: ScheduleTrigger[];
   items: ScheduledTaskItemInput[];
-  viewerUserIds: string[];
-  /** Viewers who may also download the run's export files (subset of viewerUserIds). */
+}
+
+/**
+ * A task's viewer grants, as shown on the Manage Task Access page. Each of the three
+ * principal types grants the same two things: seeing the task's status, and — the
+ * narrower right — downloading its export files.
+ */
+export interface ScheduledTaskAccess {
+  taskId: string;
+  taskName: string;
+  roles: ScheduledTaskRoleGrant[];
+  userGroups: ScheduledTaskUserGroupGrant[];
+  users: ScheduledTaskViewer[];
+}
+
+export interface ScheduledTaskRoleGrant {
+  roleId: string;
+  roleName: string;
+  /** When true the role's holders may also download the run's export files. */
+  canDownloadFiles: boolean;
+}
+
+export interface ScheduledTaskUserGroupGrant {
+  userGroupId: string;
+  userGroupName: string;
+  /** When true the group's members may also download the run's export files. */
+  canDownloadFiles: boolean;
+}
+
+/** Each save replaces one tab's grants wholesale; the other two are left alone. */
+export interface AssignScheduledTaskRolesRequest {
+  roleIds: string[];
+  /** Roles that may also download the export files (subset of roleIds). */
+  downloadRoleIds: string[];
+}
+
+export interface AssignScheduledTaskUserGroupsRequest {
+  userGroupIds: string[];
+  /** Groups that may also download the export files (subset of userGroupIds). */
+  downloadUserGroupIds: string[];
+}
+
+export interface AssignScheduledTaskUsersRequest {
+  userIds: string[];
+  /** Users who may also download the export files (subset of userIds). */
   downloadUserIds: string[];
 }
 

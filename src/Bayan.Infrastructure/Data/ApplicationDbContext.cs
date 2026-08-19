@@ -33,6 +33,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<ScheduledTaskItem> ScheduledTaskItems => Set<ScheduledTaskItem>();
     public DbSet<ScheduledTaskRun> ScheduledTaskRuns => Set<ScheduledTaskRun>();
     public DbSet<ScheduledTaskViewer> ScheduledTaskViewers => Set<ScheduledTaskViewer>();
+    public DbSet<ScheduledTaskViewerRole> ScheduledTaskViewerRoles => Set<ScheduledTaskViewerRole>();
+    public DbSet<ScheduledTaskViewerUserGroup> ScheduledTaskViewerUserGroups => Set<ScheduledTaskViewerUserGroup>();
     public DbSet<SystemTemplate> SystemTemplates => Set<SystemTemplate>();
     public DbSet<SystemAuditLog> SystemAuditLogs => Set<SystemAuditLog>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();

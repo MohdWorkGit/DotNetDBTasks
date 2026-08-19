@@ -5,8 +5,8 @@ namespace Bayan.Domain.Entities;
 /// <summary>
 /// An admin-defined recurring job that runs one or more read queries and writes each
 /// result set to a file (Excel/CSV/JSON) in <see cref="OutputFolder"/> on the server.
-/// Only admins create/edit/run tasks; other users see the task's status only when
-/// listed in <see cref="Viewers"/>.
+/// Only admins create/edit/run tasks; other users see the task's status only when a
+/// viewer grant reaches them — by role, by user group, or by name.
 /// </summary>
 public class ScheduledTask : BaseEntity
 {
@@ -70,4 +70,6 @@ public class ScheduledTask : BaseEntity
     public ICollection<ScheduledTaskItem> Items { get; set; } = new List<ScheduledTaskItem>();
     public ICollection<ScheduledTaskRun> Runs { get; set; } = new List<ScheduledTaskRun>();
     public ICollection<ScheduledTaskViewer> Viewers { get; set; } = new List<ScheduledTaskViewer>();
+    public ICollection<ScheduledTaskViewerRole> ViewerRoles { get; set; } = new List<ScheduledTaskViewerRole>();
+    public ICollection<ScheduledTaskViewerUserGroup> ViewerUserGroups { get; set; } = new List<ScheduledTaskViewerUserGroup>();
 }

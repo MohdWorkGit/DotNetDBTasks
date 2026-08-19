@@ -1,4 +1,5 @@
 using Bayan.Application.Common.Interfaces;
+using Bayan.Application.Common.Security;
 using Bayan.Domain.Constants;
 using Bayan.Domain.Interfaces;
 using MediatR;
@@ -7,8 +8,9 @@ namespace Bayan.Application.Features.ScheduledTasks.Queries;
 
 /// <summary>
 /// Lists the scheduled tasks visible to the current user with their latest run. Holding
-/// <c>scheduledTasks.viewAll</c> shows every task; without it a user sees only the tasks they
-/// were named a viewer on.
+/// <c>scheduledTasks.viewAll</c> shows every task; without it a user sees the tasks a viewer
+/// grant reaches them on — through one of their roles, a user group they belong to, or their
+/// own name.
 /// </summary>
 public record GetScheduledTasksQuery : IRequest<List<ScheduledTaskDto>>;
 
@@ -69,12 +71,22 @@ public class GetScheduledTasksQueryHandler : IRequestHandler<GetScheduledTasksQu
         var seesAll = await _permissions.HasAsync(
             _currentUser.Roles, Permissions.ScheduledTasksViewAll, cancellationToken);
 
+        // Resolved once for the whole list; every task below is then filtered in memory
+        // against the same role and group ids.
+        var principal = await ScheduledTaskPrincipal.ResolveAsync(
+            _unitOfWork, _currentUser.UserId, cancellationToken);
+
+        var includes = ScheduledTaskAccess.GrantIncludes
+            .Concat(new[] { "Triggers", "Items", "Items.DynamicQuery" })
+            .ToArray();
+
         var tasks = seesAll
-            ? await _unitOfWork.ScheduledTasks.GetAllAsync(
-                cancellationToken, "Triggers", "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")
+            ? await _unitOfWork.ScheduledTasks.GetAllAsync(cancellationToken, includes)
             : await _unitOfWork.ScheduledTasks.FindAsync(
-                t => t.Viewers.Any(v => v.UserId == _currentUser.UserId),
-                cancellationToken, "Triggers", "Items", "Items.DynamicQuery", "Viewers", "Viewers.User");
+                t => t.Viewers.Any(v => v.UserId == principal.UserId)
+                    || t.ViewerRoles.Any(r => principal.RoleIds.Contains(r.RoleId))
+                    || t.ViewerUserGroups.Any(g => principal.UserGroupIds.Contains(g.UserGroupId)),
+                cancellationToken, includes);
 
         var taskIds = tasks.Select(t => t.Id).ToHashSet();
         var lastRuns = await LoadLastRunsAsync(taskIds, cancellationToken);
@@ -88,7 +100,7 @@ public class GetScheduledTasksQueryHandler : IRequestHandler<GetScheduledTasksQu
             {
                 var dto = ScheduledTaskMapper.ToDto(t, lastRuns.GetValueOrDefault(t.Id));
                 dto.CanDownloadFiles = canDownloadAny
-                    || t.Viewers.Any(v => v.UserId == _currentUser.UserId && v.CanDownloadFiles);
+                    || ScheduledTaskAccess.HasDownloadGrant(t, principal);
                 return dto;
             })
             .ToList();

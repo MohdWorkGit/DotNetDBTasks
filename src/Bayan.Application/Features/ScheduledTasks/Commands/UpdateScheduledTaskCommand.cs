@@ -47,11 +47,6 @@ public class UpdateScheduledTaskCommand : IRequest<ScheduledTaskDto>
 
     public List<ScheduledTaskTriggerInput> Triggers { get; set; } = new();
     public List<ScheduledTaskItemInput> Items { get; set; } = new();
-    public List<Guid> ViewerUserIds { get; set; } = new();
-
-    /// <summary>Viewers who may also download the run's export files. Ids not present
-    /// in <see cref="ViewerUserIds"/> are ignored (download implies view).</summary>
-    public List<Guid> DownloadUserIds { get; set; } = new();
 }
 
 public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduledTaskCommand, ScheduledTaskDto>
@@ -66,7 +61,7 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
     public async Task<ScheduledTaskDto> Handle(UpdateScheduledTaskCommand request, CancellationToken cancellationToken)
     {
         var task = (await _unitOfWork.ScheduledTasks.FindAsync(
-            t => t.Id == request.Id, cancellationToken, "Triggers", "Items", "Viewers")).FirstOrDefault()
+            t => t.Id == request.Id, cancellationToken, "Triggers", "Items")).FirstOrDefault()
             ?? throw new NotFoundException(nameof(ScheduledTask), request.Id);
 
         await ScheduledTaskInputValidator.ValidateAsync(
@@ -79,7 +74,6 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
             request.TimestampFormat,
             request.Triggers,
             request.Items,
-            request.ViewerUserIds,
             excludeTaskId: task.Id,
             cancellationToken);
 
@@ -119,20 +113,8 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
         foreach (var item in ScheduledTaskInputValidator.BuildItems(task.Id, request.Items, previousKeys))
             await _unitOfWork.ScheduledTaskItems.AddAsync(item, cancellationToken);
 
-        foreach (var viewer in task.Viewers.ToList())
-            _unitOfWork.ScheduledTaskViewers.Delete(viewer);
-        var downloadUserIds = request.DownloadUserIds.ToHashSet();
-        foreach (var userId in request.ViewerUserIds.Distinct())
-        {
-            await _unitOfWork.ScheduledTaskViewers.AddAsync(
-                new ScheduledTaskViewer
-                {
-                    ScheduledTaskId = task.Id,
-                    UserId = userId,
-                    CanDownloadFiles = downloadUserIds.Contains(userId)
-                }, cancellationToken);
-        }
-
+        // Viewer grants are deliberately untouched: they are owned by the access page, and an
+        // edit of the schedule that silently dropped everyone's access would be a trap.
         _unitOfWork.ScheduledTasks.Update(task);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

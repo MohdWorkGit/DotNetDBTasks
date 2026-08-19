@@ -14,10 +14,10 @@ import { TranslocoService } from '@jsverse/transloco';
     <div class="container">
       <div class="header">
         <h2>{{ 'admin.tasks.title' | transloco }}</h2>
-        <button mat-raised-button color="primary" routerLink="/admin/scheduled-tasks/create"
-                *ngIf="authService.has(PERM.scheduledTasksManage)">
+        <a mat-raised-button color="primary" routerLink="/admin/scheduled-tasks/create"
+           *ngIf="authService.has(PERM.scheduledTasksManage)">
           <mat-icon>add_alarm</mat-icon> {{ 'admin.tasks.create' | transloco }}
-        </button>
+        </a>
       </div>
 
       <mat-card>
@@ -81,15 +81,20 @@ import { TranslocoService } from '@jsverse/transloco';
                         [disabled]="runningIds.has(t.id)">
                   <mat-icon>play_arrow</mat-icon>
                 </button>
-                <button mat-icon-button [matTooltip]="'admin.tasks.runHistory' | transloco" [attr.aria-label]="'admin.tasks.runHistory' | transloco"
-                        [routerLink]="['/admin/scheduled-tasks', t.id, 'runs']">
+                <a mat-icon-button [matTooltip]="'admin.tasks.runHistory' | transloco" [attr.aria-label]="'admin.tasks.runHistory' | transloco"
+                   [routerLink]="['/admin/scheduled-tasks', t.id, 'runs']">
                   <mat-icon>history</mat-icon>
-                </button>
-                <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
-                        *ngIf="authService.has(PERM.scheduledTasksManage)"
-                        [routerLink]="['/admin/scheduled-tasks/edit', t.id]">
+                </a>
+                <a mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
+                   *ngIf="authService.has(PERM.scheduledTasksManage)"
+                   [routerLink]="['/admin/scheduled-tasks/edit', t.id]">
                   <mat-icon>edit</mat-icon>
-                </button>
+                </a>
+                <a mat-icon-button [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
+                   *ngIf="authService.has(PERM.scheduledTasksManage)"
+                   [routerLink]="['/admin/scheduled-tasks', t.id, 'access']">
+                  <mat-icon>security</mat-icon>
+                </a>
                 <button mat-icon-button [matTooltip]="'common.delete' | transloco" [attr.aria-label]="'common.delete' | transloco" color="warn"
                         *ngIf="authService.has(PERM.scheduledTasksManage)" (click)="deleteTask(t)">
                   <mat-icon>delete</mat-icon>

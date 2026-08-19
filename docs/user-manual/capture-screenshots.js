@@ -398,6 +398,14 @@ async function captureLocale(browser, locale, sample) {
     await go(`/admin/scheduled-tasks/edit/${S.task}`, 'form');
     await shot('32-scheduled-task-edit', { full: true });
   });
+  await step('scheduled task access', async () => {
+    await go(`/admin/scheduled-tasks/${S.task}/access`, 'mat-tab-group');
+    await shot('34-scheduled-task-access-roles');
+    await openTab(T('admin.access.userGroupsTab'));
+    await shot('35-scheduled-task-access-user-groups');
+    await openTab(T('admin.access.usersTab'));
+    await shot('36-scheduled-task-access-users');
+  });
   await step('scheduled task runs', async () => {
     await go(`/admin/scheduled-tasks/${S.task}/runs`, '.container');
     const panel = page.locator('mat-expansion-panel-header').first();

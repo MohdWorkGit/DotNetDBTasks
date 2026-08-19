@@ -3,8 +3,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
 import {
+  AssignScheduledTaskRolesRequest,
+  AssignScheduledTaskUserGroupsRequest,
+  AssignScheduledTaskUsersRequest,
   SaveScheduledTaskRequest,
   ScheduledTask,
+  ScheduledTaskAccess,
   ScheduledTaskRun
 } from '../models/scheduled-task.model';
 
@@ -49,6 +53,24 @@ export class ScheduledTaskService {
 
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /** The task's viewer grants, for the Manage Task Access page (admin only). */
+  getAccess(id: string): Observable<ScheduledTaskAccess> {
+    return this.http.get<ScheduledTaskAccess>(`${this.baseUrl}/${id}/access`);
+  }
+
+  /** Each of the three saves replaces that principal type's grants wholesale. */
+  assignAccessRoles(id: string, request: AssignScheduledTaskRolesRequest): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${id}/access/roles`, request);
+  }
+
+  assignAccessUserGroups(id: string, request: AssignScheduledTaskUserGroupsRequest): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${id}/access/user-groups`, request);
+  }
+
+  assignAccessUsers(id: string, request: AssignScheduledTaskUsersRequest): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${id}/access/users`, request);
   }
 
   /** Queues an immediate run; watch the task's run history for the outcome. */

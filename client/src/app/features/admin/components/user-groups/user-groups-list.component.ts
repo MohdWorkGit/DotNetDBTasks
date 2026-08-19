@@ -19,10 +19,10 @@ import { TranslocoService } from '@jsverse/transloco';
     <div class="container">
       <div class="header">
         <h2>{{ 'admin.userGroups.title' | transloco }}</h2>
-        <button mat-raised-button color="primary" routerLink="/admin/user-groups/create"
-                *ngIf="canManage">
+        <a mat-raised-button color="primary" routerLink="/admin/user-groups/create"
+           *ngIf="canManage">
           <mat-icon>group_add</mat-icon> {{ 'admin.userGroups.create' | transloco }}
-        </button>
+        </a>
       </div>
 
       <p class="page-hint">{{ 'admin.userGroups.hint' | transloco }}</p>
@@ -61,11 +61,11 @@ import { TranslocoService } from '@jsverse/transloco';
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | transloco }}</th>
               <td mat-cell *matCellDef="let g">
-                <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
-                        [routerLink]="['/admin/user-groups/edit', g.id]"
-                        *ngIf="canManage">
+                <a mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
+                   [routerLink]="['/admin/user-groups/edit', g.id]"
+                   *ngIf="canManage">
                   <mat-icon>edit</mat-icon>
-                </button>
+                </a>
                 <button mat-icon-button [matTooltip]="'common.delete' | transloco" [attr.aria-label]="'common.delete' | transloco" color="warn"
                         (click)="deleteGroup(g.id, g.name)"
                         *ngIf="canManage">

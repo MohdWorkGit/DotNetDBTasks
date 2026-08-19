@@ -334,7 +334,7 @@ verbs, roles and query parameters. The map below is for orientation only.
 | Users and roles | `/api/admin/users`, `/api/admin/roles` | Admin and AccessManager |
 | Active Directory | `/api/admin/ldap` | Admin (two read endpoints also AccessManager) |
 | Database connections | `/api/admin/databaseusers` | Admin — except `/accessible`, open to any authenticated user |
-| Scheduled tasks | `/api/scheduledtasks` | Admin manages; viewers read what they were named on |
+| Scheduled tasks | `/api/scheduledtasks` | Admin manages; viewers read the tasks granted to their role, user group, or name |
 | Audit trail | `/api/admin/systemauditlogs` | Admin and Auditor, read-only |
 | System settings | `/api/admin/systemsettings` | Admin writes; AccessManager reads |
 | Running queries | `/api/user/queries` | Any authenticated user, limited to what they may run |

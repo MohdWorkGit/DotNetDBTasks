@@ -30,6 +30,8 @@ public interface IUnitOfWork : IDisposable
     IRepository<ScheduledTaskItem> ScheduledTaskItems { get; }
     IRepository<ScheduledTaskRun> ScheduledTaskRuns { get; }
     IRepository<ScheduledTaskViewer> ScheduledTaskViewers { get; }
+    IRepository<ScheduledTaskViewerRole> ScheduledTaskViewerRoles { get; }
+    IRepository<ScheduledTaskViewerUserGroup> ScheduledTaskViewerUserGroups { get; }
     IRepository<SystemTemplate> SystemTemplates { get; }
     IRepository<SystemAuditLog> SystemAuditLogs { get; }
     IRepository<SystemSetting> SystemSettings { get; }

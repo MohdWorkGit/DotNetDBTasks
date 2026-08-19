@@ -11,7 +11,8 @@ namespace Bayan.API.Controllers;
 /// <summary>
 /// Scheduled export tasks. Admins manage and trigger tasks; read endpoints are open
 /// to all authenticated users but the handlers only return tasks the caller may see
-/// (Admin/Auditor: all; others: tasks they were granted viewer permission on).
+/// (holders of <c>scheduledTasks.viewAll</c>: all; others: the tasks a viewer grant
+/// reaches them on, by role, user group, or name).
 /// </summary>
 [ApiController]
 [Route("api/scheduledtasks")]
@@ -90,6 +91,57 @@ public class ScheduledTasksController : ControllerBase
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteScheduledTaskCommand(id), cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// The task's viewer grants, for the access page. Behind <c>scheduledTasks.manage</c>:
+    /// who may see a task is not itself something a viewer of that task gets to read.
+    /// </summary>
+    [HttpGet("{id:guid}/access")]
+    [RequirePermission(Permissions.ScheduledTasksManage)]
+    public async Task<IActionResult> GetAccess(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetScheduledTaskAccessQuery(id), cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Replaces the roles granted viewer access to this task.</summary>
+    [HttpPut("{id:guid}/access/roles")]
+    [RequirePermission(Permissions.ScheduledTasksManage)]
+    public async Task<IActionResult> AssignAccessRoles(
+        Guid id,
+        [FromBody] AssignScheduledTaskRolesCommand command,
+        CancellationToken cancellationToken)
+    {
+        command.TaskId = id;
+        await _mediator.Send(command, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Replaces the user groups granted viewer access to this task.</summary>
+    [HttpPut("{id:guid}/access/user-groups")]
+    [RequirePermission(Permissions.ScheduledTasksManage)]
+    public async Task<IActionResult> AssignAccessUserGroups(
+        Guid id,
+        [FromBody] AssignScheduledTaskUserGroupsCommand command,
+        CancellationToken cancellationToken)
+    {
+        command.TaskId = id;
+        await _mediator.Send(command, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Replaces the individually named users granted viewer access to this task.</summary>
+    [HttpPut("{id:guid}/access/users")]
+    [RequirePermission(Permissions.ScheduledTasksManage)]
+    public async Task<IActionResult> AssignAccessUsers(
+        Guid id,
+        [FromBody] AssignScheduledTaskUsersCommand command,
+        CancellationToken cancellationToken)
+    {
+        command.TaskId = id;
+        await _mediator.Send(command, cancellationToken);
         return NoContent();
     }
 

@@ -5,7 +5,7 @@ import { ToastService } from '@core/services/toast.service';
 import { forkJoin } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
-import { DynamicQuery, isWriteQueryType, SystemUser } from '@core/models/dynamic-query.model';
+import { DynamicQuery, isWriteQueryType } from '@core/models/dynamic-query.model';
 import {
   EXPORT_FORMAT_LABELS,
   ExportFileFormat,
@@ -21,9 +21,9 @@ import {
     <div class="container">
       <div class="header">
         <h2>{{ (isEdit ? 'admin.tasks.editTitle' : 'admin.tasks.createTitle') | transloco }}</h2>
-        <button mat-button routerLink="/admin/scheduled-tasks">
+        <a mat-button routerLink="/admin/scheduled-tasks">
           <mat-icon class="rtl-flip">arrow_back</mat-icon> {{ 'common.back' | transloco }}
-        </button>
+        </a>
       </div>
 
       <div *ngIf="loading" class="loading">
@@ -288,31 +288,6 @@ import {
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="section">
-          <mat-card-title>{{ 'admin.tasks.statusVisibility' | transloco }}</mat-card-title>
-          <mat-card-content>
-            <mat-form-field appearance="outline" class="full">
-              <mat-label>{{ 'admin.tasks.viewers' | transloco }}</mat-label>
-              <mat-select formControlName="viewerUserIds" multiple (selectionChange)="pruneDownloadUsers()">
-                <mat-option *ngFor="let u of users" [value]="u.id">
-                  {{ u.username }}<span *ngIf="u.firstName || u.lastName"> — {{ u.firstName }} {{ u.lastName }}</span>
-                </mat-option>
-              </mat-select>
-              <mat-hint>{{ 'admin.tasks.viewersHint' | transloco }}</mat-hint>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full">
-              <mat-label>{{ 'admin.tasks.downloaders' | transloco }}</mat-label>
-              <mat-select formControlName="downloadUserIds" multiple>
-                <mat-option *ngFor="let u of viewerUsers" [value]="u.id">
-                  {{ u.username }}<span *ngIf="u.firstName || u.lastName"> — {{ u.firstName }} {{ u.lastName }}</span>
-                </mat-option>
-              </mat-select>
-              <mat-hint>{{ 'admin.tasks.downloadersHint' | transloco }}</mat-hint>
-            </mat-form-field>
-          </mat-card-content>
-        </mat-card>
-
         <div class="actions">
           <!-- Kept enabled when invalid: save() then explains what is wrong, instead
                of leaving a permanently dead button with no on-screen reason. -->
@@ -385,7 +360,6 @@ export class ScheduledTaskFormComponent implements OnInit {
   saving = false;
 
   queries: DynamicQuery[] = [];
-  users: SystemUser[] = [];
   /** Parameter definitions of the query selected in each item row, by row index. */
   parameterDefs: { name: string; displayName: string; isRequired: boolean; allowMultiple: boolean }[][] = [];
   /** Per-row info about the selected query: write vs read, and the saved checkpoint when editing. */
@@ -420,22 +394,6 @@ export class ScheduledTaskFormComponent implements OnInit {
   /** All enabled queries can be scheduled: reads export a file, writes commit and report affected rows. */
   get selectableQueries(): DynamicQuery[] {
     return this.queries;
-  }
-
-  /** Only granted viewers can be offered the extra download permission. */
-  get viewerUsers() {
-    const viewerIds: string[] = this.form.get('viewerUserIds')?.value || [];
-    return this.users.filter(u => viewerIds.includes(u.id));
-  }
-
-  /** Removing a viewer also revokes their download grant. */
-  pruneDownloadUsers(): void {
-    const viewerIds: string[] = this.form.get('viewerUserIds')?.value || [];
-    const download: string[] = this.form.get('downloadUserIds')?.value || [];
-    const pruned = download.filter(id => viewerIds.includes(id));
-    if (pruned.length !== download.length) {
-      this.form.get('downloadUserIds')?.setValue(pruned);
-    }
   }
 
   isWord(index: number): boolean {
@@ -473,21 +431,17 @@ export class ScheduledTaskFormComponent implements OnInit {
       combinedAppendTimestamp: [true],
       timestampFormat: [''],
       triggers: this.fb.array([]),
-      items: this.fb.array([]),
-      viewerUserIds: [[] as string[]],
-      downloadUserIds: [[] as string[]]
+      items: this.fb.array([])
     });
 
     this.taskId = this.route.snapshot.paramMap.get('id');
     this.isEdit = !!this.taskId;
 
     forkJoin({
-      queries: this.queryService.getAllQueries(),
-      users: this.queryService.getAllUsers()
+      queries: this.queryService.getAllQueries()
     }).subscribe({
-      next: ({ queries, users }) => {
+      next: ({ queries }) => {
         this.queries = queries.filter(q => q.isEnabled);
-        this.users = users.filter(u => u.isActive);
         if (this.taskId) {
           this.loadTask(this.taskId);
         } else {
@@ -520,9 +474,7 @@ export class ScheduledTaskFormComponent implements OnInit {
           combinedFormat: task.combinedFormat ?? ExportFileFormat.Csv,
           combinedCsvSeparator: task.combinedCsvSeparator === '\t' ? 'tab' : (task.combinedCsvSeparator || ','),
           combinedAppendTimestamp: task.combinedAppendTimestamp !== false,
-          timestampFormat: task.timestampFormat || '',
-          viewerUserIds: task.viewers.map(v => v.userId),
-          downloadUserIds: task.viewers.filter(v => v.canDownloadFiles).map(v => v.userId)
+          timestampFormat: task.timestampFormat || ''
         });
         for (const trigger of (task.triggers?.length ? task.triggers : [null])) {
           this.addTrigger();
@@ -749,10 +701,7 @@ export class ScheduledTaskFormComponent implements OnInit {
         keyParameter: this.itemMeta[i]?.isWrite ? null : (item.keyParameter || null),
         initialKey: this.itemMeta[i]?.isWrite ? null : (item.initialKey || null),
         resetKey: !!item.resetKey
-      })),
-      viewerUserIds: value.viewerUserIds || [],
-      downloadUserIds: (value.downloadUserIds || [])
-        .filter((id: string) => (value.viewerUserIds || []).includes(id))
+      }))
     };
 
     const call = this.isEdit && this.taskId

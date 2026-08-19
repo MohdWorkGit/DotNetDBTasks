@@ -55,10 +55,10 @@ import { TranslocoService } from '@jsverse/transloco';
                   </mat-chip-set>
                 </mat-card-content>
                 <mat-card-actions align="end">
-                  <button mat-raised-button color="primary"
-                          [routerLink]="['/user/queries', query.id, 'execute']">
+                  <a mat-raised-button color="primary"
+                     [routerLink]="['/user/queries', query.id, 'execute']">
                     <mat-icon>play_arrow</mat-icon> {{ 'user.queries.execute' | transloco }}
-                  </button>
+                  </a>
                 </mat-card-actions>
               </mat-card>
             </div>

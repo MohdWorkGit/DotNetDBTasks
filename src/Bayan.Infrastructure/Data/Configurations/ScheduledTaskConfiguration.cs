@@ -39,5 +39,15 @@ public class ScheduledTaskConfiguration : IEntityTypeConfiguration<ScheduledTask
             .WithOne(v => v.ScheduledTask)
             .HasForeignKey(v => v.ScheduledTaskId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(e => e.ViewerRoles)
+            .WithOne(v => v.ScheduledTask)
+            .HasForeignKey(v => v.ScheduledTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(e => e.ViewerUserGroups)
+            .WithOne(v => v.ScheduledTask)
+            .HasForeignKey(v => v.ScheduledTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

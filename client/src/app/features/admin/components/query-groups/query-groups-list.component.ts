@@ -19,10 +19,10 @@ import { TranslocoService } from '@jsverse/transloco';
     <div class="container">
       <div class="header">
         <h2>{{ 'admin.groups.title' | transloco }}</h2>
-        <button mat-raised-button color="primary" routerLink="/admin/query-groups/create"
-                *ngIf="authService.has(PERM.queryGroupsManage)">
+        <a mat-raised-button color="primary" routerLink="/admin/query-groups/create"
+           *ngIf="authService.has(PERM.queryGroupsManage)">
           <mat-icon>add</mat-icon> {{ 'admin.groups.create' | transloco }}
-        </button>
+        </a>
       </div>
 
       <mat-card>
@@ -62,15 +62,15 @@ import { TranslocoService } from '@jsverse/transloco';
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | transloco }}</th>
               <td mat-cell *matCellDef="let g">
-                <button mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
-                        [routerLink]="['/admin/query-groups/edit', g.id]"
-                        *ngIf="authService.has(PERM.queryGroupsManage)">
+                <a mat-icon-button [matTooltip]="'common.edit' | transloco" [attr.aria-label]="'common.edit' | transloco"
+                   [routerLink]="['/admin/query-groups/edit', g.id]"
+                   *ngIf="authService.has(PERM.queryGroupsManage)">
                   <mat-icon>edit</mat-icon>
-                </button>
-                <button mat-icon-button [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
-                        [routerLink]="['/admin/query-groups', g.id, 'access']">
+                </a>
+                <a mat-icon-button [matTooltip]="'admin.common.manageAccess' | transloco" [attr.aria-label]="'admin.common.manageAccess' | transloco"
+                   [routerLink]="['/admin/query-groups', g.id, 'access']">
                   <mat-icon>security</mat-icon>
-                </button>
+                </a>
                 <button mat-icon-button [matTooltip]="'common.delete' | transloco" [attr.aria-label]="'common.delete' | transloco" color="warn"
                         (click)="deleteGroup(g.id, g.name)"
                         *ngIf="authService.has(PERM.queryGroupsManage)">

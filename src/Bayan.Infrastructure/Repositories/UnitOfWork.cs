@@ -35,6 +35,8 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<ScheduledTaskItem> ScheduledTaskItems { get; }
     public IRepository<ScheduledTaskRun> ScheduledTaskRuns { get; }
     public IRepository<ScheduledTaskViewer> ScheduledTaskViewers { get; }
+    public IRepository<ScheduledTaskViewerRole> ScheduledTaskViewerRoles { get; }
+    public IRepository<ScheduledTaskViewerUserGroup> ScheduledTaskViewerUserGroups { get; }
     public IRepository<SystemTemplate> SystemTemplates { get; }
     public IRepository<SystemAuditLog> SystemAuditLogs { get; }
     public IRepository<SystemSetting> SystemSettings { get; }
@@ -65,6 +67,8 @@ public class UnitOfWork : IUnitOfWork
         ScheduledTaskItems = new Repository<ScheduledTaskItem>(context);
         ScheduledTaskRuns = new Repository<ScheduledTaskRun>(context);
         ScheduledTaskViewers = new Repository<ScheduledTaskViewer>(context);
+        ScheduledTaskViewerRoles = new Repository<ScheduledTaskViewerRole>(context);
+        ScheduledTaskViewerUserGroups = new Repository<ScheduledTaskViewerUserGroup>(context);
         SystemTemplates = new Repository<SystemTemplate>(context);
         SystemAuditLogs = new Repository<SystemAuditLog>(context);
         SystemSettings = new Repository<SystemSetting>(context);

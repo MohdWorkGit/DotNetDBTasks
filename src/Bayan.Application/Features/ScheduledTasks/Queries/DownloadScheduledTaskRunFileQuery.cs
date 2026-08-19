@@ -1,4 +1,5 @@
 using Bayan.Application.Common.Interfaces;
+using Bayan.Application.Common.Security;
 using Bayan.Domain.Entities;
 using Bayan.Domain.Exceptions;
 using Bayan.Domain.Interfaces;
@@ -7,8 +8,8 @@ using MediatR;
 namespace Bayan.Application.Features.ScheduledTasks.Queries;
 
 /// <summary>
-/// Downloads an export file produced by a scheduled task run. Requires Admin, or a viewer
-/// grant carrying CanDownloadFiles — Auditors see the run history but not its files, and
+/// Downloads an export file produced by a scheduled task run. Requires the blanket
+/// <c>scheduledTasks.download</c> permission, or a viewer grant carrying CanDownloadFiles — Auditors see the run history but not its files, and
 /// plain viewers only see statuses and file names. The requested file name
 /// must be one recorded in the run's item results — the file is then served from the
 /// task's output folder (or the archive folder when the output copy is gone, e.g.
@@ -43,11 +44,12 @@ public class DownloadScheduledTaskRunFileQueryHandler
         DownloadScheduledTaskRunFileQuery request, CancellationToken cancellationToken)
     {
         var task = (await _unitOfWork.ScheduledTasks.FindAsync(
-            t => t.Id == request.TaskId, cancellationToken, "Viewers")).FirstOrDefault()
+            t => t.Id == request.TaskId, cancellationToken,
+            ScheduledTaskAccess.GrantIncludes)).FirstOrDefault()
             ?? throw new NotFoundException(nameof(ScheduledTask), request.TaskId);
 
         await ScheduledTaskAccess.EnsureCanDownloadFilesAsync(
-            task, _currentUser, _permissions, cancellationToken);
+            task, _unitOfWork, _currentUser, _permissions, cancellationToken);
 
         var run = (await _unitOfWork.ScheduledTaskRuns.FindAsync(
             r => r.Id == request.RunId && r.ScheduledTaskId == task.Id, cancellationToken)).FirstOrDefault()

@@ -17,9 +17,9 @@ import { ScheduledTask, ScheduledTaskRun, ScheduledTaskRunItem, utcDate } from '
           <button mat-icon-button [matTooltip]="'common.refresh' | transloco" [attr.aria-label]="'common.refresh' | transloco" (click)="load()">
             <mat-icon>refresh</mat-icon>
           </button>
-          <button mat-button routerLink="/admin/scheduled-tasks">
+          <a mat-button routerLink="/admin/scheduled-tasks">
             <mat-icon class="rtl-flip">arrow_back</mat-icon> {{ 'common.back' | transloco }}
-          </button>
+          </a>
         </div>
       </div>
 

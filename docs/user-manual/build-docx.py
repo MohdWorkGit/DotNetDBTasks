@@ -1024,7 +1024,8 @@ def build_manual(doc):
               [T("My History", "سجلي"), "/user/history",
                T("Run queries", "تنفيذ الاستعلامات")],
               [T("My Schedules", "مهامي المجدولة"), "/user/schedules",
-               T("Users named as task viewers", "المستخدمون المسمَّون مشاهدين للمهام")],
+               T("Anyone a task viewer grant reaches",
+                 "كل من يبلغه منح مشاهدة لمهمة")],
               [T("Manage Queries", "إدارة الاستعلامات"), "/admin/queries",
                T("See the query list", "عرض قائمة الاستعلامات")],
               [T("Create / edit query", "إنشاء/تعديل استعلام"),
@@ -1300,13 +1301,15 @@ def build_manual(doc):
 
     h2(doc, T("5.10 Scheduled task status", "٥.١٠ حالة المهام المجدولة"))
     para(doc, T(
-        "If an administrator named you as a viewer of a scheduled task, a Schedules entry "
-        "appears in your navigation. It shows each run's start time, status, which trigger "
-        "started it, and the files it produced. You can download those files only if you were "
-        "also named as a downloader.",
-        "إذا سمّاك المسؤول مشاهدًا لمهمة مجدولة ظهر عنصر «المهام المجدولة» في تنقلك. وهو يعرض "
-        "وقت بدء كل تشغيل وحالته والمُشغِّل الذي بدأه والملفات التي أنتجها. ولا يمكنك تنزيل تلك "
-        "الملفات إلا إذا سُمّيت أيضًا ضمن المخوَّلين بالتنزيل."))
+        "If an administrator granted you viewer access to a scheduled task — by name, through "
+        "one of your roles, or through a user group you belong to — a Schedules entry appears "
+        "in your navigation. It shows each run's start time, status, which trigger started it, "
+        "and the files it produced. You can download those files only if the grant that "
+        "reaches you also allows downloads.",
+        "إذا منحك المسؤول وصول مشاهدة إلى مهمة مجدولة — باسمك، أو عبر أحد أدوارك، أو "
+        "عبر مجموعة مستخدمين تنتمي إليها — ظهر عنصر «المهام المجدولة» في تنقلك. وهو "
+        "يعرض وقت بدء كل تشغيل وحالته والمُشغّل الذي بدأه والملفات التي أنتجها. ولا يمكنك "
+        "تنزيل تلك الملفات إلا إذا كان المنح الذي بلغك يسمح بالتنزيل أيضًا."))
 
     page_break(doc)
 
@@ -1766,27 +1769,60 @@ def build_manual(doc):
            T("An existing task, showing its triggers, its queries and their parameter values.",
              "مهمة قائمة، وتظهر فيها مُشغِّلاتها واستعلاماتها وقيم معايير بحثها."))
 
-    h3(doc, T("Status visibility", "ظهور الحالة"))
+    h2(doc, T("9.3 Who can see the task", "٩.٣ مَن يرى المهمة"))
     para(doc, T(
-        "Two lists at the bottom of the form decide who, outside the administrators, can see "
-        "the task:",
-        "تحدّد قائمتان في أسفل النموذج مَن يرى المهمة من غير المسؤولين:"))
+        "Access to a task is managed on its own page, reached with the shield button on the "
+        "task list — not on the task form. Editing a schedule therefore never disturbs who "
+        "can see it. The page grants two things, and grants them the same three ways query "
+        "access is granted: to a role, to a user group, or to a named user.",
+        "يُدار الوصول إلى المهمة في صفحة خاصة بها، يُوصل إليها بزر الدرع في "
+        "قائمة المهام — لا في نموذج المهمة. ولذلك لا يُخلّ تعديل الجدولة أبدًا بمَن "
+        "يراها. وتمنح الصفحة أمرين، بالطرق الثلاث نفسها التي يُمنح بها الوصول إلى "
+        "الاستعلامات: لدور، أو لمجموعة مستخدمين، أو لمستخدم مُسمّى."))
     bullets(doc, [
-        (T("Users who can view this task's status — ",
-           "المستخدمون الذين يمكنهم عرض حالة هذه المهمة — "),
-         T("these users get the Schedules page and see the task's runs. Administrators and "
-           "Auditors always see every task.",
-           "يحصل هؤلاء على صفحة «المهام المجدولة» ويرون عمليات تشغيل المهمة. ويرى المسؤولون "
-           "والمدققون كل المهام دائمًا.")),
-        (T("Viewers who can also download the output files — ",
-           "المشاهدون الذين يمكنهم أيضًا تنزيل ملفات المخرجات — "),
-         T("chosen from the viewers above. Administrators can always download; Auditors never "
-           "can.",
-           "يُختارون من المشاهدين أعلاه. ويستطيع المسؤولون التنزيل دائمًا، ولا يستطيعه "
-           "المدققون إطلاقًا.")),
+        (T("Viewing — ", "العرض — "),
+         T("the task appears on that person's Schedules page, with its runs, their statuses "
+           "and the names of the files each run wrote.",
+           "تظهر المهمة في صفحة «المهام المجدولة» لدى ذلك الشخص، مع عمليات تشغيلها "
+           "وحالاتها وأسماء الملفات التي كتبها كل تشغيل.")),
+        (T("Downloading — ", "التنزيل — "),
+         T("the narrower right, chosen from the viewers on the same tab. Without it a viewer "
+           "sees that a file was produced but cannot fetch it.",
+           "وهو الحق الأضيق، ويُختار من المشاهدين في التبويب نفسه. وبدونه يرى "
+           "المشاهد أن ملفًا قد أُنتج ولكنه لا يستطيع جلبه.")),
     ])
+    figure(doc, "34-scheduled-task-access-roles",
+           T("Manage Task Access, Roles tab. Everyone holding a listed role sees the task; "
+             "the second list picks which of those roles may also download the files.",
+             "«إدارة الوصول إلى المهمة»، تبويب الأدوار. يرى المهمة كل من يحمل دورًا "
+             "مدرجًا؛ وتختار القائمة الثانية أيٌ من تلك الأدوار يمكنها أيضًا تنزيل الملفات."))
+    figure(doc, "35-scheduled-task-access-user-groups",
+           T("The User Groups tab. Membership is read at the moment of the check, so adding "
+             "someone to the group gives them the task at once, and removing them takes it "
+             "away at once.",
+             "تبويب مجموعات المستخدمين. تُقرأ العضوية لحظة التحقق، فإضافة شخص إلى "
+             "المجموعة تمنحه المهمة فورًا، وإخراجه يسلبها منه فورًا."))
+    figure(doc, "36-scheduled-task-access-users",
+           T("The Users tab, for granting one person the task without giving it to their "
+             "whole role or group.",
+             "تبويب المستخدمين، لمنح شخص واحد المهمة دون منحها لدوره أو مجموعته "
+             "بأكملها."))
+    para(doc, T(
+        "Each tab is saved on its own and replaces only its own list, so two administrators "
+        "working on different tabs cannot overwrite each other. Grants add up rather than "
+        "override: someone reached by two of them keeps the more generous one, so revoking a "
+        "download means clearing it everywhere it was given. Administrators and Auditors see "
+        "every task regardless; downloading, however, always needs either the blanket "
+        "download permission or one of these grants — which is why an Auditor sees the run "
+        "history but not the files.",
+        "يُحفَظ كل تبويب على حدة ولا يستبدل إلا قائمته، فلا يستطيع مسؤولان يعملان على "
+        "تبويبين مختلفين أن يطمس أحدهما عمل الآخر. والمنح تتجمّع ولا يلغي بعضها "
+        "بعضًا: من بلغه منحان احتفظ بالأوسع منهما، فسحب حق التنزيل يعني إزالته من "
+        "كل موضع مُنح فيه. ويرى المسؤولون والمدققون كل المهام على أي حال؛ أما التنزيل "
+        "فيلزمه دائمًا إما صلاحية التنزيل العامة وإما أحد هذه المنح — ولهذا يرى "
+        "المدقّق سجل التشغيل دون الملفات."))
 
-    h2(doc, T("9.3 Run history", "٩.٣ سجل التشغيل"))
+    h2(doc, T("9.4 Run history", "٩.٤ سجل التشغيل"))
     figure(doc, "33-scheduled-task-runs",
            T("Run history. Each run expands to show the queries it executed, the files it "
              "wrote, row counts, durations and any error.",

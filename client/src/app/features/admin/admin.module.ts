@@ -37,6 +37,7 @@ import { QueryGroupAccessComponent } from './components/query-groups/query-group
 import { ScheduledTasksListComponent } from './components/scheduled-tasks/scheduled-tasks-list.component';
 import { ScheduledTaskFormComponent } from './components/scheduled-tasks/scheduled-task-form.component';
 import { ScheduledTaskRunsComponent } from './components/scheduled-tasks/scheduled-task-runs.component';
+import { ScheduledTaskAccessComponent } from './components/scheduled-tasks/scheduled-task-access.component';
 import { SystemAuditComponent } from './components/system-audit/system-audit.component';
 import { SystemSettingsComponent } from './components/system-settings/system-settings.component';
 import { PermissionsMatrixComponent } from './components/system-settings/permissions-matrix.component';
@@ -63,6 +64,7 @@ import { PERM } from '@core/models/permissions';
     ScheduledTasksListComponent,
     ScheduledTaskFormComponent,
     ScheduledTaskRunsComponent,
+    ScheduledTaskAccessComponent,
     SystemAuditComponent,
     SystemSettingsComponent,
     PermissionsMatrixComponent
@@ -122,6 +124,8 @@ import { PERM } from '@core/models/permissions';
         canActivate: [authGuard], data: { permissions: [PERM.scheduledTasksManage] } },
       { path: 'scheduled-tasks/:id/runs', component: ScheduledTaskRunsComponent,
         canActivate: [authGuard], data: { permissions: [PERM.scheduledTasksViewAll, PERM.scheduledTasksManage] } },
+      { path: 'scheduled-tasks/:id/access', component: ScheduledTaskAccessComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.scheduledTasksManage] } },
       { path: 'logs', component: ExecutionLogsComponent,
         canActivate: [authGuard], data: { permissions: [PERM.logsView] } },
       { path: 'system-audit', component: SystemAuditComponent,
