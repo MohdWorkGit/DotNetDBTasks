@@ -76,6 +76,18 @@ import {
                     <input matInput type="number" formControlName="maxTotalRows" min="1" />
                     <mat-hint>{{ 'admin.reports.maxTotalRowsHint' | transloco }}</mat-hint>
                   </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'admin.reports.maxDetailRows' | transloco }}</mat-label>
+                    <input matInput type="number" formControlName="maxDetailRows"
+                           min="1" [max]="detailRowsCeiling" />
+                    <mat-hint>
+                      {{ 'admin.reports.maxDetailRowsHint' | transloco: { max: detailRowsCeiling } }}
+                    </mat-hint>
+                    <mat-error *ngIf="form.get('maxDetailRows')?.hasError('max')">
+                      {{ 'admin.reports.maxDetailRowsTooHigh' | transloco: { max: detailRowsCeiling } }}
+                    </mat-error>
+                  </mat-form-field>
                 </div>
 
                 <mat-slide-toggle formControlName="isEnabled">
@@ -507,6 +519,9 @@ import {
   styles: [`
     .tab-card { margin-block-start: 16px; }
     .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    /* A hinted full-width field directly above a row: its hint and the row's floating labels
+       occupy the same band and overlap without this. */
+    mat-form-field + .row { margin-block-start: 8px; }
     .row > mat-form-field { flex: 1 1 220px; }
     .panel { margin-block-end: 8px; }
     .map-row { align-items: center; }
@@ -558,9 +573,16 @@ export class ReportFormComponent implements OnInit {
     return this.datasets.at(index).get('parameterMaps') as FormArray;
   }
 
-  /** The detail-row cap, shown in the warning about how many child runs a detail costs. */
+  /** Mirrors SaveReportCommand.MaxDetailRowsCeiling — the server refuses anything above it. */
+  readonly detailRowsCeiling = 1000;
+
+  /**
+   * The detail-row cap, shown in the warning about how many child runs a detail costs.
+   * Read from the live control rather than the loaded report, so the warning tracks what the
+   * author is typing instead of what was last saved.
+   */
   get maxDetailRows(): number {
-    return this.report?.maxDetailRows ?? 100;
+    return this.form.get('maxDetailRows')?.value ?? 100;
   }
 
   /** Datasets a join may read from: any other dataset in this report. */
@@ -625,6 +647,10 @@ export class ReportFormComponent implements OnInit {
       queryGroupId: [null],
       timeoutSeconds: [120, [Validators.required, Validators.min(1)]],
       maxTotalRows: [200000, [Validators.required, Validators.min(1)]],
+      // Bounded here and again in SaveReportCommand: a detail dataset costs one execution per
+      // parent row, so this is a multiplier on load rather than a display limit, and the form is
+      // not the only way to set it.
+      maxDetailRows: [100, [Validators.required, Validators.min(1), Validators.max(1000)]],
       datasets: this.fb.array([]),
       parameters: this.fb.array([]),
       charts: this.fb.array([])
@@ -670,7 +696,8 @@ export class ReportFormComponent implements OnInit {
           isEnabled: report.isEnabled,
           queryGroupId: report.queryGroupId ?? null,
           timeoutSeconds: report.timeoutSeconds,
-          maxTotalRows: report.maxTotalRows
+          maxTotalRows: report.maxTotalRows,
+          maxDetailRows: report.maxDetailRows
         });
 
         for (const parameter of report.parameters) {
@@ -914,9 +941,7 @@ export class ReportFormComponent implements OnInit {
       isEnabled: value.isEnabled,
       queryGroupId: value.queryGroupId,
       timeoutSeconds: value.timeoutSeconds,
-      // Master/detail is not wired up yet, so this keeps its stored default rather than
-      // exposing a control that would not do anything.
-      maxDetailRows: this.report?.maxDetailRows ?? 100,
+      maxDetailRows: value.maxDetailRows,
       maxTotalRows: value.maxTotalRows,
       allowedExportFormats: [...this.selectedFormats],
       datasets: (value.datasets ?? []).map((d: any, index: number) => ({

@@ -156,8 +156,27 @@ public partial class SaveReportCommandHandler : IRequestHandler<SaveReportComman
         return await ReportMapper.LoadDtoAsync(_unitOfWork, report.Id, cancellationToken);
     }
 
+    /// <summary>
+    /// The most parent rows a detail dataset may be told to expand.
+    ///
+    /// <para>A detail dataset costs one full query execution per parent row, so this number is a
+    /// multiplier on load against the source database rather than a display limit. It is bounded
+    /// here as well as in the form because the form is not the only way in: hiding the field
+    /// would not stop a hand-made request, and a mistyped 100000 would fire a hundred thousand
+    /// executions bounded only by the report's timeout.</para>
+    /// </summary>
+    public const int MaxDetailRowsCeiling = 1000;
+
     private static void Validate(ReportInput input)
     {
+        if (input.MaxDetailRows < 1 || input.MaxDetailRows > MaxDetailRowsCeiling)
+        {
+            throw new DomainException(
+                $"Maximum detail rows must be between 1 and {MaxDetailRowsCeiling:N0}. " +
+                "A detail dataset runs its query once per parent row, so this is a multiplier " +
+                "on how much work one run costs.");
+        }
+
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var dataset in input.Datasets)
         {

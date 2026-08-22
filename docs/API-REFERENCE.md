@@ -107,7 +107,7 @@ Class: `[Authorize]`. A report composes several saved queries into one templated
 |---|---|---|
 | `GET /` | `reports.view` | Every report, as summaries. |
 | `GET /{id}` | `reports.view` | One report with its datasets, parameter maps, parameters and charts. |
-| `POST /` | `reports.manage` | Creates a report. Dataset keys must be unique within the report and match `[A-Za-z0-9_]+`; a chart key may not collide with a dataset key, since the template's `{{RESULTS:x}}` and `{{CHART:x}}` share one namespace. Join and detail datasets are rejected if they form a cycle. |
+| `POST /` | `reports.manage` | Creates a report. Dataset keys must be unique within the report and match `[A-Za-z0-9_]+`; a chart key may not collide with a dataset key, since the template's `{{RESULTS:x}}` and `{{CHART:x}}` share one namespace. Join and detail datasets are rejected if they form a cycle. `maxDetailRows` must be 1–1000 — a detail dataset costs one query execution per parent row, so it is a multiplier on load; out of range is 400 with a message naming the bounds. |
 | `PUT /{id}` | `reports.manage` | Replaces the report and everything under it. |
 | `DELETE /{id}` | `reports.manage` | Deletes the report. The queries it referenced are untouched. |
 | `POST /{id}/template` | `reports.manage` | Uploads the Word template. `multipart/form-data`, field `file`. Rejects anything over 5 MB, or that is not a real `.docx` — the zip signature and a `word/document.xml` entry are both checked. Returns an inspection listing the markers found and any that match no dataset. |

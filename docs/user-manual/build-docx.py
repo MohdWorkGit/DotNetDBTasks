@@ -1651,6 +1651,10 @@ def build_manual(doc):
         "التقرير قائمة من مجموعات البيانات المسمّاة. والاسم — أي مفتاح مجموعة البيانات — هو ما "
         "يستخدمه قالب Word لوضع جدول تلك المجموعة. ويتكوّن المفتاح من حروف وأرقام وشرطات سفلية "
         "فقط، ويجب أن يكون فريدًا داخل التقرير."))
+    figure(doc, "23b-report-details",
+           T("The Details tab: the report's name, its group, and the three limits that bound a "
+             "run.",
+             "تبويب «التفاصيل»: اسم التقرير ومجموعته والحدود الثلاثة التي تضبط التشغيل."))
     figure(doc, "24-report-datasets",
            T("The Datasets tab. Each dataset names a saved query and says how its parameters are "
              "filled.",
@@ -1682,11 +1686,15 @@ def build_manual(doc):
           ], widths=[1.0, 2.9, 2.3])
     note(doc, T(
         "A detail dataset runs its query once per parent row. Ten parents means ten executions, "
-        "so keep the parent short — Maximum detail rows on the Details tab is the cap, and the "
-        "report's own timeout bounds the whole run.",
+        "so keep the parent short. Maximum detail rows on the Details tab is the cap: the run "
+        "expands that many parent rows and reports in a warning how many it left out, rather "
+        "than failing. It can be raised to 1,000 — beyond that the cost stops being worth it, "
+        "and the report's own timeout bounds the whole run in any case.",
         "مجموعة البيانات التفصيلية تنفّذ استعلامها مرة لكل سطر أب. فعشرة أسطر أب تعني عشر عمليات "
-        "تنفيذ، لذا أبقِ الأب قصيرًا — والحد الأقصى لأسطر التفصيل في تبويب «التفاصيل» هو السقف، "
-        "كما تحدّ مهلة التقرير نفسها التشغيل كاملًا."), kind="warning")
+        "تنفيذ، لذا أبقِ الأب قصيرًا. والحد الأقصى لأسطر التفصيل في تبويب «التفاصيل» هو السقف: "
+        "إذ يوسّع التشغيل ذلك العدد من أسطر الأب ويذكر في تنبيه كم ترك منها، بدل أن يخفق. "
+        "ويمكن رفعه حتى ١٠٠٠ — وما بعد ذلك لا تستحق الكلفة، كما تحدّ مهلة التقرير نفسها "
+        "التشغيل كاملًا على أي حال."), kind="warning")
 
     h2(doc, T("7.3 One set of parameters for every query",
               "٧.٣ مجموعة معايير واحدة لكل الاستعلامات"))
@@ -2746,7 +2754,11 @@ def build(lang):
     if is_rtl():
         apply_rtl(doc)
 
-    out = os.path.join(HERE, f"Bayan-User-Manual-{lang.upper()}.docx")
+    # MANUAL_OUT_DIR exists because the README tells you to open the finished document in Word
+    # to refresh its table of contents — and Word holds the file open, so the next build cannot
+    # overwrite it. Building elsewhere lets the run finish and the file be moved into place after.
+    out_dir = os.environ.get("MANUAL_OUT_DIR") or HERE
+    out = os.path.join(out_dir, f"Bayan-User-Manual-{lang.upper()}.docx")
     doc.save(out)
 
     shots = os.path.join(HERE, "screenshots", lang)

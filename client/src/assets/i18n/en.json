@@ -933,7 +933,10 @@
       "accessTitle": "Report access",
       "accessSubtitle": "Who may open and run this report. Each dataset's own query is still checked separately when the report runs.",
       "accessSaved": "Report access saved",
-      "accessFailed": "Could not save the report's access"
+      "accessFailed": "Could not save the report's access",
+      "maxDetailRows": "Maximum detail rows",
+      "maxDetailRowsHint": "Parent rows a detail dataset expands. Up to {{max}}.",
+      "maxDetailRowsTooHigh": "At most {{max}}. Each parent row costs one more query run."
     }
   },
   "user": {

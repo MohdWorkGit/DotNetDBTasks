@@ -33,3 +33,6 @@ offline-bundle/
 .DS_Store
 Thumbs.db
 queryrunner-publish/
+
+# Word owner files, left behind while a .docx is open
+~$*

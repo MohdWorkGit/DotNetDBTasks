@@ -410,8 +410,12 @@ async function captureLocale(browser, locale, sample) {
     await shot('23-reports-list');
   });
   if (S.report) {
-    await step('report datasets', async () => {
+    await step('report details', async () => {
+      // The form opens on Details, so this is photographed before any tab is clicked.
       await go(`/admin/reports/edit/${S.report}`, 'form');
+      await shot('23b-report-details', { full: true });
+    });
+    await step('report datasets', async () => {
       await openTab(T('admin.reports.tabDatasets'));
       await shot('24-report-datasets', { full: true });
     });

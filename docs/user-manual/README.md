@@ -75,6 +75,7 @@ Environment variables, all optional:
 | `MANUAL_DEMO_PASS` | `Demo@123` | Password given to the seeded demo accounts |
 | `MANUAL_TASK_FOLDER` | `C:\Bayan\exports\sales` | Output folder of the seeded scheduled task |
 | `MANUAL_THEME` | `dark` | `dark` or `light` — the theme the screenshots use |
+| `MANUAL_OUT_DIR` | this folder | Where the `.docx` files are written. Use it when Word has one open — Word locks the file and the build cannot overwrite it |
 | `MANUAL_ADMIN_USER` / `MANUAL_ADMIN_PASS` | `admin` / `Admin@123` | Account used for most screens |
 | `MANUAL_AUDITOR_USER` / `MANUAL_AUDITOR_PASS` | `auditor` / `Auditor@123` | Used for the "what an Auditor sees" figures |
 
