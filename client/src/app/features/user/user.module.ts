@@ -24,19 +24,27 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { MyQueriesComponent } from './components/my-queries/my-queries.component';
 import { QueryExecuteComponent } from './components/query-execute/query-execute.component';
 import { ExecutionHistoryComponent } from './components/execution-history/execution-history.component';
 import { ScheduleStatusComponent } from './components/schedule-status/schedule-status.component';
+import { ReportViewComponent } from './components/report-view/report-view.component';
+import { ReportSectionGridComponent } from './components/report-view/report-section-grid.component';
 import { queryAccessGuard } from '@core/guards/query-access.guard';
+import { queriesPageGuard } from '@core/guards/queries-page.guard';
+import { reportAccessGuard } from '@core/guards/report-access.guard';
+import { ReportChartComponent } from '@shared/components/report-chart.component';
 
 @NgModule({
   declarations: [
     MyQueriesComponent,
     QueryExecuteComponent,
     ExecutionHistoryComponent,
-    ScheduleStatusComponent
+    ScheduleStatusComponent,
+    ReportViewComponent,
+    ReportSectionGridComponent
   ],
   imports: [
     CommonModule,
@@ -64,13 +72,16 @@ import { queryAccessGuard } from '@core/guards/query-access.guard';
     MatExpansionModule,
     MatDialogModule,
     MatMenuModule,
+    MatTabsModule,
+    ReportChartComponent,
     // Schedules is deliberately ungated: being named a viewer on a scheduled task is a
     // per-task grant, not a query-running one, so an Access Manager can hold it. The other
     // three need a role that confers query access — see queryAccessGuard.
     RouterModule.forChild([
-      { path: 'queries', component: MyQueriesComponent, canActivate: [queryAccessGuard] },
+      { path: 'queries', component: MyQueriesComponent, canActivate: [queriesPageGuard] },
       { path: 'queries/:id/execute', component: QueryExecuteComponent, canActivate: [queryAccessGuard] },
       { path: 'history', component: ExecutionHistoryComponent, canActivate: [queryAccessGuard] },
+      { path: 'reports/:id/view', component: ReportViewComponent, canActivate: [reportAccessGuard] },
       { path: 'schedules', component: ScheduleStatusComponent },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])

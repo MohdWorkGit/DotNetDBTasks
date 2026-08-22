@@ -40,7 +40,7 @@ import { PERM } from './core/models/permissions';
              definition, not by configuration. A second role that does grant access brings
              them back — see AuthService.canRunQueries. -->
         <a mat-button routerLink="/user/queries" routerLinkActive="nav-active"
-           *ngIf="authService.canRunQueries()"
+           *ngIf="authService.canRunQueries() || authService.has(PERM.reportsRun)"
            [matTooltip]="'nav.myQueries' | transloco" [attr.aria-label]="'nav.myQueries' | transloco">
           <mat-icon>list</mat-icon> <span class="nav-label">{{ 'nav.myQueries' | transloco }}</span>
         </a>
@@ -59,9 +59,9 @@ import { PERM } from './core/models/permissions';
              queries. The trigger also shows for an Auditor, who reaches nothing here except
              the read-only scheduled tasks — without that they would lose the entry entirely
              when it moved out of the audit menu. -->
-        <button mat-button *ngIf="authService.hasAny(PERM.queriesView, PERM.queryGroupsManage, PERM.scheduledTasksViewAll, PERM.scheduledTasksManage)"
+        <button mat-button *ngIf="authService.hasAny(PERM.queriesView, PERM.queryGroupsManage, PERM.scheduledTasksViewAll, PERM.scheduledTasksManage, PERM.reportsView)"
                 [matMenuTriggerFor]="queriesMenu"
-                [class.nav-active]="inSection(['/admin/queries', '/admin/query-groups', '/admin/scheduled-tasks'])"
+                [class.nav-active]="inSection(['/admin/queries', '/admin/query-groups', '/admin/scheduled-tasks', '/admin/reports'])"
                 [matTooltip]="'nav.queriesGroup' | transloco">
           <mat-icon>dashboard</mat-icon>
           <span class="nav-label">{{ 'nav.queriesGroup' | transloco }}</span>
@@ -73,6 +73,9 @@ import { PERM } from './core/models/permissions';
           </a>
           <a mat-menu-item *ngIf="authService.has(PERM.queriesView)" routerLink="/admin/query-groups">
             <mat-icon>folder</mat-icon> {{ 'nav.queryGroups' | transloco }}
+          </a>
+          <a mat-menu-item *ngIf="authService.has(PERM.reportsView)" routerLink="/admin/reports">
+            <mat-icon>summarize</mat-icon> {{ 'nav.manageReports' | transloco }}
           </a>
           <a mat-menu-item *ngIf="authService.hasAny(PERM.scheduledTasksViewAll, PERM.scheduledTasksManage)" routerLink="/admin/scheduled-tasks">
             <mat-icon>schedule</mat-icon> {{ 'nav.schedules' | transloco }}

@@ -15,26 +15,38 @@ namespace Bayan.API.Authorization;
 /// </para>
 ///
 /// <para>Still authentication-gated: no permission is granted to an anonymous caller.</para>
+///
+/// <para>Naming more than one permission means <b>any of them</b> will do, not all. Two
+/// attributes stacked on the same action already mean "and"; this covers the other case — a
+/// page that two different capabilities can both reach, such as the query list that now also
+/// carries reports. Keep the list short: a long any-of is usually a sign the endpoint is doing
+/// two jobs.</para>
 /// </summary>
 public sealed class RequirePermissionAttribute : AuthorizeAttribute
 {
     public const string PolicyPrefix = "perm:";
 
-    public RequirePermissionAttribute(string permission)
-        : base(PolicyPrefix + permission)
+    /// <summary>Separator in the policy name for an any-of list. Not legal in a permission name.</summary>
+    public const char AnyOfSeparator = '|';
+
+    public RequirePermissionAttribute(params string[] permissions)
+        : base(PolicyPrefix + string.Join(AnyOfSeparator, permissions))
     {
-        Permission = permission;
+        Permissions = permissions;
     }
 
-    public string Permission { get; }
+    public IReadOnlyList<string> Permissions { get; }
 }
 
-/// <summary>The permission a policy demands, carried from its name to the handler.</summary>
+/// <summary>
+/// The permissions a policy accepts, carried from its name to the handler. Holding any one of
+/// them satisfies the requirement.
+/// </summary>
 public sealed class PermissionRequirement : IAuthorizationRequirement
 {
-    public PermissionRequirement(string permission) => Permission = permission;
+    public PermissionRequirement(IReadOnlyList<string> permissions) => Permissions = permissions;
 
-    public string Permission { get; }
+    public IReadOnlyList<string> Permissions { get; }
 }
 
 /// <summary>
@@ -63,10 +75,11 @@ public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
         if (!policyName.StartsWith(RequirePermissionAttribute.PolicyPrefix, StringComparison.Ordinal))
             return _fallback.GetPolicyAsync(policyName);
 
-        var permission = policyName[RequirePermissionAttribute.PolicyPrefix.Length..];
+        var permissions = policyName[RequirePermissionAttribute.PolicyPrefix.Length..]
+            .Split(RequirePermissionAttribute.AnyOfSeparator, StringSplitOptions.RemoveEmptyEntries);
         var policy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
-            .AddRequirements(new PermissionRequirement(permission))
+            .AddRequirements(new PermissionRequirement(permissions))
             .Build();
 
         return Task.FromResult<AuthorizationPolicy?>(policy);
@@ -96,7 +109,13 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
         if (roles.Count == 0)
             return;
 
-        if (await _permissions.HasAsync(roles, requirement.Permission))
-            context.Succeed(requirement);
+        foreach (var permission in requirement.Permissions)
+        {
+            if (await _permissions.HasAsync(roles, permission))
+            {
+                context.Succeed(requirement);
+                return;
+            }
+        }
     }
 }

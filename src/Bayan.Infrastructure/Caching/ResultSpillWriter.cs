@@ -8,8 +8,9 @@ namespace Bayan.Infrastructure.Caching;
 /// quick size estimate keeps clearly-small results in the heap without serializing; larger ones are
 /// streamed out and, the moment the running size crosses <c>SpillThresholdBytes</c>, flushed to an
 /// NDJSON data file plus an offset index (so at most ~one threshold's worth is buffered in memory
-/// while writing). On any I/O failure the temp files are cleaned up and the exception rethrown, so
-/// the caller can fall back to keeping the result in memory.
+/// while writing). Every row is sealed by <see cref="ResultCacheCipher"/> before it is written, so
+/// nothing readable reaches the disk. On any I/O failure the temp files are cleaned up and the
+/// exception rethrown, so the caller can fall back to keeping the result in memory.
 /// </summary>
 internal static class ResultSpillWriter
 {
@@ -19,20 +20,22 @@ internal static class ResultSpillWriter
         Guid jobId,
         IReadOnlyList<string> columns,
         IReadOnlyList<IReadOnlyDictionary<string, object?>> rows,
-        ResultCacheOptions options)
+        ResultCacheOptions options,
+        ResultCacheCipher cipher)
     {
         var estimate = (long)rows.Count * Math.Max(1, columns.Count) * EstimatedBytesPerCell;
         if (estimate < options.SpillThresholdBytes)
             return new InMemoryCachedResult(columns, rows, estimate);
 
-        return WriteWithSpill(jobId, columns, rows, options);
+        return WriteWithSpill(jobId, columns, rows, options, cipher);
     }
 
     private static ICachedResult WriteWithSpill(
         Guid jobId,
         IReadOnlyList<string> columns,
         IReadOnlyList<IReadOnlyDictionary<string, object?>> rows,
-        ResultCacheOptions options)
+        ResultCacheOptions options,
+        ResultCacheCipher cipher)
     {
         var offsets = new List<long>(rows.Count);
         var buffer = new MemoryStream();
@@ -43,10 +46,14 @@ internal static class ResultSpillWriter
 
         try
         {
+            using var session = cipher.Open();
             foreach (var row in rows)
             {
                 offsets.Add(pos);
-                var bytes = Encoding.UTF8.GetBytes(ResultRowSerializer.EncodeRow(row, columns));
+                // Sealed before it is measured, so pos counts what actually lands on disk — which
+                // is what the offset index, ApproxSizeBytes and the disk budget must all agree on.
+                var bytes = Encoding.UTF8.GetBytes(
+                    session.Protect(ResultRowSerializer.EncodeRow(row, columns)));
 
                 Stream target = file ?? (Stream)buffer;
                 target.Write(bytes, 0, bytes.Length);
@@ -81,7 +88,7 @@ internal static class ResultSpillWriter
                     writer.Write(offset);
             }
 
-            return new DiskCachedResult(dataPath!, indexPath, columns, rows.Count, pos);
+            return new DiskCachedResult(dataPath!, indexPath, columns, rows.Count, pos, cipher);
         }
         catch
         {

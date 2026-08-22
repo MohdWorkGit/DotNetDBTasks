@@ -58,7 +58,14 @@ public class ScheduledTaskTriggerDto
 public class ScheduledTaskItemDto
 {
     public Guid Id { get; set; }
-    public Guid DynamicQueryId { get; set; }
+    /// <summary>The query this item runs; null when it runs <see cref="ReportId"/> instead.</summary>
+    public Guid? DynamicQueryId { get; set; }
+
+    /// <summary>The report this item runs, as an alternative to a single query.</summary>
+    public Guid? ReportId { get; set; }
+
+    /// <summary>Shown on the task list so an item is identifiable without opening it.</summary>
+    public string? ReportName { get; set; }
     public string QueryName { get; set; } = string.Empty;
     public Dictionary<string, string> Parameters { get; set; } = new();
     public ExportFileFormat ExportFormat { get; set; }
@@ -147,6 +154,8 @@ public static class ScheduledTaskMapper
             {
                 Id = i.Id,
                 DynamicQueryId = i.DynamicQueryId,
+                ReportId = i.ReportId,
+                ReportName = i.Report?.Name,
                 QueryName = i.DynamicQuery?.Name ?? string.Empty,
                 Parameters = ParseParameters(i.ParametersJson),
                 ExportFormat = i.ExportFormat,

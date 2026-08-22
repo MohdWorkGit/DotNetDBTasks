@@ -3,6 +3,7 @@ import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { MyQueryGroup } from '@core/models/dynamic-query.model';
+import { ReportSummary } from '@core/models/report.model';
 import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
@@ -35,8 +36,8 @@ import { TranslocoService } from '@jsverse/transloco';
                 <span dir="auto">{{ group.name }}</span>
               </mat-panel-title>
               <mat-panel-description>
-                <span class="query-count">{{ (group.queries.length === 1 ? 'user.queries.countOne' : 'user.queries.countMany')
-              | transloco: { count: group.queries.length } }}</span>
+                <span class="query-count">{{ (itemCount(group) === 1 ? 'user.queries.countOne' : 'user.queries.countMany')
+              | transloco: { count: itemCount(group) } }}</span>
                 <span *ngIf="group.description" class="group-desc" dir="auto">{{ group.description }}</span>
               </mat-panel-description>
             </mat-expansion-panel-header>
@@ -57,6 +58,29 @@ import { TranslocoService } from '@jsverse/transloco';
                 <mat-card-actions align="end">
                   <a mat-raised-button color="primary"
                      [routerLink]="['/user/queries', query.id, 'execute']">
+                    <mat-icon>play_arrow</mat-icon> {{ 'user.queries.execute' | transloco }}
+                  </a>
+                </mat-card-actions>
+              </mat-card>
+
+              <!-- Reports sit in the same grid as the queries. The only thing that marks one
+                   out is the chip saying how many datasets it pulls together. -->
+              <mat-card *ngFor="let report of group.reports" class="query-card">
+                <mat-card-header>
+                  <mat-card-title dir="auto">{{ report.name }}</mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  <p dir="auto">{{ report.description }}</p>
+                  <mat-chip-set>
+                    <mat-chip class="report-chip">
+                      <mat-icon class="chip-icon">summarize</mat-icon>
+                      {{ 'user.queries.reportBadge' | transloco: { count: report.datasetCount } }}
+                    </mat-chip>
+                  </mat-chip-set>
+                </mat-card-content>
+                <mat-card-actions align="end">
+                  <a mat-raised-button color="primary"
+                     [routerLink]="['/user/reports', report.id, 'view']">
                     <mat-icon>play_arrow</mat-icon> {{ 'user.queries.execute' | transloco }}
                   </a>
                 </mat-card-actions>
@@ -86,10 +110,18 @@ import { TranslocoService } from '@jsverse/transloco';
       padding-top: 12px;
     }
     .query-card { height: 100%; }
+    .report-chip { background: var(--chip-accent); }
+    .chip-icon { font-size: 16px; inline-size: 16px; block-size: 16px; margin-inline-end: 4px; }
   `]
 })
 export class MyQueriesComponent implements OnInit {
   groups: MyQueryGroup[] = [];
+
+  /** Queries and reports together — the panel header counts what is inside, not what kind. */
+  itemCount(group: MyQueryGroup): number {
+    return group.queries.length + (group.reports?.length ?? 0);
+  }
+
   loading = true;
   errorMessage = '';
 

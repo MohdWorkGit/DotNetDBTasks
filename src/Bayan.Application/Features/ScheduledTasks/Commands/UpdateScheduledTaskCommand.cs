@@ -120,7 +120,7 @@ public class UpdateScheduledTaskCommandHandler : IRequestHandler<UpdateScheduled
 
         var updated = (await _unitOfWork.ScheduledTasks.FindAsync(
             t => t.Id == task.Id, cancellationToken,
-            "Triggers", "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")).First();
+            "Triggers", "Items", "Items.DynamicQuery", "Items.Report", "Viewers", "Viewers.User")).First();
         return ScheduledTaskMapper.ToDto(updated);
     }
 }

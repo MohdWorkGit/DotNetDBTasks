@@ -1,4 +1,5 @@
 using Bayan.Application.Features.DynamicQueries.Queries;
+using Bayan.Application.Features.Reports.Dtos;
 
 namespace Bayan.Application.Features.QueryGroups.Queries;
 
@@ -25,4 +26,11 @@ public class MyQueryGroupDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public List<DynamicQueryDto> Queries { get; set; } = new();
+
+    /// <summary>
+    /// The reports filed in this same group. They sit beside the queries rather than on a page
+    /// of their own: to the person running one, a report is just another thing on their list,
+    /// and splitting them would mean granting the same team the same folder twice.
+    /// </summary>
+    public List<ReportSummaryDto> Reports { get; set; } = new();
 }

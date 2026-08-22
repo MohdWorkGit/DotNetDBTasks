@@ -5,6 +5,8 @@ import { ToastService } from '@core/services/toast.service';
 import { forkJoin } from 'rxjs';
 import { QueryService } from '@core/services/query.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
+import { ReportSummary } from '@core/models/report.model';
+import { ReportService } from '@core/services/report.service';
 import { DynamicQuery, isWriteQueryType } from '@core/models/dynamic-query.model';
 import {
   EXPORT_FORMAT_LABELS,
@@ -182,9 +184,18 @@ import {
 
             <div class="item" *ngFor="let item of items.controls; let i = index" [formGroupName]="i">
               <div class="row">
-                <mat-form-field appearance="outline" class="grow">
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'admin.tasks.itemKind' | transloco }}</mat-label>
+                  <mat-select formControlName="itemKind" (selectionChange)="onItemKindChange(i)">
+                    <mat-option value="query">{{ 'admin.tasks.itemKindQuery' | transloco }}</mat-option>
+                    <mat-option value="report">{{ 'admin.tasks.itemKindReport' | transloco }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="grow"
+                                *ngIf="item.get('itemKind')?.value === 'query'">
                   <mat-label>{{ 'admin.tasks.query' | transloco }}</mat-label>
-                  <mat-select formControlName="dynamicQueryId" required
+                  <mat-select formControlName="dynamicQueryId"
                               (selectionChange)="onQueryChange(i, $event.value)">
                     <mat-option *ngFor="let q of selectableQueries" [value]="q.id">
                       {{ q.name }}<span *ngIf="isWriteQuery(q)"> {{ 'admin.tasks.modifiesData' | transloco }}</span>
@@ -195,7 +206,21 @@ import {
                   </mat-error>
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" *ngIf="!itemMeta[i]?.isWrite && !combineOutput">
+                <mat-form-field appearance="outline" class="grow"
+                                *ngIf="item.get('itemKind')?.value === 'report'">
+                  <mat-label>{{ 'admin.tasks.report' | transloco }}</mat-label>
+                  <mat-select formControlName="reportId">
+                    <mat-option *ngFor="let r of reports" [value]="r.id" dir="auto">{{ r.name }}</mat-option>
+                  </mat-select>
+                  <mat-error *ngIf="item.get('reportId')?.hasError('required')">
+                    {{ 'admin.tasks.pickReport' | transloco }}
+                  </mat-error>
+                  <mat-hint>{{ 'admin.tasks.reportItemHint' | transloco }}</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline"
+                                *ngIf="item.get('itemKind')?.value === 'report'
+                                       || (!itemMeta[i]?.isWrite && !combineOutput)">
                   <mat-label>{{ 'admin.tasks.format' | transloco }}</mat-label>
                   <mat-select formControlName="exportFormat" required>
                     <mat-option *ngFor="let f of formats" [value]="f">{{ formatLabels[f] }}</mat-option>
@@ -363,6 +388,7 @@ export class ScheduledTaskFormComponent implements OnInit {
   /** Parameter definitions of the query selected in each item row, by row index. */
   parameterDefs: { name: string; displayName: string; isRequired: boolean; allowMultiple: boolean }[][] = [];
   /** Per-row info about the selected query: write vs read, and the saved checkpoint when editing. */
+  reports: ReportSummary[] = [];
   itemMeta: { isWrite: boolean; lastKeyValue: string | null }[] = [];
 
   constructor(
@@ -370,6 +396,7 @@ export class ScheduledTaskFormComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private queryService: QueryService,
+    private reportService: ReportService,
     private scheduledTaskService: ScheduledTaskService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef
@@ -438,10 +465,12 @@ export class ScheduledTaskFormComponent implements OnInit {
     this.isEdit = !!this.taskId;
 
     forkJoin({
-      queries: this.queryService.getAllQueries()
+      queries: this.queryService.getAllQueries(),
+      reports: this.reportService.getAll()
     }).subscribe({
-      next: ({ queries }) => {
+      next: ({ queries, reports }) => {
         this.queries = queries.filter(q => q.isEnabled);
+        this.reports = reports.filter(r => r.isEnabled);
         if (this.taskId) {
           this.loadTask(this.taskId);
         } else {
@@ -493,7 +522,9 @@ export class ScheduledTaskFormComponent implements OnInit {
           const index = this.items.length - 1;
           const group = this.items.at(index) as FormGroup;
           group.patchValue({
-            dynamicQueryId: item.dynamicQueryId,
+            itemKind: item.reportId ? 'report' : 'query',
+            dynamicQueryId: item.dynamicQueryId ?? '',
+            reportId: item.reportId ?? '',
             exportFormat: item.exportFormat,
             // A stored tab character is shown as the word "tab" (the backend accepts both).
             csvSeparator: item.csvSeparator === '\t' ? 'tab' : (item.csvSeparator || ','),
@@ -504,7 +535,14 @@ export class ScheduledTaskFormComponent implements OnInit {
             initialKey: item.initialKey || '',
             resetKey: false
           });
-          this.buildParameterControls(index, item.dynamicQueryId, item.parameters);
+          // A report item has no per-query parameter controls: its parameters belong to the
+          // report, and it carries no checkpoint to resume from.
+          if (item.reportId) {
+            this.onItemKindChange(index);
+          } else {
+            this.buildParameterControls(index, item.dynamicQueryId!, item.parameters);
+          }
+
           this.itemMeta[index] = {
             isWrite: item.isWriteQuery,
             lastKeyValue: item.lastKeyValue || null
@@ -538,7 +576,11 @@ export class ScheduledTaskFormComponent implements OnInit {
 
   addItem(): void {
     this.items.push(this.fb.group({
+      // Which of the two is required depends on itemKind, so neither is unconditionally so;
+      // onItemKindChange moves the validator to whichever picker is showing.
+      itemKind: ['query'],
       dynamicQueryId: ['', Validators.required],
+      reportId: [''],
       exportFormat: [ExportFileFormat.Excel, Validators.required],
       csvSeparator: [','],
       fileNamePrefix: [''],
@@ -565,6 +607,37 @@ export class ScheduledTaskFormComponent implements OnInit {
     this.itemMeta[index] = { isWrite: this.isWriteQuery(query), lastKeyValue: null };
     // A different query means any previous checkpoint config no longer applies.
     (this.items.at(index) as FormGroup).patchValue({ keyColumn: '', keyParameter: '', initialKey: '', resetKey: false });
+  }
+
+  /**
+   * Switches a row between running a query and running a report. The required-validator moves
+   * with the visible picker, and the other side is cleared so a hidden control cannot block the
+   * save or be submitted alongside its opposite — the server rejects an item carrying both.
+   */
+  onItemKindChange(index: number): void {
+    const item = this.items.at(index) as FormGroup;
+    const isReport = item.get('itemKind')?.value === 'report';
+
+    const query = item.get('dynamicQueryId')!;
+    const report = item.get('reportId')!;
+
+    if (isReport) {
+      query.clearValidators();
+      query.setValue('');
+      report.setValidators([Validators.required]);
+      // Checkpoints are a per-query notion; a report has no key column to resume from.
+      item.patchValue({ keyColumn: '', keyParameter: '', initialKey: '', resetKey: false });
+      this.itemMeta[index] = { isWrite: false, lastKeyValue: null };
+      (item.get('parameters') as FormGroup | null)?.reset();
+    } else {
+      report.clearValidators();
+      report.setValue('');
+      query.setValidators([Validators.required]);
+    }
+
+    query.updateValueAndValidity();
+    report.updateValueAndValidity();
+    this.cdr.detectChanges();
   }
 
   queryName(index: number): string {
@@ -690,7 +763,8 @@ export class ScheduledTaskFormComponent implements OnInit {
         sortOrder: i
       })),
       items: (value.items as any[]).map((item, i) => ({
-        dynamicQueryId: item.dynamicQueryId,
+        dynamicQueryId: item.itemKind === 'report' ? null : item.dynamicQueryId,
+        reportId: item.itemKind === 'report' ? item.reportId : null,
         parameters: this.toWireParameters(i, item.parameters || {}),
         exportFormat: item.exportFormat,
         csvSeparator: item.exportFormat === ExportFileFormat.Csv ? (item.csvSeparator || null) : null,

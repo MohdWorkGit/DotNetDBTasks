@@ -2,6 +2,8 @@ using AutoMapper;
 using Bayan.Application.Common.Interfaces;
 using Bayan.Application.Common.Security;
 using Bayan.Application.Features.DynamicQueries.Queries;
+using Bayan.Application.Features.Reports;
+using Bayan.Application.Features.Reports.Dtos;
 using Bayan.Domain.Entities;
 using Bayan.Domain.Interfaces;
 using MediatR;
@@ -11,9 +13,18 @@ namespace Bayan.Application.Features.QueryGroups.Queries;
 /// <summary>
 /// Builds the "My Queries" view, grouped by QueryGroup. A user sees:
 ///   - every query they have direct/role/user-group access to, and
-///   - every query inside a group they have direct/role/user-group access to.
-/// Queries with no group are bucketed into a synthetic "Ungrouped" entry (Id=null).
+///   - every query inside a group they have direct/role/user-group access to,
+///   - and, in those same groups, every <b>report</b> reachable the same ways.
+/// Items with no group are bucketed into a synthetic "Ungrouped" entry (Id=null).
 /// Empty groups are omitted.
+///
+/// <para>Reports are listed here rather than on a page of their own because the distinction is
+/// an authoring one. To the person running it, a report is just another thing on their list,
+/// filed in the same folder as the queries beside it — and a separate page would mean granting
+/// the same team the same folder twice.</para>
+///
+/// <para>The two are gated independently, though: query access needs <c>queries.run</c> and
+/// report access needs <c>reports.run</c>, so a role holding only one sees only that kind.</para>
 /// </summary>
 public record GetMyQueryGroupsQuery : IRequest<IReadOnlyList<MyQueryGroupDto>>;
 
@@ -23,15 +34,18 @@ public class GetMyQueryGroupsQueryHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
+    private readonly IPermissionService _permissions;
 
     public GetMyQueryGroupsQueryHandler(
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IPermissionService permissions)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
+        _permissions = permissions;
     }
 
     public async Task<IReadOnlyList<MyQueryGroupDto>> Handle(
@@ -91,18 +105,39 @@ public class GetMyQueryGroupsQueryHandler
             "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
             "Parameters", "DatabaseUser", "QueryGroup");
 
-        // 4. Bucket queries by group, ordering groups by name and "Ungrouped" last.
-        var groupedByGroup = queries
-            .GroupBy(q => q.QueryGroupId)
-            .Select(g =>
+        // 4. The reports this caller may run, resolved through their own permission and their
+        //    own grants — plus the group grants already computed above, since a grant on a
+        //    folder reaches everything filed in it.
+        var held = await _permissions.GetForRolesAsync(_currentUser.Roles, cancellationToken);
+        var reportReach = await ReportAccess.ResolveAsync(_unitOfWork, _currentUser, cancellationToken);
+
+        var reports = await _unitOfWork.Reports.FindAsync(
+            r => r.IsEnabled, cancellationToken, "Datasets", "Parameters", "QueryGroup");
+        var visibleReports = reports.Where(r => ReportAccess.Reaches(reportReach, r)).ToList();
+
+        // 5. Bucket both kinds by group, ordering groups by name and "Ungrouped" last. A group
+        //    appears when it holds anything the caller can reach, of either kind.
+        var groupIds = queries.Select(q => q.QueryGroupId)
+            .Concat(visibleReports.Select(r => r.QueryGroupId))
+            .Distinct()
+            .ToList();
+
+        var groupedByGroup = groupIds
+            .Select(groupId =>
             {
-                var first = g.First();
+                var groupQueries = queries.Where(q => q.QueryGroupId == groupId).OrderBy(q => q.Name).ToList();
+                var groupReports = visibleReports.Where(r => r.QueryGroupId == groupId).OrderBy(r => r.Name).ToList();
+
+                var group = groupQueries.FirstOrDefault()?.QueryGroup
+                            ?? groupReports.FirstOrDefault()?.QueryGroup;
+
                 return new MyQueryGroupDto
                 {
-                    Id = g.Key,
-                    Name = g.Key.HasValue ? first.QueryGroup?.Name ?? "Unknown" : "Ungrouped",
-                    Description = g.Key.HasValue ? first.QueryGroup?.Description ?? string.Empty : string.Empty,
-                    Queries = _mapper.Map<List<DynamicQueryDto>>(g.OrderBy(q => q.Name).ToList())
+                    Id = groupId,
+                    Name = groupId.HasValue ? group?.Name ?? "Unknown" : "Ungrouped",
+                    Description = groupId.HasValue ? group?.Description ?? string.Empty : string.Empty,
+                    Queries = _mapper.Map<List<DynamicQueryDto>>(groupQueries),
+                    Reports = groupReports.Select(r => ReportMapper.ToSummary(r, held)).ToList()
                 };
             })
             .OrderBy(g => g.Id.HasValue ? 0 : 1)

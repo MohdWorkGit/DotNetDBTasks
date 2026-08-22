@@ -4,8 +4,10 @@ using System.Text.Json;
 using Bayan.Application.Common.Interfaces;
 using Bayan.Application.Common.Models;
 using Bayan.Application.Features.QueryExecution.Commands;
+using Bayan.Application.Features.Reports.Commands;
 using Bayan.Domain.Entities;
 using Bayan.Domain.Enums;
+using Bayan.Domain.Exceptions;
 using Bayan.Domain.Interfaces;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -59,7 +61,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
     {
         var task = (await _unitOfWork.ScheduledTasks.FindAsync(
             t => t.Id == request.ScheduledTaskId, cancellationToken,
-            "Items", "Items.DynamicQuery", "Items.DynamicQuery.Parameters"))
+            "Items", "Items.DynamicQuery", "Items.DynamicQuery.Parameters", "Items.Report"))
             .FirstOrDefault();
         if (task is null)
         {
@@ -100,7 +102,17 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             _defaultWordTemplate = await LoadDefaultWordTemplateAsync(task, orderedItems, runToken);
             if (task.CombineOutput)
             {
-                results.AddRange(await RunCombinedAsync(task, orderedItems, runToken));
+                // A report already composes several queries into one document, so it is never
+                // folded into a task's combined file — it IS the combination. Report items are
+                // therefore run on their own even in combined mode.
+                var reportItems = orderedItems.Where(i => i.ReportId is not null).ToList();
+                var queryItems = orderedItems.Where(i => i.ReportId is null).ToList();
+
+                if (queryItems.Count > 0)
+                    results.AddRange(await RunCombinedAsync(task, queryItems, runToken));
+
+                foreach (var item in reportItems)
+                    results.Add(await RunItemAsync(task, item, runToken));
             }
             else
             {
@@ -162,7 +174,10 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         ScheduledTaskItem item,
         CancellationToken cancellationToken)
     {
-        var queryName = item.DynamicQuery?.Name ?? item.DynamicQueryId.ToString();
+        if (item.ReportId is not null)
+            return await RunReportItemAsync(task, item, cancellationToken);
+
+        var queryName = item.DynamicQuery?.Name ?? item.DynamicQueryId?.ToString() ?? "(no query)";
         var isWrite = item.DynamicQuery?.QueryType.IsWrite() ?? false;
         var result = new ScheduledTaskItemResult { QueryName = queryName, IsWrite = isWrite };
         var sw = Stopwatch.StartNew();
@@ -220,6 +235,107 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
     }
 
     /// <summary>
+    /// Runs a report item: the whole report, exported as one document into the task folder.
+    ///
+    /// <para>The report is executed through <c>RunReportCommand</c> — the same path the
+    /// interactive viewer uses — so its access checks, per-dataset audit rows, parameter
+    /// mapping and detail expansion behave identically whether a person or the scheduler
+    /// asked for it. The run happens under the task creator's identity, which
+    /// <c>ExecuteScheduledTaskAsync</c> has already put on the ambient context.</para>
+    /// </summary>
+    private async Task<ScheduledTaskItemResult> RunReportItemAsync(
+        ScheduledTask task,
+        ScheduledTaskItem item,
+        CancellationToken cancellationToken)
+    {
+        var reportName = item.Report?.Name ?? item.ReportId!.Value.ToString();
+        var result = new ScheduledTaskItemResult { QueryName = reportName, IsWrite = false };
+        var sw = Stopwatch.StartNew();
+
+        try
+        {
+            var parameters = string.IsNullOrWhiteSpace(item.ParametersJson)
+                ? new Dictionary<string, string>()
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(item.ParametersJson!) ?? new();
+
+            var run = await _mediator.Send(new RunReportCommand
+            {
+                ReportId = item.ReportId!.Value,
+                Parameters = parameters
+            }, cancellationToken);
+
+            var sets = run.Sections
+                .Where(section => section.IsSuccess && section.Columns.Count > 0)
+                .Select(section => new ExportResultSet(
+                    section.Columns,
+                    section.Rows.Cast<IReadOnlyDictionary<string, object?>>().ToList(),
+                    section.Key,
+                    section.Title))
+                .ToList();
+
+            if (sets.Count == 0)
+            {
+                // Every section failed. Writing an empty document would look like a successful
+                // run of a report that happened to have no data, which is a different thing.
+                var reasons = run.Sections.Where(s => !s.IsSuccess).Select(s => $"{s.Key}: {s.Error}");
+                throw new DomainException(
+                    "The report produced no data. " + string.Join(" | ", reasons));
+            }
+
+            // With no stored template the exporter would fall back to the single-query starter,
+            // whose bare {{RESULTS}} would append every section into one table.
+            var template = item.Report?.TemplateDocx is { Length: > 0 }
+                ? item.Report.TemplateDocx
+                : _exporter.GetReportStarterTemplate(
+                    reportName,
+                    sets.Select(set => new ReportTemplateSection(set.Key!, set.Title ?? set.Key!)).ToList(),
+                    rightToLeft: false,
+                    charts: run.Charts
+                        .Select(c => new ReportTemplateChart(c.Key, c.Title, c.DatasetKey))
+                        .ToList());
+
+            var bytes = _exporter.Export(
+                item.ExportFormat, sets, reportName,
+                CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders,
+                template, run.Parameters, run.Charts);
+
+            var fileName = BuildFileName(task, item, reportName);
+            await WriteOutputAsync(task, fileName, bytes, cancellationToken);
+
+            result.FileName = fileName;
+            result.RowCount = run.Sections.Sum(section => section.TotalRows);
+            result.Success = true;
+
+            // A partly failed report still produces a document; the run is recorded as
+            // succeeded but says which section is missing from it.
+            if (!run.IsCompleteSuccess)
+            {
+                result.Error = Truncate(
+                    "Some sections did not run: " + string.Join(" | ",
+                        run.Sections.Where(section => !section.IsSuccess)
+                            .Select(section => $"{section.Key}: {section.Error}")), 2000);
+            }
+        }
+        catch (Exception) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Scheduled task {TaskName}: report {ReportName} failed", task.Name, reportName);
+            result.Error = Truncate(ex.Message, 2000);
+        }
+        finally
+        {
+            sw.Stop();
+            result.DurationMs = sw.ElapsedMilliseconds;
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Combined mode: write queries commit as usual, and every read query's rows are
     /// collected and written into ONE file in item order — the same behaviour as the
     /// standalone QueryRunner. Read items only succeed (and only advance their
@@ -236,7 +352,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
 
         foreach (var item in items)
         {
-            var queryName = item.DynamicQuery?.Name ?? item.DynamicQueryId.ToString();
+            var queryName = item.DynamicQuery?.Name ?? item.DynamicQueryId?.ToString() ?? "(no query)";
             var isWrite = item.DynamicQuery?.QueryType.IsWrite() ?? false;
             var result = new ScheduledTaskItemResult { QueryName = queryName, IsWrite = isWrite };
             results.Add(result);
@@ -335,7 +451,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
 
         return await _mediator.Send(new ExecuteQueryCommand
         {
-            QueryId = item.DynamicQueryId,
+            QueryId = item.DynamicQueryId!.Value,
             Parameters = parameters,
             Unlimited = !isWrite,
             Confirmed = isWrite

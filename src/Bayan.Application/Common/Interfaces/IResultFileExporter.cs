@@ -32,6 +32,10 @@ public interface IResultFileExporter
     /// output). The header row, when enabled, comes from the first set's columns, so the
     /// sets should have compatible columns.
     /// </summary>
+    /// <param name="charts">
+    /// Word/PDF only: charts the template may place with a {{CHART:key}} marker. Emitted as
+    /// native DrawingML chart parts, so they stay vector through the PDF conversion.
+    /// </param>
     byte[] Export(
         ExportFileFormat format,
         IReadOnlyList<ExportResultSet> results,
@@ -39,7 +43,8 @@ public interface IResultFileExporter
         string csvSeparator = ",",
         bool includeHeaders = true,
         byte[]? wordTemplate = null,
-        IReadOnlyList<ExportParameter>? parameters = null);
+        IReadOnlyList<ExportParameter>? parameters = null,
+        IReadOnlyList<ReportChartData>? charts = null);
 
     /// <summary>File extension for the format, without the leading dot (e.g. "xlsx").</summary>
     string GetExtension(ExportFileFormat format);
@@ -50,4 +55,26 @@ public interface IResultFileExporter
     /// template exists. Admins download it as the starting point for their own default.
     /// </summary>
     byte[] GetStarterWordTemplate();
+
+    /// <summary>
+    /// A starter template for one report, pre-populated with that report's dataset keys so
+    /// each section already carries the right {{RESULTS:key}} marker. Getting those keys
+    /// right by hand in Word is the step that reliably goes wrong, so the author should
+    /// never have to.
+    /// </summary>
+    /// <param name="rightToLeft">
+    /// Lays the starter out right to left. An installation working in Arabic should be handed a
+    /// template that already reads correctly, rather than one they must re-mirror by hand.
+    /// </param>
+    byte[] GetReportStarterTemplate(
+        string reportName,
+        IReadOnlyList<ReportTemplateSection> sections,
+        bool rightToLeft = false,
+        IReadOnlyList<ReportTemplateChart>? charts = null);
+
+    /// <summary>
+    /// Reads back which markers an uploaded template uses, so a key that matches no dataset
+    /// is reported at upload rather than silently rendering an empty section later.
+    /// </summary>
+    ReportTemplateInspection InspectWordTemplate(byte[] docx);
 }

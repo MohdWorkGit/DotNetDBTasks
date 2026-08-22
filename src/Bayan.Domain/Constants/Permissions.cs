@@ -64,9 +64,46 @@ public static class Permissions
     /// <summary>Decide who may reach a query group, and so everything inside it.</summary>
     public const string AccessManageGroup = "access.manageGroup";
 
+    /// <summary>Decide who may reach a report.</summary>
+    public const string AccessManageReport = "access.manageReport";
+
     // ---- Query groups
     /// <summary>Create, rename and delete query groups.</summary>
     public const string QueryGroupsManage = "queryGroups.manage";
+
+    // ---- Reports
+    //
+    // A report composes several saved queries into one templated document. Running one is
+    // gated twice on purpose: the caller needs a grant on the report AND an independent
+    // grant on every query behind it, so a report can never become a way to reach a query
+    // the caller could not run directly.
+
+    /// <summary>See the admin report list and open a report's definition.</summary>
+    public const string ReportsView = "reports.view";
+
+    /// <summary>Create, edit and delete reports, their datasets, parameters and Word templates.</summary>
+    public const string ReportsManage = "reports.manage";
+
+    /// <summary>Run a report that has been granted to you, and read it on screen.</summary>
+    public const string ReportsRun = "reports.run";
+
+    // Export is gated twice, exactly like queries: the report lists the formats it may be
+    // exported as at all, and the role says which of those this person may use.
+
+    /// <summary>Download a report as Excel, where the report permits it.</summary>
+    public const string ReportsExportExcel = "reports.exportExcel";
+
+    /// <summary>Download a report as CSV, where the report permits it.</summary>
+    public const string ReportsExportCsv = "reports.exportCsv";
+
+    /// <summary>Download a report as JSON, where the report permits it.</summary>
+    public const string ReportsExportJson = "reports.exportJson";
+
+    /// <summary>Download a report as PDF, where the report permits it.</summary>
+    public const string ReportsExportPdf = "reports.exportPdf";
+
+    /// <summary>Download a report as Word, where the report permits it.</summary>
+    public const string ReportsExportWord = "reports.exportWord";
 
     // ---- User groups
     /// <summary>See the user groups and who is in them.</summary>
@@ -125,7 +162,9 @@ public static class Permissions
     {
         QueriesView, QueriesReadSql, QueriesManage, QueriesTransfer, QueriesRun,
         QueriesExportExcel, QueriesExportCsv, QueriesExportJson, QueriesExportPdf, QueriesExportWord,
-        AccessManageQuery, AccessManageGroup, QueryGroupsManage,
+        AccessManageQuery, AccessManageGroup, AccessManageReport, QueryGroupsManage,
+        ReportsView, ReportsManage, ReportsRun,
+        ReportsExportExcel, ReportsExportCsv, ReportsExportJson, ReportsExportPdf, ReportsExportWord,
         UserGroupsView, UserGroupsManage,
         UsersView, UsersManage,
         DirectoryView, DirectoryManage,

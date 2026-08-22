@@ -14,13 +14,15 @@ namespace Bayan.Infrastructure.BackgroundJobs;
 /// (see <see cref="ResultSpillWriter"/>). Retention is <b>sliding</b> — a job is evicted after it
 /// has been idle for <c>ResultCache:RetentionMinutes</c> — and a background maintenance sweep also
 /// enforces heap/disk size budgets via LRU eviction, so memory stays bounded under load. Spill files
-/// are deleted on eviction, on explicit removal, at startup (orphans from a prior run) and at
-/// shutdown. Suitable for a single API instance; a multi-instance deployment would need a
-/// shared/persistent store instead.
+/// are encrypted with a per-process key (see <see cref="ResultCacheCipher"/>) and deleted on
+/// eviction, on explicit removal, at startup (orphans from a prior run) and at shutdown.
+/// Suitable for a single API instance; a multi-instance deployment would need a shared/persistent
+/// store instead.
 /// </summary>
 public class InMemoryQueryJobStore : IQueryJobStore, IDisposable
 {
     private readonly ResultCacheOptions _options;
+    private readonly ResultCacheCipher _cipher = new();
     private readonly ConcurrentDictionary<Guid, QueryJob> _jobs = new();
 
     public InMemoryQueryJobStore(IConfiguration configuration)
@@ -98,7 +100,7 @@ public class InMemoryQueryJobStore : IQueryJobStore, IDisposable
     {
         try
         {
-            return ResultSpillWriter.Create(id, columns, rows, _options);
+            return ResultSpillWriter.Create(id, columns, rows, _options, _cipher);
         }
         catch
         {

@@ -6,11 +6,17 @@ namespace Bayan.Domain.Services;
 /// <summary>
 /// The rules deciding whether a result may be downloaded in a given format.
 ///
-/// <para>Two independent gates have to agree. The <b>query</b> lists the formats it may ever be
-/// exported as (<see cref="Entities.DynamicQuery.AllowedExportFormats"/>), and the <b>role</b>
-/// says which formats this person may use at all. A download needs both; either alone grants
-/// nothing. Keeping the mapping here rather than at the call sites means the API and the client
-/// cannot drift into disagreeing about what is allowed.</para>
+/// <para>Two independent gates have to agree. The <b>subject</b> — a query
+/// (<see cref="Entities.DynamicQuery.AllowedExportFormats"/>) or a report
+/// (<see cref="Entities.Report.AllowedExportFormats"/>) — lists the formats it may ever be
+/// exported as, and the <b>role</b> says which formats this person may use at all. A download
+/// needs both; either alone grants nothing. Keeping the mapping here rather than at the call
+/// sites means the API and the client cannot drift into disagreeing about what is allowed.</para>
+///
+/// <para>Queries and reports carry separate permission families (<c>queries.export*</c> vs
+/// <c>reports.export*</c>) rather than sharing one, because being trusted to download a single
+/// query's rows is not the same decision as being trusted to download a whole assembled
+/// document.</para>
 /// </summary>
 public static class ExportPermissions
 {
@@ -22,6 +28,17 @@ public static class ExportPermissions
         ExportFileFormat.Json => Permissions.QueriesExportJson,
         ExportFileFormat.Pdf => Permissions.QueriesExportPdf,
         ExportFileFormat.Word => Permissions.QueriesExportWord,
+        _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unknown export format.")
+    };
+
+    /// <summary>The permission a role must hold to download a <i>report</i> in this format.</summary>
+    public static string ReportPermissionFor(ExportFileFormat format) => format switch
+    {
+        ExportFileFormat.Excel => Permissions.ReportsExportExcel,
+        ExportFileFormat.Csv => Permissions.ReportsExportCsv,
+        ExportFileFormat.Json => Permissions.ReportsExportJson,
+        ExportFileFormat.Pdf => Permissions.ReportsExportPdf,
+        ExportFileFormat.Word => Permissions.ReportsExportWord,
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unknown export format.")
     };
 
@@ -72,6 +89,20 @@ public static class ExportPermissions
     {
         return Parse(allowedExportFormats)
             .Where(f => holdsPermission(PermissionFor(f)))
+            .ToList();
+    }
+
+    /// <summary>
+    /// The formats this caller may actually download for this <i>report</i>: what the report
+    /// permits, narrowed to what the caller's roles permit through the <c>reports.export*</c>
+    /// family.
+    /// </summary>
+    public static IReadOnlyList<ExportFileFormat> EffectiveForReport(
+        string? allowedExportFormats,
+        Func<string, bool> holdsPermission)
+    {
+        return Parse(allowedExportFormats)
+            .Where(f => holdsPermission(ReportPermissionFor(f)))
             .ToList();
     }
 }

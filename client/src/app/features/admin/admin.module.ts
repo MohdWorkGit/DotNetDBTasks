@@ -38,6 +38,9 @@ import { ScheduledTasksListComponent } from './components/scheduled-tasks/schedu
 import { ScheduledTaskFormComponent } from './components/scheduled-tasks/scheduled-task-form.component';
 import { ScheduledTaskRunsComponent } from './components/scheduled-tasks/scheduled-task-runs.component';
 import { ScheduledTaskAccessComponent } from './components/scheduled-tasks/scheduled-task-access.component';
+import { ReportsListComponent } from './components/reports/reports-list.component';
+import { ReportAccessComponent } from './components/reports/report-access.component';
+import { ReportFormComponent } from './components/reports/report-form.component';
 import { SystemAuditComponent } from './components/system-audit/system-audit.component';
 import { SystemSettingsComponent } from './components/system-settings/system-settings.component';
 import { PermissionsMatrixComponent } from './components/system-settings/permissions-matrix.component';
@@ -65,6 +68,9 @@ import { PERM } from '@core/models/permissions';
     ScheduledTaskFormComponent,
     ScheduledTaskRunsComponent,
     ScheduledTaskAccessComponent,
+    ReportsListComponent,
+    ReportFormComponent,
+    ReportAccessComponent,
     SystemAuditComponent,
     SystemSettingsComponent,
     PermissionsMatrixComponent
@@ -126,6 +132,14 @@ import { PERM } from '@core/models/permissions';
         canActivate: [authGuard], data: { permissions: [PERM.scheduledTasksViewAll, PERM.scheduledTasksManage] } },
       { path: 'scheduled-tasks/:id/access', component: ScheduledTaskAccessComponent,
         canActivate: [authGuard], data: { permissions: [PERM.scheduledTasksManage] } },
+      { path: 'reports', component: ReportsListComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.reportsView] } },
+      { path: 'reports/create', component: ReportFormComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.reportsManage] } },
+      { path: 'reports/edit/:id', component: ReportFormComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.reportsManage] } },
+      { path: 'reports/:id/access', component: ReportAccessComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.accessManageReport] } },
       { path: 'logs', component: ExecutionLogsComponent,
         canActivate: [authGuard], data: { permissions: [PERM.logsView] } },
       { path: 'system-audit', component: SystemAuditComponent,

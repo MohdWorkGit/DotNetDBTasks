@@ -3,18 +3,34 @@ using Bayan.Domain.Enums;
 namespace Bayan.Domain.Entities;
 
 /// <summary>
-/// One query inside a scheduled task. Read queries run with their fixed parameter
-/// values and are exported to a file in the task's output folder; write queries
-/// (INSERT/UPDATE/DELETE) are committed and only their affected-row count is
-/// recorded — no file. Read items can be incremental via the Key* fields.
+/// One thing a scheduled task runs: a query, or a report.
+///
+/// <para>Read queries run with their fixed parameter values and are exported to a file in the
+/// task's output folder; write queries (INSERT/UPDATE/DELETE) are committed and only their
+/// affected-row count is recorded — no file. Read items can be incremental via the Key* fields.</para>
+///
+/// <para>A report item runs the whole report and writes its document. Incremental checkpoints
+/// do not apply to one: a report is a composed document, not a stream of rows to resume.</para>
 /// </summary>
 public class ScheduledTaskItem : BaseEntity
 {
     public Guid ScheduledTaskId { get; set; }
     public ScheduledTask ScheduledTask { get; set; } = null!;
 
-    public Guid DynamicQueryId { get; set; }
-    public DynamicQuery DynamicQuery { get; set; } = null!;
+    /// <summary>
+    /// The query this item runs. Null when the item runs a <see cref="Report"/> instead —
+    /// exactly one of the two is set, which the validator enforces.
+    /// </summary>
+    public Guid? DynamicQueryId { get; set; }
+    public DynamicQuery? DynamicQuery { get; set; }
+
+    /// <summary>
+    /// The report this item runs, as an alternative to a single query. A report already
+    /// composes several queries into one document, so a report item is never folded into a
+    /// task's combined output — it <i>is</i> the combination.
+    /// </summary>
+    public Guid? ReportId { get; set; }
+    public Report? Report { get; set; }
 
     /// <summary>JSON object of parameter name → value, matching the query's parameter definitions.</summary>
     public string? ParametersJson { get; set; }

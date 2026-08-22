@@ -34,7 +34,7 @@ public class GetScheduledTaskByIdQueryHandler : IRequestHandler<GetScheduledTask
         var task = (await _unitOfWork.ScheduledTasks.FindAsync(
             t => t.Id == request.Id, cancellationToken,
             ScheduledTaskAccess.GrantIncludes
-                .Concat(new[] { "Triggers", "Items", "Items.DynamicQuery" }).ToArray())).FirstOrDefault()
+                .Concat(new[] { "Triggers", "Items", "Items.DynamicQuery", "Items.Report" }).ToArray())).FirstOrDefault()
             ?? throw new NotFoundException(nameof(ScheduledTask), request.Id);
 
         await ScheduledTaskAccess.EnsureCanViewAsync(

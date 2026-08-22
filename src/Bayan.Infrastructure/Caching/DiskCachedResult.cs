@@ -7,7 +7,8 @@ namespace Bayan.Infrastructure.Caching;
 
 /// <summary>
 /// A large cached result spilled to local disk: rows live in an NDJSON data file
-/// (one <see cref="ResultRowSerializer"/> line each) with a sidecar index of per-row byte offsets
+/// (one <see cref="ResultRowSerializer"/> line each, sealed by <see cref="ResultCacheCipher"/> so
+/// nothing readable sits on disk) with a sidecar index of per-row byte offsets
 /// for O(1) seeking. Only the columns, total-row count and file handles stay in the heap. Paging
 /// with no filter/sort seeks directly via the index; filtering/sorting stream the file once and
 /// keep at most the page plus (for sort) small (key, offset) pairs in memory.
@@ -16,16 +17,19 @@ internal sealed class DiskCachedResult : ICachedResult
 {
     private readonly string _dataPath;
     private readonly string _indexPath;
+    private readonly ResultCacheCipher _cipher;
 
     public DiskCachedResult(
         string dataPath,
         string indexPath,
         IReadOnlyList<string> columns,
         int totalRows,
-        long diskSizeBytes)
+        long diskSizeBytes,
+        ResultCacheCipher cipher)
     {
         _dataPath = dataPath;
         _indexPath = indexPath;
+        _cipher = cipher;
         Columns = columns;
         TotalRows = totalRows;
         ApproxSizeBytes = diskSizeBytes;
@@ -72,9 +76,10 @@ internal sealed class DiskCachedResult : ICachedResult
         var skip = (long)pageIndex * pageSize;
         var page = new List<IReadOnlyDictionary<string, object?>>(pageSize);
         var matched = 0;
+        using var session = _cipher.Open();
         foreach (var (_, line) in ReadLines())
         {
-            var row = ResultRowSerializer.DecodeRow(line, Columns);
+            var row = ResultRowSerializer.DecodeRow(session.Unprotect(line), Columns);
             if (!CachedRowOps.Matches(row, filters))
                 continue;
             if (matched >= skip && page.Count < pageSize)
@@ -91,9 +96,10 @@ internal sealed class DiskCachedResult : ICachedResult
         IReadOnlyDictionary<string, string> filters, bool hasFilters)
     {
         var keyed = new List<(object? Key, long Offset)>();
+        using var session = _cipher.Open();
         foreach (var (offset, line) in ReadLines())
         {
-            var row = ResultRowSerializer.DecodeRow(line, Columns);
+            var row = ResultRowSerializer.DecodeRow(session.Unprotect(line), Columns);
             if (hasFilters && !CachedRowOps.Matches(row, filters))
                 continue;
             keyed.Add((row.GetValueOrDefault(sortColumn), offset));
@@ -113,7 +119,7 @@ internal sealed class DiskCachedResult : ICachedResult
         var rows = new List<IReadOnlyDictionary<string, object?>>(count);
         using var fs = OpenData();
         foreach (var (_, offset) in keyed.Skip((int)start).Take(count))
-            rows.Add(ReadRowAt(fs, offset));
+            rows.Add(ReadRowAt(fs, offset, session));
 
         return new CachedResultPage(rows, filteredTotal, TotalRows);
     }
@@ -155,28 +161,30 @@ internal sealed class DiskCachedResult : ICachedResult
         fs.ReadExactly(buffer);
 
         var lineStart = 0;
+        using var session = _cipher.Open();
         for (int i = 0; i < buffer.Length; i++)
         {
             if (buffer[i] != (byte)'\n')
                 continue;
             rows.Add(ResultRowSerializer.DecodeRow(
-                Encoding.UTF8.GetString(buffer, lineStart, i - lineStart), Columns));
+                session.Unprotect(Encoding.UTF8.GetString(buffer, lineStart, i - lineStart)), Columns));
             lineStart = i + 1;
         }
         return rows;
     }
 
-    private Dictionary<string, object?> ReadRowAt(FileStream fs, long offset)
+    private Dictionary<string, object?> ReadRowAt(FileStream fs, long offset, ResultCacheCipher.Session session)
     {
         fs.Seek(offset, SeekOrigin.Begin);
         var bytes = new List<byte>(256);
         int b;
         while ((b = fs.ReadByte()) != -1 && b != '\n')
             bytes.Add((byte)b);
-        return ResultRowSerializer.DecodeRow(Encoding.UTF8.GetString(bytes.ToArray()), Columns);
+        return ResultRowSerializer.DecodeRow(
+            session.Unprotect(Encoding.UTF8.GetString(bytes.ToArray())), Columns);
     }
 
-    /// <summary>Streams the data file yielding each row's start byte offset and its raw JSON line.</summary>
+    /// <summary>Streams the data file yielding each row's start byte offset and its sealed line.</summary>
     private IEnumerable<(long Offset, string Line)> ReadLines()
     {
         using var fs = OpenData();
@@ -239,15 +247,17 @@ internal sealed class DiskCachedResult : ICachedResult
         {
             get
             {
+                using var session = _owner._cipher.Open();
                 using var fs = _owner.OpenData();
-                return _owner.ReadRowAt(fs, _owner.ReadOffset(index));
+                return _owner.ReadRowAt(fs, _owner.ReadOffset(index), session);
             }
         }
 
         public IEnumerator<IReadOnlyDictionary<string, object?>> GetEnumerator()
         {
+            using var session = _owner._cipher.Open();
             foreach (var (_, line) in _owner.ReadLines())
-                yield return ResultRowSerializer.DecodeRow(line, _owner.Columns);
+                yield return ResultRowSerializer.DecodeRow(session.Unprotect(line), _owner.Columns);
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

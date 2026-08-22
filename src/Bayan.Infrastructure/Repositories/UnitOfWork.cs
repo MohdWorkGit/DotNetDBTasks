@@ -37,6 +37,15 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<ScheduledTaskViewer> ScheduledTaskViewers { get; }
     public IRepository<ScheduledTaskViewerRole> ScheduledTaskViewerRoles { get; }
     public IRepository<ScheduledTaskViewerUserGroup> ScheduledTaskViewerUserGroups { get; }
+    public IRepository<Report> Reports { get; }
+    public IRepository<ReportDataset> ReportDatasets { get; }
+    public IRepository<ReportParameter> ReportParameters { get; }
+    public IRepository<ReportParameterMap> ReportParameterMaps { get; }
+    public IRepository<ReportRole> ReportRoles { get; }
+    public IRepository<ReportUserGroup> ReportUserGroups { get; }
+    public IRepository<ReportUser> ReportUsers { get; }
+    public IRepository<ReportChart> ReportCharts { get; }
+    public IRepository<ReportRun> ReportRuns { get; }
     public IRepository<SystemTemplate> SystemTemplates { get; }
     public IRepository<SystemAuditLog> SystemAuditLogs { get; }
     public IRepository<SystemSetting> SystemSettings { get; }
@@ -69,6 +78,15 @@ public class UnitOfWork : IUnitOfWork
         ScheduledTaskViewers = new Repository<ScheduledTaskViewer>(context);
         ScheduledTaskViewerRoles = new Repository<ScheduledTaskViewerRole>(context);
         ScheduledTaskViewerUserGroups = new Repository<ScheduledTaskViewerUserGroup>(context);
+        Reports = new Repository<Report>(context);
+        ReportDatasets = new Repository<ReportDataset>(context);
+        ReportParameters = new Repository<ReportParameter>(context);
+        ReportParameterMaps = new Repository<ReportParameterMap>(context);
+        ReportRoles = new Repository<ReportRole>(context);
+        ReportUserGroups = new Repository<ReportUserGroup>(context);
+        ReportUsers = new Repository<ReportUser>(context);
+        ReportCharts = new Repository<ReportChart>(context);
+        ReportRuns = new Repository<ReportRun>(context);
         SystemTemplates = new Repository<SystemTemplate>(context);
         SystemAuditLogs = new Repository<SystemAuditLog>(context);
         SystemSettings = new Repository<SystemSetting>(context);

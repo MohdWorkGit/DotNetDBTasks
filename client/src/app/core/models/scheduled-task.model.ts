@@ -37,7 +37,10 @@ export interface ScheduleTrigger {
 
 export interface ScheduledTaskItem {
   id: string;
-  dynamicQueryId: string;
+  dynamicQueryId: string | null;
+  /** Set instead of dynamicQueryId when this item runs a report. */
+  reportId?: string | null;
+  reportName?: string | null;
   queryName: string;
   parameters: Record<string, string>;
   exportFormat: ExportFileFormat;
@@ -115,7 +118,10 @@ export interface ScheduledTask {
 }
 
 export interface ScheduledTaskItemInput {
-  dynamicQueryId: string;
+  dynamicQueryId: string | null;
+  /** Set instead of dynamicQueryId when this item runs a report. */
+  reportId?: string | null;
+  reportName?: string | null;
   parameters: Record<string, string>;
   exportFormat: ExportFileFormat;
   /** CSV only: field separator text (null = comma), e.g. ";" or ";;". */

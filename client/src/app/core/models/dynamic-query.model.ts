@@ -1,3 +1,5 @@
+import { ReportSummary } from './report.model';
+
 export enum ParameterType {
   String = 0,
   Number = 1,
@@ -240,6 +242,12 @@ export interface MyQueryGroup {
   name: string;
   description: string;
   queries: DynamicQuery[];
+  /**
+   * Reports filed in this same group. They appear beside the queries rather than on a page of
+   * their own — running a report is the same kind of act as running a query, so the folder a
+   * thing lives in is what should organise it, not what kind of thing it is.
+   */
+  reports: ReportSummary[];
 }
 
 export interface CreateDynamicQueryRequest {

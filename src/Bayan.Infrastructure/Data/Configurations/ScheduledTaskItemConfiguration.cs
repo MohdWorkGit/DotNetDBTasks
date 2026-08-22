@@ -24,7 +24,15 @@ public class ScheduledTaskItemConfiguration : IEntityTypeConfiguration<Scheduled
             .HasForeignKey(e => e.DynamicQueryId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        // Same reasoning as the query above: deleting a report a schedule depends on must fail
+        // loudly rather than leaving the task pointing at nothing.
+        builder.HasOne(e => e.Report)
+            .WithMany()
+            .HasForeignKey(e => e.ReportId)
+            .OnDelete(DeleteBehavior.NoAction);
+
         builder.HasIndex(e => e.ScheduledTaskId);
         builder.HasIndex(e => e.DynamicQueryId);
+        builder.HasIndex(e => e.ReportId);
     }
 }

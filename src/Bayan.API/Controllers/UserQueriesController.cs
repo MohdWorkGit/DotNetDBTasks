@@ -26,7 +26,11 @@ public class ExecuteQueryRequest
 /// </summary>
 [ApiController]
 [Route("api/user/queries")]
-[RequirePermission(Permissions.QueriesRun)]
+// Reachable by either capability: this controller now serves the shared "My Queries" page,
+// which lists reports beside queries, and the paging endpoint the report viewer reads its
+// sections from. Every action that actually touches a query re-states queries.run below, so a
+// report-only role reaches the page and its own cached rows and nothing else.
+[RequirePermission(Permissions.QueriesRun, Permissions.ReportsRun)]
 public class UserQueriesController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -58,6 +62,7 @@ public class UserQueriesController : ControllerBase
     /// <summary>
     /// Retrieves all queries available to the current user based on role assignments.
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpGet]
     public async Task<IActionResult> GetMyQueries(CancellationToken cancellationToken)
     {
@@ -79,6 +84,7 @@ public class UserQueriesController : ControllerBase
     /// <summary>
     /// Retrieves a single query by its identifier, verifying the current user has access.
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetMyQueryById(Guid id, CancellationToken cancellationToken)
     {
@@ -98,6 +104,7 @@ public class UserQueriesController : ControllerBase
     /// <see cref="ExportFile"/> — so the query executes only once for both. Write queries are
     /// returned inline (preview/confirm) exactly as before and are not cached.
     /// </remarks>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpPost("{id:guid}/execute")]
     public async Task<IActionResult> Execute(
         Guid id,
@@ -160,6 +167,7 @@ public class UserQueriesController : ControllerBase
     /// default layout. Only the submitting user (or an Admin) may download; the job must have
     /// succeeded.
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpGet("jobs/{jobId:guid}/export-file")]
     public async Task<IActionResult> ExportFile(
         Guid jobId,
@@ -248,6 +256,7 @@ public class UserQueriesController : ControllerBase
     /// result. Used for queries flagged as long-running so every HTTP request stays short and
     /// is not killed by proxy/edge timeouts (nginx, Cloudflare, IIS).
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpPost("{id:guid}/execute-async")]
     public async Task<IActionResult> ExecuteAsync(
         Guid id,
@@ -280,6 +289,7 @@ public class UserQueriesController : ControllerBase
     /// never sent here — the grid fetches them a page at a time from <see cref="GetJobRows"/>.
     /// Only the submitting user (or an Admin) may read a job.
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpGet("jobs/{jobId:guid}")]
     public IActionResult GetJob(Guid jobId)
     {
@@ -306,6 +316,7 @@ public class UserQueriesController : ControllerBase
     /// Cancels a running async query job, stopping the underlying database command. Only the
     /// submitting user (or an Admin) may cancel a job.
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpPost("jobs/{jobId:guid}/cancel")]
     public IActionResult CancelJob(Guid jobId)
     {
@@ -343,6 +354,7 @@ public class UserQueriesController : ControllerBase
     /// Returns the selectable options for a dropdown parameter.
     /// Options are either the static list defined by the admin or the result of a lookup query.
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpGet("{queryId:guid}/parameters/{parameterId:guid}/dropdown-options")]
     public async Task<IActionResult> GetDropdownOptions(
         Guid queryId,
@@ -358,6 +370,7 @@ public class UserQueriesController : ControllerBase
     /// <summary>
     /// Retrieves one page of the current user's query execution history.
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpGet("history")]
     public async Task<IActionResult> GetMyHistory(
         [FromQuery] string? sortBy,
@@ -382,6 +395,7 @@ public class UserQueriesController : ControllerBase
     /// Retrieves one page of the pre-change row snapshots recorded for one of the current
     /// user's execution logs.
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun)]
     [HttpGet("history/{id:guid}/old-values")]
     public async Task<IActionResult> GetMyHistoryOldValues(
         Guid id,

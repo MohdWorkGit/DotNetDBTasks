@@ -429,6 +429,408 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.ToTable("QueryParameters");
                 });
 
+            modelBuilder.Entity("Bayan.Domain.Entities.Report", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("AllowedExportFormats")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("NVARCHAR2(1000)");
+
+                    b.Property<short>("IsEnabled")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<int>("MaxDetailRows")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(100);
+
+                    b.Property<int>("MaxTotalRows")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<Guid?>("QueryGroupId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<byte[]>("TemplateDocx")
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("TemplateFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("NVARCHAR2(255)");
+
+                    b.Property<int>("TimeoutSeconds")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(120);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("QueryGroupId");
+
+                    b.ToTable("Reports");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportChart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("CategoryColumn")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<string>("ChartKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<int>("ChartType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("MaxCategories")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(25);
+
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("SeriesColumnsJson")
+                        .IsRequired()
+                        .HasColumnType("CLOB");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.HasIndex("ReportId", "ChartKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ReportCharts_ReportId_ChartKey");
+
+                    b.ToTable("ReportCharts");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportDataset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("ColumnSelectionJson")
+                        .HasColumnType("CLOB");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("DatasetKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<Guid?>("DynamicQueryId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<short>("IsVisibleInViewer")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<int?>("JoinType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("LeftColumn")
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<Guid?>("LeftDatasetId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid?>("ParentDatasetId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("RightColumn")
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<Guid?>("RightDatasetId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int>("SourceType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DynamicQueryId")
+                        .HasDatabaseName("IX_ReportDatasets_DynamicQueryId");
+
+                    b.HasIndex("ParentDatasetId")
+                        .HasDatabaseName("IX_ReportDatasets_ParentDatasetId");
+
+                    b.HasIndex("ReportId", "DatasetKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ReportDatasets_ReportId_DatasetKey");
+
+                    b.ToTable("ReportDatasets");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportParameter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<short>("AllowMultiple")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("DefaultValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("NVARCHAR2(500)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<Guid?>("DropdownQueryId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("DropdownQueryLabelColumn")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<string>("DropdownQueryValueColumn")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<int?>("DropdownSourceType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("DropdownStaticValues")
+                        .HasColumnType("CLOB");
+
+                    b.Property<short>("IsRequired")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<int>("ParameterType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DropdownQueryId")
+                        .HasDatabaseName("IX_ReportParameters_DropdownQueryId");
+
+                    b.HasIndex("ReportId");
+
+                    b.ToTable("ReportParameters");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportParameterMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("ConstantValue")
+                        .HasMaxLength(2000)
+                        .HasColumnType("NVARCHAR2(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("ParentColumn")
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<Guid>("ReportDatasetId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid?>("ReportParameterId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("SourceKind")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("TargetParameterName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportParameterId");
+
+                    b.HasIndex("ReportDatasetId", "TargetParameterName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ReportParameterMaps_Dataset_Target");
+
+                    b.ToTable("ReportParameterMaps");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportRole", b =>
+                {
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("ReportId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("ReportRoles");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("DatasetResultsJson")
+                        .HasColumnType("CLOB");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("NUMBER(19)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("NVARCHAR2(2000)");
+
+                    b.Property<short>("IsSuccess")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<string>("ParametersJson")
+                        .HasColumnType("CLOB");
+
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportId");
+
+                    b.HasIndex("StartedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ReportRuns");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportUser", b =>
+                {
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("ReportId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ReportUsers");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportUserGroup", b =>
+                {
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("UserGroupId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("ReportId", "UserGroupId");
+
+                    b.HasIndex("UserGroupId");
+
+                    b.ToTable("ReportUserGroups");
+                });
+
             modelBuilder.Entity("Bayan.Domain.Entities.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -564,7 +966,7 @@ namespace Bayan.Infrastructure.Data.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("NVARCHAR2(8)");
 
-                    b.Property<Guid>("DynamicQueryId")
+                    b.Property<Guid?>("DynamicQueryId")
                         .HasColumnType("RAW(16)");
 
                     b.Property<int>("ExportFormat")
@@ -593,6 +995,9 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.Property<string>("ParametersJson")
                         .HasColumnType("CLOB");
 
+                    b.Property<Guid?>("ReportId")
+                        .HasColumnType("RAW(16)");
+
                     b.Property<Guid>("ScheduledTaskId")
                         .HasColumnType("RAW(16)");
 
@@ -605,6 +1010,8 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DynamicQueryId");
+
+                    b.HasIndex("ReportId");
 
                     b.HasIndex("ScheduledTaskId");
 
@@ -1194,6 +1601,142 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.Navigation("DynamicQuery");
                 });
 
+            modelBuilder.Entity("Bayan.Domain.Entities.Report", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.QueryGroup", "QueryGroup")
+                        .WithMany()
+                        .HasForeignKey("QueryGroupId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("QueryGroup");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportChart", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Report", "Report")
+                        .WithMany("Charts")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportDataset", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.DynamicQuery", "DynamicQuery")
+                        .WithMany()
+                        .HasForeignKey("DynamicQueryId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Bayan.Domain.Entities.Report", "Report")
+                        .WithMany("Datasets")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DynamicQuery");
+
+                    b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportParameter", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Report", "Report")
+                        .WithMany("Parameters")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportParameterMap", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.ReportDataset", "ReportDataset")
+                        .WithMany("ParameterMaps")
+                        .HasForeignKey("ReportDatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.ReportParameter", "ReportParameter")
+                        .WithMany("Maps")
+                        .HasForeignKey("ReportParameterId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("ReportDataset");
+
+                    b.Navigation("ReportParameter");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportRole", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Report", "Report")
+                        .WithMany("ReportRoles")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Report");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportRun", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Report", "Report")
+                        .WithMany("Runs")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportUser", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Report", "Report")
+                        .WithMany("ReportUsers")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Report");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportUserGroup", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Report", "Report")
+                        .WithMany("ReportUserGroups")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.UserGroup", "UserGroup")
+                        .WithMany()
+                        .HasForeignKey("UserGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Report");
+
+                    b.Navigation("UserGroup");
+                });
+
             modelBuilder.Entity("Bayan.Domain.Entities.RolePermission", b =>
                 {
                     b.HasOne("Bayan.Domain.Entities.Role", "Role")
@@ -1210,8 +1753,12 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.HasOne("Bayan.Domain.Entities.DynamicQuery", "DynamicQuery")
                         .WithMany()
                         .HasForeignKey("DynamicQueryId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Bayan.Domain.Entities.Report", "Report")
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("Bayan.Domain.Entities.ScheduledTask", "ScheduledTask")
                         .WithMany("Items")
@@ -1220,6 +1767,8 @@ namespace Bayan.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("DynamicQuery");
+
+                    b.Navigation("Report");
 
                     b.Navigation("ScheduledTask");
                 });
@@ -1370,6 +1919,33 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.Navigation("QueryGroupUserGroups");
 
                     b.Navigation("QueryGroupUsers");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.Report", b =>
+                {
+                    b.Navigation("Charts");
+
+                    b.Navigation("Datasets");
+
+                    b.Navigation("Parameters");
+
+                    b.Navigation("ReportRoles");
+
+                    b.Navigation("ReportUserGroups");
+
+                    b.Navigation("ReportUsers");
+
+                    b.Navigation("Runs");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportDataset", b =>
+                {
+                    b.Navigation("ParameterMaps");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.ReportParameter", b =>
+                {
+                    b.Navigation("Maps");
                 });
 
             modelBuilder.Entity("Bayan.Domain.Entities.Role", b =>

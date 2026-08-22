@@ -14,7 +14,11 @@ namespace Bayan.Application.Features.ScheduledTasks.Commands;
 /// </summary>
 public class ScheduledTaskItemInput
 {
-    public Guid DynamicQueryId { get; set; }
+    /// <summary>The query to run. Leave null and set <see cref="ReportId"/> to run a report.</summary>
+    public Guid? DynamicQueryId { get; set; }
+
+    /// <summary>The report to run, as an alternative to a single query.</summary>
+    public Guid? ReportId { get; set; }
     public Dictionary<string, string> Parameters { get; set; } = new();
     public ExportFileFormat ExportFormat { get; set; }
 
@@ -150,7 +154,7 @@ public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduled
 
         var created = (await _unitOfWork.ScheduledTasks.FindAsync(
             t => t.Id == task.Id, cancellationToken,
-            "Triggers", "Items", "Items.DynamicQuery", "Viewers", "Viewers.User")).First();
+            "Triggers", "Items", "Items.DynamicQuery", "Items.Report", "Viewers", "Viewers.User")).First();
         return ScheduledTaskMapper.ToDto(created);
     }
 }
@@ -237,7 +241,35 @@ public static class ScheduledTaskInputValidator
 
         foreach (var item in items)
         {
-            var query = await unitOfWork.DynamicQueries.GetByIdAsync(item.DynamicQueryId, cancellationToken)
+            // A report item is validated on its own terms: it has no single query, no write
+            // semantics and no incremental checkpoint to resolve.
+            if (item.ReportId is not null)
+            {
+                if (item.DynamicQueryId is not null)
+                {
+                    throw new DomainException(
+                        "An item runs either a query or a report, not both.");
+                }
+
+                var reportExists = await unitOfWork.Reports.ExistsAsync(
+                    r => r.Id == item.ReportId.Value, cancellationToken);
+                if (!reportExists)
+                    throw new NotFoundException("Report", item.ReportId.Value);
+
+                if (!string.IsNullOrWhiteSpace(item.KeyColumn) || !string.IsNullOrWhiteSpace(item.KeyParameter))
+                {
+                    throw new DomainException(
+                        "A report item cannot be incremental: a report is a composed document, " +
+                        "not a stream of rows to resume from.");
+                }
+
+                continue;
+            }
+
+            if (item.DynamicQueryId is null)
+                throw new DomainException("Each scheduled item needs a query or a report.");
+
+            var query = await unitOfWork.DynamicQueries.GetByIdAsync(item.DynamicQueryId.Value, cancellationToken)
                 ?? throw new DomainException("One of the selected queries no longer exists.");
 
             if (!Common.Models.CsvSeparator.TryParse(item.CsvSeparator, out _))
@@ -258,7 +290,7 @@ public static class ScheduledTaskInputValidator
                     $"Query '{query.Name}': choose which query parameter receives the saved key value.");
 
             var parameterExists = await unitOfWork.QueryParameters.ExistsAsync(
-                p => p.DynamicQueryId == item.DynamicQueryId && p.Name == item.KeyParameter,
+                p => p.DynamicQueryId == item.DynamicQueryId.Value && p.Name == item.KeyParameter,
                 cancellationToken);
             if (!parameterExists)
                 throw new DomainException(
@@ -303,6 +335,7 @@ public static class ScheduledTaskInputValidator
             Id = Guid.NewGuid(),
             ScheduledTaskId = taskId,
             DynamicQueryId = input.DynamicQueryId,
+            ReportId = input.ReportId,
             ParametersJson = JsonSerializer.Serialize(input.Parameters ?? new Dictionary<string, string>()),
             ExportFormat = input.ExportFormat,
             CsvSeparator = NormalizeSeparator(input.CsvSeparator, input.ExportFormat),
@@ -324,7 +357,7 @@ public static class ScheduledTaskInputValidator
     /// A checkpoint survives an edit only while it still means the same thing: same
     /// query, same key column, same receiving parameter.
     /// </summary>
-    public static string CheckpointIdentity(Guid dynamicQueryId, string? keyColumn, string? keyParameter) =>
+    public static string CheckpointIdentity(Guid? dynamicQueryId, string? keyColumn, string? keyParameter) =>
         $"{dynamicQueryId:N}|{keyColumn?.Trim().ToLowerInvariant()}|{keyParameter?.Trim().ToLowerInvariant()}";
 
     private static string? Clean(string? value) =>

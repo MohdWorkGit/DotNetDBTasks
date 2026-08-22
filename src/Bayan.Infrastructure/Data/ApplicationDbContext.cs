@@ -35,6 +35,15 @@ public class ApplicationDbContext : DbContext
     public DbSet<ScheduledTaskViewer> ScheduledTaskViewers => Set<ScheduledTaskViewer>();
     public DbSet<ScheduledTaskViewerRole> ScheduledTaskViewerRoles => Set<ScheduledTaskViewerRole>();
     public DbSet<ScheduledTaskViewerUserGroup> ScheduledTaskViewerUserGroups => Set<ScheduledTaskViewerUserGroup>();
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<ReportDataset> ReportDatasets => Set<ReportDataset>();
+    public DbSet<ReportParameter> ReportParameters => Set<ReportParameter>();
+    public DbSet<ReportParameterMap> ReportParameterMaps => Set<ReportParameterMap>();
+    public DbSet<ReportRole> ReportRoles => Set<ReportRole>();
+    public DbSet<ReportUserGroup> ReportUserGroups => Set<ReportUserGroup>();
+    public DbSet<ReportUser> ReportUsers => Set<ReportUser>();
+    public DbSet<ReportChart> ReportCharts => Set<ReportChart>();
+    public DbSet<ReportRun> ReportRuns => Set<ReportRun>();
     public DbSet<SystemTemplate> SystemTemplates => Set<SystemTemplate>();
     public DbSet<SystemAuditLog> SystemAuditLogs => Set<SystemAuditLog>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();

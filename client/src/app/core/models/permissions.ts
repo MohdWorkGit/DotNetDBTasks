@@ -18,7 +18,16 @@ export const PERM = {
   queriesExportWord: 'queries.exportWord',
   accessManageQuery: 'access.manageQuery',
   accessManageGroup: 'access.manageGroup',
+  accessManageReport: 'access.manageReport',
   queryGroupsManage: 'queryGroups.manage',
+  reportsView: 'reports.view',
+  reportsManage: 'reports.manage',
+  reportsRun: 'reports.run',
+  reportsExportExcel: 'reports.exportExcel',
+  reportsExportCsv: 'reports.exportCsv',
+  reportsExportJson: 'reports.exportJson',
+  reportsExportPdf: 'reports.exportPdf',
+  reportsExportWord: 'reports.exportWord',
   userGroupsView: 'userGroups.view',
   userGroupsManage: 'userGroups.manage',
   usersView: 'users.view',
@@ -54,8 +63,18 @@ export const PERMISSION_GROUPS: { titleKey: string; permissions: string[] }[] = 
                   PERM.queriesExportPdf, PERM.queriesExportWord]
   },
   {
+    titleKey: 'admin.permissions.groups.reports',
+    permissions: [PERM.reportsView, PERM.reportsManage, PERM.reportsRun]
+  },
+  {
+    titleKey: 'admin.permissions.groups.reportExport',
+    permissions: [PERM.reportsExportExcel, PERM.reportsExportCsv, PERM.reportsExportJson,
+                  PERM.reportsExportPdf, PERM.reportsExportWord]
+  },
+  {
     titleKey: 'admin.permissions.groups.access',
-    permissions: [PERM.accessManageQuery, PERM.accessManageGroup, PERM.queryGroupsManage]
+    permissions: [PERM.accessManageQuery, PERM.accessManageGroup, PERM.accessManageReport,
+                  PERM.queryGroupsManage]
   },
   {
     titleKey: 'admin.permissions.groups.people',

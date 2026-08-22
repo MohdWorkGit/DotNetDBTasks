@@ -57,6 +57,9 @@ public static class DependencyInjection
         // Async query execution: in-memory job store + queue + ambient user context.
         // Singletons so they are shared across requests and the background worker.
         services.AddSingleton<IQueryJobStore, InMemoryQueryJobStore>();
+        // Groups a report run's section jobs so releasing the run releases all of them.
+        // Singleton and single-instance for the same reason the job store is.
+        services.AddSingleton<IReportRunStore, InMemoryReportRunStore>();
         services.AddSingleton<IQueryJobQueue, QueryJobQueue>();
         services.AddSingleton<IUserExecutionContext, UserExecutionContext>();
 

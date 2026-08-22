@@ -44,15 +44,16 @@ public class ResultFileExporter : IResultFileExporter
         string csvSeparator = ",",
         bool includeHeaders = true,
         byte[]? wordTemplate = null,
-        IReadOnlyList<ExportParameter>? parameters = null)
+        IReadOnlyList<ExportParameter>? parameters = null,
+        IReadOnlyList<ReportChartData>? charts = null)
     {
         return format switch
         {
             ExportFileFormat.Excel => _excelExporter.Export(results, name, includeHeaders),
             ExportFileFormat.Csv => ExportCsv(results, csvSeparator, includeHeaders),
             ExportFileFormat.Json => ExportJson(results),
-            ExportFileFormat.Pdf => ExportPdf(results, name, includeHeaders, wordTemplate, parameters),
-            ExportFileFormat.Word => WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters),
+            ExportFileFormat.Pdf => ExportPdf(results, name, includeHeaders, wordTemplate, parameters, charts),
+            ExportFileFormat.Word => WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters, charts),
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.")
         };
     }
@@ -69,6 +70,15 @@ public class ResultFileExporter : IResultFileExporter
 
     public byte[] GetStarterWordTemplate() => WordExporter.BuildStarterTemplate();
 
+    public byte[] GetReportStarterTemplate(
+        string reportName,
+        IReadOnlyList<ReportTemplateSection> sections,
+        bool rightToLeft = false,
+        IReadOnlyList<ReportTemplateChart>? charts = null) =>
+        WordExporter.BuildReportStarterTemplate(reportName, sections, rightToLeft, charts);
+
+    public ReportTemplateInspection InspectWordTemplate(byte[] docx) => WordExporter.Inspect(docx);
+
     /// <summary>
     /// PDF export: when a DOCX->PDF engine is installed, the PDF is the Word-template
     /// output converted — so it carries the same template styling as the Word export
@@ -80,11 +90,12 @@ public class ResultFileExporter : IResultFileExporter
         string name,
         bool includeHeaders,
         byte[]? wordTemplate,
-        IReadOnlyList<ExportParameter>? parameters)
+        IReadOnlyList<ExportParameter>? parameters,
+        IReadOnlyList<ReportChartData>? charts = null)
     {
         if (_docxToPdfConverter.IsAvailable)
         {
-            var docx = WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters);
+            var docx = WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters, charts);
             var pdf = _docxToPdfConverter.TryConvert(docx);
             if (pdf is not null)
                 return pdf;
@@ -92,7 +103,14 @@ public class ResultFileExporter : IResultFileExporter
         return PdfExporter.Export(results, name, includeHeaders);
     }
 
-    /// <summary>RFC 4180-style CSV, UTF-8 with BOM so Excel detects the encoding when opening it.</summary>
+    /// <summary>
+    /// RFC 4180-style CSV, UTF-8 with BOM so Excel detects the encoding when opening it.
+    ///
+    /// <para>Unkeyed sets are appended under one header — the combined scheduled-task shape.
+    /// Keyed sets are report sections with different columns, so each is written as its own
+    /// block preceded by a blank line and its title, and each gets its own header row. One
+    /// shared header would be wrong for every section but the first.</para>
+    /// </summary>
     private static byte[] ExportCsv(
         IReadOnlyList<ExportResultSet> results,
         string separator,
@@ -101,11 +119,37 @@ public class ResultFileExporter : IResultFileExporter
         using var ms = new MemoryStream();
         using (var w = new StreamWriter(ms, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), leaveOpen: true))
         {
-            if (includeHeaders && results.Count > 0)
-                WriteCsvRow(w, results[0].Columns.Select(c => (object?)c), separator);
+            var perSection = results.Any(r => !string.IsNullOrEmpty(r.Key));
 
+            if (!perSection)
+            {
+                if (includeHeaders && results.Count > 0)
+                    WriteCsvRow(w, results[0].Columns.Select(c => (object?)c), separator);
+
+                foreach (var result in results)
+                {
+                    foreach (var row in result.Rows)
+                        WriteCsvRow(w, result.Columns.Select(c => row.TryGetValue(c, out var v) ? v : null), separator);
+                }
+
+                return ms.ToArray();
+            }
+
+            var first = true;
             foreach (var result in results)
             {
+                // Blank line between sections so the blocks are visually separable.
+                if (!first)
+                    w.Write("\r\n");
+                first = false;
+
+                var label = string.IsNullOrWhiteSpace(result.Title) ? result.Key : result.Title;
+                if (!string.IsNullOrWhiteSpace(label))
+                    WriteCsvRow(w, new object?[] { label }, separator);
+
+                if (includeHeaders)
+                    WriteCsvRow(w, result.Columns.Select(c => (object?)c), separator);
+
                 foreach (var row in result.Rows)
                     WriteCsvRow(w, result.Columns.Select(c => row.TryGetValue(c, out var v) ? v : null), separator);
             }
@@ -149,29 +193,65 @@ public class ResultFileExporter : IResultFileExporter
         return "\"" + value.Replace("\"", "\"\"") + "\"";
     }
 
-    /// <summary>JSON array of objects, one per row across all result sets, preserving column order.</summary>
+    /// <summary>
+    /// Unkeyed sets produce a flat JSON array of row objects, preserving column order — the
+    /// shape query and combined scheduled-task downloads have always had.
+    ///
+    /// <para>Keyed sets produce an <i>object</i> keyed by dataset instead, because flattening a
+    /// report's sections into one array would interleave rows of different shapes with no way to
+    /// tell which section any of them came from.</para>
+    /// </summary>
     private static byte[] ExportJson(IReadOnlyList<ExportResultSet> results)
     {
         using var ms = new MemoryStream();
         using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
         {
-            writer.WriteStartArray();
-            foreach (var result in results)
+            var perSection = results.Any(r => !string.IsNullOrEmpty(r.Key));
+
+            if (perSection)
             {
-                foreach (var row in result.Rows)
+                writer.WriteStartObject();
+                foreach (var result in results)
                 {
-                    writer.WriteStartObject();
-                    foreach (var column in result.Columns)
-                    {
-                        row.TryGetValue(column, out var value);
-                        WriteJsonValue(writer, column, value);
-                    }
-                    writer.WriteEndObject();
+                    writer.WritePropertyName(result.Key!);
+                    WriteJsonRows(writer, result);
                 }
+                writer.WriteEndObject();
             }
-            writer.WriteEndArray();
+            else
+            {
+                writer.WriteStartArray();
+                foreach (var result in results)
+                {
+                    foreach (var row in result.Rows)
+                        WriteJsonRow(writer, result, row);
+                }
+                writer.WriteEndArray();
+            }
         }
         return ms.ToArray();
+    }
+
+    private static void WriteJsonRows(Utf8JsonWriter writer, ExportResultSet result)
+    {
+        writer.WriteStartArray();
+        foreach (var row in result.Rows)
+            WriteJsonRow(writer, result, row);
+        writer.WriteEndArray();
+    }
+
+    private static void WriteJsonRow(
+        Utf8JsonWriter writer,
+        ExportResultSet result,
+        IReadOnlyDictionary<string, object?> row)
+    {
+        writer.WriteStartObject();
+        foreach (var column in result.Columns)
+        {
+            row.TryGetValue(column, out var value);
+            WriteJsonValue(writer, column, value);
+        }
+        writer.WriteEndObject();
     }
 
     private static void WriteJsonValue(Utf8JsonWriter writer, string name, object? value)
