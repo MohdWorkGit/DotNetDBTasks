@@ -88,6 +88,7 @@ async function call(method, path, body, { raw = false } = {}) {
 
 const get = (p) => call('GET', p);
 const post = (p, b) => call('POST', p, b);
+const put = (p, b) => call('PUT', p, b);
 const del = (p) => call('DELETE', p, undefined, { raw: true });
 const unwrap = (j) => (j && j.items) || j || [];
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -132,6 +133,21 @@ async function loginAs(username, password) {
 const EXPORTS = ['Excel', 'Csv', 'Pdf', 'Word'];
 
 /** label/value option list for a Static drop-down. Labels translate, values do not. */
+/**
+ * A column alias, translated.
+ *
+ * <p>Column names come from the database rather than from the i18n catalogue, so the SELECT is
+ * the only place they can be translated. Aliasing them here is what makes the Arabic grids,
+ * exports, Word templates and chart axes read in Arabic.</p>
+ *
+ * <p>The LOOKUPS below are deliberately excluded: a dropdown parameter names its value and label
+ * columns, so those names are configuration and must not move with the language.</p>
+ */
+const A = (en, ar) => (LANG === 'ar' ? `AS "${ar}"` : `AS ${en}`);
+
+/** The same name used to refer to an alias again, in an ORDER BY. */
+const R = (en, ar) => (LANG === 'ar' ? `"${ar}"` : en);
+
 const opts = (...pairs) => JSON.stringify(pairs.map(([label, value]) => ({ label, value })));
 
 const P = {
@@ -283,16 +299,16 @@ const QUERIES = [
                    'جميع الطلبات المسجّلة خلال فترة محددة، مع تصفيتها بالحالة والحد الأدنى للقيمة. تقرير المبيعات اليومي.'),
     group: 'sales',
     exports: EXPORTS,
-    sql: `SELECT o.ORDER_NO,
-       c.CUSTOMER_NAME,
-       c.CUSTOMER_NAME_AR,
-       o.ORDER_DATE,
-       o.ORDER_STATUS,
-       o.PAYMENT_METHOD,
-       o.REGION,
-       o.TOTAL_AMOUNT,
-       o.CURRENCY,
-       e.FULL_NAME AS SALES_REP
+    sql: `SELECT o.ORDER_NO ${A('ORDER_NO', 'رقم الطلب')},
+       c.CUSTOMER_NAME ${A('CUSTOMER_NAME', 'اسم العميل')},
+       c.CUSTOMER_NAME_AR ${A('CUSTOMER_NAME_AR', 'اسم العميل بالعربية')},
+       o.ORDER_DATE ${A('ORDER_DATE', 'تاريخ الطلب')},
+       o.ORDER_STATUS ${A('ORDER_STATUS', 'حالة الطلب')},
+       o.PAYMENT_METHOD ${A('PAYMENT_METHOD', 'طريقة الدفع')},
+       o.REGION ${A('REGION', 'المنطقة')},
+       o.TOTAL_AMOUNT ${A('TOTAL_AMOUNT', 'القيمة الإجمالية')},
+       o.CURRENCY ${A('CURRENCY', 'العملة')},
+       e.FULL_NAME ${A('SALES_REP', 'مندوب المبيعات')}
   FROM ORDERS o
   JOIN CUSTOMERS c ON c.CUSTOMER_ID = o.CUSTOMER_ID
   JOIN EMPLOYEES e ON e.EMP_ID = o.SALES_REP_ID
@@ -315,16 +331,16 @@ const QUERIES = [
                    'عدد الطلبات وإجمالي ومتوسط قيمتها لكل منطقة. يمكن اختيار منطقة واحدة أو عدة مناطق.'),
     group: 'sales',
     exports: EXPORTS,
-    sql: `SELECT o.REGION,
-       COUNT(*) AS ORDER_COUNT,
-       SUM(o.TOTAL_AMOUNT) AS TOTAL_SALES,
-       ROUND(AVG(o.TOTAL_AMOUNT), 2) AS AVERAGE_ORDER
+    sql: `SELECT o.REGION ${A('REGION', 'المنطقة')},
+       COUNT(*) ${A('ORDER_COUNT', 'عدد الطلبات')},
+       SUM(o.TOTAL_AMOUNT) ${A('TOTAL_SALES', 'إجمالي المبيعات')},
+       ROUND(AVG(o.TOTAL_AMOUNT), 2) ${A('AVERAGE_ORDER', 'متوسط قيمة الطلب')}
   FROM ORDERS o
  WHERE o.REGION IN (@Regions)
    AND o.ORDER_DATE BETWEEN @FromDate AND @ToDate
    AND o.ORDER_STATUS <> 'Cancelled'
  GROUP BY o.REGION
- ORDER BY TOTAL_SALES DESC`,
+ ORDER BY ${R('TOTAL_SALES', 'إجمالي المبيعات')} DESC`,
     parameters: [
       P.lookup('Regions', T('Regions', 'المناطق'), 1, 'regions', 'REGION_CODE', 'REGION_NAME', true),
       P.date('FromDate', T('Order date from', 'من تاريخ الطلب'), 2),
@@ -339,17 +355,17 @@ const QUERIES = [
     group: 'sales',
     exports: EXPORTS,
     sql: `SELECT *
-  FROM (SELECT c.CUSTOMER_CODE,
-               c.CUSTOMER_NAME,
-               c.SEGMENT,
-               COUNT(o.ORDER_ID) AS ORDER_COUNT,
-               SUM(o.TOTAL_AMOUNT) AS TOTAL_REVENUE
+  FROM (SELECT c.CUSTOMER_CODE ${A('CUSTOMER_CODE', 'رمز العميل')},
+               c.CUSTOMER_NAME ${A('CUSTOMER_NAME', 'اسم العميل')},
+               c.SEGMENT ${A('SEGMENT', 'الشريحة')},
+               COUNT(o.ORDER_ID) ${A('ORDER_COUNT', 'عدد الطلبات')},
+               SUM(o.TOTAL_AMOUNT) ${A('TOTAL_REVENUE', 'إجمالي الإيرادات')}
           FROM CUSTOMERS c
           JOIN ORDERS o ON o.CUSTOMER_ID = c.CUSTOMER_ID
          WHERE o.ORDER_DATE BETWEEN @FromDate AND @ToDate
            AND o.ORDER_STATUS <> 'Cancelled'
          GROUP BY c.CUSTOMER_CODE, c.CUSTOMER_NAME, c.SEGMENT
-         ORDER BY TOTAL_REVENUE DESC)
+         ORDER BY ${R('TOTAL_REVENUE', 'إجمالي الإيرادات')} DESC)
  WHERE ROWNUM <= @TopCount`,
     parameters: [
       P.date('FromDate', T('Order date from', 'من تاريخ الطلب'), 1),
@@ -364,13 +380,13 @@ const QUERIES = [
                    'بنود طلب واحد: الصنف والكمية وسعر الوحدة وإجمالي البند.'),
     group: 'sales',
     exports: ['Excel', 'Pdf', 'Word'],
-    sql: `SELECT o.ORDER_NO,
-       p.SKU,
-       p.PRODUCT_NAME,
-       p.PRODUCT_NAME_AR,
-       i.QUANTITY,
-       i.UNIT_PRICE,
-       i.LINE_TOTAL
+    sql: `SELECT o.ORDER_NO ${A('ORDER_NO', 'رقم الطلب')},
+       p.SKU ${A('SKU', 'رمز الصنف')},
+       p.PRODUCT_NAME ${A('PRODUCT_NAME', 'اسم الصنف')},
+       p.PRODUCT_NAME_AR ${A('PRODUCT_NAME_AR', 'اسم الصنف بالعربية')},
+       i.QUANTITY ${A('QUANTITY', 'الكمية')},
+       i.UNIT_PRICE ${A('UNIT_PRICE', 'سعر الوحدة')},
+       i.LINE_TOTAL ${A('LINE_TOTAL', 'إجمالي السطر')}
   FROM ORDER_ITEMS i
   JOIN ORDERS o ON o.ORDER_ID = i.ORDER_ID
   JOIN PRODUCTS p ON p.PRODUCT_ID = i.PRODUCT_ID
@@ -385,14 +401,14 @@ const QUERIES = [
                    'عدد الطلبات والإيرادات لكل يوم خلال آخر 30 يومًا. تُصدّره المهمة المجدولة كل صباح.'),
     group: 'sales',
     exports: EXPORTS,
-    sql: `SELECT TRUNC(o.ORDER_DATE) AS ORDER_DAY,
-       COUNT(*) AS ORDER_COUNT,
-       SUM(o.TOTAL_AMOUNT) AS TOTAL_SALES
+    sql: `SELECT TRUNC(o.ORDER_DATE) ${A('ORDER_DAY', 'اليوم')},
+       COUNT(*) ${A('ORDER_COUNT', 'عدد الطلبات')},
+       SUM(o.TOTAL_AMOUNT) ${A('TOTAL_SALES', 'إجمالي المبيعات')}
   FROM ORDERS o
  WHERE o.ORDER_DATE >= TRUNC(SYSDATE) - 30
    AND o.ORDER_STATUS <> 'Cancelled'
  GROUP BY TRUNC(o.ORDER_DATE)
- ORDER BY ORDER_DAY DESC`,
+ ORDER BY ${R('ORDER_DAY', 'اليوم')} DESC`,
     parameters: []
   },
 
@@ -404,15 +420,15 @@ const QUERIES = [
                    'بيانات التواصل مع العملاء، مع إمكانية البحث بالاسم والمنطقة.'),
     group: 'service',
     exports: ['Excel', 'Csv'],
-    sql: `SELECT c.CUSTOMER_CODE,
-       c.CUSTOMER_NAME,
-       c.CUSTOMER_NAME_AR,
-       c.CITY,
-       c.REGION,
-       c.SEGMENT,
-       c.CONTACT_NAME,
-       c.CONTACT_EMAIL,
-       c.CONTACT_PHONE
+    sql: `SELECT c.CUSTOMER_CODE ${A('CUSTOMER_CODE', 'رمز العميل')},
+       c.CUSTOMER_NAME ${A('CUSTOMER_NAME', 'اسم العميل')},
+       c.CUSTOMER_NAME_AR ${A('CUSTOMER_NAME_AR', 'اسم العميل بالعربية')},
+       c.CITY ${A('CITY', 'المدينة')},
+       c.REGION ${A('REGION', 'المنطقة')},
+       c.SEGMENT ${A('SEGMENT', 'الشريحة')},
+       c.CONTACT_NAME ${A('CONTACT_NAME', 'اسم جهة الاتصال')},
+       c.CONTACT_EMAIL ${A('CONTACT_EMAIL', 'البريد الإلكتروني')},
+       c.CONTACT_PHONE ${A('CONTACT_PHONE', 'رقم الهاتف')}
   FROM CUSTOMERS c
  WHERE UPPER(c.CUSTOMER_NAME) LIKE '%' || UPPER(@NameContains) || '%'
    AND c.REGION = @Region
@@ -429,12 +445,12 @@ const QUERIES = [
                    'جميع الطلبات التي سجّلها عميل واحد، الأحدث أولًا.'),
     group: 'service',
     exports: ['Excel', 'Csv', 'Pdf'],
-    sql: `SELECT o.ORDER_NO,
-       o.ORDER_DATE,
-       o.ORDER_STATUS,
-       o.TOTAL_AMOUNT,
-       o.PAYMENT_METHOD,
-       o.DELIVERY_DATE
+    sql: `SELECT o.ORDER_NO ${A('ORDER_NO', 'رقم الطلب')},
+       o.ORDER_DATE ${A('ORDER_DATE', 'تاريخ الطلب')},
+       o.ORDER_STATUS ${A('ORDER_STATUS', 'حالة الطلب')},
+       o.TOTAL_AMOUNT ${A('TOTAL_AMOUNT', 'القيمة الإجمالية')},
+       o.PAYMENT_METHOD ${A('PAYMENT_METHOD', 'طريقة الدفع')},
+       o.DELIVERY_DATE ${A('DELIVERY_DATE', 'تاريخ التسليم')}
   FROM ORDERS o
   JOIN CUSTOMERS c ON c.CUSTOMER_ID = o.CUSTOMER_ID
  WHERE c.CUSTOMER_CODE = @CustomerCode
@@ -479,17 +495,17 @@ const QUERIES = [
                    'الأصناف النشطة التي انخفض مخزونها دون حد إعادة الطلب، الأشد نقصًا أولًا.'),
     group: 'inventory',
     exports: EXPORTS,
-    sql: `SELECT p.SKU,
-       p.PRODUCT_NAME,
-       p.PRODUCT_NAME_AR,
-       p.CATEGORY,
-       p.STOCK_QTY,
-       p.REORDER_LEVEL,
-       p.REORDER_LEVEL - p.STOCK_QTY AS SHORTFALL
+    sql: `SELECT p.SKU ${A('SKU', 'رمز الصنف')},
+       p.PRODUCT_NAME ${A('PRODUCT_NAME', 'اسم الصنف')},
+       p.PRODUCT_NAME_AR ${A('PRODUCT_NAME_AR', 'اسم الصنف بالعربية')},
+       p.CATEGORY ${A('CATEGORY', 'الفئة')},
+       p.STOCK_QTY ${A('STOCK_QTY', 'الكمية المتاحة')},
+       p.REORDER_LEVEL ${A('REORDER_LEVEL', 'حد إعادة الطلب')},
+       p.REORDER_LEVEL - p.STOCK_QTY ${A('SHORTFALL', 'النقص')}
   FROM PRODUCTS p
  WHERE p.STOCK_QTY < p.REORDER_LEVEL
    AND p.IS_ACTIVE = 1
- ORDER BY SHORTFALL DESC`,
+ ORDER BY ${R('SHORTFALL', 'النقص')} DESC`,
     parameters: []
   },
   {
@@ -499,14 +515,14 @@ const QUERIES = [
                    'السعر والمخزون لكل صنف ضمن فئة محددة.'),
     group: 'inventory',
     exports: EXPORTS,
-    sql: `SELECT p.SKU,
-       p.PRODUCT_NAME,
-       p.PRODUCT_NAME_AR,
-       p.CATEGORY,
-       p.UNIT_PRICE,
-       p.STOCK_QTY,
-       p.REORDER_LEVEL,
-       p.IS_ACTIVE
+    sql: `SELECT p.SKU ${A('SKU', 'رمز الصنف')},
+       p.PRODUCT_NAME ${A('PRODUCT_NAME', 'اسم الصنف')},
+       p.PRODUCT_NAME_AR ${A('PRODUCT_NAME_AR', 'اسم الصنف بالعربية')},
+       p.CATEGORY ${A('CATEGORY', 'الفئة')},
+       p.UNIT_PRICE ${A('UNIT_PRICE', 'سعر الوحدة')},
+       p.STOCK_QTY ${A('STOCK_QTY', 'الكمية المتاحة')},
+       p.REORDER_LEVEL ${A('REORDER_LEVEL', 'حد إعادة الطلب')},
+       p.IS_ACTIVE ${A('IS_ACTIVE', 'نشط')}
   FROM PRODUCTS p
  WHERE p.CATEGORY = @Category
    AND (@IncludeDiscontinued = 1 OR p.IS_ACTIVE = 1)
@@ -540,17 +556,17 @@ const QUERIES = [
                    'الأصناف التي لم تُبَع منذ عدد محدد من الأشهر، الأقدم أولًا.'),
     group: 'inventory',
     exports: ['Excel', 'Csv'],
-    sql: `SELECT p.SKU,
-       p.PRODUCT_NAME,
-       p.CATEGORY,
-       p.STOCK_QTY,
-       MAX(o.ORDER_DATE) AS LAST_SOLD_ON
+    sql: `SELECT p.SKU ${A('SKU', 'رمز الصنف')},
+       p.PRODUCT_NAME ${A('PRODUCT_NAME', 'اسم الصنف')},
+       p.CATEGORY ${A('CATEGORY', 'الفئة')},
+       p.STOCK_QTY ${A('STOCK_QTY', 'الكمية المتاحة')},
+       MAX(o.ORDER_DATE) ${A('LAST_SOLD_ON', 'آخر عملية بيع')}
   FROM PRODUCTS p
   LEFT JOIN ORDER_ITEMS i ON i.PRODUCT_ID = p.PRODUCT_ID
   LEFT JOIN ORDERS o ON o.ORDER_ID = i.ORDER_ID
  GROUP BY p.SKU, p.PRODUCT_NAME, p.CATEGORY, p.STOCK_QTY
 HAVING NVL(MAX(o.ORDER_DATE), SYSDATE - 9999) < SYSDATE - (@Months * 30)
- ORDER BY LAST_SOLD_ON`,
+ ORDER BY ${R('LAST_SOLD_ON', 'آخر عملية بيع')}`,
     parameters: [P.number('Months', T('Months without a sale', 'عدد الأشهر بدون بيع'), 1, true, '3')]
   },
 
@@ -562,14 +578,14 @@ HAVING NVL(MAX(o.ORDER_DATE), SYSDATE - 9999) < SYSDATE - (@Months * 30)
                    'الفواتير غير المسددة المستحقة قبل تاريخ محدد، مع الرصيد المتبقي.'),
     group: 'finance',
     exports: EXPORTS,
-    sql: `SELECT i.INVOICE_NO,
-       c.CUSTOMER_NAME,
-       i.ISSUE_DATE,
-       i.DUE_DATE,
-       i.AMOUNT,
-       i.PAID_AMOUNT,
-       i.AMOUNT - i.PAID_AMOUNT AS BALANCE,
-       i.INVOICE_STATUS
+    sql: `SELECT i.INVOICE_NO ${A('INVOICE_NO', 'رقم الفاتورة')},
+       c.CUSTOMER_NAME ${A('CUSTOMER_NAME', 'اسم العميل')},
+       i.ISSUE_DATE ${A('ISSUE_DATE', 'تاريخ الإصدار')},
+       i.DUE_DATE ${A('DUE_DATE', 'تاريخ الاستحقاق')},
+       i.AMOUNT ${A('AMOUNT', 'المبلغ')},
+       i.PAID_AMOUNT ${A('PAID_AMOUNT', 'المبلغ المسدد')},
+       i.AMOUNT - i.PAID_AMOUNT ${A('BALANCE', 'الرصيد المستحق')},
+       i.INVOICE_STATUS ${A('INVOICE_STATUS', 'حالة الفاتورة')}
   FROM INVOICES i
   JOIN CUSTOMERS c ON c.CUSTOMER_ID = i.CUSTOMER_ID
  WHERE i.INVOICE_STATUS <> 'Paid'
@@ -588,18 +604,18 @@ HAVING NVL(MAX(o.ORDER_DATE), SYSDATE - 9999) < SYSDATE - (@Months * 30)
                    'مدة تأخر كل فاتورة غير مسددة لعميل واحد.'),
     group: 'finance',
     exports: ['Excel', 'Pdf', 'Word'],
-    sql: `SELECT i.INVOICE_NO,
-       i.ISSUE_DATE,
-       i.DUE_DATE,
-       TRUNC(SYSDATE - i.DUE_DATE) AS DAYS_OVERDUE,
-       i.AMOUNT,
-       i.AMOUNT - i.PAID_AMOUNT AS BALANCE,
-       i.INVOICE_STATUS
+    sql: `SELECT i.INVOICE_NO ${A('INVOICE_NO', 'رقم الفاتورة')},
+       i.ISSUE_DATE ${A('ISSUE_DATE', 'تاريخ الإصدار')},
+       i.DUE_DATE ${A('DUE_DATE', 'تاريخ الاستحقاق')},
+       TRUNC(SYSDATE - i.DUE_DATE) ${A('DAYS_OVERDUE', 'أيام التأخر')},
+       i.AMOUNT ${A('AMOUNT', 'المبلغ')},
+       i.AMOUNT - i.PAID_AMOUNT ${A('BALANCE', 'الرصيد المستحق')},
+       i.INVOICE_STATUS ${A('INVOICE_STATUS', 'حالة الفاتورة')}
   FROM INVOICES i
   JOIN CUSTOMERS c ON c.CUSTOMER_ID = i.CUSTOMER_ID
  WHERE c.CUSTOMER_CODE = @CustomerCode
    AND i.INVOICE_STATUS <> 'Paid'
- ORDER BY DAYS_OVERDUE DESC`,
+ ORDER BY ${R('DAYS_OVERDUE', 'أيام التأخر')} DESC`,
     parameters: [P.text('CustomerCode', T('Customer code', 'رمز العميل'), 1)]
   },
   {
@@ -627,15 +643,15 @@ HAVING NVL(MAX(o.ORDER_DATE), SYSDATE - 9999) < SYSDATE - (@Months * 30)
                    'موظفو قسم واحد مع المسمى الوظيفي وبيانات التواصل.'),
     group: 'hr',
     exports: ['Excel', 'Csv', 'Pdf'],
-    sql: `SELECT e.EMP_NO,
-       e.FULL_NAME,
-       e.FULL_NAME_AR,
-       d.DEPT_NAME,
-       e.JOB_TITLE,
-       e.EMAIL,
-       e.PHONE,
-       e.HIRE_DATE,
-       e.EMP_STATUS
+    sql: `SELECT e.EMP_NO ${A('EMP_NO', 'الرقم الوظيفي')},
+       e.FULL_NAME ${A('FULL_NAME', 'الاسم الكامل')},
+       e.FULL_NAME_AR ${A('FULL_NAME_AR', 'الاسم بالعربية')},
+       d.DEPT_NAME ${A('DEPT_NAME', 'الإدارة')},
+       e.JOB_TITLE ${A('JOB_TITLE', 'المسمى الوظيفي')},
+       e.EMAIL ${A('EMAIL', 'البريد الإلكتروني')},
+       e.PHONE ${A('PHONE', 'رقم الهاتف')},
+       e.HIRE_DATE ${A('HIRE_DATE', 'تاريخ التعيين')},
+       e.EMP_STATUS ${A('EMP_STATUS', 'الحالة الوظيفية')}
   FROM EMPLOYEES e
   JOIN DEPARTMENTS d ON d.DEPT_ID = e.DEPT_ID
  WHERE e.DEPT_ID = @Department
@@ -653,12 +669,12 @@ HAVING NVL(MAX(o.ORDER_DATE), SYSDATE - 9999) < SYSDATE - (@Months * 30)
                    'الموظفون الذين التحقوا بالعمل بين تاريخين، الأحدث أولًا.'),
     group: 'hr',
     exports: ['Excel', 'Csv', 'Pdf'],
-    sql: `SELECT e.EMP_NO,
-       e.FULL_NAME,
-       e.FULL_NAME_AR,
-       d.DEPT_NAME,
-       e.JOB_TITLE,
-       e.HIRE_DATE
+    sql: `SELECT e.EMP_NO ${A('EMP_NO', 'الرقم الوظيفي')},
+       e.FULL_NAME ${A('FULL_NAME', 'الاسم الكامل')},
+       e.FULL_NAME_AR ${A('FULL_NAME_AR', 'الاسم بالعربية')},
+       d.DEPT_NAME ${A('DEPT_NAME', 'الإدارة')},
+       e.JOB_TITLE ${A('JOB_TITLE', 'المسمى الوظيفي')},
+       e.HIRE_DATE ${A('HIRE_DATE', 'تاريخ التعيين')}
   FROM EMPLOYEES e
   JOIN DEPARTMENTS d ON d.DEPT_ID = e.DEPT_ID
  WHERE e.HIRE_DATE BETWEEN @FromDate AND @ToDate
@@ -675,15 +691,15 @@ HAVING NVL(MAX(o.ORDER_DATE), SYSDATE - 9999) < SYSDATE - (@Months * 30)
                    'عدد الموظفين على رأس العمل ومتوسط الراتب لكل قسم.'),
     group: 'hr',
     exports: EXPORTS,
-    sql: `SELECT d.DEPT_CODE,
-       d.DEPT_NAME,
-       d.DEPT_NAME_AR,
-       COUNT(e.EMP_ID) AS HEADCOUNT,
-       ROUND(AVG(e.MONTHLY_SALARY), 2) AS AVERAGE_SALARY
+    sql: `SELECT d.DEPT_CODE ${A('DEPT_CODE', 'رمز الإدارة')},
+       d.DEPT_NAME ${A('DEPT_NAME', 'اسم الإدارة')},
+       d.DEPT_NAME_AR ${A('DEPT_NAME_AR', 'اسم الإدارة بالعربية')},
+       COUNT(e.EMP_ID) ${A('HEADCOUNT', 'عدد الموظفين')},
+       ROUND(AVG(e.MONTHLY_SALARY), 2) ${A('AVERAGE_SALARY', 'متوسط الراتب')}
   FROM DEPARTMENTS d
   LEFT JOIN EMPLOYEES e ON e.DEPT_ID = d.DEPT_ID AND e.EMP_STATUS = 'Active'
  GROUP BY d.DEPT_CODE, d.DEPT_NAME, d.DEPT_NAME_AR
- ORDER BY HEADCOUNT DESC`,
+ ORDER BY ${R('HEADCOUNT', 'عدد الموظفين')} DESC`,
     parameters: []
   },
   {
@@ -718,6 +734,91 @@ const QUERY_USER_ACCESS = {
   outstandingInvoices: ['n.alqahtani'],
   lowStock: ['k.rahman']
 };
+
+/**
+ * Reports: several queries composed into one document.
+ *
+ * <p>They are deliberately seeded into the same query groups as the queries, because that is how
+ * users meet them — My Queries lists a group's reports and queries together, and the group grant
+ * that reaches the queries reaches the reports.</p>
+ *
+ * <p>`sourceType` is 0 Query, 1 Join, 2 Detail. A parameter map's `sourceKind` is 0 a report
+ * parameter, 1 a constant, 2 a column of the parent row (details only).</p>
+ */
+const REPORTS = [
+  {
+    key: 'monthlySales',
+    name: T('Monthly Sales Report', 'التقرير الشهري للمبيعات'),
+    description: T('The daily sales summary, the top customers and the orders of the period — in one document.',
+                   'ملخص المبيعات اليومي، وكبار العملاء، وطلبات الفترة — في مستند واحد.'),
+    group: 'sales',
+    exports: EXPORTS,
+    parameters: [
+      { name: 'fromDate', displayName: T('Date from', 'من تاريخ'), parameterType: 2, isRequired: true, sortOrder: 0, allowMultiple: false },
+      { name: 'toDate', displayName: T('Date to', 'إلى تاريخ'), parameterType: 2, isRequired: true, sortOrder: 1, allowMultiple: false }
+    ],
+    datasets: [
+      { datasetKey: 'daily', displayName: T('Daily sales summary', 'ملخص المبيعات اليومي'),
+        sourceType: 0, sortOrder: 0, query: 'dailySales', parameterMaps: [] },
+      { datasetKey: 'topCustomers', displayName: T('Top customers', 'كبار العملاء'),
+        sourceType: 0, sortOrder: 1, query: 'topCustomers',
+        parameterMaps: [
+          { targetParameterName: 'FromDate', sourceKind: 0, reportParameterName: 'fromDate' },
+          { targetParameterName: 'ToDate', sourceKind: 0, reportParameterName: 'toDate' },
+          { targetParameterName: 'TopCount', sourceKind: 1, constantValue: '10' }
+        ] },
+      { datasetKey: 'orders', displayName: T('Orders in the period', 'طلبات الفترة'),
+        sourceType: 0, sortOrder: 2, query: 'ordersByPeriod',
+        parameterMaps: [
+          { targetParameterName: 'FromDate', sourceKind: 0, reportParameterName: 'fromDate' },
+          { targetParameterName: 'ToDate', sourceKind: 0, reportParameterName: 'toDate' },
+          { targetParameterName: 'OrderStatus', sourceKind: 1, constantValue: 'ALL' },
+          { targetParameterName: 'MinTotal', sourceKind: 1, constantValue: '0' }
+        ] }
+    ],
+    charts: [
+      { chartKey: 'revenueChart', title: T('Revenue by top customer', 'إجمالي الإيرادات لكبار العملاء'),
+        chartType: 0, datasetKey: 'topCustomers',
+        categoryColumn: T('CUSTOMER_NAME', 'اسم العميل'),
+        seriesColumns: [T('TOTAL_REVENUE', 'إجمالي الإيرادات')],
+        maxCategories: 10, sortOrder: 0 }
+    ]
+  },
+  {
+    key: 'customerStatement',
+    name: T('Customer Statement', 'كشف حساب العميل'),
+    description: T('For each of the top customers: their details, then their order history, then their invoice ageing.',
+                   'لكل عميل من كبار العملاء: بياناته، ثم سجل طلباته، ثم أعمار فواتيره.'),
+    group: 'service',
+    exports: ['Word', 'Pdf', 'Excel'],
+    // A detail dataset re-runs its query once per parent row, so the parent is kept short.
+    maxDetailRows: 5,
+    parameters: [
+      { name: 'fromDate', displayName: T('Date from', 'من تاريخ'), parameterType: 2, isRequired: true, sortOrder: 0, allowMultiple: false },
+      { name: 'toDate', displayName: T('Date to', 'إلى تاريخ'), parameterType: 2, isRequired: true, sortOrder: 1, allowMultiple: false }
+    ],
+    datasets: [
+      { datasetKey: 'customers', displayName: T('Customer', 'العميل'),
+        sourceType: 0, sortOrder: 0, query: 'topCustomers',
+        parameterMaps: [
+          { targetParameterName: 'FromDate', sourceKind: 0, reportParameterName: 'fromDate' },
+          { targetParameterName: 'ToDate', sourceKind: 0, reportParameterName: 'toDate' },
+          { targetParameterName: 'TopCount', sourceKind: 1, constantValue: '5' }
+        ] },
+      { datasetKey: 'orders', displayName: T('Order history', 'سجل الطلبات'),
+        sourceType: 2, sortOrder: 1, query: 'customerHistory', parentDatasetKey: 'customers',
+        parameterMaps: [
+          { targetParameterName: 'CustomerCode', sourceKind: 2, parentColumn: T('CUSTOMER_CODE', 'رمز العميل') }
+        ] },
+      { datasetKey: 'invoices', displayName: T('Invoice ageing', 'أعمار الفواتير'),
+        sourceType: 2, sortOrder: 2, query: 'invoiceAgeing', parentDatasetKey: 'customers',
+        parameterMaps: [
+          { targetParameterName: 'CustomerCode', sourceKind: 2, parentColumn: T('CUSTOMER_CODE', 'رمز العميل') }
+        ] }
+    ],
+    charts: []
+  }
+];
 
 const SCHEDULED_TASK = {
   name: T('Nightly Sales Summary Export', 'تصدير ملخص المبيعات اليومي'),
@@ -756,7 +857,12 @@ async function reset() {
   for (const task of tasks) await del(`/scheduledtasks/${task.id}`);
   log(`scheduled tasks removed (${tasks.length})`);
 
-  // Tasks first: a scheduled task item holds a query down (no cascade delete).
+  const reports = unwrap(await get('/admin/reports'));
+  for (const r of reports) await del(`/admin/reports/${r.id}`);
+  log(`reports removed (${reports.length})`);
+
+  // Tasks and reports first: both hold a query down, through an item or a dataset, and neither
+  // cascades on delete.
   const queries = unwrap(await get('/admin/dynamicqueries'));
   for (const q of queries) await del(`/admin/dynamicqueries/${q.id}`);
   log(`queries removed (${queries.length})`);
@@ -873,6 +979,43 @@ async function main() {
     });
   }
   log('access granted');
+
+  // ---- reports: several queries composed into one document
+  const reportIds = new Map();
+  for (const r of REPORTS) {
+    const created = await post('/admin/reports', {
+      name: r.name,
+      description: r.description,
+      isEnabled: true,
+      queryGroupId: queryGroupIds.get(r.group),
+      timeoutSeconds: 300,
+      maxDetailRows: r.maxDetailRows ?? 100,
+      maxTotalRows: 200000,
+      allowedExportFormats: r.exports,
+      parameters: r.parameters,
+      datasets: r.datasets.map(d => ({
+        datasetKey: d.datasetKey,
+        displayName: d.displayName,
+        sourceType: d.sourceType,
+        sortOrder: d.sortOrder,
+        isVisibleInViewer: true,
+        dynamicQueryId: queryIds.get(d.query),
+        parentDatasetKey: d.parentDatasetKey,
+        parameterMaps: d.parameterMaps
+      })),
+      charts: r.charts
+    });
+    reportIds.set(r.key, created.id);
+
+    // A report is reached exactly as a query is: through its group's grants. Admin is added
+    // explicitly so the report is runnable on a fresh installation.
+    await put(`/admin/reports/${created.id}/access`, {
+      roleIds: [roleIds.get('Admin')],
+      userGroupIds: (GROUP_ACCESS[r.group] || []).map(t => userGroupIds.get(t)).filter(Boolean),
+      userIds: []
+    });
+  }
+  log(`reports created (${reportIds.size})`);
 
   // ---- a scheduled task that exports the daily summary every morning
   const task = await post('/scheduledtasks', {

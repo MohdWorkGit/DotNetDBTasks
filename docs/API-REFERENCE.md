@@ -18,7 +18,14 @@ valid token and nothing more; `Anonymous` means no token at all.
 - **Exporting needs two grants.** `DynamicQuery.AllowedExportFormats` says which formats a query
   may be downloaded as, and the caller's role must hold the matching `queries.export*` capability.
   Either one empty means no download. Both default closed, so a new query and a new role start
-  with export off.
+  with export off. Reports work the same way, against `Report.AllowedExportFormats` and
+  `reports.export*`.
+- **A report never widens query access.** Reaching a report is only the outer gate; when it
+  runs, every dataset's underlying query is put through the same access check as the interactive
+  path. A dataset the caller could not have run themselves is refused and returned as a warning
+  while the rest of the report still produces. Report datasets run through `ExecuteQueryCommand`,
+  the same single execution funnel, so the access check, the database-user resolution, the typed
+  parameter coercion and the `QueryExecutionLog` audit row are identical either way.
 - `AdminAccountGuard` stops a non-Admin from touching an administrator account, granting the
   Admin role, editing their own roles, or adding themselves to a user group.
 - **Admin is pinned** to every permission and cannot be edited or deleted.
@@ -91,6 +98,24 @@ reachable by any signed-in caller, so add one.
 | `POST /import` | `queries.transfer` | Restores from an export file. multipart `file`, ≤50 MB. Never overwrites — a name clash is imported as a copy. |
 | `GET /logs` | `logs.view` | Execution logs, paged. Query: `queryId`, `userId`, `isSuccess`, `queryType`, `search`, `sortBy`, `sortDescending` (default true), `pageNumber` (1), `pageSize` (25, max 200). |
 | `GET /logs/{id}/old-values` | `logs.view` | Before-change row snapshots for one log. Query: `pageNumber` (1), `pageSize` (100, max 500). |
+
+## Reports — `/api/admin/reports`
+
+Class: `[Authorize]`. A report composes several saved queries into one templated document.
+
+| Verb + path | Roles | Notes |
+|---|---|---|
+| `GET /` | `reports.view` | Every report, as summaries. |
+| `GET /{id}` | `reports.view` | One report with its datasets, parameter maps, parameters and charts. |
+| `POST /` | `reports.manage` | Creates a report. Dataset keys must be unique within the report and match `[A-Za-z0-9_]+`; a chart key may not collide with a dataset key, since the template's `{{RESULTS:x}}` and `{{CHART:x}}` share one namespace. Join and detail datasets are rejected if they form a cycle. |
+| `PUT /{id}` | `reports.manage` | Replaces the report and everything under it. |
+| `DELETE /{id}` | `reports.manage` | Deletes the report. The queries it referenced are untouched. |
+| `POST /{id}/template` | `reports.manage` | Uploads the Word template. `multipart/form-data`, field `file`. Rejects anything over 5 MB, or that is not a real `.docx` — the zip signature and a `word/document.xml` entry are both checked. Returns an inspection listing the markers found and any that match no dataset. |
+| `GET /{id}/template` | `reports.manage` | Downloads the stored template; 404 when none. |
+| `GET /{id}/starter-template` | `reports.manage` | Generates a template pre-populated with **this** report's dataset keys. The intended starting point — the markers are correct before any styling is applied. |
+| `DELETE /{id}/template` | `reports.manage` | Removes the template. Exports then fall back to a generated starter. |
+| `GET /{id}/access` | `access.manageReport` | `{ roleIds, userGroupIds, userIds }`. |
+| `PUT /{id}/access` | `access.manageReport` | Replaces all three at once — send the whole object. |
 
 ## Query groups — `/api/admin/querygroups`
 
@@ -253,3 +278,19 @@ never succeed.
 The whole controller needs `queries.run`, and the list returns only what the caller has been
 granted. No seeded role but User and Admin holds it, which is why the client hides My Queries and
 History from the others — but it is a permission like any other, and can be granted.
+
+## Running reports — `/api/user/reports`
+
+Class: `[RequirePermission(Permissions.ReportsRun)]` on the controller, so every action needs
+`reports.run`. A run's sections are cached in the same job store the query runner uses, and each
+section is paged through `GET /api/user/queries/jobs/{jobId}/rows` — the report viewer reuses the
+query grid rather than duplicating it.
+
+| Verb + path | Roles | Notes |
+|---|---|---|
+| `GET /` | `reports.run` | Reports the caller may run. The same set also appears inside `GET /api/user/queries/groups`, so a reader meets reports and queries in one list. |
+| `GET /{id}` | `reports.run` | One accessible report's definition — its parameters and the sections to expect; 403 when it is not accessible. |
+| `POST /{id}/run` | `reports.run` | Runs every dataset. Body `{ parameters }`, all values as strings. Returns a `runId`, one section per dataset with its own `jobId` and columns, the charts already reduced to categories and series, and any warnings. Rows are **not** returned — page them through the job endpoint. |
+| `GET /runs/{runId}` | Owner or Admin | The run again, for polling. |
+| `GET /runs/{runId}/export-file` | Owner or Admin, **plus both export gates** | Builds the document from the cached sections — nothing is re-run. Query: `format` = `xlsx`/`excel`, `csv`, `json`, `pdf`, `docx`/`word`; the enum name is accepted too. Word and PDF fill the report's template, or a generated starter when it has none; Excel writes one sheet per dataset; CSV and JSON keep the datasets apart rather than concatenating them. **403** unless the report permits the format **and** the caller holds the matching `reports.export*`. |
+| `DELETE /runs/{runId}` | Owner or Admin | Releases every section of the run together, rather than letting them age out one at a time. |

@@ -25,10 +25,17 @@ capture Arabic — and then builds. They can also be run separately:
 
 | Command | Does |
 |---|---|
-| `npm run seed` | Rebuilds the demo queries, groups, user groups, scheduled task and history (English; add `-- --lang ar` for Arabic) |
+| `npm run seed` | Rebuilds the demo queries, reports, groups, user groups, scheduled task and history (English; add `-- --lang ar` for Arabic) |
 | `npm run capture` | Drives the running app with Playwright and writes `screenshots/en/` and `screenshots/ar/` (add `-- --locales ar` for one language) |
 | `npm run build` | Reads those screenshots and writes both `.docx` files |
 | `python build-docx.py en` | Builds one language only |
+
+**Column names are translated too.** A column name comes from the database, not from the i18n
+catalogue, so the only place it can be translated is the `SELECT`. The Arabic pass aliases every
+demo query's columns in Arabic (`AS "اسم العميل"`), which is what makes the Arabic grids, exports
+and chart axes read in Arabic. The lookup queries are deliberately left in English: a dropdown
+parameter names its value and label columns, so those names are configuration rather than
+display, and moving them with the language would break the dropdowns.
 
 **Why the demo data is seeded twice.** A query, a query group and a user group each carry one
 name and one description — the application does not translate content an administrator typed.
@@ -46,7 +53,7 @@ Field** — Word fills in the page numbers on open, not at build time.
 |---|---|
 | `build-docx.py` | **The manual's text**, both languages, plus the Word layout |
 | `capture-screenshots.js` | Which screens are photographed and how they are reached |
-| `seed-demo-data.js` | **The demo content**: the queries, groups, user groups, accounts, scheduled task and run history the screenshots show, in both languages |
+| `seed-demo-data.js` | **The demo content**: the queries, reports, groups, user groups, accounts, scheduled task and run history the screenshots show, in both languages |
 | `../../database/demo-data.sql` | The business tables those queries read — customers, orders, products, employees, invoices |
 | `screenshots/<lang>/` | Generated PNGs — safe to delete, recreated by `npm run capture` |
 
@@ -95,9 +102,10 @@ preview runs `SELECT *`, which otherwise prints real password hashes into the ma
   every one of them is fillable by the capture's heuristic, "Sales by Region" is the only
   multi-value one, and "Adjust Product Stock Level" is the write query with the most.
 - **Seeding is destructive on the Bayan side.** `seed-demo-data.js` deletes every scheduled
-  task, query and group before creating its own, and deleting a query cascades to its execution
-  logs. It never deletes user accounts — the demo accounts it needs are created if missing and
-  reused otherwise.
+  task, report, query and group before creating its own, and deleting a query cascades to its
+  execution logs. Reports and tasks go first: each holds a query down through a dataset or an
+  item, and neither cascades. It never deletes user accounts — the demo accounts it needs are
+  created if missing and reused otherwise.
 - **Screenshots track the app's own translations.** Selectors resolve their labels from
   `client/src/assets/i18n/{en,ar}.json`, so a renamed button does not silently break the Arabic
   run.

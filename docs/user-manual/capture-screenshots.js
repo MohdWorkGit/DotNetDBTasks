@@ -141,16 +141,31 @@ async function discover() {
   const groups = unwrap(await get('/admin/querygroups'));
   const tasks = unwrap(await get('/scheduledtasks'));
 
+  // The report with a chart is preferred, so the figures show one; any report will do if none
+  // has one. The list endpoint returns summaries, so each is re-fetched for its datasets.
+  const reports = unwrap(await get('/admin/reports'));
+  let report = null;
+  for (const r of reports) {
+    const res2 = await fetch(`${API}/admin/reports/${r.id}`, { headers: h });
+    if (!res2.ok) continue;
+    const full = await res2.json();
+    if (!report) report = full;
+    if ((full.charts || []).length) { report = full; break; }
+  }
+
   const sample = {
     read: read?.id, readParams: read?.parameters || [], readName: read?.name,
     multi: multi?.id, multiName: multi?.name,
     write: write?.id, writeParams: write?.parameters || [], writeName: write?.name,
     group: groups[0]?.id, groupName: groups[0]?.name,
-    task: tasks[0]?.id, taskName: tasks[0]?.name
+    task: tasks[0]?.id, taskName: tasks[0]?.name,
+    report: report?.id, reportParams: report?.parameters || [], reportName: report?.name,
+    reportHasChart: (report?.charts || []).length > 0
   };
   log('sample data:', JSON.stringify({
     read: sample.readName, multi: sample.multiName, write: sample.writeName,
-    group: sample.groupName, task: sample.taskName
+    group: sample.groupName, task: sample.taskName,
+    report: sample.reportName, reportHasChart: sample.reportHasChart
   }));
   return sample;
 }
@@ -190,7 +205,11 @@ async function captureLocale(browser, locale, sample) {
   const WRITE_ALLOWLIST = [
     /\/api\/auth\/(login|refresh)$/,          // signing in
     /\/api\/user\/queries\/[^/]+\/execute/,   // running a query, incl. the rolled-back preview
-    /\/api\/user\/queries\/jobs\//            // polling / releasing a cached result
+    /\/api\/user\/queries\/jobs\//,           // polling / releasing a cached result
+    // Running a report only runs its datasets' SELECTs, through the same execution path as a
+    // query; the DELETE releases the run's cached sections. Neither changes business data.
+    /\/api\/user\/reports\/[^/]+\/run$/,
+    /\/api\/user\/reports\/runs\//
   ];
   await ctx.route('**/api/**', async (route) => {
     const request = route.request();
@@ -385,6 +404,35 @@ async function captureLocale(browser, locale, sample) {
     await shot('22-query-group-access');
   });
 
+  // ---- 23-28 Reports ------------------------------------------------------
+  await step('reports list', async () => {
+    await go('/admin/reports', 'table, mat-card');
+    await shot('23-reports-list');
+  });
+  if (S.report) {
+    await step('report datasets', async () => {
+      await go(`/admin/reports/edit/${S.report}`, 'form');
+      await openTab(T('admin.reports.tabDatasets'));
+      await shot('24-report-datasets', { full: true });
+    });
+    await step('report parameters', async () => {
+      await openTab(T('admin.reports.tabParameters'));
+      await shot('25-report-parameters', { full: true });
+    });
+    await step('report charts', async () => {
+      await openTab(T('admin.reports.tabCharts'));
+      await shot('26-report-charts', { full: true });
+    });
+    await step('report template', async () => {
+      await openTab(T('admin.reports.tabTemplate'));
+      await shot('27-report-template', { full: true });
+    });
+    await step('report access', async () => {
+      await go(`/admin/reports/${S.report}/access`, 'mat-tab-group');
+      await shot('28-report-access');
+    });
+  }
+
   // ---- 30-33 Scheduled tasks ----------------------------------------------
   await step('scheduled tasks list', async () => {
     await go('/admin/scheduled-tasks', 'table, mat-card');
@@ -528,6 +576,19 @@ async function captureLocale(browser, locale, sample) {
     await clickLabel('common.cancel', '.confirm-card');
     await settle(page, 600);
   });
+  if (S.report) {
+    await step('run a report', async () => {
+      await go(`/user/reports/${S.report}/view`, 'form');
+      await fillParameters(S.reportParams);
+      await clickLabel('user.reports.run');
+      // A report runs several queries, so it is given longer than a single execution.
+      await page.waitForSelector('mat-tab-group, .error-block', { timeout: 120000 })
+        .catch(() => log('   (the report produced no sections)'));
+      await settle(page, 1500);
+      await shot('46-report-run', { full: true });
+    });
+  }
+
   await step('execution history', async () => {
     await go('/user/history', 'table');
     await shot('70-execution-history');

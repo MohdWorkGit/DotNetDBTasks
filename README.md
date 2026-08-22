@@ -73,12 +73,13 @@ Four roles are seeded, and any number can be added. A user may hold several; per
 | **Auditor** | `logs.view`, `audit.view`, `scheduledTasks.viewAll` |
 | **Access Manager** | `queries.view`, `access.manageGroup`, `userGroups.view`, `userGroups.manage`, `users.view`, `users.manage`, `directory.view` |
 
-### The 23 capabilities
+### The 27 capabilities
 
 | Area | Permissions |
 |---|---|
 | Queries | `queries.view`, `queries.readSql`, `queries.manage`, `queries.transfer`, `queries.run` |
-| Granting access | `access.manageQuery`, `access.manageGroup`, `queryGroups.manage` |
+| Reports | `reports.view`, `reports.manage`, `reports.run` |
+| Granting access | `access.manageQuery`, `access.manageGroup`, `access.manageReport`, `queryGroups.manage` |
 | People and directory | `users.view`, `users.manage`, `userGroups.view`, `userGroups.manage`, `directory.view`, `directory.manage` |
 | Connections and tasks | `databaseUsers.manage`, `scheduledTasks.viewAll`, `scheduledTasks.manage`, `scheduledTasks.download` |
 | Oversight | `logs.view`, `audit.view` |
@@ -393,7 +394,7 @@ abandoning the poll). Only the job's owner (or an Admin) may poll or cancel it.
 > containers would require a shared/persistent store (DB or Redis) so a poll can reach the
 > node holding the job.
 
-## Query export permissions
+## Query and report export permissions
 
 Downloading a result is gated **twice**, and a download needs both gates to agree:
 
@@ -402,6 +403,10 @@ Downloading a result is gated **twice**, and a download needs both gates to agre
    be downloaded by anyone; the Export button does not appear.
 2. **The role** holds which formats that person may use, as five capabilities on the Roles &
    Permissions page (`queries.exportExcel`, `…Csv`, `…Json`, `…Pdf`, `…Word`).
+
+Reports use the same two-gate rule against their own pair: `Report.AllowedExportFormats` and
+`reports.exportExcel` / `…Csv` / `…Json` / `…Pdf` / `…Word`. Holding the query capability does
+not confer the report one.
 
 Neither alone grants anything. A query that permits PDF gives nothing to a role without
 `queries.exportPdf`, and a role holding every export capability still cannot download a query
