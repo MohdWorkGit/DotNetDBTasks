@@ -133,9 +133,15 @@ public class RunReportCommandHandler : IRequestHandler<RunReportCommand, ReportR
                 }
                 else
                 {
+                    // Not null here: a non-join dataset without a query was turned into a failed
+                    // section above, before this try block.
+                    var queryId = dataset.DynamicQueryId
+                        ?? throw new InvalidOperationException(
+                            $"Dataset '{dataset.DatasetKey}' reached execution with no query.");
+
                     var execution = await _mediator.Send(new ExecuteQueryCommand
                     {
-                        QueryId = dataset.DynamicQueryId.Value,
+                        QueryId = queryId,
                         Parameters = BuildQueryParameters(dataset, reportValues, parentRow: null),
                         // Cache the complete result set so the viewer can page it and the export
                         // can reuse it, from one execution.

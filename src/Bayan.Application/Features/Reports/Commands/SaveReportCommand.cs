@@ -161,7 +161,11 @@ public partial class SaveReportCommandHandler : IRequestHandler<SaveReportComman
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var dataset in input.Datasets)
         {
-            if (!DatasetKeyRegex().IsMatch(dataset.DatasetKey ?? string.Empty))
+            // Held in a local so the uniqueness check below reads the same value the pattern
+            // check accepted, and so it is plainly non-null: the pattern requires a character.
+            var datasetKey = dataset.DatasetKey ?? string.Empty;
+
+            if (!DatasetKeyRegex().IsMatch(datasetKey))
             {
                 throw new DomainException(
                     $"Dataset key '{dataset.DatasetKey}' is not valid. Use letters, numbers and " +
@@ -169,7 +173,7 @@ public partial class SaveReportCommandHandler : IRequestHandler<SaveReportComman
                     "Excel sheet name.");
             }
 
-            if (!keys.Add(dataset.DatasetKey))
+            if (!keys.Add(datasetKey))
                 throw new DomainException($"Dataset key '{dataset.DatasetKey}' is used more than once.");
 
             if (dataset.SourceType == ReportDatasetSourceType.Query && dataset.DynamicQueryId is null)
