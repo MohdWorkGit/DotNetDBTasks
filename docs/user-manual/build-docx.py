@@ -1688,13 +1688,13 @@ def build_manual(doc):
         "A detail dataset runs its query once per parent row. Ten parents means ten executions, "
         "so keep the parent short. Maximum detail rows on the Details tab is the cap: the run "
         "expands that many parent rows and reports in a warning how many it left out, rather "
-        "than failing. It can be raised to 1,000 — beyond that the cost stops being worth it, "
-        "and the report's own timeout bounds the whole run in any case.",
+        "than failing. Set it to 0 and every parent row is expanded, however many there are — "
+        "then only the report's time limit bounds the run, so raise it deliberately.",
         "مجموعة البيانات التفصيلية تنفّذ استعلامها مرة لكل سطر أب. فعشرة أسطر أب تعني عشر عمليات "
         "تنفيذ، لذا أبقِ الأب قصيرًا. والحد الأقصى لأسطر التفصيل في تبويب «التفاصيل» هو السقف: "
         "إذ يوسّع التشغيل ذلك العدد من أسطر الأب ويذكر في تنبيه كم ترك منها، بدل أن يخفق. "
-        "ويمكن رفعه حتى ١٠٠٠ — وما بعد ذلك لا تستحق الكلفة، كما تحدّ مهلة التقرير نفسها "
-        "التشغيل كاملًا على أي حال."), kind="warning")
+        "وإذا ضبطته على ٠ وُسِّع كل سطر أب مهما بلغ عددها — عندئذٍ لا يحدّ التشغيل سوى المهلة "
+        "الزمنية للتقرير، فارفعه عن قصد."), kind="warning")
 
     h2(doc, T("7.3 One set of parameters for every query",
               "٧.٣ مجموعة معايير واحدة لكل الاستعلامات"))

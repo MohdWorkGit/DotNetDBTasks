@@ -73,20 +73,14 @@ import {
 
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'admin.reports.maxTotalRows' | transloco }}</mat-label>
-                    <input matInput type="number" formControlName="maxTotalRows" min="1" />
+                    <input matInput type="number" formControlName="maxTotalRows" min="0" />
                     <mat-hint>{{ 'admin.reports.maxTotalRowsHint' | transloco }}</mat-hint>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'admin.reports.maxDetailRows' | transloco }}</mat-label>
-                    <input matInput type="number" formControlName="maxDetailRows"
-                           min="1" [max]="detailRowsCeiling" />
-                    <mat-hint>
-                      {{ 'admin.reports.maxDetailRowsHint' | transloco: { max: detailRowsCeiling } }}
-                    </mat-hint>
-                    <mat-error *ngIf="form.get('maxDetailRows')?.hasError('max')">
-                      {{ 'admin.reports.maxDetailRowsTooHigh' | transloco: { max: detailRowsCeiling } }}
-                    </mat-error>
+                    <input matInput type="number" formControlName="maxDetailRows" min="0" />
+                    <mat-hint>{{ 'admin.reports.maxDetailRowsHint' | transloco }}</mat-hint>
                   </mat-form-field>
                 </div>
 
@@ -180,7 +174,12 @@ import {
 
                     <p class="warn-note" *ngIf="ds.get('sourceType')?.value === sourceTypes.Detail">
                       <mat-icon>warning</mat-icon>
-                      {{ 'admin.reports.detailCostHint' | transloco: { count: maxDetailRows } }}
+                      <ng-container *ngIf="!detailRowsUnlimited">
+                        {{ 'admin.reports.detailCostHint' | transloco: { count: maxDetailRows } }}
+                      </ng-container>
+                      <ng-container *ngIf="detailRowsUnlimited">
+                        {{ 'admin.reports.detailCostHintUnlimited' | transloco }}
+                      </ng-container>
                     </p>
 
                     <ng-container *ngIf="ds.get('sourceType')?.value === sourceTypes.Join">
@@ -573,9 +572,6 @@ export class ReportFormComponent implements OnInit {
     return this.datasets.at(index).get('parameterMaps') as FormArray;
   }
 
-  /** Mirrors SaveReportCommand.MaxDetailRowsCeiling — the server refuses anything above it. */
-  readonly detailRowsCeiling = 1000;
-
   /**
    * The detail-row cap, shown in the warning about how many child runs a detail costs.
    * Read from the live control rather than the loaded report, so the warning tracks what the
@@ -583,6 +579,11 @@ export class ReportFormComponent implements OnInit {
    */
   get maxDetailRows(): number {
     return this.form.get('maxDetailRows')?.value ?? 100;
+  }
+
+  /** 0 means every parent row is expanded, which the warning has to say differently. */
+  get detailRowsUnlimited(): boolean {
+    return Number(this.form.get('maxDetailRows')?.value) === 0;
   }
 
   /** Datasets a join may read from: any other dataset in this report. */
@@ -646,11 +647,10 @@ export class ReportFormComponent implements OnInit {
       isEnabled: [true],
       queryGroupId: [null],
       timeoutSeconds: [120, [Validators.required, Validators.min(1)]],
-      maxTotalRows: [200000, [Validators.required, Validators.min(1)]],
-      // Bounded here and again in SaveReportCommand: a detail dataset costs one execution per
-      // parent row, so this is a multiplier on load rather than a display limit, and the form is
-      // not the only way to set it.
-      maxDetailRows: [100, [Validators.required, Validators.min(1), Validators.max(1000)]],
+      // 0 means no limit on both. Only the sign is validated — how large either may be is the
+      // administrator's decision, and the hints say what each one costs.
+      maxTotalRows: [200000, [Validators.required, Validators.min(0)]],
+      maxDetailRows: [100, [Validators.required, Validators.min(0)]],
       datasets: this.fb.array([]),
       parameters: this.fb.array([]),
       charts: this.fb.array([])

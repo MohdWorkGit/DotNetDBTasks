@@ -87,6 +87,8 @@ public class RunReportCommandHandler : IRequestHandler<RunReportCommand, ReportR
         };
 
         var stopwatch = Stopwatch.StartNew();
+        // 0 means no budget at all, so the running total is never allowed to go negative.
+        var rowBudgetApplies = report.MaxTotalRows > 0;
         var rowBudget = report.MaxTotalRows;
 
         // Inputs before whatever consumes them: a detail needs its parent's rows, a join needs
@@ -155,7 +157,7 @@ public class RunReportCommandHandler : IRequestHandler<RunReportCommand, ReportR
                 }
 
                 rowBudget -= section.Rows.Count;
-                if (rowBudget < 0)
+                if (rowBudgetApplies && rowBudget < 0)
                 {
                     // Datasets run uncapped so no single section is silently truncated, which
                     // means the report as a whole needs its own ceiling.
@@ -370,7 +372,11 @@ public class RunReportCommandHandler : IRequestHandler<RunReportCommand, ReportR
             return;
         }
 
-        var cap = Math.Min(parent.Rows.Count, Math.Max(1, report.MaxDetailRows));
+        // 0 is the explicit way to say "expand every parent row"; the run's timeout is then
+        // the only bound on an N+1 that could be very large.
+        var cap = report.MaxDetailRows <= 0
+            ? parent.Rows.Count
+            : Math.Min(parent.Rows.Count, report.MaxDetailRows);
         var stopwatch = Stopwatch.StartNew();
 
         for (var index = 0; index < cap; index++)

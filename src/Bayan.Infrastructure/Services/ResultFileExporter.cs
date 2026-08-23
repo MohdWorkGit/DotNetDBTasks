@@ -119,6 +119,8 @@ public class ResultFileExporter : IResultFileExporter
         using var ms = new MemoryStream();
         using (var w = new StreamWriter(ms, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), leaveOpen: true))
         {
+            // Only a report names its sets. Unnamed sets are an ordinary query export: one
+            // block, one header, no section labels.
             var perSection = results.Any(r => !string.IsNullOrEmpty(r.Key));
 
             if (!perSection)
@@ -131,29 +133,32 @@ public class ResultFileExporter : IResultFileExporter
                     foreach (var row in result.Rows)
                         WriteCsvRow(w, result.Columns.Select(c => row.TryGetValue(c, out var v) ? v : null), separator);
                 }
-
-                return ms.ToArray();
             }
-
-            var first = true;
-            foreach (var result in results)
+            else
             {
-                // Blank line between sections so the blocks are visually separable.
-                if (!first)
-                    w.Write("\r\n");
-                first = false;
+                var first = true;
+                foreach (var result in results)
+                {
+                    // Blank line between sections so the blocks are visually separable.
+                    if (!first)
+                        w.Write("\r\n");
+                    first = false;
 
-                var label = string.IsNullOrWhiteSpace(result.Title) ? result.Key : result.Title;
-                if (!string.IsNullOrWhiteSpace(label))
-                    WriteCsvRow(w, new object?[] { label }, separator);
+                    var label = string.IsNullOrWhiteSpace(result.Title) ? result.Key : result.Title;
+                    if (!string.IsNullOrWhiteSpace(label))
+                        WriteCsvRow(w, new object?[] { label }, separator);
 
-                if (includeHeaders)
-                    WriteCsvRow(w, result.Columns.Select(c => (object?)c), separator);
+                    if (includeHeaders)
+                        WriteCsvRow(w, result.Columns.Select(c => (object?)c), separator);
 
-                foreach (var row in result.Rows)
-                    WriteCsvRow(w, result.Columns.Select(c => row.TryGetValue(c, out var v) ? v : null), separator);
+                    foreach (var row in result.Rows)
+                        WriteCsvRow(w, result.Columns.Select(c => row.TryGetValue(c, out var v) ? v : null), separator);
+                }
             }
         }
+        // Read only after the writer is disposed. StreamWriter buffers, so taking the bytes
+        // while it is still open returns whatever happened to have been flushed — for a short
+        // result, nothing at all.
         return ms.ToArray();
     }
 

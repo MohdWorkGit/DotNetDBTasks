@@ -67,8 +67,12 @@ public class Report : BaseEntity
 
     /// <summary>
     /// Master/detail guard: the most parent rows a <see cref="ReportDatasetSourceType.Detail"/>
-    /// dataset will expand. Detail datasets are N+1 by nature — one child execution per
-    /// parent row — so this bounds the damage. Enforced server-side, not just in the UI.
+    /// dataset will expand. Detail datasets are N+1 by nature — one child execution per parent
+    /// row — so this bounds the damage.
+    ///
+    /// <para><b>0 means no limit</b>: every parent row is expanded, however many there are. That
+    /// is a deliberate choice for an administrator to make, and the run's timeout is then the
+    /// only thing bounding it.</para>
     /// </summary>
     public int MaxDetailRows { get; set; } = 100;
 
@@ -76,6 +80,9 @@ public class Report : BaseEntity
     /// Whole-report row budget, checked as each dataset completes. Datasets run uncapped so a
     /// report is never silently truncated mid-section, which means without this one report can
     /// materialise several unbounded result sets before anything spills to disk.
+    ///
+    /// <para><b>0 means no limit</b>, and then nothing stops a report from materialising as many
+    /// rows as its queries return.</para>
     /// </summary>
     public int MaxTotalRows { get; set; } = 200_000;
 
