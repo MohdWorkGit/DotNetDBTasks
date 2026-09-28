@@ -6,7 +6,8 @@ change to the application, regenerate them so the screenshots and the text match
 ## Regenerate
 
 ```bash
-# 1. The business tables the manual's example queries read (first time, or to reset them)
+# 1. The business tables the manual's example queries read (first time, to reset them, or
+#    when they were loaded more than a few weeks ago — see "Stale demo dates" below)
 #    from the repo root, with NLS_LANG=.AL32UTF8 so the Arabic rows load intact
 sqlplus test/test@host/service @database/demo-data.sql
 
@@ -25,7 +26,7 @@ capture Arabic — and then builds. They can also be run separately:
 
 | Command | Does |
 |---|---|
-| `npm run seed` | Rebuilds the demo queries, reports, groups, user groups, scheduled task and history (English; add `-- --lang ar` for Arabic) |
+| `npm run seed` | Rebuilds the demo queries, reports, dashboards, groups, user groups, scheduled task and history (English; add `-- --lang ar` for Arabic) |
 | `npm run capture` | Drives the running app with Playwright and writes `screenshots/en/` and `screenshots/ar/` (add `-- --locales ar` for one language) |
 | `npm run build` | Reads those screenshots and writes both `.docx` files |
 | `python build-docx.py en` | Builds one language only |
@@ -36,6 +37,13 @@ demo query's columns in Arabic (`AS "اسم العميل"`), which is what makes
 and chart axes read in Arabic. The lookup queries are deliberately left in English: a dropdown
 parameter names its value and label columns, so those names are configuration rather than
 display, and moving them with the language would break the dropdowns.
+
+**Region names and customer names are translated the same way.** The data holds English
+region codes, and those remain the values every query compares against; the Arabic pass only
+turns the region drop-down's *label* into Arabic, with a `CASE` in the lookup. Sales by Region
+deliberately keeps returning the code: the dashboard's region chart filters the dashboard by the
+clicked category, which must be a code the Regions filter understands. Top Customers shows the
+Arabic customer name column in the Arabic pass.
 
 **Why the demo data is seeded twice.** A query, a query group and a user group each carry one
 name and one description — the application does not translate content an administrator typed.
@@ -53,7 +61,7 @@ Field** — Word fills in the page numbers on open, not at build time.
 |---|---|
 | `build-docx.py` | **The manual's text**, both languages, plus the Word layout |
 | `capture-screenshots.js` | Which screens are photographed and how they are reached |
-| `seed-demo-data.js` | **The demo content**: the queries, reports, groups, user groups, accounts, scheduled task and run history the screenshots show, in both languages |
+| `seed-demo-data.js` | **The demo content**: the queries, reports, dashboards, groups, user groups, accounts, scheduled task and run history the screenshots show, in both languages |
 | `../../database/demo-data.sql` | The business tables those queries read — customers, orders, products, employees, invoices |
 | `screenshots/<lang>/` | Generated PNGs — safe to delete, recreated by `npm run capture` |
 
@@ -102,10 +110,10 @@ preview runs `SELECT *`, which otherwise prints real password hashes into the ma
   built around that: "Orders by Period and Status" is the query with the most parameters and
   every one of them is fillable by the capture's heuristic, "Sales by Region" is the only
   multi-value one, and "Adjust Product Stock Level" is the write query with the most.
-- **Seeding is destructive on the Bayan side.** `seed-demo-data.js` deletes every scheduled
-  task, report, query and group before creating its own, and deleting a query cascades to its
-  execution logs. Reports and tasks go first: each holds a query down through a dataset or an
-  item, and neither cascades. It never deletes user accounts — the demo accounts it needs are
+- **Seeding is destructive on the Bayan side.** `seed-demo-data.js` deletes every dashboard,
+  scheduled task, report, query and group before creating its own, and deleting a query
+  cascades to its execution logs. Dashboards, reports and tasks go first: each holds a query
+  down through a tile, a dataset or an item, and none of them cascades. It never deletes user accounts — the demo accounts it needs are
   created if missing and reused otherwise.
 - **Screenshots track the app's own translations.** Selectors resolve their labels from
   `client/src/assets/i18n/{en,ar}.json`, so a renamed button does not silently break the Arabic
@@ -114,3 +122,16 @@ preview runs `SELECT *`, which otherwise prints real password hashes into the ma
   substitutes an empty list so the AD Users page still renders. That page is the only one that
   reads the directory: access is granted through the application's own user groups, so the two
   Manage Access pages no longer call AD at all.
+- **The dashboard figures show the demo dashboard with the most tiles** (Sales Overview — the
+  dashboard first built by the dashboards smoke test, translated), and
+  the capture waits for every tile to finish loading before each shot. A tile fetches its data
+  with a POST, so the write guard allows `/api/user/dashboards/…/tiles/…/data` and `/rows`:
+  both only run the tile's read query, and a dashboard refuses a query that changes data.
+
+## Stale demo dates
+
+`database/demo-data.sql` anchors its 450 days of orders on `SYSDATE` at the moment it is loaded.
+Queries and dashboard tiles that read a recent window — Daily Sales Summary (last 30 days), and
+the Daily sales tile on the Sales Overview dashboard — come back empty once the load is a few
+weeks old. Reload the business tables (step 1) before regenerating the manual; the script
+drops and rebuilds only its own seven tables.

@@ -153,7 +153,12 @@ async function discover() {
     if ((full.charts || []).length) { report = full; break; }
   }
 
+  // The dashboard with the most tiles, so the figures show every kind of tile at once.
+  const dashboards = unwrap(await get('/admin/dashboards'));
+  const dashboard = [...dashboards].sort((a, b) => (b.tileCount || 0) - (a.tileCount || 0))[0];
+
   const sample = {
+    dashboard: dashboard?.id, dashboardName: dashboard?.name,
     read: read?.id, readParams: read?.parameters || [], readName: read?.name,
     multi: multi?.id, multiName: multi?.name,
     write: write?.id, writeParams: write?.parameters || [], writeName: write?.name,
@@ -165,7 +170,8 @@ async function discover() {
   log('sample data:', JSON.stringify({
     read: sample.readName, multi: sample.multiName, write: sample.writeName,
     group: sample.groupName, task: sample.taskName,
-    report: sample.reportName, reportHasChart: sample.reportHasChart
+    report: sample.reportName, reportHasChart: sample.reportHasChart,
+    dashboard: sample.dashboardName
   }));
   return sample;
 }
@@ -209,7 +215,10 @@ async function captureLocale(browser, locale, sample) {
     // Running a report only runs its datasets' SELECTs, through the same execution path as a
     // query; the DELETE releases the run's cached sections. Neither changes business data.
     /\/api\/user\/reports\/[^/]+\/run$/,
-    /\/api\/user\/reports\/runs\//
+    /\/api\/user\/reports\/runs\//,
+    // A dashboard tile fetches its data by POST (the filter values travel in the body), but it
+    // only runs the tile's read query — a dashboard refuses a query that changes data.
+    /\/api\/user\/dashboards\/[^/]+\/tiles\/[^/]+\/(data|rows)$/
   ];
   await ctx.route('**/api/**', async (route) => {
     const request = route.request();
@@ -437,6 +446,30 @@ async function captureLocale(browser, locale, sample) {
     });
   }
 
+  // ---- 29 Dashboards (building) --------------------------------------------
+  await step('dashboards list', async () => {
+    await go('/admin/dashboards', 'table, mat-card');
+    await shot('29-dashboards-list');
+  });
+  if (S.dashboard) {
+    await step('dashboard details', async () => {
+      await go(`/admin/dashboards/edit/${S.dashboard}`, 'form');
+      await shot('29a-dashboard-details', { full: true });
+    });
+    await step('dashboard filters', async () => {
+      await openTab(T('admin.dashboards.tabFilters'));
+      await shot('29b-dashboard-filters', { full: true });
+    });
+    await step('dashboard tiles', async () => {
+      await openTab(T('admin.dashboards.tabTiles'));
+      await shot('29c-dashboard-tiles', { full: true });
+    });
+    await step('dashboard access', async () => {
+      await go(`/admin/dashboards/${S.dashboard}/access`, 'mat-tab-group');
+      await shot('29d-dashboard-access');
+    });
+  }
+
   // ---- 30-33 Scheduled tasks ----------------------------------------------
   await step('scheduled tasks list', async () => {
     await go('/admin/scheduled-tasks', 'table, mat-card');
@@ -590,6 +623,34 @@ async function captureLocale(browser, locale, sample) {
         .catch(() => log('   (the report produced no sections)'));
       await settle(page, 1500);
       await shot('46-report-run', { full: true });
+    });
+  }
+
+  // ---- 47-49 Viewing dashboards -------------------------------------------
+  // Tiles fetch on their own after the page settles, so each shot waits for every tile to leave
+  // its loading state rather than for the network alone.
+  const tilesSettled = async () => {
+    try {
+      await page.waitForFunction(
+        () => document.querySelectorAll('section.tile[aria-busy=true]').length === 0,
+        { timeout: 60000 });
+    } catch { log('   (a tile was still loading — capturing anyway)'); }
+    await settle(page, 1500);
+  };
+  await step('my dashboards', async () => {
+    await go('/user/dashboards', 'mat-card, .container');
+    await shot('47-my-dashboards');
+  });
+  if (S.dashboard) {
+    await step('dashboard view', async () => {
+      await go(`/user/dashboards/${S.dashboard}`, 'section.tile');
+      await tilesSettled();
+      await shot('48-dashboard-view', { full: true });
+    });
+    await step('dashboard wall screen', async () => {
+      await go(`/user/dashboards/${S.dashboard}?tv=1`, 'section.tile');
+      await tilesSettled();
+      await shot('49-dashboard-wall-screen');
     });
   }
 

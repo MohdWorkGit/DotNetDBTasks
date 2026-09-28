@@ -31,8 +31,8 @@
  * same validation, derived query types and audit entries as if an administrator had
  * typed them in.
  *
- * DESTRUCTIVE. It deletes every scheduled task, query and group in the target
- * instance before creating its own (deleting a query cascades to its execution
+ * DESTRUCTIVE. It deletes every dashboard, scheduled task, report, query and group in the
+ * target instance before creating its own (deleting a query cascades to its execution
  * logs). It is meant for the demo/manual database — do not point it at an instance
  * whose data matters.
  *
@@ -148,6 +148,19 @@ const A = (en, ar) => (LANG === 'ar' ? `AS "${ar}"` : `AS ${en}`);
 /** The same name used to refer to an alias again, in an ORDER BY. */
 const R = (en, ar) => (LANG === 'ar' ? `"${ar}"` : en);
 
+/**
+ * A region's display name, translated. The data holds English region codes, and those stay the
+ * values the SQL compares against; only the drop-down label reads in Arabic.
+ *
+ * <p>Every literal is N'…': REGION is NVARCHAR2, and Oracle refuses a simple CASE whose WHEN
+ * values are in the other character set (ORA-12704).</p>
+ */
+const REGION_LABEL = (column) => (LANG === 'ar'
+  ? `CASE ${column} WHEN N'Central' THEN N'الوسطى' WHEN N'Eastern' THEN N'الشرقية' ` +
+    `WHEN N'Western' THEN N'الغربية' WHEN N'Northern' THEN N'الشمالية' ` +
+    `WHEN N'Southern' THEN N'الجنوبية' ELSE ${column} END`
+  : column);
+
 const opts = (...pairs) => JSON.stringify(pairs.map(([label, value]) => ({ label, value })));
 
 const P = {
@@ -234,7 +247,7 @@ const LOOKUPS = [
                    'المناطق البيعية، وتغذّي قوائم اختيار المنطقة.'),
     group: 'reference',
     sql: `SELECT DISTINCT c.REGION AS REGION_CODE,
-                c.REGION AS REGION_NAME
+                ${REGION_LABEL('c.REGION')} AS REGION_NAME
   FROM CUSTOMERS c
  ORDER BY 1`
   },
@@ -331,6 +344,8 @@ const QUERIES = [
                    'عدد الطلبات وإجمالي ومتوسط قيمتها لكل منطقة. يمكن اختيار منطقة واحدة أو عدة مناطق.'),
     group: 'sales',
     exports: EXPORTS,
+    // The region stays a code here, not a translated label: the dashboard's region chart filters
+    // the whole dashboard by the clicked category, and the Regions filter compares codes.
     sql: `SELECT o.REGION ${A('REGION', 'المنطقة')},
        COUNT(*) ${A('ORDER_COUNT', 'عدد الطلبات')},
        SUM(o.TOTAL_AMOUNT) ${A('TOTAL_SALES', 'إجمالي المبيعات')},
@@ -356,7 +371,7 @@ const QUERIES = [
     exports: EXPORTS,
     sql: `SELECT *
   FROM (SELECT c.CUSTOMER_CODE ${A('CUSTOMER_CODE', 'رمز العميل')},
-               c.CUSTOMER_NAME ${A('CUSTOMER_NAME', 'اسم العميل')},
+               c.${T('CUSTOMER_NAME', 'CUSTOMER_NAME_AR')} ${A('CUSTOMER_NAME', 'اسم العميل')},
                c.SEGMENT ${A('SEGMENT', 'الشريحة')},
                COUNT(o.ORDER_ID) ${A('ORDER_COUNT', 'عدد الطلبات')},
                SUM(o.TOTAL_AMOUNT) ${A('TOTAL_REVENUE', 'إجمالي الإيرادات')}
@@ -364,7 +379,7 @@ const QUERIES = [
           JOIN ORDERS o ON o.CUSTOMER_ID = c.CUSTOMER_ID
          WHERE o.ORDER_DATE BETWEEN @FromDate AND @ToDate
            AND o.ORDER_STATUS <> 'Cancelled'
-         GROUP BY c.CUSTOMER_CODE, c.CUSTOMER_NAME, c.SEGMENT
+         GROUP BY c.CUSTOMER_CODE, c.${T('CUSTOMER_NAME', 'CUSTOMER_NAME_AR')}, c.SEGMENT
          ORDER BY ${R('TOTAL_REVENUE', 'إجمالي الإيرادات')} DESC)
  WHERE ROWNUM <= @TopCount`,
     parameters: [
@@ -820,6 +835,77 @@ const REPORTS = [
   }
 ];
 
+/**
+ * The dashboard: the Sales Overview page first built by the dashboards smoke test, kept as the
+ * manual's example so the manual shows a dashboard that was exercised end to end.
+ *
+ * <p>Column names are the query's aliases, so they go through T() exactly as the aliases do —
+ * a tile naming the English alias would find nothing in the Arabic pass.</p>
+ *
+ * <p>`visualType` is 0 KPI, 1 Column, 3 Line, 4 Pie, 5 Table. `kpiAggregate` 3 counts rows.
+ * `valueFormat` 1 is a percentage. `drillAction` is 1 filter the dashboard, 2 open a report
+ * (`drillReport` names it by key), 3 show the rows. A map's `sourceKind` is 0 a dashboard filter,
+ * 1 a constant.</p>
+ */
+const fromFilter = (target, filterName) => ({ targetParameterName: target, sourceKind: 0, filterName });
+const constant = (target, constantValue) => ({ targetParameterName: target, sourceKind: 1, constantValue });
+
+const PERIOD_MAPS = [fromFilter('FromDate', 'FromDate'), fromFilter('ToDate', 'ToDate')];
+
+const DASHBOARDS = [
+  {
+    key: 'salesOverview',
+    name: T('Sales Overview', 'لوحة أداء المبيعات'),
+    description: T('Sales by region and customer segment, daily sales and staffing, on one page.',
+                   'المبيعات حسب المنطقة وشريحة العملاء، والمبيعات اليومية، وأعداد الموظفين في صفحة واحدة.'),
+    refresh: 30,
+    teams: ['salesTeam'],
+    filters: [
+      { name: 'FromDate', displayName: T('From date', 'من تاريخ'), parameterType: 2,
+        isRequired: false, defaultValue: 'today-3650', sortOrder: 0 },
+      { name: 'ToDate', displayName: T('To date', 'إلى تاريخ'), parameterType: 2,
+        isRequired: false, defaultValue: '2030-12-31', sortOrder: 1 },
+      { name: 'Regions', displayName: T('Regions', 'المناطق'), parameterType: 4,
+        isRequired: false, allowMultiple: true, sortOrder: 2,
+        dropdownSourceType: 1, lookup: 'regions',
+        dropdownQueryValueColumn: 'REGION_CODE', dropdownQueryLabelColumn: 'REGION_NAME',
+        defaultValue: '["Central","Eastern","Northern","Southern","Western"]' }
+    ],
+    tiles: [
+      // Clicking a region narrows every region-aware tile to it.
+      { title: T('Sales by region', 'المبيعات حسب المنطقة'), query: 'salesByRegion', width: 6, height: 2,
+        visualType: 1, categoryColumn: T('REGION', 'المنطقة'),
+        seriesColumns: [T('TOTAL_SALES', 'إجمالي المبيعات')],
+        drillAction: 1, drillFilterName: 'Regions',
+        parameterMaps: [...PERIOD_MAPS, fromFilter('Regions', 'Regions')] },
+      { title: T('Staff by department', 'الموظفون حسب الإدارة'), query: 'headcount', width: 3, height: 2,
+        visualType: 4, categoryColumn: T('DEPT_NAME', 'اسم الإدارة بالعربية'),
+        seriesColumns: [T('HEADCOUNT', 'عدد الموظفين')], drillAction: 3, parameterMaps: [] },
+      { title: T('Headcount', 'عدد الموظفين'), query: 'headcount', width: 3, height: 1,
+        visualType: 0, kpiAggregate: 3, valueColumn: T('HEADCOUNT', 'عدد الموظفين'), valueFormat: 0,
+        targetValue: 20, targetWarnPercent: 10,
+        conditionalRules: [{ column: null, operator: 'lt', value: '10', tone: 'bad' }],
+        parameterMaps: [] },
+      // Clicking a segment opens the monthly sales report.
+      { title: T('Top Customers by Revenue', 'أكبر العملاء من حيث الإيرادات'), query: 'topCustomers',
+        width: 6, height: 3, visualType: 4, categoryColumn: T('SEGMENT', 'الشريحة'),
+        seriesColumns: [T('TOTAL_REVENUE', 'إجمالي الإيرادات')],
+        valueColumn: T('ORDER_COUNT', 'عدد الطلبات'), valueFormat: 1, refreshSeconds: 30,
+        drillAction: 2, drillReport: 'monthlySales',
+        parameterMaps: [...PERIOD_MAPS, constant('TopCount', '10')] },
+      { title: T('Daily sales (30 days)', 'المبيعات اليومية (آخر 30 يومًا)'), query: 'dailySales',
+        width: 6, height: 1, visualType: 3, categoryColumn: T('ORDER_DAY', 'اليوم'),
+        seriesColumns: [T('TOTAL_SALES', 'إجمالي المبيعات')], refreshSeconds: 60, parameterMaps: [] },
+      { title: T('Departments', 'الإدارات'), query: 'headcount', width: 6, height: 1, visualType: 5,
+        conditionalRules: [
+          { column: T('HEADCOUNT', 'عدد الموظفين'), operator: 'gte', value: '4', tone: 'good' },
+          { column: T('HEADCOUNT', 'عدد الموظفين'), operator: 'lt', value: '3', tone: 'bad' }
+        ],
+        parameterMaps: [] }
+    ]
+  }
+];
+
 const SCHEDULED_TASK = {
   name: T('Nightly Sales Summary Export', 'تصدير ملخص المبيعات اليومي'),
   description: T('Writes the last 30 days of daily sales to an Excel file every morning at 07:00.',
@@ -853,6 +939,11 @@ const HISTORY = [
 // ---------------------------------------------------------------- run
 
 async function reset() {
+  // Dashboards first: a tile holds its query down, and deleting a query a tile uses fails.
+  const dashboards = unwrap(await get('/admin/dashboards'));
+  for (const d of dashboards) await del(`/admin/dashboards/${d.id}`);
+  log(`dashboards removed (${dashboards.length})`);
+
   const tasks = unwrap(await get('/scheduledtasks'));
   for (const task of tasks) await del(`/scheduledtasks/${task.id}`);
   log(`scheduled tasks removed (${tasks.length})`);
@@ -1016,6 +1107,37 @@ async function main() {
     });
   }
   log(`reports created (${reportIds.size})`);
+
+  // ---- dashboards: tiles that refresh themselves from the queries above
+  for (const [index, d] of DASHBOARDS.entries()) {
+    const created = await post('/admin/dashboards', {
+      name: d.name,
+      description: d.description,
+      isEnabled: true,
+      defaultRefreshSeconds: d.refresh,
+      sortOrder: index,
+      filters: d.filters.map(({ lookup, ...f }) =>
+        lookup ? { ...f, dropdownQueryId: lookupIds.get(lookup) } : f),
+      tiles: d.tiles.map(({ query, drillReport, ...t }, sortOrder) => ({
+        height: 1,
+        seriesColumns: [],
+        conditionalRules: [],
+        higherIsBetter: true,
+        ...t,
+        sortOrder,
+        dynamicQueryId: queryIds.get(query),
+        ...(drillReport ? { drillReportId: reportIds.get(drillReport) } : {})
+      }))
+    });
+
+    // Reaching the dashboard is the outer gate only: each tile still checks its own query.
+    await put(`/admin/dashboards/${created.id}/access`, {
+      roleIds: [roleIds.get('Admin')],
+      userGroupIds: d.teams.map(t => userGroupIds.get(t)).filter(Boolean),
+      userIds: []
+    });
+  }
+  log(`dashboard created (${DASHBOARDS.length})`);
 
   // ---- a scheduled task that exports the daily summary every morning
   const task = await post('/scheduledtasks', {

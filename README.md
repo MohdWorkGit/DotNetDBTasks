@@ -49,7 +49,7 @@ docker/                           # Dockerfiles and nginx config
 - AES-256 encryption of stored database credentials at rest
 - Role-based authorization — see [Roles](#roles)
 - Parameterized SQL only — no string concatenation
-- SQL query validation (forbidden pattern detection: `XP_`, `SP_`, `--`, `;`, `DBMS_`, `UTL_`)
+- SQL query validation (forbidden pattern detection: `--` and `;` anywhere; `XP_`, `SP_`, `DBMS_`, `UTL_` at the start of a name, so `REGEXP_REPLACE` is allowed)
 - Write queries (INSERT/UPDATE/DELETE) run preview-and-confirm: previewed in a rolled-back
   transaction before any commit (see [How Write Queries Work](#how-write-queries-work-insert--update--delete))
 - FluentValidation on all inputs
@@ -73,13 +73,14 @@ Four roles are seeded, and any number can be added. A user may hold several; per
 | **Auditor** | `logs.view`, `audit.view`, `scheduledTasks.viewAll` |
 | **Access Manager** | `queries.view`, `access.manageGroup`, `userGroups.view`, `userGroups.manage`, `users.view`, `users.manage`, `directory.view` |
 
-### The 27 capabilities
+### The 31 capabilities
 
 | Area | Permissions |
 |---|---|
 | Queries | `queries.view`, `queries.readSql`, `queries.manage`, `queries.transfer`, `queries.run` |
 | Reports | `reports.view`, `reports.manage`, `reports.run` |
-| Granting access | `access.manageQuery`, `access.manageGroup`, `access.manageReport`, `queryGroups.manage` |
+| Dashboards | `dashboards.view`, `dashboards.manage`, `dashboards.run` |
+| Granting access | `access.manageQuery`, `access.manageGroup`, `access.manageReport`, `access.manageDashboard`, `queryGroups.manage` |
 | People and directory | `users.view`, `users.manage`, `userGroups.view`, `userGroups.manage`, `directory.view`, `directory.manage` |
 | Connections and tasks | `databaseUsers.manage`, `scheduledTasks.viewAll`, `scheduledTasks.manage`, `scheduledTasks.download` |
 | Oversight | `logs.view`, `audit.view` |

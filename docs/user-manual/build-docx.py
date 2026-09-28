@@ -417,12 +417,14 @@ def build_manual(doc):
            "من يحدّدون مَن يصل إلى أي استعلام، دون أن يروا نص SQL أو ينفّذوه.")),
     ])
     para(doc, T(
-        "Chapters 2 to 4 apply to everyone. Chapters 5 and 7 are the day-to-day guide for "
-        "Users — running queries, and running reports. Chapters 6 and 8 to 12 are "
-        "administration. Chapter 13 covers the two audit trails.",
-        "الفصول من ٢ إلى ٤ تخصّ الجميع. والفصلان ٥ و٧ هما الدليل اليومي للمستخدمين — تنفيذ "
-        "الاستعلامات وتشغيل التقارير. والفصل ٦ والفصول من ٨ إلى ١٢ تخصّ الإدارة. ويتناول "
-        "الفصل ١٣ سجلَّي التدقيق."))
+        "Chapters 2 to 4 apply to everyone. Chapters 5, 7 and 8 are the day-to-day guide for "
+        "Users — running queries, running reports and watching dashboards. Chapters 6 and 9 to "
+        "13 are administration, as are the parts of 7 and 8 on building reports and dashboards. "
+        "Chapter 14 covers the two audit trails.",
+        "الفصول من ٢ إلى ٤ تخصّ الجميع. والفصول ٥ و٧ و٨ هي الدليل اليومي للمستخدمين — تنفيذ "
+        "الاستعلامات وتشغيل التقارير ومتابعة لوحات المعلومات. والفصل ٦ والفصول من ٩ إلى ١٣ تخصّ "
+        "الإدارة، وكذلك أجزاء الفصلين ٧ و٨ التي تتناول بناء التقارير ولوحات المعلومات. ويتناول "
+        "الفصل ١٤ سجلَّي التدقيق."))
     note(doc, T(
         "Every screenshot in this manual was taken from a live installation, in the dark "
         "theme. If a screen in front of you differs, your account may hold a different set of "
@@ -504,6 +506,11 @@ def build_manual(doc):
                  "to files on the server.",
                  "استعلام أو أكثر يُنفَّذ تلقائيًا وفق جدول زمني، وتُكتب النتائج في ملفات على "
                  "الخادم.")],
+              [T("Dashboard", "لوحة معلومات"),
+               T("A page of tiles — numbers, charts and short tables — each fed by a saved "
+                 "query and refreshing itself on a timer.",
+                 "صفحة من العناصر — أرقام ورسوم بيانية وجداول قصيرة — يغذّي كلًّا منها استعلام "
+                 "محفوظ ويحدّث نفسه وفق مؤقّت.")],
               [T("Role", "دور"),
                T("A named permission set held by an account. An account may hold more than "
                  "one; permissions add up.",
@@ -582,11 +589,12 @@ def build_manual(doc):
     ])
     para(doc, T(
         "After signing in you land on the first page your permissions actually open, taken in "
-        "this order: My Queries if you may run queries; then Manage Queries, the execution "
+        "this order: My Queries if you may run queries; then Dashboards if you may view them; "
+        "then Manage Queries, the execution "
         "logs, the system audit trail, Users, User Groups, Scheduled Tasks, and Settings. If "
         "none of those are open to you, you land on My Schedules.",
         "بعد تسجيل الدخول تصل إلى أول صفحة تفتحها صلاحياتك فعلًا، بهذا الترتيب: «الاستعلامات» إن "
-        "كنت تملك تنفيذ الاستعلامات، ثم «إدارة الاستعلامات»، فسجلات التنفيذ، فسجل عمليات "
+        "كنت تملك تنفيذ الاستعلامات، ثم «لوحات المعلومات» إن كنت تملك عرضها، ثم «إدارة الاستعلامات»، فسجلات التنفيذ، فسجل عمليات "
         "النظام، فالمستخدمون، فمجموعات المستخدمين، فالمهام المجدولة، فالإعدادات. فإن لم يكن "
         "أيٌّ منها متاحًا لك وصلت إلى «مهامي المجدولة»."))
     para(doc, T(
@@ -619,6 +627,10 @@ def build_manual(doc):
               [T("My Queries", "الاستعلامات"),
                T("The queries assigned to you", "الاستعلامات المخصَّصة لك"),
                T("Everyone", "الجميع")],
+              [T("Dashboards", "لوحات المعلومات"),
+               T("The dashboards shared with you", "لوحات المعلومات المشارَكة معك"),
+               T("Anyone holding View dashboards (Chapter 8)",
+                 "كل من يحمل صلاحية «عرض لوحات المعلومات» (الفصل ٨)")],
               [T("History", "السجل"),
                T("Your own execution history", "سجل تنفيذك الشخصي"),
                T("Everyone", "الجميع")],
@@ -628,8 +640,9 @@ def build_manual(doc):
                T("Users (hidden for Admin and Auditor, who use the full Scheduled Tasks page)",
                  "المستخدمون (تُخفى عن المسؤول والمدقق لأنهما يستخدمان صفحة المهام الكاملة)")],
               [T("Queries", "الاستعلامات"),
-               T("Manage Queries, Query Groups, Schedules",
-                 "إدارة الاستعلامات، ومجموعات الاستعلامات، والمهام المجدولة"),
+               T("Manage Queries, Query Groups, Reports, Dashboards, Schedules",
+                 "إدارة الاستعلامات، ومجموعات الاستعلامات، والتقارير، ولوحات المعلومات، والمهام "
+                 "المجدولة"),
                T("Admin, Access Manager, Auditor (each sees only its own entries)",
                  "المسؤول ومدير الصلاحيات والمدقق (يرى كلٌّ منهم عناصره فقط)")],
               [T("Users & Access", "المستخدمون والصلاحيات"),
@@ -682,12 +695,12 @@ def build_manual(doc):
          T("changes the colour theme immediately; the menu stays open so you can compare.",
            "يغيّر نمط الألوان فورًا، وتبقى القائمة مفتوحة للمقارنة.")),
         (T("Settings — ", "الإعدادات — "),
-         T("system-wide toggles (administrators only, see Chapter 15).",
-           "مفاتيح على مستوى النظام (للمسؤولين فقط، انظر الفصل ١٥).")),
+         T("system-wide toggles (administrators only, see Chapter 16).",
+           "مفاتيح على مستوى النظام (للمسؤولين فقط، انظر الفصل ١٦).")),
         (T("Website branding — ", "هوية الموقع — "),
          T("set the logo, the site name and the browser tab icon (administrators only, see "
-           "Chapter 14).",
-           "ضبط الشعار واسم الموقع وأيقونة تبويب المتصفح (للمسؤولين فقط، انظر الفصل ١٤).")),
+           "Chapter 15).",
+           "ضبط الشعار واسم الموقع وأيقونة تبويب المتصفح (للمسؤولين فقط، انظر الفصل ١٥).")),
         (T("Logout — ", "تسجيل الخروج — "),
          T("signs out and returns to the sign-in page.",
            "ينهي الجلسة ويعيدك إلى صفحة تسجيل الدخول.")),
@@ -740,11 +753,11 @@ def build_manual(doc):
     para(doc, T(
         "A role is a named set of permissions, and both parts are editable. Four roles are "
         "supplied; an administrator can add more, and can change what any of them may do on "
-        "Settings → Permissions (Chapter 15). What follows is what each one holds out of the "
+        "Settings → Permissions (Chapter 16). What follows is what each one holds out of the "
         "box, not a description of what it must always be.",
         "الدور مجموعة صلاحيات لها اسم، وكلا الجزأين قابل للتعديل. ويُزوَّد النظام بأربعة أدوار، "
         "ويستطيع المسؤول إضافة غيرها وتغيير ما يمكن لأيٍّ منها فعله من «الإعدادات ← الصلاحيات» "
-        "(الفصل ١٥). وما يلي هو ما يحمله كل دور ابتداءً، لا وصفًا لما يجب أن يبقى عليه."))
+        "(الفصل ١٦). وما يلي هو ما يحمله كل دور ابتداءً، لا وصفًا لما يجب أن يبقى عليه."))
     para(doc, T(
         "One account may hold several roles, and its permissions are the sum of them.",
         "وقد يحمل الحساب الواحد أكثر من دور، فتكون صلاحياته مجموع صلاحياتها."))
@@ -811,6 +824,30 @@ def build_manual(doc):
                yes, dash, yes, dash],
               [T("Create and edit query groups",
                  "إنشاء مجموعات الاستعلامات وتعديلها"),
+               yes, dash, dash, dash],
+              [T("See the report list",
+                 "عرض قائمة التقارير"),
+               yes, dash, dash, dash],
+              [T("Create and edit reports",
+                 "إنشاء التقارير وتعديلها"),
+               yes, dash, dash, dash],
+              [T("Run reports",
+                 "تشغيل التقارير"),
+               yes, dash, dash, dash],
+              [T("Grant a report",
+                 "منح صلاحية تقرير"),
+               yes, dash, dash, dash],
+              [T("See the dashboard list",
+                 "عرض قائمة لوحات المعلومات"),
+               yes, dash, dash, dash],
+              [T("Create and edit dashboards",
+                 "إنشاء لوحات المعلومات وتعديلها"),
+               yes, dash, dash, dash],
+              [T("View dashboards",
+                 "عرض لوحات المعلومات"),
+               yes, dash, dash, dash],
+              [T("Grant a dashboard",
+                 "منح صلاحية لوحة معلومات"),
                yes, dash, dash, dash],
               [T("See the user list",
                  "عرض قائمة المستخدمين"),
@@ -1002,10 +1039,10 @@ def build_manual(doc):
           widths=[1.5, 5.1])
     note(doc, T(
         "A query must also be Enabled to be runnable, and the user must be allowed to use the "
-        "database connection the query runs through (Chapter 12). Both are checked on every "
+        "database connection the query runs through (Chapter 13). Both are checked on every "
         "run, not just when the page is opened.",
         "يجب أيضًا أن يكون الاستعلام «نشطًا» ليكون قابلًا للتنفيذ، وأن يكون المستخدم مخوَّلًا "
-        "باستخدام اتصال قاعدة البيانات الذي يُنفَّذ الاستعلام من خلاله (الفصل ١٢). ويُتحقَّق من "
+        "باستخدام اتصال قاعدة البيانات الذي يُنفَّذ الاستعلام من خلاله (الفصل ١٣). ويُتحقَّق من "
         "الأمرين في كل تنفيذ، لا عند فتح الصفحة فقط."))
 
     h2(doc, T("4.6 Page-by-page permission reference",
@@ -1023,6 +1060,11 @@ def build_manual(doc):
               [T("Run a query", "تنفيذ استعلام"), "/user/queries/…/execute",
                T("Run queries, and the query must be assigned",
                  "تنفيذ الاستعلامات، مع اشتراط إسناد الاستعلام")],
+              [T("Dashboards", "لوحات المعلومات"), "/user/dashboards",
+               T("View dashboards", "عرض لوحات المعلومات")],
+              [T("View a dashboard", "عرض لوحة معلومات"), "/user/dashboards/…",
+               T("View dashboards, and the dashboard must be granted",
+                 "عرض لوحات المعلومات، مع اشتراط منح اللوحة")],
               [T("My History", "سجلي"), "/user/history",
                T("Run queries", "تنفيذ الاستعلامات")],
               [T("My Schedules", "مهامي المجدولة"), "/user/schedules",
@@ -1043,6 +1085,21 @@ def build_manual(doc):
               [T("Manage group access", "إدارة صلاحيات المجموعة"),
                "/admin/query-groups/…/access",
                T("Grant a query group", "منح مجموعة استعلامات")],
+              [T("Reports", "التقارير"), "/admin/reports",
+               T("See the report list", "عرض قائمة التقارير")],
+              [T("Create / edit report", "إنشاء/تعديل تقرير"),
+               "/admin/reports/create, /edit/…",
+               T("Create and edit reports", "إنشاء التقارير وتعديلها")],
+              [T("Manage report access", "إدارة صلاحيات التقرير"), "/admin/reports/…/access",
+               T("Grant a report", "منح صلاحية تقرير")],
+              [T("Dashboards (admin)", "لوحات المعلومات (الإدارة)"), "/admin/dashboards",
+               T("See the dashboard list", "عرض قائمة لوحات المعلومات")],
+              [T("Create / edit dashboard", "إنشاء/تعديل لوحة معلومات"),
+               "/admin/dashboards/create, /edit/…",
+               T("Create and edit dashboards", "إنشاء لوحات المعلومات وتعديلها")],
+              [T("Manage dashboard access", "إدارة صلاحيات لوحة المعلومات"),
+               "/admin/dashboards/…/access",
+               T("Grant a dashboard", "منح صلاحية لوحة معلومات")],
               [T("Scheduled Tasks", "المهام المجدولة"), "/admin/scheduled-tasks",
                T("See every scheduled task", "عرض جميع المهام المجدولة")],
               [T("Create / edit task", "إنشاء/تعديل مهمة"),
@@ -1847,10 +1904,10 @@ def build_manual(doc):
     para(doc, T(
         "A scheduled task can carry a report exactly as it carries a query: add an item, choose "
         "Report instead of Query, pick it, and give its parameters fixed values. The file lands "
-        "in the task's output folder on the schedule you set — see the next chapter but one.",
+        "in the task's output folder on the schedule you set — see Chapter 11.",
         "يمكن للمهمة المجدولة أن تحمل تقريرًا تمامًا كما تحمل استعلامًا: أضف عنصرًا، واختر "
         "«تقرير» بدل «استعلام»، ثم حدّده وأعطِ معايير بحثه قيمًا ثابتة. ويُكتب الملف في مجلد "
-        "مخرجات المهمة وفق الجدولة التي تضبطها — انظر الفصل بعد القادم."))
+        "مخرجات المهمة وفق الجدولة التي تضبطها — انظر الفصل ١١."))
 
     h2(doc, T("7.8 Who can open a report", "٧.٨ مَن يمكنه فتح التقرير"))
     para(doc, T(
@@ -1875,7 +1932,336 @@ def build_manual(doc):
     page_break(doc)
 
     # ===================================================================== 8
-    h1(doc, T("8. Query groups", "٨. مجموعات الاستعلامات"))
+    h1(doc, T("8. Dashboards", "٨. لوحات المعلومات"))
+    para(doc, T("For: everyone watches them; Administrators build them.",
+                "لمن: يتابعها الجميع، ويبنيها المسؤولون."), italic=True)
+    para(doc, T(
+        "A report is run when someone asks for it. A dashboard is left open: a page of tiles — "
+        "headline numbers, charts and short tables — each fed by a saved query and each "
+        "refreshing itself on a timer, so the page stays current without anyone pressing Run. "
+        "It is the screen on the wall of the sales office, or the tab a manager keeps open all "
+        "day.",
+        "يُشغَّل التقرير حين يطلبه أحد. أما لوحة المعلومات فتُترك مفتوحة: صفحة من العناصر — أرقام "
+        "بارزة ورسوم بيانية وجداول قصيرة — يغذّي كلًّا منها استعلام محفوظ ويحدّث نفسه وفق مؤقّت، "
+        "فتبقى الصفحة محدَّثة دون أن يضغط أحد «تشغيل». إنها الشاشة المعلّقة على جدار مكتب "
+        "المبيعات، أو التبويب الذي يُبقيه المدير مفتوحًا طوال اليوم."))
+    note(doc, T(
+        "A dashboard never runs anything a query could not. Every tile is a saved read query, run "
+        "with the viewer's own access, so a dashboard adds a way to look at data — not a way to "
+        "reach more of it.",
+        "لا تشغّل لوحة المعلومات شيئًا لا يستطيعه الاستعلام. فكل عنصر استعلام قراءة محفوظ يُنفَّذ "
+        "بصلاحيات المشاهد نفسه، فتضيف اللوحة طريقة للنظر إلى البيانات — لا طريقة للوصول إلى "
+        "المزيد منها."))
+
+    h2(doc, T("8.1 Opening a dashboard", "٨.١ فتح لوحة المعلومات"))
+    para(doc, T(
+        "Dashboards has its own entry in the top bar. It lists the dashboards shared with you, "
+        "each with how many tiles it holds and how often it refreshes.",
+        "لـ«لوحات المعلومات» عنصر خاص بها في الشريط العلوي. ويعرض قائمة اللوحات المشارَكة معك، "
+        "مع عدد العناصر في كلٍّ منها وعدد مرات تحديثها."))
+    figure(doc, "47-my-dashboards",
+           T("The dashboards shared with you.", "لوحات المعلومات المشارَكة معك."))
+    figure(doc, "48-dashboard-view",
+           T("The Sales Overview dashboard: the filter bar, then sales by region, staff by "
+             "department, a headcount KPI, top customers by segment, daily sales and a table of "
+             "departments. Every tile refreshes on its own.",
+             "لوحة أداء المبيعات: شريط التصفية، ثم المبيعات حسب المنطقة، والموظفون حسب الإدارة، "
+             "ومؤشر لعدد الموظفين، وأكبر العملاء حسب الشريحة، والمبيعات اليومية، وجدول بالإدارات. "
+             "ويحدّث كل عنصر نفسه بنفسه."))
+    bullets(doc, [
+        (T("Filters sit above the tiles. ", "تقع عوامل التصفية فوق العناصر. "),
+         T("Change them and press Apply; every tile that uses a filter re-runs with the new "
+           "value, and the others are left alone. Reset returns them to the dashboard's "
+           "defaults.",
+           "غيّرها واضغط «تطبيق»، فيُعاد تشغيل كل عنصر يستخدم عامل التصفية بالقيمة الجديدة، "
+           "وتبقى العناصر الأخرى كما هي. وتعيدها «إعادة الضبط» إلى القيم الافتراضية للوحة.")),
+        (T("A date filter can be relative. ", "يمكن أن يكون عامل تصفية التاريخ نسبيًا. "),
+         T("Relative dates — today, start of this month, start of last month and so on — keep "
+           "their meaning as time passes, so a dashboard left open overnight still shows “this "
+           "month” the next morning.",
+           "التواريخ النسبية — اليوم، وبداية هذا الشهر، وبداية الشهر الماضي وغيرها — تحتفظ "
+           "بمعناها مع مرور الوقت، فتظل اللوحة المفتوحة طوال الليل تعرض «هذا الشهر» في الصباح "
+           "التالي.")),
+        (T("The filters are part of the address. ", "عوامل التصفية جزء من العنوان. "),
+         T("Copy the address and you have a link to exactly this view — bookmark it, or send it "
+           "to a colleague who has access.",
+           "انسخ العنوان تحصل على رابط لهذا العرض بالضبط — احفظه في المفضلة أو أرسله إلى زميل "
+           "يملك الصلاحية.")),
+        (T("Each tile says when its data is from. ", "يذكر كل عنصر وقت بياناته. "),
+         T("If a refresh fails, the tile keeps the last data it received and says so, rather "
+           "than going blank.",
+           "وإذا أخفق التحديث احتفظ العنصر بآخر بيانات وصلته ونبّه إلى ذلك، بدل أن يصبح فارغًا.")),
+        (T("Refresh fetches every tile now. ", "زر «تحديث» يجلب كل العناصر فورًا. "),
+         T("Results are shared between everyone viewing the same dashboard with the same "
+           "filters, so a tile refreshed moments ago by someone else may come back unchanged.",
+           "تُشارَك النتائج بين كل من يشاهد اللوحة نفسها بعوامل التصفية نفسها، فقد يعود عنصر "
+           "حدّثه غيرك قبل لحظات دون تغيير.")),
+    ])
+
+    h2(doc, T("8.2 Reading a tile", "٨.٢ قراءة العنصر"))
+    table(doc,
+          [T("Tile", "العنصر"), T("Shows", "يعرض")],
+          [
+              [T("KPI number", "مؤشر رقمي"),
+               T("One headline figure, how it changed against a comparison, and — when the query "
+                 "returns a series — a small trend line underneath.",
+                 "رقمًا بارزًا واحدًا، ومقدار تغيّره مقارنةً بقيمة أخرى، وخطًا صغيرًا للاتجاه "
+                 "أسفله حين يعيد الاستعلام سلسلة من القيم.")],
+              [T("Column, bar, line and pie charts", "مخططات الأعمدة والأشرطة والخطوط والدائري"),
+               T("The same four charts a report draws, with the same rules — see 7.4.",
+                 "المخططات الأربعة نفسها التي يرسمها التقرير، وبالقواعد نفسها — انظر ٧.٤.")],
+              [T("Table", "جدول"),
+               T("The first rows of the result. The footer says how many there are in all.",
+                 "أول صفوف النتيجة، ويذكر أسفل الجدول عددها الإجمالي.")],
+          ], widths=[1.8, 4.4])
+    para(doc, T(
+        "A KPI's change reads “Up 12% from …” or “Down 4% from …”, and is coloured by whether the "
+        "move is good news: for sales a rise is green, for overdue invoices a rise is red. A KPI "
+        "with a target also says On target, Near target or Off target. In the Sales Overview "
+        "dashboard, the Headcount tile is judged against a target of 20.",
+        "يُقرأ تغيّر المؤشر «ارتفاع ١٢٪ عن …» أو «انخفاض ٤٪ عن …»، ويُلوَّن بحسب ما إذا كان "
+        "التغيّر خبرًا سارًّا: فارتفاع المبيعات أخضر، وارتفاع الفواتير المتأخرة أحمر. والمؤشر "
+        "الذي له هدف يذكر أيضًا «محقق» أو «قريب من الهدف» أو «دون الهدف». ففي لوحة أداء المبيعات "
+        "يُقاس مؤشر «عدد الموظفين» بهدف قدره ٢٠."))
+    para(doc, T(
+        "Colour rules can mark a KPI or a table cell green, amber or red. In the Departments "
+        "table, a department of four or more staff is green and one of fewer than three is red. "
+        "The rules are set when the dashboard is built.",
+        "يمكن لقواعد التلوين أن تُبرز المؤشر أو خلية الجدول بالأخضر أو الكهرماني أو الأحمر. ففي "
+        "جدول «الإدارات» تظهر الإدارة التي تضم أربعة موظفين أو أكثر بالأخضر، والتي تضم أقل من "
+        "ثلاثة بالأحمر. وتُضبط هذه القواعد عند بناء اللوحة."))
+    note(doc, T(
+        "A tile whose query you are not allowed to run shows a message in place of its data, and "
+        "the rest of the dashboard carries on. A dashboard can therefore mix teams' data safely: "
+        "on Sales Overview, a sales representative sees the sales tiles, while the staffing "
+        "tiles, fed by an HR query, stay closed to them.",
+        "العنصر الذي لا يحق لك تشغيل استعلامه يعرض رسالة مكان بياناته، وتستمر بقية اللوحة في "
+        "العمل. ولذلك يمكن للّوحة أن تجمع بيانات فرق مختلفة بأمان: ففي لوحة أداء المبيعات يرى "
+        "مندوب المبيعات عناصر المبيعات، بينما تبقى عناصر الموظفين — التي يغذّيها استعلام للموارد "
+        "البشرية — مغلقة أمامه."))
+
+    h2(doc, T("8.3 Clicking, rows and downloads", "٨.٣ النقر والصفوف والتنزيل"))
+    para(doc, T(
+        "Clicking a bar or a slice can do one of three things, chosen when the tile was built: "
+        "filter the whole dashboard to that category, open a report for it, or show the rows "
+        "behind the tile. On Sales Overview, clicking a region's column narrows every "
+        "region-aware tile to that region, and clicking a slice of Top Customers by Revenue "
+        "opens the Monthly Sales Report.",
+        "يمكن للنقر على عمود أو شريحة أن يفعل واحدًا من ثلاثة أشياء يُحدَّد عند بناء العنصر: "
+        "تصفية اللوحة كلها على تلك الفئة، أو فتح تقرير عنها، أو عرض الصفوف التي خلف العنصر. ففي "
+        "لوحة أداء المبيعات يؤدي النقر على عمود منطقة إلى قصر كل العناصر المرتبطة بالمناطق "
+        "عليها، ويفتح النقر على شريحة من «أكبر العملاء من حيث الإيرادات» التقريرَ الشهري "
+        "للمبيعات."))
+    para(doc, T(
+        "Every tile also has a menu in its corner. Show rows runs the tile's query in full and "
+        "opens the result in a window. Download writes the same result to a file, in the formats "
+        "the query allows and your role may export — the same two gates as on the query page.",
+        "ولكل عنصر أيضًا قائمة في زاويته. فـ«عرض الصفوف» يشغّل استعلام العنصر كاملًا ويفتح النتيجة "
+        "في نافذة، والتنزيل يكتب النتيجة نفسها في ملف، بالصيغ التي يسمح بها الاستعلام ويحق لدورك "
+        "تصديرها — وهما البوابتان نفسهما المطبّقتان في صفحة الاستعلام."))
+
+    h2(doc, T("8.4 Wall-screen mode", "٨.٤ وضع شاشة العرض"))
+    para(doc, T(
+        "Wall-screen mode, a button at the top of the dashboard, hides the top bar and the "
+        "filter form and enlarges the type, for a screen read from across a room. Full screen "
+        "then takes the browser's own frame away too.",
+        "يُخفي «وضع شاشة العرض» — وهو زر أعلى اللوحة — الشريطَ العلوي ونموذج التصفية ويكبّر الخط، "
+        "لشاشة تُقرأ من طرف الغرفة. ثم يزيل زر «ملء الشاشة» إطار المتصفح نفسه أيضًا."))
+    figure(doc, "49-dashboard-wall-screen",
+           T("The same dashboard in wall-screen mode.",
+             "اللوحة نفسها في وضع شاشة العرض."))
+    para(doc, T(
+        "For a screen that is never touched, put the mode in the address instead. Adding ?tv=1 "
+        "opens a dashboard straight into wall-screen mode, and &rotate= followed by dashboard "
+        "ids separated by commas, with &every= a number of seconds (15 at least, 60 if left "
+        "out), moves the screen from one dashboard to the next on a cycle. Take the ids from "
+        "the address of each dashboard.",
+        "ولشاشة لا يلمسها أحد، ضع الوضع في العنوان بدلًا من ذلك. فإضافة ‎?tv=1‎ تفتح اللوحة "
+        "مباشرةً في وضع شاشة العرض، وإضافة ‎&rotate=‎ متبوعةً بمعرّفات لوحات مفصولة بفواصل، مع "
+        "‎&every=‎ وعدد من الثواني (١٥ على الأقل، و٦٠ إن لم يُحدَّد)، تنقل الشاشة من لوحة إلى "
+        "التالية بالتناوب. وتؤخذ المعرّفات من عنوان كل لوحة."))
+    note(doc, T(
+        "A wall screen signs in like anyone else. Give it its own account holding only View "
+        "dashboards, granted only the dashboards it shows — not the account of whoever set it "
+        "up.",
+        "تسجّل شاشة العرض الدخول كأي مستخدم آخر. فخصّص لها حسابًا مستقلًا لا يحمل سوى صلاحية "
+        "«عرض لوحات المعلومات»، ولا يُمنح إلا اللوحات التي تعرضها — لا حساب الشخص الذي أعدّها."),
+        kind="warning")
+
+    h2(doc, T("8.5 Building a dashboard", "٨.٥ بناء لوحة المعلومات"))
+    para(doc, T(
+        "Administrators build dashboards under Queries → Dashboards. The list shows each "
+        "dashboard's tiles, filters, refresh interval and status, and its menu opens, edits, "
+        "grants or deletes it. Deleting a dashboard leaves the queries its tiles use untouched.",
+        "يبني المسؤولون لوحات المعلومات من «الاستعلامات ← لوحات المعلومات». وتعرض القائمة عناصر "
+        "كل لوحة وعوامل تصفيتها وفترة تحديثها وحالتها، وتتيح قائمتها فتح اللوحة أو تعديلها أو "
+        "منحها أو حذفها. وحذف اللوحة لا يمسّ الاستعلامات التي تستخدمها عناصرها."))
+    figure(doc, "29-dashboards-list",
+           T("Queries → Dashboards.", "الاستعلامات ← لوحات المعلومات."))
+
+    h3(doc, T("Details", "التفاصيل"))
+    para(doc, T(
+        "The name and description readers see, whether the dashboard is enabled, its place in "
+        "the list, and how often its tiles refresh — between 30 seconds and an hour.",
+        "الاسم والوصف اللذان يراهما القرّاء، وما إذا كانت اللوحة مفعّلة، وموضعها في القائمة، "
+        "وعدد مرات تحديث عناصرها — بين ٣٠ ثانية وساعة."))
+    figure(doc, "29a-dashboard-details",
+           T("The Details tab.", "تبويب «التفاصيل»."))
+    note(doc, T(
+        "The refresh interval is also how long a tile's result is shared. Whether one person "
+        "has the dashboard open or two hundred, each tile asks the database at most once per "
+        "interval for each combination of filter values — so the interval is what bounds the "
+        "load a dashboard puts on the database, not the number of viewers.",
+        "فترة التحديث هي أيضًا مدة مشاركة نتيجة العنصر. فسواء فتح اللوحة شخص واحد أو مئتان، لا "
+        "يسأل كل عنصر قاعدة البيانات أكثر من مرة واحدة في كل فترة لكل مجموعة من قيم التصفية — "
+        "فالفترة هي ما يحدّ الحمل الذي تضعه اللوحة على قاعدة البيانات، لا عدد المشاهدين."))
+
+    h3(doc, T("Filters", "عوامل التصفية"))
+    para(doc, T(
+        "A filter is declared once for the whole dashboard, with the same types as a query "
+        "parameter: text, number, date, yes/no, or a list whose options are fixed or come from a "
+        "lookup query. Its name — letters, digits and underscores — is what appears in the "
+        "address; its label is what the reader sees.",
+        "يُعرَّف عامل التصفية مرة واحدة للّوحة كلها، بالأنواع نفسها المتاحة لمعيار بحث الاستعلام: "
+        "نص أو رقم أو تاريخ أو نعم/لا، أو قائمة خياراتها ثابتة أو مأخوذة من استعلام قائمة. واسمه "
+        "— حروف وأرقام وشرطات سفلية — هو ما يظهر في العنوان، أما تسميته فهي ما يراه القارئ."))
+    figure(doc, "29b-dashboard-filters",
+           T("The Filters tab: a date range, and a multi-select list of regions fed by a "
+             "lookup query.",
+             "تبويب «عوامل التصفية»: فترة زمنية، وقائمة مناطق متعددة الاختيار يغذّيها استعلام "
+             "قائمة."))
+    para(doc, T(
+        "A date filter's default can be a date (yyyy-mm-dd) or a relative one: today, "
+        "week_start, month_start, month_end, last_month_start, last_month_end, year_start, or "
+        "today-N and today+N for a number of days. A From filter defaulting to month_start "
+        "always opens on the current month, however long the page has been open.",
+        "يمكن أن تكون القيمة الافتراضية لعامل تصفية التاريخ تاريخًا (yyyy-mm-dd) أو تاريخًا "
+        "نسبيًا: today وweek_start وmonth_start وmonth_end وlast_month_start وlast_month_end "
+        "وyear_start، أو today-N وtoday+N لعدد من الأيام. فعامل التصفية «من» الذي قيمته الافتراضية "
+        "month_start يُفتح دائمًا على الشهر الحالي، مهما طال بقاء الصفحة مفتوحة."))
+
+    h3(doc, T("Tiles", "العناصر"))
+    para(doc, T(
+        "The top of the Tiles tab is a preview of the 12-column grid: drag a box to move its "
+        "tile. Below it, each tile names a query and says how to draw it.",
+        "أعلى تبويب «العناصر» معاينة للشبكة ذات الأعمدة الاثني عشر: اسحب أي مربع لنقل عنصره. "
+        "وتحتها يسمّي كل عنصر استعلامًا ويحدّد طريقة رسمه."))
+    figure(doc, "29c-dashboard-tiles",
+           T("The Tiles tab: the layout preview, then each tile's settings.",
+             "تبويب «العناصر»: معاينة التخطيط، ثم إعدادات كل عنصر."))
+    bullets(doc, [
+        (T("Query — ", "الاستعلام — "),
+         T("any saved read query. Queries that change data are not offered: a tile re-runs on a "
+           "timer, and a write would run every interval for as long as the page was open.",
+           "أي استعلام قراءة محفوظ. ولا تُعرض الاستعلامات التي تعدّل البيانات: فالعنصر يُعاد "
+           "تشغيله وفق مؤقّت، وكان التعديل سيُنفَّذ في كل فترة ما دامت الصفحة مفتوحة.")),
+        (T("Width and height — ", "العرض والارتفاع — "),
+         T("a quarter, a third, a half, two thirds or the full width, and one to three rows "
+           "tall. On a narrow screen the tiles stack.",
+           "ربع العرض أو ثلثه أو نصفه أو ثلثاه أو العرض كاملًا، وارتفاع من صف إلى ثلاثة صفوف. "
+           "وعلى الشاشة الضيقة تتراصّ العناصر فوق بعضها.")),
+        (T("Load columns — ", "تحميل الأعمدة — "),
+         T("runs the query once to read its column names, so the column settings below become "
+           "lists to pick from rather than names to type.",
+           "يشغّل الاستعلام مرة واحدة لقراءة أسماء أعمدته، فتصبح إعدادات الأعمدة أدناه قوائم "
+           "للاختيار بدل أسماء تُكتب.")),
+        (T("Query parameters — ", "معطيات الاستعلام — "),
+         T("each of the query's parameters takes its value from a dashboard filter, from a fixed "
+           "value, or from the query's own default. This is how one date range reaches every "
+           "tile, whatever each query called it.",
+           "يأخذ كل معيار من معايير الاستعلام قيمته من عامل تصفية في اللوحة، أو من قيمة ثابتة، "
+           "أو من القيمة الافتراضية للاستعلام. وهكذا تصل فترة زمنية واحدة إلى كل العناصر، أيًّا "
+           "كان الاسم الذي أطلقه كل استعلام عليها.")),
+        (T("Refresh every — ", "التحديث كل — "),
+         T("overrides the dashboard's interval for this tile. Leave it empty to inherit it.",
+           "يتجاوز فترة تحديث اللوحة لهذا العنصر. اتركه فارغًا ليرثها.")),
+    ])
+    para(doc, T("A KPI tile turns the query's rows into one number. Summary says how:",
+                "يحوّل عنصر المؤشر الرقمي صفوف الاستعلام إلى رقم واحد، ويحدّد «الملخص» الطريقة:"))
+    table(doc,
+          [T("Summary", "الملخص"), T("The number shown", "الرقم المعروض"),
+           T("Compared with", "يُقارَن بـ")],
+          [
+              [T("Last row", "الصف الأخير"),
+               T("The value column on the last row. The rows are read as a series, oldest first, "
+                 "and draw the trend line.",
+                 "قيمة العمود في الصف الأخير. وتُقرأ الصفوف كسلسلة، الأقدم أولًا، وترسم خط "
+                 "الاتجاه."),
+               T("The compare column on that row, or else the row before it.",
+                 "عمود المقارنة في ذلك الصف، وإلا فالصف الذي قبله.")],
+              [T("Sum, Average, Minimum, Maximum", "المجموع، المتوسط، الأدنى، الأعلى"),
+               T("That summary of the value column over every row.",
+                 "ذلك الملخص لعمود القيمة على كل الصفوف."),
+               T("The same summary of the compare column, when there is one.",
+                 "الملخص نفسه لعمود المقارنة، إن وُجد.")],
+              [T("Row count", "عدد الصفوف"),
+               T("How many rows the query returned. Needs no value column.",
+                 "عدد الصفوف التي أعادها الاستعلام، ولا يحتاج إلى عمود قيمة."),
+               T("Nothing, unless a compare column is set.",
+                 "لا شيء، ما لم يُضبط عمود مقارنة.")],
+          ], widths=[1.6, 2.6, 2.0])
+    bullets(doc, [
+        (T("Last row suits a trend query. ", "يناسب «الصف الأخير» استعلامات الاتجاه. "),
+         T("A query returning one row per month, oldest first, gives “this month against last "
+           "month” with a year's sparkline and nothing else to set up.",
+           "فالاستعلام الذي يعيد صفًا لكل شهر، الأقدم أولًا، يعطي «هذا الشهر مقارنةً بالشهر "
+           "الماضي» مع خط اتجاه لعام كامل دون أي إعداد آخر.")),
+        (T("Higher is better ", "«الأعلى أفضل» "),
+         T("decides which way is green. Clear it for anything that should go down — complaints, "
+           "overdue invoices, stock shortfalls.",
+           "يحدّد أي اتجاه يُلوَّن بالأخضر. ألغِ تحديده لكل ما يُفترض أن ينخفض — الشكاوى والفواتير "
+           "المتأخرة ونقص المخزون.")),
+        (T("Target ", "«الهدف» "),
+         T("is optional. Within Near target of it (10% unless changed) the tile says Near target "
+           "rather than Off target.",
+           "اختياري. وضمن نسبة «قريب من الهدف» منه (١٠٪ ما لم تُغيَّر) يذكر العنصر «قريب من "
+           "الهدف» بدل «دون الهدف».")),
+        (T("Format ", "«التنسيق» "),
+         T("shows the number plainly, as a percentage (0.25 is 25%), or as an amount with two "
+           "decimals.",
+           "يعرض الرقم عاديًا، أو نسبةً مئوية (0.25 تعني ٢٥٪)، أو مبلغًا بمنزلتين عشريتين.")),
+    ])
+    note(doc, T(
+        "Column names are the ones the query returns, aliases included — the same rule as report "
+        "charts. A query whose columns are renamed breaks the tiles that name them; the tile then "
+        "reports the missing column rather than drawing nothing. A query used by a tile cannot "
+        "be deleted until the tile is removed.",
+        "أسماء الأعمدة هي التي يعيدها الاستعلام، بما فيها الأسماء البديلة — وهي القاعدة نفسها "
+        "في مخططات التقارير. والاستعلام الذي تُغيَّر أسماء أعمدته يُعطّل العناصر التي تسمّيها، "
+        "فيذكر العنصر حينئذٍ العمود المفقود بدل أن يعرض فراغًا. ولا يمكن حذف استعلام يستخدمه عنصر "
+        "حتى يُزال العنصر."))
+
+    h2(doc, T("8.6 Who can open a dashboard", "٨.٦ مَن يمكنه فتح لوحة المعلومات"))
+    para(doc, T(
+        "A dashboard is granted the same three ways as a query or a report — by role, by user "
+        "group, or to named users — from Who can view it in the list's menu. Sales Overview is "
+        "granted to the Sales Team user group.",
+        "تُمنح لوحة المعلومات بالطرق الثلاث نفسها المتّبعة مع الاستعلام والتقرير — بالدور أو "
+        "بمجموعة المستخدمين أو لمستخدمين محدّدين — من «من يمكنه عرضها» في قائمة اللوحة. ولوحة "
+        "أداء المبيعات ممنوحة لمجموعة المستخدمين «فريق المبيعات»."))
+    figure(doc, "29d-dashboard-access",
+           T("Dashboard access. Reaching the dashboard is only the outer gate.",
+             "صلاحية لوحة المعلومات. والوصول إلى اللوحة ليس سوى البوابة الخارجية."))
+    bullets(doc, [
+        (T("The role must hold View dashboards. ", "يجب أن يحمل الدور صلاحية «عرض لوحات المعلومات». "),
+         T("Out of the box only Admin does — the User role does not. Add it on Settings → "
+           "Permissions before sharing a dashboard with ordinary users, or the grant reaches "
+           "nobody.",
+           "ولا يحملها ابتداءً سوى Admin — فدور User لا يحملها. أضفها من «الإعدادات ← الصلاحيات» "
+           "قبل مشاركة لوحة مع المستخدمين العاديين، وإلا لم يصل المنح إلى أحد.")),
+        (T("Every tile is checked on its own. ", "يُفحص كل عنصر على حدة. "),
+         T("Reaching a dashboard never grants the queries on it. Each tile runs only if the "
+           "viewer could run its query themselves; one they could not shows a message instead, "
+           "and the rest of the dashboard still works.",
+           "الوصول إلى اللوحة لا يمنح إطلاقًا صلاحية الاستعلامات التي عليها. فلا يعمل العنصر إلا "
+           "إذا كان المشاهد قادرًا على تشغيل استعلامه بنفسه، وإلا عرض رسالة بدلًا منه، وتبقى بقية "
+           "اللوحة عاملة.")),
+    ])
+
+    page_break(doc)
+
+    # ===================================================================== 9
+    h1(doc, T("9. Query groups", "٩. مجموعات الاستعلامات"))
     para(doc, T("For: Administrators create and edit them; Access Managers grant access to "
                 "them.",
                 "لمن: ينشئها المسؤولون ويعدّلونها، ويمنح مديرو الصلاحيات الوصول إليها."),
@@ -1899,12 +2285,12 @@ def build_manual(doc):
 
     page_break(doc)
 
-    # ===================================================================== 9
-    h1(doc, T("9. Granting access", "٩. منح الصلاحيات"))
+    # ===================================================================== 10
+    h1(doc, T("10. Granting access", "١٠. منح الصلاحيات"))
     para(doc, T("For: Administrators, and Access Managers.",
                 "لمن: المسؤولون ومديرو الصلاحيات."), italic=True)
 
-    h2(doc, T("9.1 Access to a single query", "٩.١ صلاحية استعلام مفرد"))
+    h2(doc, T("10.1 Access to a single query", "١٠.١ صلاحية استعلام مفرد"))
     para(doc, T(
         "The shield icon on a query row opens Manage Query Access, which has three tabs. Each "
         "tab saves independently — the button under a tab saves only that tab.",
@@ -1924,7 +2310,7 @@ def build_manual(doc):
            T("The Users tab, for granting the query to named individuals.",
              "تبويب المستخدمين، لمنح الاستعلام لأشخاص بأعيانهم."))
 
-    h2(doc, T("9.2 Access to a group", "٩.٢ صلاحية المجموعة"))
+    h2(doc, T("10.2 Access to a group", "١٠.٢ صلاحية المجموعة"))
     para(doc, T(
         "Manage Group Access works the same way, with the same three tabs, and applies to "
         "every query in the group. This is the page an Access Manager uses by default.",
@@ -1933,7 +2319,7 @@ def build_manual(doc):
     figure(doc, "22-query-group-access",
            T("Manage Group Access.", "إدارة صلاحيات المجموعة."))
 
-    h2(doc, T("9.3 How the grants combine", "٩.٣ كيف تتجمّع الأذونات"))
+    h2(doc, T("10.3 How the grants combine", "١٠.٣ كيف تتجمّع الأذونات"))
     para(doc, T(
         "Grants add up and there is no “deny”. A user reaches a query if any one of the "
         "following is true: a role they hold is granted the query or its group; a user group "
@@ -1949,8 +2335,8 @@ def build_manual(doc):
 
     page_break(doc)
 
-    # ===================================================================== 10
-    h1(doc, T("10. Scheduled tasks", "١٠. المهام المجدولة"))
+    # ===================================================================== 11
+    h1(doc, T("11. Scheduled tasks", "١١. المهام المجدولة"))
     para(doc, T("For: Administrators create and run them; Auditors read them; named users see "
                 "their status.",
                 "لمن: ينشئها المسؤولون ويشغّلونها، ويطّلع عليها المدققون، ويرى المستخدمون "
@@ -1961,7 +2347,7 @@ def build_manual(doc):
         "تنفّذ المهمة المجدولة استعلامًا أو أكثر تلقائيًا وفق جدول زمني، وتكتب النتائج في ملفات "
         "على الخادم."))
 
-    h2(doc, T("10.1 The task list", "١٠.١ قائمة المهام"))
+    h2(doc, T("11.1 The task list", "١١.١ قائمة المهام"))
     figure(doc, "30-scheduled-tasks",
            T("Scheduled Tasks, with the next and last run times for each task.",
              "المهام المجدولة، مع وقتَي التشغيل التالي والأخير لكل مهمة."))
@@ -1979,7 +2365,7 @@ def build_manual(doc):
            "المهمة المعطَّلة تحتفظ بتعريفها لكن لا يعمل أي مُشغِّل.")),
     ])
 
-    h2(doc, T("10.2 Creating a task", "١٠.٢ إنشاء مهمة"))
+    h2(doc, T("11.2 Creating a task", "١١.٢ إنشاء مهمة"))
     figure(doc, "31-scheduled-task-create",
            T("The Create Scheduled Task form.", "نموذج إنشاء مهمة مجدولة."))
     h3(doc, T("Task", "المهمة"))
@@ -2061,7 +2447,7 @@ def build_manual(doc):
            T("An existing task, showing its triggers, its queries and their parameter values.",
              "مهمة قائمة، وتظهر فيها مُشغِّلاتها واستعلاماتها وقيم معايير بحثها."))
 
-    h2(doc, T("10.3 Who can see the task", "١٠.٣ مَن يرى المهمة"))
+    h2(doc, T("11.3 Who can see the task", "١١.٣ مَن يرى المهمة"))
     para(doc, T(
         "Access to a task is managed on its own page, reached with the shield button on the "
         "task list — not on the task form. Editing a schedule therefore never disturbs who "
@@ -2114,7 +2500,7 @@ def build_manual(doc):
         "فيلزمه دائمًا إما صلاحية التنزيل العامة وإما أحد هذه المنح — ولهذا يرى "
         "المدقّق سجل التشغيل دون الملفات."))
 
-    h2(doc, T("10.4 Run history", "١٠.٤ سجل التشغيل"))
+    h2(doc, T("11.4 Run history", "١١.٤ سجل التشغيل"))
     figure(doc, "33-scheduled-task-runs",
            T("Run history. Each run expands to show the queries it executed, the files it "
              "wrote, row counts, durations and any error.",
@@ -2142,15 +2528,15 @@ def build_manual(doc):
 
     page_break(doc)
 
-    # ===================================================================== 11
-    h1(doc, T("11. Users, user groups and Active Directory",
-              "١١. المستخدمون ومجموعات المستخدمين وActive Directory"))
+    # ===================================================================== 12
+    h1(doc, T("12. Users, user groups and Active Directory",
+              "١٢. المستخدمون ومجموعات المستخدمين وActive Directory"))
     para(doc, T("For: Administrators. Access Managers can use the Users page with "
                 "restrictions.",
                 "لمن: المسؤولون. ويستطيع مديرو الصلاحيات استخدام صفحة المستخدمين بقيود."),
          italic=True)
 
-    h2(doc, T("11.1 User management", "١١.١ إدارة المستخدمين"))
+    h2(doc, T("12.1 User management", "١٢.١ إدارة المستخدمين"))
     figure(doc, "51-user-management",
            T("User Management. The list shows each account's roles, whether it is local or "
              "came from Active Directory, and whether it is active.",
@@ -2190,7 +2576,7 @@ def build_manual(doc):
         "النظام."),
         kind="warning")
 
-    h2(doc, T("11.2 User groups", "١١.٢ مجموعات المستخدمين"))
+    h2(doc, T("12.2 User groups", "١٢.٢ مجموعات المستخدمين"))
     para(doc, T(
         "A user group is a named list of people, kept inside this application. Granting a "
         "query or a query group to a user group grants it to every member — which is how one "
@@ -2253,7 +2639,7 @@ def build_manual(doc):
         "دون منع."),
         kind="warning")
 
-    h2(doc, T("11.3 Active Directory", "١١.٣ Active Directory"))
+    h2(doc, T("12.3 Active Directory", "١٢.٣ Active Directory"))
     para(doc, T(
         "AD Users imports accounts from the directory so they can be granted queries — "
         "directly, or by putting them in a user group. It has three tabs.",
@@ -2292,8 +2678,8 @@ def build_manual(doc):
 
     page_break(doc)
 
-    # ===================================================================== 12
-    h1(doc, T("12. Database connections", "١٢. اتصالات قواعد البيانات"))
+    # ===================================================================== 13
+    h1(doc, T("13. Database connections", "١٣. اتصالات قواعد البيانات"))
     para(doc, T("For: Administrators only.", "لمن: المسؤولون فقط."), italic=True)
     para(doc, T(
         "A database connection — shown as a “DB User” — is the set of credentials a query runs "
@@ -2349,8 +2735,8 @@ def build_manual(doc):
 
     page_break(doc)
 
-    # ===================================================================== 13
-    h1(doc, T("13. Audit trails", "١٣. سجلات التدقيق"))
+    # ===================================================================== 14
+    h1(doc, T("14. Audit trails", "١٤. سجلات التدقيق"))
     para(doc, T("For: Administrators and Auditors.", "لمن: المسؤولون والمدققون."), italic=True)
     para(doc, T(
         "There are two separate trails, and the distinction matters: the execution logs answer "
@@ -2358,7 +2744,7 @@ def build_manual(doc):
         "هناك سجلّان منفصلان، والتمييز بينهما مهم: تجيب سجلات التنفيذ عن سؤال «ماذا نفّذ "
         "الناس»، ويجيب سجل عمليات النظام عن سؤال «ماذا غيّر الناس»."))
 
-    h2(doc, T("13.1 Execution logs", "١٣.١ سجلات التنفيذ"))
+    h2(doc, T("14.1 Execution logs", "١٤.١ سجلات التنفيذ"))
     para(doc, T(
         "Every execution writes a row — successes, failures and preview attempts alike. The "
         "list filters, sorts and pages on the server, so it stays fast on a large history.",
@@ -2386,7 +2772,7 @@ def build_manual(doc):
            "التغيير. وهي متاحة فقط إذا كان خيار «حفظ القيم قبل التغيير» مفعَّلًا حينها.")),
     ])
 
-    h2(doc, T("13.2 System audit", "١٣.٢ سجل عمليات النظام"))
+    h2(doc, T("14.2 System audit", "١٤.٢ سجل عمليات النظام"))
     para(doc, T(
         "Every administrative change is recorded here: accounts created, permissions granted, "
         "queries edited, tasks run, settings changed.",
@@ -2433,8 +2819,8 @@ def build_manual(doc):
 
     page_break(doc)
 
-    # ===================================================================== 14
-    h1(doc, T("14. Website branding", "١٤. هوية الموقع"))
+    # ===================================================================== 15
+    h1(doc, T("15. Website branding", "١٥. هوية الموقع"))
     para(doc, T("For: Administrators only.", "لمن: المسؤولون فقط."), italic=True)
     para(doc, T(
         "What the top bar shows can be changed: an uploaded logo, or the site's name written in "
@@ -2552,8 +2938,8 @@ def build_manual(doc):
         "تُسجَّل كل تغييرات هذه النافذة في سجل عمليات النظام — الشعار تحت «تغيير شعار الموقع»، "
         "وأيقونة التبويب تحت «تغيير أيقونة تبويب المتصفح»، والاسم تحت «تغيير اسم الموقع»."))
 
-    # ===================================================================== 15
-    h1(doc, T("15. System settings", "١٥. إعدادات النظام"))
+    # ===================================================================== 16
+    h1(doc, T("16. System settings", "١٦. إعدادات النظام"))
     para(doc, T("For: holders of “Change system settings” or “Manage roles and permissions”.",
                 "لمن: من يحمل «تغيير إعدادات النظام» أو «إدارة الأدوار والصلاحيات»."),
          italic=True)
@@ -2566,7 +2952,7 @@ def build_manual(doc):
         "تضم «الإعدادات» الخيارات التي تسري على التنصيب كله — ما يُسمح لدور بفعله، ومدة بقاء "
         "تسجيل الدخول، والخصائص المتاحة. وتسري فورًا دون إعادة تشغيل، ويُسجَّل كل تغيير في سجل "
         "عمليات النظام. وتُحفظ المفاتيح فور تبديلها، أما الأرقام فتُحرَّر معًا وتُحفظ بالزر أسفلها."))
-    h2(doc, T("15.1 System", "١٥.١ النظام"))
+    h2(doc, T("16.1 System", "١٦.١ النظام"))
     figure(doc, "50-system-settings", T("System Settings.", "إعدادات النظام."))
     table(doc,
           [T("Setting", "الإعداد"), T("Default", "الافتراضي"), T("Effect", "الأثر")],
@@ -2610,7 +2996,7 @@ def build_manual(doc):
         "التجديد التالي."),
         kind="warning")
 
-    h2(doc, T("15.2 Permissions", "١٥.٢ الصلاحيات"))
+    h2(doc, T("16.2 Permissions", "١٦.٢ الصلاحيات"))
     para(doc, T(
         "The second tab is the whole authorization model in one grid: every capability the "
         "system offers down the side, every role across the top, and a tick where the role "
@@ -2654,9 +3040,9 @@ def build_manual(doc):
 
     page_break(doc)
 
-    # ===================================================================== 16
-    h1(doc, T("16. Appendix A — Frequently asked questions",
-              "١٦. الملحق أ — أسئلة شائعة"))
+    # ===================================================================== 17
+    h1(doc, T("17. Appendix A — Frequently asked questions",
+              "١٧. الملحق أ — أسئلة شائعة"))
     table(doc,
           [T("Question", "السؤال"), T("Answer", "الجواب")],
           [
@@ -2671,6 +3057,20 @@ def build_manual(doc):
                  "uses. Both are checked at run time.",
                  "قد يكون معطَّلًا، أو قد لا تملك صلاحية على اتصال قاعدة البيانات الذي "
                  "يستخدمه. ويُتحقَّق من الأمرين وقت التنفيذ.")],
+              [T("There is no Dashboards entry in my top bar.",
+                 "لا يظهر عنصر «لوحات المعلومات» في شريطي العلوي."),
+               T("None of your roles holds View dashboards. Out of the box only Admin does; ask "
+                 "an administrator to add it to your role.",
+                 "لا يحمل أيٌّ من أدوارك صلاحية «عرض لوحات المعلومات»، ولا يحملها ابتداءً سوى "
+                 "Admin. اطلب من المسؤول إضافتها إلى دورك.")],
+              [T("One tile on a dashboard shows a message instead of data.",
+                 "يعرض أحد عناصر اللوحة رسالة بدل البيانات."),
+               T("Usually you have access to the dashboard but not to that tile's query — each "
+                 "tile is checked separately. If the message names a column, the query has "
+                 "changed and the tile needs updating by an administrator.",
+                 "غالبًا تملك صلاحية على اللوحة دون استعلام ذلك العنصر — إذ يُفحص كل عنصر على "
+                 "حدة. وإن ذكرت الرسالة عمودًا فقد تغيّر الاستعلام ويحتاج العنصر إلى تحديث من "
+                 "المسؤول.")],
               [T("I pressed Back and my results are gone.",
                  "ضغطت «رجوع» فاختفت نتائجي."),
                T("Leaving the results page releases the stored result on the server. Re-run "
@@ -2709,8 +3109,8 @@ def build_manual(doc):
           ],
           widths=[2.2, 4.4])
 
-    h1(doc, T("17. Appendix B — Regenerating this manual",
-              "١٧. الملحق ب — إعادة توليد هذا الدليل"))
+    h1(doc, T("18. Appendix B — Regenerating this manual",
+              "١٨. الملحق ب — إعادة توليد هذا الدليل"))
     para(doc, T(
         "This document is generated, not hand-maintained. After a change to the application, "
         "rebuild it so the screenshots and text match what shipped.",

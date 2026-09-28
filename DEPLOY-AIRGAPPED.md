@@ -253,6 +253,8 @@ To stop:
 - Frontend: `http://localhost` or `http://YOUR_SERVER_IP`
 - API health: `http://localhost/api/...` (proxied through nginx)
 - API direct: `http://localhost:5000/swagger` (for debugging only)
+- Dashboards: sign in as an administrator and open **Dashboards** in the top bar. The page
+  loading at all proves the dashboard tables exist; a tile that shows data proves its query runs.
 
 ---
 
@@ -261,6 +263,49 @@ To stop:
 1. Oracle XE (database must be up first)
 2. `Bayan.API.exe` (waits for DB connection)
 3. nginx (serves frontend and proxies API)
+
+---
+
+## Upgrading an Existing Installation
+
+A new release is carried across exactly like the first one — a fresh `api-publish/` and client
+build, or the whole bundle from `scripts/prepare-offline-bundle.ps1 -IncludeBuild` — but the
+database is already there, and the API changes it.
+
+**The API applies new schema migrations itself, on startup, before it serves a request.** There
+is no separate database step. The dashboards release, for example, adds two migrations
+(`AddDashboards`, `AddDashboardRound2`) that create seven `Dashboard*` tables. That has two
+consequences on an isolated machine, where there is nobody to call:
+
+1. **Back up the schema first.** Oracle DDL is not transactional, so a migration that fails
+   half-way cannot roll itself back. The API then refuses to start with ORA-00955 or ORA-01430
+   in the log rather than guessing, and the backup is how you get back to a known state. See
+   `DATABASE_MIGRATION_NOTES.txt`. Never set `Database:AllowDestructiveRepair` on a database
+   whose data matters: its "repair" drops every table and starts again.
+2. **The schema account keeps the privileges it was installed with.** Creating tables and
+   indexes is all a migration needs; if a DBA has narrowed the account since the first install,
+   the upgrade is where it fails.
+
+The steps:
+
+```powershell
+# 1. Back up the schema (Data Pump, RMAN, or however your DBA prefers).
+# 2. Stop the API — the Windows service, or the IIS app pool (Part C).
+sc.exe stop Bayan
+# 3. Replace the API files, but keep your configuration and history.
+robocopy <bundle>\api-publish C:\deploy\api /E /XF appsettings.json /XD logs cache
+# 4. Replace the client files.
+robocopy <bundle>\client-dist C:\deploy\client /MIR
+# 5. Start the API and watch the log for the migrations being applied.
+sc.exe start Bayan
+Get-Content C:\deploy\api\logs\log-*.txt -Tail 50 -Wait
+```
+
+**New features arrive switched off for everyone but Admin.** A release that adds permissions —
+dashboards, reports — grants them only to the Admin role, so an upgrade changes nothing for
+anyone else until an administrator decides it should. To let users open dashboards, add
+**View dashboards** to their role on **Settings → Permissions**, then grant each dashboard to
+the people or groups who should see it.
 
 ---
 
@@ -447,7 +492,8 @@ and C3.5, and none of them are optional:
 - **The pool must run exactly one worker process.** A web garden (`maxProcesses > 1`) starts a
   second scheduler that fires every due task a second time, writing duplicate export files. It
   also splits the job store, so a browser polling for its query result can be answered by the
-  process that never ran it.
+  process that never ran it. And each process keeps its own dashboard tile cache, so a wall
+  screen's tiles would query the database once per process per interval instead of once.
 - **Recycles must not overlap.** On startup the job store deletes everything in its spill
   directory to clear orphans left by a crash. During an overlapped recycle the incoming process
   does that while the outgoing one is still streaming those files to someone's browser.
@@ -649,6 +695,9 @@ Basics:
   and opening the site itself signs you in with no form.
 - ANCM startup failures surface in **Event Viewer → Windows Logs → Application**; app logs are in
   `logs\log-*.txt`.
+- **Dashboards** in the top bar opens, and a dashboard's tiles fill in and then refresh on their
+  own. Leave one open past its refresh interval: the "Updated" time on each tile should move
+  without a page reload.
 
 The three that actually prove Part C worked — the ones worth doing before calling a
 deployment finished:
