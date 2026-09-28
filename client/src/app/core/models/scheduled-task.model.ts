@@ -41,6 +41,9 @@ export interface ScheduledTaskItem {
   /** Set instead of dynamicQueryId when this item runs a report. */
   reportId?: string | null;
   reportName?: string | null;
+  /** Set instead when this item snapshots a dashboard; parameters then hold its filter values. */
+  dashboardId?: string | null;
+  dashboardName?: string | null;
   queryName: string;
   parameters: Record<string, string>;
   exportFormat: ExportFileFormat;
@@ -122,6 +125,7 @@ export interface ScheduledTaskItemInput {
   /** Set instead of dynamicQueryId when this item runs a report. */
   reportId?: string | null;
   reportName?: string | null;
+  dashboardId?: string | null;
   parameters: Record<string, string>;
   exportFormat: ExportFileFormat;
   /** CSV only: field separator text (null = comma), e.g. ";" or ";;". */

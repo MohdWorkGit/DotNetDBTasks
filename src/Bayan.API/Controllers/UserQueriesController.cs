@@ -26,11 +26,12 @@ public class ExecuteQueryRequest
 /// </summary>
 [ApiController]
 [Route("api/user/queries")]
-// Reachable by either capability: this controller now serves the shared "My Queries" page,
-// which lists reports beside queries, and the paging endpoint the report viewer reads its
-// sections from. Every action that actually touches a query re-states queries.run below, so a
-// report-only role reaches the page and its own cached rows and nothing else.
-[RequirePermission(Permissions.QueriesRun, Permissions.ReportsRun)]
+// Reachable by any of three capabilities: this controller serves the shared "My Queries" page,
+// which lists reports beside queries, and the paging endpoint the report viewer and the
+// dashboard drill-to-rows dialog read their cached rows from. Every action that actually touches
+// a query re-states queries.run below, so a report- or dashboard-only role reaches its own cached
+// rows and nothing else.
+[RequirePermission(Permissions.QueriesRun, Permissions.ReportsRun, Permissions.DashboardsRun)]
 public class UserQueriesController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -74,6 +75,7 @@ public class UserQueriesController : ControllerBase
     /// Retrieves the same accessible queries as <see cref="GetMyQueries"/> but bucketed
     /// into the QueryGroups they belong to (and an "Ungrouped" bucket).
     /// </summary>
+    [RequirePermission(Permissions.QueriesRun, Permissions.ReportsRun)]
     [HttpGet("groups")]
     public async Task<IActionResult> GetMyGroups(CancellationToken cancellationToken)
     {

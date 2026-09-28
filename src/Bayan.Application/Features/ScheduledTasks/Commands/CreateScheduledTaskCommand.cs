@@ -19,6 +19,13 @@ public class ScheduledTaskItemInput
 
     /// <summary>The report to run, as an alternative to a single query.</summary>
     public Guid? ReportId { get; set; }
+
+    /// <summary>
+    /// The dashboard to snapshot, as a third alternative. <see cref="Parameters"/> then holds its
+    /// filter values by filter name.
+    /// </summary>
+    public Guid? DashboardId { get; set; }
+
     public Dictionary<string, string> Parameters { get; set; } = new();
     public ExportFileFormat ExportFormat { get; set; }
 
@@ -154,7 +161,7 @@ public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduled
 
         var created = (await _unitOfWork.ScheduledTasks.FindAsync(
             t => t.Id == task.Id, cancellationToken,
-            "Triggers", "Items", "Items.DynamicQuery", "Items.Report", "Viewers", "Viewers.User")).First();
+            "Triggers", "Items", "Items.DynamicQuery", "Items.Report", "Items.Dashboard", "Viewers", "Viewers.User")).First();
         return ScheduledTaskMapper.ToDto(created);
     }
 }
@@ -241,6 +248,32 @@ public static class ScheduledTaskInputValidator
 
         foreach (var item in items)
         {
+            var kinds = (item.DynamicQueryId is null ? 0 : 1) + (item.ReportId is null ? 0 : 1)
+                + (item.DashboardId is null ? 0 : 1);
+            if (kinds > 1)
+                throw new DomainException("An item runs one query, one report or one dashboard — not several.");
+
+            // A dashboard item is a document of every tile: no single query, no write semantics,
+            // no incremental checkpoint, and only the document formats make sense for it.
+            if (item.DashboardId is not null)
+            {
+                var dashboardExists = await unitOfWork.Dashboards.ExistsAsync(
+                    d => d.Id == item.DashboardId.Value, cancellationToken);
+                if (!dashboardExists)
+                    throw new NotFoundException("Dashboard", item.DashboardId.Value);
+
+                if (item.ExportFormat is not (ExportFileFormat.Pdf or ExportFileFormat.Word or ExportFileFormat.Excel))
+                    throw new DomainException("A dashboard snapshot is written as PDF, Word or Excel.");
+
+                if (!string.IsNullOrWhiteSpace(item.KeyColumn) || !string.IsNullOrWhiteSpace(item.KeyParameter))
+                {
+                    throw new DomainException(
+                        "A dashboard item cannot be incremental: it is a snapshot of the whole page.");
+                }
+
+                continue;
+            }
+
             // A report item is validated on its own terms: it has no single query, no write
             // semantics and no incremental checkpoint to resolve.
             if (item.ReportId is not null)
@@ -267,7 +300,7 @@ public static class ScheduledTaskInputValidator
             }
 
             if (item.DynamicQueryId is null)
-                throw new DomainException("Each scheduled item needs a query or a report.");
+                throw new DomainException("Each scheduled item needs a query, a report or a dashboard.");
 
             var query = await unitOfWork.DynamicQueries.GetByIdAsync(item.DynamicQueryId.Value, cancellationToken)
                 ?? throw new DomainException("One of the selected queries no longer exists.");
@@ -336,6 +369,7 @@ public static class ScheduledTaskInputValidator
             ScheduledTaskId = taskId,
             DynamicQueryId = input.DynamicQueryId,
             ReportId = input.ReportId,
+            DashboardId = input.DashboardId,
             ParametersJson = JsonSerializer.Serialize(input.Parameters ?? new Dictionary<string, string>()),
             ExportFormat = input.ExportFormat,
             CsvSeparator = NormalizeSeparator(input.CsvSeparator, input.ExportFormat),

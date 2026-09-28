@@ -8,6 +8,7 @@ import { AuthService } from '@core/services/auth.service';
 import { ParameterType } from '@core/models/dynamic-query.model';
 import { ExportFormatOption } from '@core/models/export-formats';
 import { Report, ReportRun, REPORT_EXPORT_FORMATS } from '@core/models/report.model';
+import { fromIsoDate, toIsoDate } from '@core/models/local-date';
 import { ReportChartComponent } from '@shared/components/report-chart.component';
 
 /**
@@ -195,11 +196,19 @@ export class ReportViewComponent implements OnInit, OnDestroy {
   }
 
   private buildForm(report: Report): void {
+    // A value in the URL wins over the default: a dashboard tile drills through to a report by
+    // linking here with the clicked category as one of its parameters.
+    const query = this.route.snapshot.queryParamMap;
     for (const parameter of [...report.parameters].sort((a, b) => a.sortOrder - b.sortOrder)) {
       const validators = parameter.isRequired ? [Validators.required] : [];
+      const raw = query.get(parameter.name) ?? parameter.defaultValue;
+      // A date is parsed here as a local date: left as a string, the picker reads it as UTC
+      // midnight. One that does not parse is kept as-is and still sent through unchanged.
       const initial = parameter.parameterType === ParameterType.Boolean
-        ? parameter.defaultValue === 'true'
-        : parameter.defaultValue ?? '';
+        ? raw === 'true'
+        : parameter.parameterType === ParameterType.Date
+          ? fromIsoDate(raw) ?? raw ?? ''
+          : raw ?? '';
       this.form.addControl(parameter.name, this.fb.control(initial, validators));
     }
   }
@@ -241,7 +250,7 @@ export class ReportViewComponent implements OnInit, OnDestroy {
       if (value === null || value === undefined || value === '') continue;
 
       if (parameter.parameterType === ParameterType.Date && value instanceof Date) {
-        parameters[parameter.name] = value.toISOString().split('T')[0];
+        parameters[parameter.name] = toIsoDate(value);
       } else {
         parameters[parameter.name] = String(value);
       }
@@ -256,7 +265,7 @@ export class ReportViewComponent implements OnInit, OnDestroy {
     this.reports.exportRun(this.run_.runId, format).subscribe({
       next: blob => {
         this.exporting = false;
-        const name = `${this.report?.name ?? 'report'}_${new Date().toISOString().split('T')[0]}.${format}`;
+        const name = `${this.report?.name ?? 'report'}_${toIsoDate(new Date())}.${format}`;
         const url = window.URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;

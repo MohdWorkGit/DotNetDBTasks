@@ -77,7 +77,7 @@ public class GetScheduledTasksQueryHandler : IRequestHandler<GetScheduledTasksQu
             _unitOfWork, _currentUser.UserId, cancellationToken);
 
         var includes = ScheduledTaskAccess.GrantIncludes
-            .Concat(new[] { "Triggers", "Items", "Items.DynamicQuery", "Items.Report" })
+            .Concat(new[] { "Triggers", "Items", "Items.DynamicQuery", "Items.Report", "Items.Dashboard" })
             .ToArray();
 
         var tasks = seesAll

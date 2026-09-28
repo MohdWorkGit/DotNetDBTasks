@@ -66,6 +66,11 @@ public class ScheduledTaskItemDto
 
     /// <summary>Shown on the task list so an item is identifiable without opening it.</summary>
     public string? ReportName { get; set; }
+
+    /// <summary>The dashboard this item snapshots, as a third alternative.</summary>
+    public Guid? DashboardId { get; set; }
+
+    public string? DashboardName { get; set; }
     public string QueryName { get; set; } = string.Empty;
     public Dictionary<string, string> Parameters { get; set; } = new();
     public ExportFileFormat ExportFormat { get; set; }
@@ -156,6 +161,8 @@ public static class ScheduledTaskMapper
                 DynamicQueryId = i.DynamicQueryId,
                 ReportId = i.ReportId,
                 ReportName = i.Report?.Name,
+                DashboardId = i.DashboardId,
+                DashboardName = i.Dashboard?.Name,
                 QueryName = i.DynamicQuery?.Name ?? string.Empty,
                 Parameters = ParseParameters(i.ParametersJson),
                 ExportFormat = i.ExportFormat,

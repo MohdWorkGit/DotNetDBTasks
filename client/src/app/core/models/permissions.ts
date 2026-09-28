@@ -19,6 +19,7 @@ export const PERM = {
   accessManageQuery: 'access.manageQuery',
   accessManageGroup: 'access.manageGroup',
   accessManageReport: 'access.manageReport',
+  accessManageDashboard: 'access.manageDashboard',
   queryGroupsManage: 'queryGroups.manage',
   reportsView: 'reports.view',
   reportsManage: 'reports.manage',
@@ -28,6 +29,9 @@ export const PERM = {
   reportsExportJson: 'reports.exportJson',
   reportsExportPdf: 'reports.exportPdf',
   reportsExportWord: 'reports.exportWord',
+  dashboardsView: 'dashboards.view',
+  dashboardsManage: 'dashboards.manage',
+  dashboardsRun: 'dashboards.run',
   userGroupsView: 'userGroups.view',
   userGroupsManage: 'userGroups.manage',
   usersView: 'users.view',
@@ -72,9 +76,13 @@ export const PERMISSION_GROUPS: { titleKey: string; permissions: string[] }[] = 
                   PERM.reportsExportPdf, PERM.reportsExportWord]
   },
   {
+    titleKey: 'admin.permissions.groups.dashboards',
+    permissions: [PERM.dashboardsView, PERM.dashboardsManage, PERM.dashboardsRun]
+  },
+  {
     titleKey: 'admin.permissions.groups.access',
     permissions: [PERM.accessManageQuery, PERM.accessManageGroup, PERM.accessManageReport,
-                  PERM.queryGroupsManage]
+                  PERM.accessManageDashboard, PERM.queryGroupsManage]
   },
   {
     titleKey: 'admin.permissions.groups.people',

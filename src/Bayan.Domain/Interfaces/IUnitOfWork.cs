@@ -41,6 +41,13 @@ public interface IUnitOfWork : IDisposable
     IRepository<ReportUser> ReportUsers { get; }
     IRepository<ReportChart> ReportCharts { get; }
     IRepository<ReportRun> ReportRuns { get; }
+    IRepository<Dashboard> Dashboards { get; }
+    IRepository<DashboardTile> DashboardTiles { get; }
+    IRepository<DashboardFilter> DashboardFilters { get; }
+    IRepository<DashboardTileParameterMap> DashboardTileParameterMaps { get; }
+    IRepository<DashboardRole> DashboardRoles { get; }
+    IRepository<DashboardUserGroup> DashboardUserGroups { get; }
+    IRepository<DashboardUser> DashboardUsers { get; }
     IRepository<SystemTemplate> SystemTemplates { get; }
     IRepository<SystemAuditLog> SystemAuditLogs { get; }
     IRepository<SystemSetting> SystemSettings { get; }

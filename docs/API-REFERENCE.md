@@ -26,6 +26,14 @@ valid token and nothing more; `Anonymous` means no token at all.
   while the rest of the report still produces. Report datasets run through `ExecuteQueryCommand`,
   the same single execution funnel, so the access check, the database-user resolution, the typed
   parameter coercion and the `QueryExecutionLog` audit row are identical either way.
+- **A dashboard never widens query access either.** Each tile is fetched on its own, and every
+  fetch checks the dashboard grant, then the tile query's grant and its database login — before
+  the shared tile cache is read, so a warm cache never hands a result to someone who could not
+  have produced it. A tile the caller cannot run answers 200 with its `error` set, not 403.
+- **Tile results are shared between viewers.** A tile's result is cached per tile and per distinct
+  set of mapped filter values for its refresh interval (30–3600 s), and concurrent misses wait on
+  one execution. N people watching a dashboard cost one query per tile per interval, and only
+  real executions write a `QueryExecutionLog` row.
 - `AdminAccountGuard` stops a non-Admin from touching an administrator account, granting the
   Admin role, editing their own roles, or adding themselves to a user group.
 - **Admin is pinned** to every permission and cannot be edited or deleted.
@@ -116,6 +124,22 @@ Class: `[Authorize]`. A report composes several saved queries into one templated
 | `DELETE /{id}/template` | `reports.manage` | Removes the template. Exports then fall back to a generated starter. |
 | `GET /{id}/access` | `access.manageReport` | `{ roleIds, userGroupIds, userIds }`. |
 | `PUT /{id}/access` | `access.manageReport` | Replaces all three at once — send the whole object. |
+
+## Dashboards — `/api/admin/dashboards`
+
+Class: `[Authorize]`. A dashboard is a grid of tiles; each tile runs one saved read query on its
+own refresh interval and draws the result as a KPI, a chart or a small table.
+
+| Verb + path | Roles | Notes |
+|---|---|---|
+| `GET /` | `dashboards.view` | Every dashboard, as summaries. |
+| `GET /{id}` | `dashboards.view` | One dashboard with its filters and tiles, each tile with its parameter maps. |
+| `POST /` | `dashboards.manage` | Creates a dashboard. Body `DashboardInput`: `name`, `defaultRefreshSeconds` (30–3600), `filters[]` and `tiles[]`. Filter names match `[A-Za-z][A-Za-z0-9_]*` and are unique; tiles and drill settings refer to filters **by name**, so a filter and the tile using it can be created in one save. A tile's query must exist and must not be INSERT/UPDATE/DELETE — a write on a refresh timer would repeat every interval. `width` is 3, 4, 6, 8 or 12 of the 12 grid columns; `height` 1–3 rows. KPI tiles need `valueColumn` (except `kpiAggregate` Count); chart tiles need `categoryColumn` and at least one `seriesColumns`. A Date filter's `defaultValue` must be a date or a preset (below). `conditionalRules` — at most 20 per tile, each `{ column, operator: gt\|gte\|lt\|lte\|eq\|neq\|contains, value, tone: good\|warn\|bad }` — are kept on Table and KPI tiles only; a table rule names its column. `targetWarnPercent` is 0–100. 400 on any of these. |
+| `PUT /{id}` | `dashboards.manage` | Replaces the dashboard and everything under it. Tile ids change, and the dashboard's cached tile results are dropped. |
+| `POST /probe-columns` | `dashboards.manage` | Body `{ queryId, parameters }`. Runs the query once — through the normal execution path, with the caller's own access check, row cap and execution log — and returns `{ columns }` for the builder's pickers, or `{ error }` (still 200) when it cannot run, e.g. a required parameter has no value yet. Date parameters accept presets. |
+| `DELETE /{id}` | `dashboards.manage` | Deletes the dashboard, its tiles, filters and grants. The queries are untouched. A query that a tile uses cannot be deleted until the tile is removed. **400** while a scheduled task snapshots the dashboard, naming the task. |
+| `GET /{id}/access` | `access.manageDashboard` | `{ roleIds, userGroupIds, userIds }`. |
+| `PUT /{id}/access` | `access.manageDashboard` | Replaces all three at once. A role only grants when it holds `dashboards.run`. |
 
 ## Query groups — `/api/admin/querygroups`
 
@@ -227,6 +251,15 @@ Class: `[Authorize]` (any authenticated user). Visibility is enforced in the han
 | `POST /{id}/run` | `scheduledTasks.manage` | Queues an immediate run (202). |
 | `POST /{id}/runs/{runId}/cancel` | `scheduledTasks.manage` | Cancels an in-flight run, aborting the database command. 202, or 409 when the run is not in progress. |
 
+**Dashboard items.** An item runs exactly one of `dynamicQueryId`, `reportId` or `dashboardId`
+(400 otherwise). A dashboard item runs every tile fresh as the task's creator — through the same
+access checks, parameter routing, date presets and KPI rules as the live page, bypassing the shared
+cache — and writes one document: a chart and its figures per chart tile, a row of figures per KPI,
+the rows of a table tile, with the filter values in the header. `parameters` holds the dashboard's
+filter values by filter name; empty ones take the filter's default. Only PDF, Word and Excel (one
+sheet per tile) are accepted, and it cannot be incremental. A tile the creator cannot run is listed in
+the item's `error` while the run still succeeds; if every tile fails the item fails.
+
 ## Audit trail — `/api/admin/systemauditlogs`
 
 Class: `[Authorize]`. Read-only by design — nothing writes here through the API.
@@ -249,7 +282,10 @@ See [Runtime Settings in the README](../README.md#runtime-settings) for what eac
 
 ## Running queries — `/api/user/queries`
 
-Class: `[Authorize]` (any authenticated user). No action overrides it; ownership of a job is
+Class: `[RequirePermission]` with `queries.run`, `reports.run` **or** `dashboards.run` — any one
+is enough to reach the controller, because the report viewer and the dashboard rows dialog page
+their cached rows through `GET /jobs/{jobId}/rows`. Every action that touches a query restates
+`queries.run` itself, so the other two reach only their own cached rows. Ownership of a job is
 checked in code — the submitting user or an Admin, otherwise 403.
 
 | Verb + path | Roles | Notes |
@@ -294,3 +330,33 @@ query grid rather than duplicating it.
 | `GET /runs/{runId}` | Owner or Admin | The run again, for polling. |
 | `GET /runs/{runId}/export-file` | Owner or Admin, **plus both export gates** | Builds the document from the cached sections — nothing is re-run. Query: `format` = `xlsx`/`excel`, `csv`, `json`, `pdf`, `docx`/`word`; the enum name is accepted too. Word and PDF fill the report's template, or a generated starter when it has none; Excel writes one sheet per dataset; CSV and JSON keep the datasets apart rather than concatenating them. **403** unless the report permits the format **and** the caller holds the matching `reports.export*`. |
 | `DELETE /runs/{runId}` | Owner or Admin | Releases every section of the run together, rather than letting them age out one at a time. |
+
+## Viewing dashboards — `/api/user/dashboards`
+
+Class: `[RequirePermission(Permissions.DashboardsRun)]`, so every action needs `dashboards.run`.
+The page is laid out from `GET /{id}`, then every tile fetches its own data on its own interval —
+a slow tile delays only itself.
+
+| Verb + path | Roles | Notes |
+|---|---|---|
+| `GET /` | `dashboards.run` | Enabled dashboards granted to the caller (by role, user group or name). |
+| `GET /{id}` | `dashboards.run` | The layout, filters and tile settings — no data. 403 when not granted. |
+| `POST /{id}/tiles/{tileId}/data` | `dashboards.run` | One tile's current data. Body `{ filters }`: filter name → value, multi-selects as a JSON-array string, exactly like report parameters; missing values fall back to the filter's default. Returns `{ tileId, generatedAt, nextRefreshAt, chart \| kpi \| table, isEmpty, error }`. `generatedAt` is when the query actually ran (older than now on a cache hit); the viewer schedules its next poll from `nextRefreshAt`. A tile that cannot be produced — no grant on its query, a required filter empty, a failing query — answers **200** with `error` set, so one broken tile never fails the page. Database error text is logged, not returned. |
+| `POST /{id}/tiles/{tileId}/rows` | `dashboards.run` | Runs the tile's query in full — for the rows dialog or a download, on any tile — and files it into the job store. Returns `{ jobId, title, columns, totalRows }`; page it through `GET /api/user/queries/jobs/{jobId}/rows`, or download it through `GET /api/user/queries/jobs/{jobId}/export-file`, which applies both export gates (the query's `allowedExportFormats`, shown on each tile, and the caller's `queries.export*`) and needs `queries.run`. Not cached. |
+| `GET /{id}/filters/{filterId}/options` | `dashboards.run` | A dropdown filter's options, from its static list or its lookup query. |
+
+**KPI rule.** With `kpiAggregate` **Last** (the default) a KPI tile reads its rows as a series in
+query order: the headline is the **last** row's value column, the comparison is the compare column on
+that row or — without one — the row before it, and every row draws the sparkline.
+`SELECT month, total ... ORDER BY month` therefore shows this month against last month with no
+further setup. **Sum**, **Average**, **Min** and **Max** summarise the value column over every row
+(non-numbers skipped) and the compare column the same way; **Count** is the number of rows. With a
+`targetValue`, `kpi.targetStatus` is `met`, `near` (within `targetWarnPercent` of the target on the
+wrong side) or `missed`, judged in the direction `higherIsBetter` gives.
+
+**Date presets.** Wherever a date filter takes a value — its default, the tile data body, the URL,
+a scheduled item — it also accepts `today`, `today-N`, `today+N`, `week_start` (Sunday),
+`month_start`, `month_end`, `last_month_start`, `last_month_end` and `year_start`. The token is kept
+as-is and resolved in the server's local time when a query runs, so a bookmarked link, a wall screen
+or a nightly snapshot keeps meaning "this month". The shared tile cache is keyed on the resolved date,
+so it rolls over by itself.

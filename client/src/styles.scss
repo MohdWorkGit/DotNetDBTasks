@@ -895,3 +895,11 @@ textarea:focus-visible,
   unicode-bidi: isolate;
   text-align: end;
 }
+
+// Dashboard kiosk mode (?tv=1): a wall screen shows the dashboard and nothing else. The class is
+// set on <body> by DashboardViewComponent because the app bar lives outside it, and removed when
+// that page is left.
+body.dashboard-kiosk app-root > nav,
+body.dashboard-kiosk .skip-link {
+  display: none;
+}

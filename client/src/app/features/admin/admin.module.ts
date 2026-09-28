@@ -41,6 +41,11 @@ import { ScheduledTaskAccessComponent } from './components/scheduled-tasks/sched
 import { ReportsListComponent } from './components/reports/reports-list.component';
 import { ReportAccessComponent } from './components/reports/report-access.component';
 import { ReportFormComponent } from './components/reports/report-form.component';
+import { DashboardsAdminListComponent } from './components/dashboards/dashboards-list.component';
+import { DashboardFormComponent } from './components/dashboards/dashboard-form.component';
+import { DashboardAccessComponent } from './components/dashboards/dashboard-access.component';
+import { DragDropModule } from '@angular/cdk/drag-drop';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { SystemAuditComponent } from './components/system-audit/system-audit.component';
 import { SystemSettingsComponent } from './components/system-settings/system-settings.component';
 import { PermissionsMatrixComponent } from './components/system-settings/permissions-matrix.component';
@@ -71,6 +76,9 @@ import { PERM } from '@core/models/permissions';
     ReportsListComponent,
     ReportFormComponent,
     ReportAccessComponent,
+    DashboardsAdminListComponent,
+    DashboardFormComponent,
+    DashboardAccessComponent,
     SystemAuditComponent,
     SystemSettingsComponent,
     PermissionsMatrixComponent
@@ -100,6 +108,8 @@ import { PERM } from '@core/models/permissions';
     MatRadioModule,
     MatMenuModule,
     MatExpansionModule,
+    DragDropModule,
+    MatAutocompleteModule,
     HintIconComponent,
     // Every route carries its own roles: the parent /admin guard only checks that the
     // user has *some* admin page, so without these an Auditor could type their way into
@@ -140,6 +150,14 @@ import { PERM } from '@core/models/permissions';
         canActivate: [authGuard], data: { permissions: [PERM.reportsManage] } },
       { path: 'reports/:id/access', component: ReportAccessComponent,
         canActivate: [authGuard], data: { permissions: [PERM.accessManageReport] } },
+      { path: 'dashboards', component: DashboardsAdminListComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.dashboardsView] } },
+      { path: 'dashboards/create', component: DashboardFormComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.dashboardsManage] } },
+      { path: 'dashboards/edit/:id', component: DashboardFormComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.dashboardsManage] } },
+      { path: 'dashboards/:id/access', component: DashboardAccessComponent,
+        canActivate: [authGuard], data: { permissions: [PERM.accessManageDashboard] } },
       { path: 'logs', component: ExecutionLogsComponent,
         canActivate: [authGuard], data: { permissions: [PERM.logsView] } },
       { path: 'system-audit', component: SystemAuditComponent,

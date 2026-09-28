@@ -34,5 +34,13 @@ public class ScheduledTaskItemConfiguration : IEntityTypeConfiguration<Scheduled
         builder.HasIndex(e => e.ScheduledTaskId);
         builder.HasIndex(e => e.DynamicQueryId);
         builder.HasIndex(e => e.ReportId);
+
+        // And for a dashboard: DeleteDashboardCommand refuses while a task still uses one, so this
+        // constraint is the backstop rather than the message a person sees.
+        builder.HasOne(e => e.Dashboard)
+            .WithMany()
+            .HasForeignKey(e => e.DashboardId)
+            .OnDelete(DeleteBehavior.NoAction);
+        builder.HasIndex(e => e.DashboardId);
     }
 }

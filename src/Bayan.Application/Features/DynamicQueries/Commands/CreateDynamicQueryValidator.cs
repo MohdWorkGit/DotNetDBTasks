@@ -1,3 +1,4 @@
+using Bayan.Application.Common.Security;
 using Bayan.Domain.Enums;
 using FluentValidation;
 
@@ -8,15 +9,6 @@ namespace Bayan.Application.Features.DynamicQueries.Commands;
 /// </summary>
 public partial class CreateDynamicQueryValidator : AbstractValidator<CreateDynamicQueryCommand>
 {
-    /// <summary>
-    /// Dangerous SQL patterns that could indicate injection attacks or unsafe operations.
-    /// These are kept for security even though all query types are allowed.
-    /// </summary>
-    private static readonly string[] ForbiddenPatterns = new[]
-    {
-        "XP_", "SP_", "--", ";", "DBMS_", "UTL_"
-    };
-
     public CreateDynamicQueryValidator()
     {
         RuleFor(x => x.Name)
@@ -30,7 +22,7 @@ public partial class CreateDynamicQueryValidator : AbstractValidator<CreateDynam
         RuleFor(x => x.SqlQuery)
             .NotEmpty().WithMessage("SQL query is required.")
             .MaximumLength(4000).WithMessage("SQL query must not exceed 4000 characters.")
-            .Must(NotContainDangerousPatterns).WithMessage("Query contains forbidden SQL patterns.");
+            .Must(sql => !SqlSafetyRules.ContainsForbiddenPattern(sql)).WithMessage("Query contains forbidden SQL patterns.");
 
         RuleFor(x => x.TimeoutSeconds)
             .GreaterThanOrEqualTo(0).WithMessage("Timeout must be 0 or greater (0 = no timeout).");
@@ -74,11 +66,5 @@ public partial class CreateDynamicQueryValidator : AbstractValidator<CreateDynam
                 });
             });
         });
-    }
-
-    private static bool NotContainDangerousPatterns(string sql)
-    {
-        var upper = sql.ToUpperInvariant();
-        return !ForbiddenPatterns.Any(p => upper.Contains(p));
     }
 }

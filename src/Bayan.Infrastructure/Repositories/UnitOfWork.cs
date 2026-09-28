@@ -46,6 +46,13 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<ReportUser> ReportUsers { get; }
     public IRepository<ReportChart> ReportCharts { get; }
     public IRepository<ReportRun> ReportRuns { get; }
+    public IRepository<Dashboard> Dashboards { get; }
+    public IRepository<DashboardTile> DashboardTiles { get; }
+    public IRepository<DashboardFilter> DashboardFilters { get; }
+    public IRepository<DashboardTileParameterMap> DashboardTileParameterMaps { get; }
+    public IRepository<DashboardRole> DashboardRoles { get; }
+    public IRepository<DashboardUserGroup> DashboardUserGroups { get; }
+    public IRepository<DashboardUser> DashboardUsers { get; }
     public IRepository<SystemTemplate> SystemTemplates { get; }
     public IRepository<SystemAuditLog> SystemAuditLogs { get; }
     public IRepository<SystemSetting> SystemSettings { get; }
@@ -87,6 +94,13 @@ public class UnitOfWork : IUnitOfWork
         ReportUsers = new Repository<ReportUser>(context);
         ReportCharts = new Repository<ReportChart>(context);
         ReportRuns = new Repository<ReportRun>(context);
+        Dashboards = new Repository<Dashboard>(context);
+        DashboardTiles = new Repository<DashboardTile>(context);
+        DashboardFilters = new Repository<DashboardFilter>(context);
+        DashboardTileParameterMaps = new Repository<DashboardTileParameterMap>(context);
+        DashboardRoles = new Repository<DashboardRole>(context);
+        DashboardUserGroups = new Repository<DashboardUserGroup>(context);
+        DashboardUsers = new Repository<DashboardUser>(context);
         SystemTemplates = new Repository<SystemTemplate>(context);
         SystemAuditLogs = new Repository<SystemAuditLog>(context);
         SystemSettings = new Repository<SystemSetting>(context);

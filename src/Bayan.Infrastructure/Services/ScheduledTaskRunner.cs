@@ -4,6 +4,7 @@ using System.Text.Json;
 using Bayan.Application.Common.Interfaces;
 using Bayan.Application.Common.Models;
 using Bayan.Application.Features.QueryExecution.Commands;
+using Bayan.Application.Features.Dashboards.Queries;
 using Bayan.Application.Features.Reports.Commands;
 using Bayan.Domain.Entities;
 using Bayan.Domain.Enums;
@@ -61,7 +62,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
     {
         var task = (await _unitOfWork.ScheduledTasks.FindAsync(
             t => t.Id == request.ScheduledTaskId, cancellationToken,
-            "Items", "Items.DynamicQuery", "Items.DynamicQuery.Parameters", "Items.Report"))
+            "Items", "Items.DynamicQuery", "Items.DynamicQuery.Parameters", "Items.Report", "Items.Dashboard"))
             .FirstOrDefault();
         if (task is null)
         {
@@ -105,8 +106,9 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
                 // A report already composes several queries into one document, so it is never
                 // folded into a task's combined file — it IS the combination. Report items are
                 // therefore run on their own even in combined mode.
-                var reportItems = orderedItems.Where(i => i.ReportId is not null).ToList();
-                var queryItems = orderedItems.Where(i => i.ReportId is null).ToList();
+                // A dashboard snapshot is a composed document in the same way.
+                var reportItems = orderedItems.Where(i => i.ReportId is not null || i.DashboardId is not null).ToList();
+                var queryItems = orderedItems.Where(i => i.ReportId is null && i.DashboardId is null).ToList();
 
                 if (queryItems.Count > 0)
                     results.AddRange(await RunCombinedAsync(task, queryItems, runToken));
@@ -176,6 +178,9 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
     {
         if (item.ReportId is not null)
             return await RunReportItemAsync(task, item, cancellationToken);
+
+        if (item.DashboardId is not null)
+            return await RunDashboardItemAsync(task, item, cancellationToken);
 
         var queryName = item.DynamicQuery?.Name ?? item.DynamicQueryId?.ToString() ?? "(no query)";
         var isWrite = item.DynamicQuery?.QueryType.IsWrite() ?? false;
@@ -324,6 +329,79 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
         {
             _logger.LogWarning(ex,
                 "Scheduled task {TaskName}: report {ReportName} failed", task.Name, reportName);
+            result.Error = Truncate(ex.Message, 2000);
+        }
+        finally
+        {
+            sw.Stop();
+            result.DurationMs = sw.ElapsedMilliseconds;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Runs a dashboard item: every tile, fresh, written as one document into the task folder —
+    /// a chart and its figures per chart tile, a row of figures per KPI, the rows of a table tile.
+    ///
+    /// <para>The tiles run through the same resolver and producer the live page uses, under the
+    /// task creator's identity, so a tile the creator could not see on screen is missing from the
+    /// document too — recorded as a gap, the way a failed report section is.</para>
+    /// </summary>
+    private async Task<ScheduledTaskItemResult> RunDashboardItemAsync(
+        ScheduledTask task,
+        ScheduledTaskItem item,
+        CancellationToken cancellationToken)
+    {
+        var dashboardName = item.Dashboard?.Name ?? item.DashboardId!.Value.ToString();
+        var result = new ScheduledTaskItemResult { QueryName = dashboardName, IsWrite = false };
+        var sw = Stopwatch.StartNew();
+
+        try
+        {
+            var filters = string.IsNullOrWhiteSpace(item.ParametersJson)
+                ? new Dictionary<string, string>()
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(item.ParametersJson!) ?? new();
+
+            var snapshot = await _mediator.Send(new BuildDashboardSnapshotQuery
+            {
+                DashboardId = item.DashboardId!.Value,
+                Filters = filters
+            }, cancellationToken);
+
+            if (snapshot.Sections.Count == 0)
+            {
+                // Every tile failed. An empty document would look like a dashboard with no data.
+                throw new DomainException(
+                    "The dashboard produced no tiles. " + string.Join(" | ", snapshot.Gaps));
+            }
+
+            var template = _exporter.GetReportStarterTemplate(
+                dashboardName, snapshot.TemplateSections, rightToLeft: false, charts: snapshot.TemplateCharts);
+
+            var bytes = _exporter.Export(
+                item.ExportFormat, snapshot.Sections, dashboardName,
+                CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders,
+                template, snapshot.Parameters, snapshot.Charts);
+
+            var fileName = BuildFileName(task, item, dashboardName);
+            await WriteOutputAsync(task, fileName, bytes, cancellationToken);
+
+            result.FileName = fileName;
+            result.RowCount = snapshot.RowCount;
+            result.Success = true;
+
+            if (snapshot.Gaps.Count > 0)
+                result.Error = Truncate("Some tiles are missing: " + string.Join(" | ", snapshot.Gaps), 2000);
+        }
+        catch (Exception) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Scheduled task {TaskName}: dashboard {DashboardName} failed", task.Name, dashboardName);
             result.Error = Truncate(ex.Message, 2000);
         }
         finally

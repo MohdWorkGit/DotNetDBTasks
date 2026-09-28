@@ -44,6 +44,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<ReportUser> ReportUsers => Set<ReportUser>();
     public DbSet<ReportChart> ReportCharts => Set<ReportChart>();
     public DbSet<ReportRun> ReportRuns => Set<ReportRun>();
+    public DbSet<Dashboard> Dashboards => Set<Dashboard>();
+    public DbSet<DashboardTile> DashboardTiles => Set<DashboardTile>();
+    public DbSet<DashboardFilter> DashboardFilters => Set<DashboardFilter>();
+    public DbSet<DashboardTileParameterMap> DashboardTileParameterMaps => Set<DashboardTileParameterMap>();
+    public DbSet<DashboardRole> DashboardRoles => Set<DashboardRole>();
+    public DbSet<DashboardUserGroup> DashboardUserGroups => Set<DashboardUserGroup>();
+    public DbSet<DashboardUser> DashboardUsers => Set<DashboardUser>();
     public DbSet<SystemTemplate> SystemTemplates => Set<SystemTemplate>();
     public DbSet<SystemAuditLog> SystemAuditLogs => Set<SystemAuditLog>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();

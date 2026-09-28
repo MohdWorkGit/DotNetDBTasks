@@ -3,7 +3,7 @@ using Bayan.Domain.Enums;
 namespace Bayan.Domain.Entities;
 
 /// <summary>
-/// One thing a scheduled task runs: a query, or a report.
+/// One thing a scheduled task runs: a query, a report, or a dashboard snapshot.
 ///
 /// <para>Read queries run with their fixed parameter values and are exported to a file in the
 /// task's output folder; write queries (INSERT/UPDATE/DELETE) are committed and only their
@@ -18,8 +18,8 @@ public class ScheduledTaskItem : BaseEntity
     public ScheduledTask ScheduledTask { get; set; } = null!;
 
     /// <summary>
-    /// The query this item runs. Null when the item runs a <see cref="Report"/> instead —
-    /// exactly one of the two is set, which the validator enforces.
+    /// The query this item runs. Null when the item runs a <see cref="Report"/> or a
+    /// <see cref="Dashboard"/> instead — exactly one of the three is set, which the validator enforces.
     /// </summary>
     public Guid? DynamicQueryId { get; set; }
     public DynamicQuery? DynamicQuery { get; set; }
@@ -31,6 +31,15 @@ public class ScheduledTaskItem : BaseEntity
     /// </summary>
     public Guid? ReportId { get; set; }
     public Report? Report { get; set; }
+
+    /// <summary>
+    /// The dashboard this item snapshots, as a third alternative. Every tile is run fresh and the
+    /// whole page is written as one document — a chart per chart tile, a table per table tile.
+    /// Like a report, it is never folded into a task's combined output. <see cref="ParametersJson"/>
+    /// then holds the dashboard's filter values by filter name.
+    /// </summary>
+    public Guid? DashboardId { get; set; }
+    public Dashboard? Dashboard { get; set; }
 
     /// <summary>JSON object of parameter name → value, matching the query's parameter definitions.</summary>
     public string? ParametersJson { get; set; }

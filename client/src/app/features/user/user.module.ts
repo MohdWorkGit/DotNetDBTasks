@@ -36,6 +36,12 @@ import { queryAccessGuard } from '@core/guards/query-access.guard';
 import { queriesPageGuard } from '@core/guards/queries-page.guard';
 import { reportAccessGuard } from '@core/guards/report-access.guard';
 import { ReportChartComponent } from '@shared/components/report-chart.component';
+import { KpiTileComponent } from '@shared/components/kpi-tile.component';
+import { dashboardAccessGuard } from '@core/guards/dashboard-access.guard';
+import { DashboardsListComponent } from './components/dashboards/dashboards-list.component';
+import { DashboardViewComponent } from './components/dashboards/dashboard-view.component';
+import { DashboardTileComponent } from './components/dashboards/dashboard-tile.component';
+import { DashboardRowsDialogComponent } from './components/dashboards/dashboard-rows-dialog.component';
 
 @NgModule({
   declarations: [
@@ -44,7 +50,11 @@ import { ReportChartComponent } from '@shared/components/report-chart.component'
     ExecutionHistoryComponent,
     ScheduleStatusComponent,
     ReportViewComponent,
-    ReportSectionGridComponent
+    ReportSectionGridComponent,
+    DashboardsListComponent,
+    DashboardViewComponent,
+    DashboardTileComponent,
+    DashboardRowsDialogComponent
   ],
   imports: [
     CommonModule,
@@ -74,6 +84,7 @@ import { ReportChartComponent } from '@shared/components/report-chart.component'
     MatMenuModule,
     MatTabsModule,
     ReportChartComponent,
+    KpiTileComponent,
     // Schedules is deliberately ungated: being named a viewer on a scheduled task is a
     // per-task grant, not a query-running one, so an Access Manager can hold it. The other
     // three need a role that confers query access — see queryAccessGuard.
@@ -82,6 +93,8 @@ import { ReportChartComponent } from '@shared/components/report-chart.component'
       { path: 'queries/:id/execute', component: QueryExecuteComponent, canActivate: [queryAccessGuard] },
       { path: 'history', component: ExecutionHistoryComponent, canActivate: [queryAccessGuard] },
       { path: 'reports/:id/view', component: ReportViewComponent, canActivate: [reportAccessGuard] },
+      { path: 'dashboards', component: DashboardsListComponent, canActivate: [dashboardAccessGuard] },
+      { path: 'dashboards/:id', component: DashboardViewComponent, canActivate: [dashboardAccessGuard] },
       { path: 'schedules', component: ScheduleStatusComponent },
       { path: '', redirectTo: 'queries', pathMatch: 'full' }
     ])

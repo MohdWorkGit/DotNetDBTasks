@@ -2,11 +2,15 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '@core/services/toast.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { QueryService } from '@core/services/query.service';
 import { ScheduledTaskService } from '@core/services/scheduled-task.service';
 import { ReportSummary } from '@core/models/report.model';
 import { ReportService } from '@core/services/report.service';
+import { DashboardService } from '@core/services/dashboard.service';
+import { DashboardSummary } from '@core/models/dashboard.model';
+import { ParameterType } from '@core/models/dynamic-query.model';
 import { DynamicQuery, isWriteQueryType } from '@core/models/dynamic-query.model';
 import {
   EXPORT_FORMAT_LABELS,
@@ -15,6 +19,18 @@ import {
   ScheduleFrequency,
   ScheduledTask
 } from '@core/models/scheduled-task.model';
+
+/** One value input on an item: a query parameter, or a dashboard filter. */
+interface ParameterDef {
+  name: string;
+  displayName: string;
+  isRequired: boolean;
+  allowMultiple: boolean;
+  /** A dashboard date filter, which also accepts a preset such as month_start. */
+  isDate?: boolean;
+  /** Shown when empty — for a dashboard filter, the default it falls back to. */
+  placeholder?: string;
+}
 
 @Component({
   standalone: false,
@@ -189,6 +205,9 @@ import {
                   <mat-select formControlName="itemKind" (selectionChange)="onItemKindChange(i)">
                     <mat-option value="query">{{ 'admin.tasks.itemKindQuery' | transloco }}</mat-option>
                     <mat-option value="report">{{ 'admin.tasks.itemKindReport' | transloco }}</mat-option>
+                    <mat-option value="dashboard" [disabled]="dashboards.length === 0">
+                      {{ 'admin.tasks.itemKindDashboard' | transloco }}
+                    </mat-option>
                   </mat-select>
                 </mat-form-field>
 
@@ -218,12 +237,24 @@ import {
                   <mat-hint>{{ 'admin.tasks.reportItemHint' | transloco }}</mat-hint>
                 </mat-form-field>
 
+                <mat-form-field appearance="outline" class="grow"
+                                *ngIf="item.get('itemKind')?.value === 'dashboard'">
+                  <mat-label>{{ 'admin.tasks.dashboard' | transloco }}</mat-label>
+                  <mat-select formControlName="dashboardId" (selectionChange)="onDashboardChange(i, $event.value)">
+                    <mat-option *ngFor="let d of dashboards" [value]="d.id" dir="auto">{{ d.name }}</mat-option>
+                  </mat-select>
+                  <mat-error *ngIf="item.get('dashboardId')?.hasError('required')">
+                    {{ 'admin.tasks.pickDashboard' | transloco }}
+                  </mat-error>
+                  <mat-hint>{{ 'admin.tasks.dashboardItemHint' | transloco }}</mat-hint>
+                </mat-form-field>
+
                 <mat-form-field appearance="outline"
-                                *ngIf="item.get('itemKind')?.value === 'report'
+                                *ngIf="item.get('itemKind')?.value !== 'query'
                                        || (!itemMeta[i]?.isWrite && !combineOutput)">
                   <mat-label>{{ 'admin.tasks.format' | transloco }}</mat-label>
                   <mat-select formControlName="exportFormat" required>
-                    <mat-option *ngFor="let f of formats" [value]="f">{{ formatLabels[f] }}</mat-option>
+                    <mat-option *ngFor="let f of formatsFor(i)" [value]="f">{{ formatLabels[f] }}</mat-option>
                   </mat-select>
                   <mat-error *ngIf="item.get('exportFormat')?.hasError('required')">
                     {{ 'admin.tasks.pickFormat' | transloco }}
@@ -262,7 +293,7 @@ import {
                 <mat-form-field appearance="outline" class="grow">
                   <mat-label>{{ 'admin.tasks.fileName' | transloco }}</mat-label>
                   <input matInput formControlName="fileNamePrefix" maxlength="200"
-                         [placeholder]="queryName(i) || ('admin.tasks.fileNameQueryDefault' | transloco)">
+                         [placeholder]="itemName(i) || ('admin.tasks.fileNameQueryDefault' | transloco)">
                 </mat-form-field>
                 <mat-slide-toggle formControlName="appendTimestamp" class="toggle"
                                   [matTooltip]="'admin.tasks.timestampTip' | transloco">
@@ -270,7 +301,7 @@ import {
                 </mat-slide-toggle>
               </div>
 
-              <div class="checkpoint" *ngIf="!itemMeta[i]?.isWrite">
+              <div class="checkpoint" *ngIf="!itemMeta[i]?.isWrite && item.get('itemKind')?.value === 'query'">
                 <div class="params-title">
                   {{ 'admin.tasks.incrementalHint' | transloco }}
                 </div>
@@ -299,13 +330,16 @@ import {
               </div>
 
               <div class="params" formGroupName="parameters" *ngIf="parameterDefs[i]?.length">
-                <div class="params-title">{{ 'admin.tasks.parameterValues' | transloco }}</div>
+                <div class="params-title">
+                  {{ (item.get('itemKind')?.value === 'dashboard' ? 'admin.tasks.filterValues' : 'admin.tasks.parameterValues') | transloco }}
+                </div>
                 <div class="row wrap">
                   <mat-form-field appearance="outline" *ngFor="let p of parameterDefs[i]">
                     <mat-label>{{ p.displayName }}{{ p.isRequired ? ' *' : '' }}</mat-label>
                     <input matInput [formControlName]="p.name"
-                           [placeholder]="p.allowMultiple ? 'value1, value2, value3' : ''">
+                           [placeholder]="p.placeholder || (p.allowMultiple ? 'value1, value2, value3' : '')">
                     <mat-hint *ngIf="p.allowMultiple">{{ 'admin.tasks.multiValueHint' | transloco }}</mat-hint>
+                    <mat-hint *ngIf="p.isDate">{{ 'admin.tasks.datePresetHint' | transloco }}</mat-hint>
                   </mat-form-field>
                 </div>
               </div>
@@ -386,9 +420,10 @@ export class ScheduledTaskFormComponent implements OnInit {
 
   queries: DynamicQuery[] = [];
   /** Parameter definitions of the query selected in each item row, by row index. */
-  parameterDefs: { name: string; displayName: string; isRequired: boolean; allowMultiple: boolean }[][] = [];
+  parameterDefs: ParameterDef[][] = [];
   /** Per-row info about the selected query: write vs read, and the saved checkpoint when editing. */
   reports: ReportSummary[] = [];
+  dashboards: DashboardSummary[] = [];
   itemMeta: { isWrite: boolean; lastKeyValue: string | null }[] = [];
 
   constructor(
@@ -397,6 +432,7 @@ export class ScheduledTaskFormComponent implements OnInit {
     private router: Router,
     private queryService: QueryService,
     private reportService: ReportService,
+    private dashboardService: DashboardService,
     private scheduledTaskService: ScheduledTaskService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef
@@ -466,11 +502,14 @@ export class ScheduledTaskFormComponent implements OnInit {
 
     forkJoin({
       queries: this.queryService.getAllQueries(),
-      reports: this.reportService.getAll()
+      reports: this.reportService.getAll(),
+      // Needs dashboards.view; without it the dashboard item kind is simply not offered.
+      dashboards: this.dashboardService.getAll().pipe(catchError(() => of([] as DashboardSummary[])))
     }).subscribe({
-      next: ({ queries, reports }) => {
+      next: ({ queries, reports, dashboards }) => {
         this.queries = queries.filter(q => q.isEnabled);
         this.reports = reports.filter(r => r.isEnabled);
+        this.dashboards = dashboards.filter(d => d.isEnabled);
         if (this.taskId) {
           this.loadTask(this.taskId);
         } else {
@@ -522,9 +561,10 @@ export class ScheduledTaskFormComponent implements OnInit {
           const index = this.items.length - 1;
           const group = this.items.at(index) as FormGroup;
           group.patchValue({
-            itemKind: item.reportId ? 'report' : 'query',
+            itemKind: item.dashboardId ? 'dashboard' : item.reportId ? 'report' : 'query',
             dynamicQueryId: item.dynamicQueryId ?? '',
             reportId: item.reportId ?? '',
+            dashboardId: item.dashboardId ?? '',
             exportFormat: item.exportFormat,
             // A stored tab character is shown as the word "tab" (the backend accepts both).
             csvSeparator: item.csvSeparator === '\t' ? 'tab' : (item.csvSeparator || ','),
@@ -537,7 +577,10 @@ export class ScheduledTaskFormComponent implements OnInit {
           });
           // A report item has no per-query parameter controls: its parameters belong to the
           // report, and it carries no checkpoint to resume from.
-          if (item.reportId) {
+          if (item.dashboardId) {
+            this.onItemKindChange(index);
+            this.onDashboardChange(index, item.dashboardId, item.parameters);
+          } else if (item.reportId) {
             this.onItemKindChange(index);
           } else {
             this.buildParameterControls(index, item.dynamicQueryId!, item.parameters);
@@ -581,6 +624,7 @@ export class ScheduledTaskFormComponent implements OnInit {
       itemKind: ['query'],
       dynamicQueryId: ['', Validators.required],
       reportId: [''],
+      dashboardId: [''],
       exportFormat: [ExportFileFormat.Excel, Validators.required],
       csvSeparator: [','],
       fileNamePrefix: [''],
@@ -616,28 +660,76 @@ export class ScheduledTaskFormComponent implements OnInit {
    */
   onItemKindChange(index: number): void {
     const item = this.items.at(index) as FormGroup;
-    const isReport = item.get('itemKind')?.value === 'report';
+    const kind = item.get('itemKind')?.value as 'query' | 'report' | 'dashboard';
 
-    const query = item.get('dynamicQueryId')!;
-    const report = item.get('reportId')!;
+    const pickers = {
+      query: item.get('dynamicQueryId')!,
+      report: item.get('reportId')!,
+      dashboard: item.get('dashboardId')!
+    };
 
-    if (isReport) {
-      query.clearValidators();
-      query.setValue('');
-      report.setValidators([Validators.required]);
-      // Checkpoints are a per-query notion; a report has no key column to resume from.
-      item.patchValue({ keyColumn: '', keyParameter: '', initialKey: '', resetKey: false });
-      this.itemMeta[index] = { isWrite: false, lastKeyValue: null };
-      (item.get('parameters') as FormGroup | null)?.reset();
-    } else {
-      report.clearValidators();
-      report.setValue('');
-      query.setValidators([Validators.required]);
+    for (const [name, control] of Object.entries(pickers)) {
+      if (name === kind) {
+        control.setValidators([Validators.required]);
+      } else {
+        control.clearValidators();
+        control.setValue('');
+      }
+      control.updateValueAndValidity();
     }
 
-    query.updateValueAndValidity();
-    report.updateValueAndValidity();
+    if (kind !== 'query') {
+      // Checkpoints are a per-query notion; a report or a dashboard has no key column to resume from.
+      item.patchValue({ keyColumn: '', keyParameter: '', initialKey: '', resetKey: false });
+      this.itemMeta[index] = { isWrite: false, lastKeyValue: null };
+      this.parameterDefs[index] = [];
+      item.setControl('parameters', this.fb.group({}));
+    }
+
+    // A dashboard snapshot is a document: only the document formats apply.
+    if (kind === 'dashboard' && !this.formatsFor(index).includes(item.get('exportFormat')?.value)) {
+      item.patchValue({ exportFormat: ExportFileFormat.Pdf });
+    }
     this.cdr.detectChanges();
+  }
+
+  /** The formats a row may use: every format, except a dashboard snapshot, which is a document. */
+  formatsFor(index: number): ExportFileFormat[] {
+    return this.items.at(index)?.get('itemKind')?.value === 'dashboard'
+      ? [ExportFileFormat.Pdf, ExportFileFormat.Word, ExportFileFormat.Excel]
+      : this.formats;
+  }
+
+  /**
+   * Builds the filter-value inputs from the chosen dashboard's filters. A date filter accepts a
+   * preset such as month_start, so a nightly snapshot keeps meaning "this month".
+   */
+  onDashboardChange(index: number, dashboardId: string, values: Record<string, string> = {}): void {
+    this.dashboardService.getById(dashboardId).subscribe({
+      next: dashboard => {
+        const defs = [...dashboard.filters]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map(f => ({
+            name: f.name,
+            displayName: f.displayName,
+            isRequired: false,   // an empty value falls back to the filter's own default
+            allowMultiple: f.allowMultiple,
+            isDate: f.parameterType === ParameterType.Date,
+            placeholder: f.defaultValue ?? ''
+          }));
+        this.setParameterControls(index, defs, values);
+        this.cdr.detectChanges();
+      },
+      error: err => this.toast.error(err, 'admin.tasks.lookupsFailed')
+    });
+  }
+
+  itemName(index: number): string {
+    const item = this.items.at(index);
+    const kind = item.get('itemKind')?.value;
+    if (kind === 'dashboard') return this.dashboards.find(d => d.id === item.get('dashboardId')?.value)?.name ?? '';
+    if (kind === 'report') return this.reports.find(r => r.id === item.get('reportId')?.value)?.name ?? '';
+    return this.queryName(index);
   }
 
   queryName(index: number): string {
@@ -657,6 +749,10 @@ export class ScheduledTaskFormComponent implements OnInit {
         isRequired: p.isRequired,
         allowMultiple: !!p.allowMultiple
       }));
+    this.setParameterControls(index, defs, values);
+  }
+
+  private setParameterControls(index: number, defs: ParameterDef[], values: Record<string, string>): void {
     this.parameterDefs[index] = defs;
 
     const group = this.fb.group({});
@@ -763,8 +859,9 @@ export class ScheduledTaskFormComponent implements OnInit {
         sortOrder: i
       })),
       items: (value.items as any[]).map((item, i) => ({
-        dynamicQueryId: item.itemKind === 'report' ? null : item.dynamicQueryId,
+        dynamicQueryId: item.itemKind === 'query' ? item.dynamicQueryId : null,
         reportId: item.itemKind === 'report' ? item.reportId : null,
+        dashboardId: item.itemKind === 'dashboard' ? item.dashboardId : null,
         parameters: this.toWireParameters(i, item.parameters || {}),
         exportFormat: item.exportFormat,
         csvSeparator: item.exportFormat === ExportFileFormat.Csv ? (item.csvSeparator || null) : null,

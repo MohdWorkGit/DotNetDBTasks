@@ -22,6 +22,311 @@ namespace Bayan.Infrastructure.Data.Migrations
 
             OracleModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Bayan.Domain.Entities.Dashboard", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("DefaultRefreshSeconds")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(60);
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("NVARCHAR2(1000)");
+
+                    b.Property<short>("IsEnabled")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Dashboards");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardFilter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<short>("AllowMultiple")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid>("DashboardId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("DefaultValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("NVARCHAR2(500)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<Guid?>("DropdownQueryId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("DropdownQueryLabelColumn")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<string>("DropdownQueryValueColumn")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<int?>("DropdownSourceType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("DropdownStaticValues")
+                        .HasColumnType("CLOB");
+
+                    b.Property<short>("IsRequired")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<int>("ParameterType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DropdownQueryId")
+                        .HasDatabaseName("IX_DashboardFilters_DropdownQueryId");
+
+                    b.HasIndex("DashboardId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_DashboardFilters_DashboardId_Name");
+
+                    b.ToTable("DashboardFilters");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardRole", b =>
+                {
+                    b.Property<Guid>("DashboardId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("DashboardId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("DashboardRoles");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardTile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("CategoryColumn")
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<string>("CompareColumn")
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<string>("ConditionalRulesJson")
+                        .HasColumnType("CLOB");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid>("DashboardId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("DrillAction")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<Guid?>("DrillFilterId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid?>("DrillReportId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("DrillReportParameter")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)");
+
+                    b.Property<Guid>("DynamicQueryId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("Height")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(1);
+
+                    b.Property<short>("HigherIsBetter")
+                        .HasColumnType("NUMBER(5)");
+
+                    b.Property<int>("KpiAggregate")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int>("MaxCategories")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(25);
+
+                    b.Property<int?>("RefreshSeconds")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("SeriesColumnsJson")
+                        .IsRequired()
+                        .HasColumnType("CLOB");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<decimal?>("TargetValue")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("DECIMAL(18,4)");
+
+                    b.Property<int>("TargetWarnPercent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(10);
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("NVARCHAR2(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<string>("ValueColumn")
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<int>("ValueFormat")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int>("VisualType")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<int>("Width")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasDefaultValue(4);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DashboardId");
+
+                    b.HasIndex("DynamicQueryId")
+                        .HasDatabaseName("IX_DashboardTiles_DynamicQueryId");
+
+                    b.ToTable("DashboardTiles");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardTileParameterMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<string>("ConstantValue")
+                        .HasMaxLength(2000)
+                        .HasColumnType("NVARCHAR2(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.Property<Guid?>("DashboardFilterId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("DashboardTileId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<int>("SourceKind")
+                        .HasColumnType("NUMBER(10)");
+
+                    b.Property<string>("TargetParameterName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("NVARCHAR2(128)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TIMESTAMP(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DashboardFilterId");
+
+                    b.HasIndex("DashboardTileId", "TargetParameterName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_DashboardTileMaps_Tile_Target");
+
+                    b.ToTable("DashboardTileParameterMaps");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardUser", b =>
+                {
+                    b.Property<Guid>("DashboardId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("DashboardId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DashboardUsers");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardUserGroup", b =>
+                {
+                    b.Property<Guid>("DashboardId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("UserGroupId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("DashboardId", "UserGroupId");
+
+                    b.HasIndex("UserGroupId");
+
+                    b.ToTable("DashboardUserGroups");
+                });
+
             modelBuilder.Entity("Bayan.Domain.Entities.DatabaseUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -966,6 +1271,9 @@ namespace Bayan.Infrastructure.Data.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("NVARCHAR2(8)");
 
+                    b.Property<Guid?>("DashboardId")
+                        .HasColumnType("RAW(16)");
+
                     b.Property<Guid?>("DynamicQueryId")
                         .HasColumnType("RAW(16)");
 
@@ -1008,6 +1316,8 @@ namespace Bayan.Infrastructure.Data.Migrations
                         .HasColumnType("TIMESTAMP(7)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DashboardId");
 
                     b.HasIndex("DynamicQueryId");
 
@@ -1421,6 +1731,104 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.ToTable("UserRoles");
                 });
 
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardFilter", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Dashboard", "Dashboard")
+                        .WithMany("Filters")
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardRole", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Dashboard", "Dashboard")
+                        .WithMany("DashboardRoles")
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardTile", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Dashboard", "Dashboard")
+                        .WithMany("Tiles")
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.DynamicQuery", "DynamicQuery")
+                        .WithMany()
+                        .HasForeignKey("DynamicQueryId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
+
+                    b.Navigation("DynamicQuery");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardTileParameterMap", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.DashboardTile", "DashboardTile")
+                        .WithMany("ParameterMaps")
+                        .HasForeignKey("DashboardTileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DashboardTile");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardUser", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Dashboard", "Dashboard")
+                        .WithMany("DashboardUsers")
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardUserGroup", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.Dashboard", "Dashboard")
+                        .WithMany("DashboardUserGroups")
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.UserGroup", "UserGroup")
+                        .WithMany()
+                        .HasForeignKey("UserGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
+
+                    b.Navigation("UserGroup");
+                });
+
             modelBuilder.Entity("Bayan.Domain.Entities.DatabaseUserRoleAccess", b =>
                 {
                     b.HasOne("Bayan.Domain.Entities.DatabaseUser", "DatabaseUser")
@@ -1750,6 +2158,11 @@ namespace Bayan.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Bayan.Domain.Entities.ScheduledTaskItem", b =>
                 {
+                    b.HasOne("Bayan.Domain.Entities.Dashboard", "Dashboard")
+                        .WithMany()
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Bayan.Domain.Entities.DynamicQuery", "DynamicQuery")
                         .WithMany()
                         .HasForeignKey("DynamicQueryId")
@@ -1765,6 +2178,8 @@ namespace Bayan.Infrastructure.Data.Migrations
                         .HasForeignKey("ScheduledTaskId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Dashboard");
 
                     b.Navigation("DynamicQuery");
 
@@ -1888,6 +2303,24 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.Dashboard", b =>
+                {
+                    b.Navigation("DashboardRoles");
+
+                    b.Navigation("DashboardUserGroups");
+
+                    b.Navigation("DashboardUsers");
+
+                    b.Navigation("Filters");
+
+                    b.Navigation("Tiles");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.DashboardTile", b =>
+                {
+                    b.Navigation("ParameterMaps");
                 });
 
             modelBuilder.Entity("Bayan.Domain.Entities.DatabaseUser", b =>

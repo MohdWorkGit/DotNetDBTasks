@@ -2,6 +2,7 @@ using System.Text;
 using Bayan.Application.Common.Interfaces;
 using Bayan.Domain.Interfaces;
 using Bayan.Infrastructure.BackgroundJobs;
+using Bayan.Infrastructure.Caching;
 using Bayan.Infrastructure.Data;
 using Bayan.Infrastructure.Identity;
 using Bayan.Infrastructure.Repositories;
@@ -60,6 +61,9 @@ public static class DependencyInjection
         // Groups a report run's section jobs so releasing the run releases all of them.
         // Singleton and single-instance for the same reason the job store is.
         services.AddSingleton<IReportRunStore, InMemoryReportRunStore>();
+        // Shares each dashboard tile's result between everyone viewing it; singleton so it is
+        // shared across requests at all.
+        services.AddSingleton<IDashboardTileCache, InMemoryDashboardTileCache>();
         services.AddSingleton<IQueryJobQueue, QueryJobQueue>();
         services.AddSingleton<IUserExecutionContext, UserExecutionContext>();
 

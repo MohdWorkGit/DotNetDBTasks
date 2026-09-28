@@ -1,10 +1,10 @@
-import { Component, Input, OnChanges, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReportRunChart, ReportChartType } from '@core/models/report.model';
 
 interface Bar { x: number; y: number; w: number; h: number; fill: string; label: string; value: string; }
 interface Slice { path: string; fill: string; label: string; value: string; percent: string; }
-interface Line { points: string; stroke: string; name: string; dots: { cx: number; cy: number }[]; }
+interface Line { points: string; stroke: string; name: string; dots: { cx: number; cy: number; label: string; value: string }[]; }
 interface Tick { y: number; label: string; }
 
 /**
@@ -17,6 +17,9 @@ interface Tick { y: number; label: string; }
  * <p>Geometry is computed once in {@link ngOnChanges} rather than in the template: expressions
  * in an *ngFor re-evaluate on every change-detection pass, and this component sits inside a
  * page that polls.</p>
+ *
+ * <p>On a dashboard it is {@link interactive}: every bar, slice and point becomes a focusable
+ * button that emits its category, which is what drill-through hangs off.</p>
  */
 @Component({
   selector: 'app-report-chart',
@@ -24,7 +27,7 @@ interface Tick { y: number; label: string; }
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <figure class="chart" *ngIf="chart">
+    <figure class="chart" [class.compact]="compact" *ngIf="chart">
       <figcaption *ngIf="chart.title" dir="auto">{{ chart.title }}</figcaption>
 
       <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" role="img"
@@ -48,7 +51,10 @@ interface Tick { y: number; label: string; }
         <!-- bars -->
         <g *ngFor="let b of bars">
           <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h"
-                [attr.fill]="b.fill" rx="2">
+                [attr.fill]="b.fill" rx="2" [class.clickable]="interactive"
+                [attr.tabindex]="interactive ? 0 : null" [attr.role]="interactive ? 'button' : null"
+                [attr.aria-label]="interactive ? b.label + ': ' + b.value : null"
+                (click)="select(b.label)" (keydown.enter)="select(b.label)" (keydown.space)="select(b.label, $event)">
             <title>{{ b.label }}: {{ b.value }}</title>
           </rect>
         </g>
@@ -56,13 +62,21 @@ interface Tick { y: number; label: string; }
         <!-- lines -->
         <g *ngFor="let l of lines">
           <polyline [attr.points]="l.points" [attr.stroke]="l.stroke" fill="none" stroke-width="2" />
-          <circle *ngFor="let d of l.dots" [attr.cx]="d.cx" [attr.cy]="d.cy" r="3"
-                  [attr.fill]="l.stroke" />
+          <circle *ngFor="let d of l.dots" [attr.cx]="d.cx" [attr.cy]="d.cy"
+                  [attr.r]="interactive ? 5 : 3" [attr.fill]="l.stroke" [class.clickable]="interactive"
+                  [attr.tabindex]="interactive ? 0 : null" [attr.role]="interactive ? 'button' : null"
+                  [attr.aria-label]="interactive ? d.label + ': ' + d.value : null"
+                  (click)="select(d.label)" (keydown.enter)="select(d.label)" (keydown.space)="select(d.label, $event)">
+            <title>{{ d.label }}: {{ d.value }}</title>
+          </circle>
         </g>
 
         <!-- pie -->
         <g *ngFor="let s of slices">
-          <path [attr.d]="s.path" [attr.fill]="s.fill">
+          <path [attr.d]="s.path" [attr.fill]="s.fill" [class.clickable]="interactive"
+                [attr.tabindex]="interactive ? 0 : null" [attr.role]="interactive ? 'button' : null"
+                [attr.aria-label]="interactive ? s.label + ': ' + s.value : null"
+                (click)="select(s.label)" (keydown.enter)="select(s.label)" (keydown.space)="select(s.label, $event)">
             <title>{{ s.label }}: {{ s.value }} ({{ s.percent }})</title>
           </path>
         </g>
@@ -95,6 +109,13 @@ interface Tick { y: number; label: string; }
   `,
   styles: [`
     .chart { margin: 0 0 20px; }
+    /* In a dashboard tile the chart fills whatever height the tile has, rather than its own. */
+    .chart.compact { margin: 0; block-size: 100%; display: flex; flex-direction: column; }
+    .chart.compact svg { flex: 1 1 auto; min-block-size: 0; max-block-size: none; block-size: 100%; }
+    .chart.compact .legend { margin-block-start: 4px; }
+    .clickable { cursor: pointer; }
+    .clickable:hover, .clickable:focus-visible { opacity: 0.8; }
+    .clickable:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
     figcaption { font-weight: 600; margin-block-end: 8px; color: var(--text-primary); }
     svg { inline-size: 100%; block-size: auto; max-block-size: 340px; }
     .grid { stroke: var(--divider-color); stroke-width: 1; }
@@ -111,6 +132,15 @@ interface Tick { y: number; label: string; }
 })
 export class ReportChartComponent implements OnChanges {
   @Input({ required: true }) chart!: ReportRunChart;
+
+  /** Makes each bar, slice and point a focusable button emitting {@link categoryClick}. */
+  @Input() interactive = false;
+
+  /** Fills the host's height instead of taking the chart's natural size — for dashboard tiles. */
+  @Input() compact = false;
+
+  /** The category of the bar, slice or point the user activated. Only emitted when interactive. */
+  @Output() categoryClick = new EventEmitter<string>();
 
   readonly width = 640;
   readonly height = 300;
@@ -162,6 +192,13 @@ export class ReportChartComponent implements OnChanges {
       this.buildAxes();
       this.buildBars();
     }
+  }
+
+  select(category: string, event?: Event): void {
+    if (!this.interactive) return;
+    // Space would otherwise scroll the page as well as activating the mark.
+    event?.preventDefault();
+    this.categoryClick.emit(category);
   }
 
   private colour(index: number): string {
@@ -231,7 +268,7 @@ export class ReportChartComponent implements OnChanges {
     const step = plotWidth / Math.max(1, this.chart.categories.length - 1);
 
     this.chart.series.forEach((series, s) => {
-      const dots: { cx: number; cy: number }[] = [];
+      const dots: Line['dots'] = [];
       const points: string[] = [];
 
       series.values.forEach((value, i) => {
@@ -239,7 +276,7 @@ export class ReportChartComponent implements OnChanges {
         const cx = this.padLeft + step * i;
         const cy = this.height - this.padBottom - (value / max) * plotHeight;
         points.push(`${cx},${cy}`);
-        dots.push({ cx, cy });
+        dots.push({ cx, cy, label: this.chart.categories[i], value: this.format(value) });
       });
 
       this.lines.push({ points: points.join(' '), stroke: this.colour(s), name: series.name, dots });

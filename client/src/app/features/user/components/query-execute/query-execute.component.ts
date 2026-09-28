@@ -9,6 +9,7 @@ import { catchError, debounceTime, switchMap, timeout } from 'rxjs/operators';
 import { ExportFormat, QueryService } from '@core/services/query.service';
 import { AuthService } from '@core/services/auth.service';
 import { EXPORT_FORMATS, ExportFormatOption } from '@core/models/export-formats';
+import { fromIsoDate, toIsoDate } from '@core/models/local-date';
 import { TranslocoService } from '@jsverse/transloco';
 import {
   DropdownOption,
@@ -462,6 +463,9 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
 
           if (param.parameterType === ParameterType.Boolean) {
             defaultValue = param.defaultValue === 'true';
+          } else if (param.parameterType === ParameterType.Date) {
+            // Parsed here as a local date: left as a string, the picker reads it as UTC midnight.
+            defaultValue = fromIsoDate(param.defaultValue) ?? defaultValue;
           } else if (isMultiDropdown) {
             defaultValue = [];
           }
@@ -561,7 +565,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
       let value = this.form.get(param.name)?.value;
 
       if (param.parameterType === ParameterType.Date && value instanceof Date) {
-        value = value.toISOString().split('T')[0];
+        value = toIsoDate(value);
       } else if (param.parameterType === ParameterType.Boolean) {
         value = String(value);
       } else if (param.parameterType === ParameterType.Dropdown && param.allowMultiple) {
@@ -806,7 +810,7 @@ export class QueryExecuteComponent implements OnInit, OnDestroy {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${this.query?.name || 'results'}_${new Date().toISOString().slice(0, 10)}.${format}`;
+        a.download = `${this.query?.name || 'results'}_${toIsoDate(new Date())}.${format}`;
         a.click();
         window.URL.revokeObjectURL(url);
         this.cdr.detectChanges();

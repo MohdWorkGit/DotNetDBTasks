@@ -14,6 +14,7 @@ import { QueryService } from '@core/services/query.service';
 import { AuthService } from '@core/services/auth.service';
 import { PERM } from '@core/models/permissions';
 import { DynamicQuery, isWriteQueryType, QUERY_TYPE_LABELS, QueryType } from '@core/models/dynamic-query.model';
+import { toIsoDate } from '@core/models/local-date';
 import { TranslocoService } from '@jsverse/transloco';
 
 /** What survives navigating away from the list and back. */
@@ -375,7 +376,7 @@ export class QueryListComponent implements OnInit {
   exportAllQueries(): void {
     this.queryService.exportAllQueries().subscribe({
       next: (blob) => {
-        const stamp = new Date().toISOString().slice(0, 10);
+        const stamp = toIsoDate(new Date());
         this.saveBlob(blob, `queries-backup-${stamp}.json`);
         this.toast.success('admin.queries.backupDownloaded');
       },

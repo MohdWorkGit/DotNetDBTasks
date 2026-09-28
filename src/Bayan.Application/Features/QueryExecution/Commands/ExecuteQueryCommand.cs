@@ -79,62 +79,8 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         if (!query.IsEnabled)
             throw new DomainException("This query is currently disabled.");
 
-        // Verify user has access via roles, user groups, or direct user assignment
-        var hasAccess = false;
-
-        // Check role-based access
-        var userRoleIds = await QueryAccessRoles.GrantingRoleIdsAsync(
-            _unitOfWork, _currentUser.UserId, cancellationToken);
-        var userGroupIds = await UserGroupMembership.GroupIdsAsync(
-            _unitOfWork, _currentUser.UserId, cancellationToken);
-
-        var queryRoles = await _unitOfWork.DynamicQueryRoles.FindAsync(
-            qr => qr.DynamicQueryId == request.QueryId, cancellationToken);
-        hasAccess = queryRoles.Any(qr => userRoleIds.Contains(qr.RoleId));
-
-        // Check user-group access
-        if (!hasAccess && userGroupIds.Count > 0)
-        {
-            hasAccess = await _unitOfWork.DynamicQueryUserGroups.ExistsAsync(
-                qg => qg.DynamicQueryId == request.QueryId && userGroupIds.Contains(qg.UserGroupId),
-                cancellationToken);
-        }
-
-        // Check direct user assignment
-        if (!hasAccess)
-        {
-            hasAccess = await _unitOfWork.DynamicQueryUsers.ExistsAsync(
-                qu => qu.DynamicQueryId == request.QueryId && qu.UserId == _currentUser.UserId,
-                cancellationToken);
-        }
-
-        // Group-level access — any assignment on the parent group grants access to this query.
-        if (!hasAccess && query.QueryGroupId.HasValue)
-        {
-            var groupId = query.QueryGroupId.Value;
-
-            hasAccess = userRoleIds.Count > 0 && await _unitOfWork.QueryGroupRoles.ExistsAsync(
-                gr => gr.QueryGroupId == groupId && userRoleIds.Contains(gr.RoleId),
-                cancellationToken);
-
-            if (!hasAccess && userGroupIds.Count > 0)
-            {
-                hasAccess = await _unitOfWork.QueryGroupUserGroups.ExistsAsync(
-                    gg => gg.QueryGroupId == groupId && userGroupIds.Contains(gg.UserGroupId),
-                    cancellationToken);
-            }
-
-            if (!hasAccess)
-            {
-                hasAccess = await _unitOfWork.QueryGroupUsers.ExistsAsync(
-                    gu => gu.QueryGroupId == groupId && gu.UserId == _currentUser.UserId,
-                    cancellationToken);
-            }
-        }
-
-        // Admins always have access
-        if (!hasAccess && !_currentUser.Roles.Contains(RoleNames.Admin))
-            throw new ForbiddenAccessException("You do not have access to this query.");
+        // Verify user has access via roles, user groups, direct assignment or the query group
+        await QueryAccess.EnsureCanRunAsync(query, _unitOfWork, _currentUser, cancellationToken);
 
         // Use the database user configured on the query
         var effectiveDbUserId = query.DatabaseUserId;
@@ -317,31 +263,8 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
     /// Resolves and validates a database user, checking the current user has access.
     /// Returns the DatabaseUser entity for connection string building.
     /// </summary>
-    private async Task<DatabaseUser> ResolveAndValidateDbUserAsync(Guid databaseUserId, CancellationToken cancellationToken)
-    {
-        var dbUser = await _unitOfWork.DatabaseUsers.GetByIdAsync(databaseUserId, cancellationToken);
-        if (dbUser is null)
-            throw new NotFoundException(nameof(DatabaseUser), databaseUserId);
-
-        if (!dbUser.IsActive)
-            throw new DomainException($"Database user '{dbUser.Name}' is currently disabled.");
-
-        // Verify the current user has access to this DB user via their roles (Admins bypass)
-        if (!_currentUser.Roles.Contains(RoleNames.Admin))
-        {
-            var userRoleIds = await QueryAccessRoles.GrantingRoleIdsAsync(
-                _unitOfWork, _currentUser.UserId, cancellationToken);
-
-            var hasDbAccess = userRoleIds.Count > 0 && await _unitOfWork.DatabaseUserRoleAccess.ExistsAsync(
-                a => a.DatabaseUserId == databaseUserId && userRoleIds.Contains(a.RoleId),
-                cancellationToken);
-
-            if (!hasDbAccess)
-                throw new ForbiddenAccessException($"You do not have access to database user '{dbUser.Name}'.");
-        }
-
-        return dbUser;
-    }
+    private Task<DatabaseUser> ResolveAndValidateDbUserAsync(Guid databaseUserId, CancellationToken cancellationToken) =>
+        QueryAccess.EnsureCanUseDatabaseUserAsync(databaseUserId, _unitOfWork, _currentUser, cancellationToken);
 
     private static object? ConvertParameter(string? rawValue, ParameterType type)
     {

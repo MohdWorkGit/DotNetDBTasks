@@ -1,3 +1,4 @@
+using Bayan.Application.Common.Security;
 using Bayan.Domain.Enums;
 using FluentValidation;
 
@@ -8,11 +9,6 @@ namespace Bayan.Application.Features.DynamicQueries.Commands;
 /// </summary>
 public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryCommand>
 {
-    private static readonly string[] ForbiddenPatterns = new[]
-    {
-        "XP_", "SP_", "--", ";", "DBMS_", "UTL_"
-    };
-
     public UpdateDynamicQueryValidator()
     {
         RuleFor(x => x.Id).NotEmpty();
@@ -26,7 +22,7 @@ public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryC
         RuleFor(x => x.SqlQuery)
             .NotEmpty()
             .MaximumLength(4000)
-            .Must(NotContainDangerousPatterns).WithMessage("Query contains forbidden SQL patterns.");
+            .Must(sql => !SqlSafetyRules.ContainsForbiddenPattern(sql)).WithMessage("Query contains forbidden SQL patterns.");
 
         RuleFor(x => x.TimeoutSeconds)
             .GreaterThanOrEqualTo(0).WithMessage("Timeout must be 0 or greater (0 = no timeout).");
@@ -69,7 +65,4 @@ public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryC
             });
         });
     }
-
-    private static bool NotContainDangerousPatterns(string sql) =>
-        !ForbiddenPatterns.Any(p => sql.ToUpperInvariant().Contains(p));
 }

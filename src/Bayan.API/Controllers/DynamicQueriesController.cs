@@ -244,7 +244,7 @@ public class DynamicQueriesController : ControllerBase
     {
         var file = await _mediator.Send(new ExportQueriesQuery(id), cancellationToken);
         var name = file.Queries.FirstOrDefault()?.Name ?? "query";
-        return ExportFileResult(file, $"{Slug(name)}-{DateTime.UtcNow:yyyyMMdd}.json");
+        return ExportFileResult(file, $"{Slug(name)}-{DateTime.Now:yyyyMMdd}.json");
     }
 
     /// <summary>
@@ -256,7 +256,7 @@ public class DynamicQueriesController : ControllerBase
     public async Task<IActionResult> ExportAllQueries(CancellationToken cancellationToken)
     {
         var file = await _mediator.Send(new ExportQueriesQuery(null), cancellationToken);
-        return ExportFileResult(file, $"queries-backup-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json");
+        return ExportFileResult(file, $"queries-backup-{DateTime.Now:yyyyMMdd-HHmmss}.json");
     }
 
     /// <summary>

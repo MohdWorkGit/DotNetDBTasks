@@ -44,6 +44,11 @@ import { PERM } from './core/models/permissions';
            [matTooltip]="'nav.myQueries' | transloco" [attr.aria-label]="'nav.myQueries' | transloco">
           <mat-icon>list</mat-icon> <span class="nav-label">{{ 'nav.myQueries' | transloco }}</span>
         </a>
+        <a mat-button routerLink="/user/dashboards" routerLinkActive="nav-active"
+           *ngIf="authService.has(PERM.dashboardsRun)"
+           [matTooltip]="'nav.dashboards' | transloco" [attr.aria-label]="'nav.dashboards' | transloco">
+          <mat-icon>space_dashboard</mat-icon> <span class="nav-label">{{ 'nav.dashboards' | transloco }}</span>
+        </a>
         <a mat-button routerLink="/user/history" routerLinkActive="nav-active"
            *ngIf="authService.canRunQueries()"
            [matTooltip]="'nav.history' | transloco" [attr.aria-label]="'nav.history' | transloco">
@@ -59,9 +64,9 @@ import { PERM } from './core/models/permissions';
              queries. The trigger also shows for an Auditor, who reaches nothing here except
              the read-only scheduled tasks — without that they would lose the entry entirely
              when it moved out of the audit menu. -->
-        <button mat-button *ngIf="authService.hasAny(PERM.queriesView, PERM.queryGroupsManage, PERM.scheduledTasksViewAll, PERM.scheduledTasksManage, PERM.reportsView)"
+        <button mat-button *ngIf="authService.hasAny(PERM.queriesView, PERM.queryGroupsManage, PERM.scheduledTasksViewAll, PERM.scheduledTasksManage, PERM.reportsView, PERM.dashboardsView)"
                 [matMenuTriggerFor]="queriesMenu"
-                [class.nav-active]="inSection(['/admin/queries', '/admin/query-groups', '/admin/scheduled-tasks', '/admin/reports'])"
+                [class.nav-active]="inSection(['/admin/queries', '/admin/query-groups', '/admin/scheduled-tasks', '/admin/reports', '/admin/dashboards'])"
                 [matTooltip]="'nav.queriesGroup' | transloco">
           <mat-icon>dashboard</mat-icon>
           <span class="nav-label">{{ 'nav.queriesGroup' | transloco }}</span>
@@ -76,6 +81,9 @@ import { PERM } from './core/models/permissions';
           </a>
           <a mat-menu-item *ngIf="authService.has(PERM.reportsView)" routerLink="/admin/reports">
             <mat-icon>summarize</mat-icon> {{ 'nav.manageReports' | transloco }}
+          </a>
+          <a mat-menu-item *ngIf="authService.has(PERM.dashboardsView)" routerLink="/admin/dashboards">
+            <mat-icon>space_dashboard</mat-icon> {{ 'nav.manageDashboards' | transloco }}
           </a>
           <a mat-menu-item *ngIf="authService.hasAny(PERM.scheduledTasksViewAll, PERM.scheduledTasksManage)" routerLink="/admin/scheduled-tasks">
             <mat-icon>schedule</mat-icon> {{ 'nav.schedules' | transloco }}

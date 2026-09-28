@@ -185,6 +185,7 @@ export class AuthService {
    */
   landingRoute(): string {
     if (this.canRunQueries()) return '/user/queries';
+    if (this.has(PERM.dashboardsRun)) return '/user/dashboards';
     if (this.has(PERM.queriesView)) return '/admin/queries';
     if (this.has(PERM.logsView)) return '/admin/logs';
     if (this.has(PERM.auditView)) return '/admin/system-audit';

@@ -67,6 +67,9 @@ public static class Permissions
     /// <summary>Decide who may reach a report.</summary>
     public const string AccessManageReport = "access.manageReport";
 
+    /// <summary>Decide who may see a dashboard.</summary>
+    public const string AccessManageDashboard = "access.manageDashboard";
+
     // ---- Query groups
     /// <summary>Create, rename and delete query groups.</summary>
     public const string QueryGroupsManage = "queryGroups.manage";
@@ -104,6 +107,21 @@ public static class Permissions
 
     /// <summary>Download a report as Word, where the report permits it.</summary>
     public const string ReportsExportWord = "reports.exportWord";
+
+    // ---- Dashboards
+    //
+    // A dashboard is a page of tiles, each fed by a saved query and refreshed on an interval.
+    // Viewing one is gated twice, the same way running a report is: the caller needs a grant on
+    // the dashboard AND an independent grant on each tile's query, or that tile stays empty.
+
+    /// <summary>See the admin dashboard list and open a dashboard's definition.</summary>
+    public const string DashboardsView = "dashboards.view";
+
+    /// <summary>Create, edit and delete dashboards, their tiles and filters.</summary>
+    public const string DashboardsManage = "dashboards.manage";
+
+    /// <summary>Open a dashboard that has been granted to you.</summary>
+    public const string DashboardsRun = "dashboards.run";
 
     // ---- User groups
     /// <summary>See the user groups and who is in them.</summary>
@@ -162,9 +180,10 @@ public static class Permissions
     {
         QueriesView, QueriesReadSql, QueriesManage, QueriesTransfer, QueriesRun,
         QueriesExportExcel, QueriesExportCsv, QueriesExportJson, QueriesExportPdf, QueriesExportWord,
-        AccessManageQuery, AccessManageGroup, AccessManageReport, QueryGroupsManage,
+        AccessManageQuery, AccessManageGroup, AccessManageReport, AccessManageDashboard, QueryGroupsManage,
         ReportsView, ReportsManage, ReportsRun,
         ReportsExportExcel, ReportsExportCsv, ReportsExportJson, ReportsExportPdf, ReportsExportWord,
+        DashboardsView, DashboardsManage, DashboardsRun,
         UserGroupsView, UserGroupsManage,
         UsersView, UsersManage,
         DirectoryView, DirectoryManage,
