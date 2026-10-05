@@ -1573,6 +1573,11 @@ def build_manual(doc):
                  "المتناوبة.")],
               ["{{QUERY_NAME}}", T("The query's name.", "اسم الاستعلام.")],
               ["{{GENERATED_AT}}", T("When the file was produced.", "وقت إنشاء الملف.")],
+              ["{{@generated_by}}",
+               T("The username of whoever exported the file. For a scheduled task, the admin "
+                 "who pressed Run now, otherwise the task's creator.",
+                 "اسم المستخدم الذي صدّر الملف. وفي المهام المجدولة: المسؤول الذي ضغط «تشغيل الآن»، "
+                 "وإلا فمنشئ المهمة.")],
               ["{{ROW_COUNT}}", T("The number of rows.", "عدد الصفوف.")],
               ["{{@paramName}}",
                T("The value the user entered for that parameter.",
@@ -1875,9 +1880,10 @@ def build_manual(doc):
                  "anything — so an empty section can hide its heading too.",
                  "يُبقي كتلة كاملة أو يحذفها بحسب ما إذا أعادت المجموعة نتائج — فيمكن للقسم "
                  "الفارغ أن يخفي عنوانه أيضًا.")],
-              ["{{REPORT_NAME}}, {{GENERATED_AT}}, {{@parameter}}",
-               T("The report's name, when it was produced, and any parameter the reader entered.",
-                 "اسم التقرير ووقت إنتاجه وأي معيار بحث أدخله القارئ.")],
+              ["{{REPORT_NAME}}, {{GENERATED_AT}}, {{@generated_by}}, {{@parameter}}",
+               T("The report's name, when it was produced, who exported it, and any parameter "
+                 "the reader entered.",
+                 "اسم التقرير ووقت إنتاجه ومن صدّره وأي معيار بحث أدخله القارئ.")],
           ], widths=[2.0, 4.2])
     note(doc, T(
         "Place a marker as ordinary body text or in a table cell. A marker inside a Word text box "
@@ -1970,11 +1976,17 @@ def build_manual(doc):
              "ويحدّث كل عنصر نفسه بنفسه."))
     bullets(doc, [
         (T("Filters sit above the tiles. ", "تقع عوامل التصفية فوق العناصر. "),
-         T("Change them and press Apply; every tile that uses a filter re-runs with the new "
-           "value, and the others are left alone. Reset returns them to the dashboard's "
-           "defaults.",
-           "غيّرها واضغط «تطبيق»، فيُعاد تشغيل كل عنصر يستخدم عامل التصفية بالقيمة الجديدة، "
-           "وتبقى العناصر الأخرى كما هي. وتعيدها «إعادة الضبط» إلى القيم الافتراضية للوحة.")),
+         T("Change them and press Apply; nothing changes until you do. Every tile that uses a "
+           "filter then re-runs its query straight away with the new value — the database does "
+           "the filtering, not the page, so you are never looking at old rows narrowed down — "
+           "and the others are left alone. If someone viewed the same filter values within the "
+           "tile's refresh interval, their result is shown at once instead of running the query "
+           "again. Reset returns the filters to the dashboard's defaults.",
+           "غيّرها واضغط «تطبيق»، ولا يتغيّر شيء قبل ذلك. عندها يُعيد كل عنصر يستخدم عامل التصفية "
+           "تشغيل استعلامه فورًا بالقيمة الجديدة — فقاعدة البيانات هي التي تصفّي لا الصفحة، فلا "
+           "تنظر أبدًا إلى صفوف قديمة جرى تضييقها — وتبقى العناصر الأخرى كما هي. وإذا شاهد أحدٌ "
+           "قيم التصفية نفسها خلال فترة تحديث العنصر، عُرضت نتيجته فورًا بدل تشغيل الاستعلام من "
+           "جديد. وتعيدها «إعادة الضبط» إلى القيم الافتراضية للوحة.")),
         (T("A date filter can be relative. ", "يمكن أن يكون عامل تصفية التاريخ نسبيًا. "),
          T("Relative dates — today, start of this month, start of last month and so on — keep "
            "their meaning as time passes, so a dashboard left open overnight still shows “this "
