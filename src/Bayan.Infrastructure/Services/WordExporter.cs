@@ -24,7 +24,9 @@ namespace Bayan.Infrastructure.Services;
 /// Each query parameter is exposed the same way it is referenced in the SQL: a
 /// {{@paramName}} placeholder is replaced with the value the query ran with (multi-value
 /// parameters join their values with ", "). {{PARAMS}} expands to every parameter as
-/// "Display Name: value", one per line.
+/// "Display Name: value", one per line. {{@generated_by}} (also {{GENERATED_BY}}) is the
+/// username of whoever produced the file; a query parameter that is itself named
+/// generated_by takes precedence over it.
 ///
 /// {{RESULTS}} marks where the result table goes, and the template controls the table's
 /// styling: when the marker sits INSIDE a table, that table is the styling prototype —
@@ -54,7 +56,8 @@ internal static partial class WordExporter
         bool includeHeaders,
         byte[]? template = null,
         IReadOnlyList<ExportParameter>? parameters = null,
-        IReadOnlyList<ReportChartData>? charts = null)
+        IReadOnlyList<ReportChartData>? charts = null,
+        string? generatedBy = null)
     {
         var rowCount = results.Sum(r => r.Rows.Count);
         var replacements = new Dictionary<string, string>
@@ -63,7 +66,12 @@ internal static partial class WordExporter
             // The same value under the name a report author would reach for.
             ["{{REPORT_NAME}}"] = title,
             ["{{GENERATED_AT}}"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            ["{{ROW_COUNT}}"] = rowCount.ToString(CultureInfo.InvariantCulture)
+            ["{{ROW_COUNT}}"] = rowCount.ToString(CultureInfo.InvariantCulture),
+            // Who produced the file. Spelled like a parameter as well, since that is where a
+            // template author looks for values; set before the parameters so a real query
+            // parameter called generated_by still wins.
+            ["{{GENERATED_BY}}"] = generatedBy ?? string.Empty,
+            ["{{@generated_by}}"] = generatedBy ?? string.Empty
         };
 
         // Per-dataset scalars, for reports. Only keyed sets get these: an unkeyed set is part

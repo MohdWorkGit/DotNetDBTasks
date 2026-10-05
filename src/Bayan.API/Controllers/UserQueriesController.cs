@@ -237,7 +237,7 @@ public class UserQueriesController : ControllerBase
         // AsRowList() streams from disk for a spilled result, so a large export is not re-materialized.
         var bytes = _resultFileExporter.Export(
             fileFormat.Value, job.CachedRows.Columns, job.CachedRows.AsRowList(), exportName,
-            wordTemplate: wordTemplate, parameters: exportParameters);
+            wordTemplate: wordTemplate, parameters: exportParameters, generatedBy: _currentUser.Username);
         var extension = _resultFileExporter.GetExtension(fileFormat.Value);
         var contentType = fileFormat.Value switch
         {

@@ -545,10 +545,55 @@ html, body {
   height: 100%;
   min-height: 100%;
   margin: 0;
-  font-family: Inter, Roboto, "Helvetica Neue", sans-serif;
+  font-family: var(--app-font-family);
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// ── App font → Angular Material ──
+//
+// The azure-blue prebuilt theme hard-codes Roboto into every --mat-sys-* typography token on
+// `html`, and Material components read their font from those tokens, not from <body>. Left alone,
+// Inter never reached a single Material component, and in Arabic every title and label fell
+// through Roboto (no Arabic glyphs) to the OS fallback — Times New Roman — even though Cairo had
+// downloaded. Re-pointing the tokens at --app-font-family makes both languages follow it.
+// `:root` (0,1,0) out-specifies the theme's `html` (0,0,1). Sizes/weights copy the theme's.
+//
+// Segoe UI / Tahoma sit before the generic fallback so that, should the bundled fonts ever fail
+// to load, Windows still renders a close match rather than Arial.
+:root {
+  --app-font-family: Inter, 'Segoe UI', Roboto, Tahoma, sans-serif;
+}
+
+$mat-type-scale: (
+  display-large: 400 3.562rem 4rem,
+  display-medium: 400 2.812rem 3.25rem,
+  display-small: 400 2.25rem 2.75rem,
+  headline-large: 400 2rem 2.5rem,
+  headline-medium: 400 1.75rem 2.25rem,
+  headline-small: 400 1.5rem 2rem,
+  title-large: 400 1.375rem 1.75rem,
+  title-medium: 500 1rem 1.5rem,
+  title-small: 500 0.875rem 1.25rem,
+  body-large: 400 1rem 1.5rem,
+  body-medium: 400 0.875rem 1.25rem,
+  body-small: 400 0.75rem 1rem,
+  label-large: 500 0.875rem 1.25rem,
+  label-medium: 500 0.75rem 1rem,
+  label-small: 500 0.688rem 1rem,
+);
+
+:root {
+  @each $level, $spec in $mat-type-scale {
+    --mat-sys-#{$level}-font: var(--app-font-family);
+    --mat-sys-#{$level}: #{nth($spec, 1)} #{nth($spec, 2)} / #{nth($spec, 3)} var(--app-font-family);
+  }
+}
+
+// Native controls do not inherit the page font (Chrome gives a bare <button> Arial).
+button, input, select, textarea {
+  font-family: inherit;
 }
 
 // Ensure html element also gets dark background to prevent scroll bounce
@@ -815,7 +860,9 @@ textarea:focus-visible,
 :root[lang='ar'] {
   // Cairo first, then the Latin stack: Arabic glyphs come from Cairo, and any embedded English
   // still renders in Inter rather than Cairo's narrower Latin set.
-  --app-font-family: Cairo, Inter, Roboto, 'Helvetica Neue', sans-serif;
+  // Segoe UI and Tahoma both carry Arabic, so they are the fallback if Cairo fails to load.
+  // Material components follow this through the --mat-sys-* tokens set under Base Styles.
+  --app-font-family: Cairo, Inter, 'Segoe UI', Tahoma, sans-serif;
 
   // Arabic ascenders and descenders are taller than Latin's, so the default 1.4-ish leading
   // clips them inside fixed-height Material rows.
@@ -824,23 +871,7 @@ textarea:focus-visible,
 
 :root[lang='ar'] body,
 :root[lang='ar'] .mat-typography {
-  font-family: var(--app-font-family);
   line-height: var(--app-line-height);
-}
-
-// Material sets font-family on its own components, so it needs an explicit hand-off.
-:root[lang='ar'] .mat-mdc-button,
-:root[lang='ar'] .mat-mdc-raised-button,
-:root[lang='ar'] .mat-mdc-outlined-button,
-:root[lang='ar'] .mat-mdc-menu-item,
-:root[lang='ar'] .mat-mdc-form-field,
-:root[lang='ar'] .mat-mdc-card,
-:root[lang='ar'] .mat-mdc-table,
-:root[lang='ar'] .mat-mdc-dialog-container,
-:root[lang='ar'] .mat-mdc-snack-bar-container,
-:root[lang='ar'] .mat-toolbar,
-:root[lang='ar'] .mat-mdc-chip {
-  font-family: var(--app-font-family);
 }
 
 // Form fields and table cells are the two places where the extra leading actually prevents

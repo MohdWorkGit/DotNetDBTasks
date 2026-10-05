@@ -42,6 +42,12 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
     /// </summary>
     private byte[]? _defaultWordTemplate;
 
+    /// <summary>
+    /// {{@generated_by}} for this run's documents: the admin who pressed "Run now", else the
+    /// task creator whose identity the run executes under.
+    /// </summary>
+    private string? _generatedBy;
+
     public ScheduledTaskRunner(
         IUnitOfWork unitOfWork,
         IMediator mediator,
@@ -94,6 +100,9 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             // Runs execute under the task creator's identity so the unchanged query
             // pipeline applies their access rights and attributes the audit log to them.
             _userContext.Current = await BuildCreatorSnapshotAsync(task.CreatedByUserId, runToken);
+            _generatedBy = string.IsNullOrWhiteSpace(request.TriggeredByUsername)
+                ? _userContext.Current?.Username
+                : request.TriggeredByUsername;
 
             Directory.CreateDirectory(task.OutputFolder);
             if (!string.IsNullOrWhiteSpace(task.ArchiveFolder))
@@ -201,7 +210,8 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
                     item.ExportFormat, execution.Columns, execution.Rows, queryName,
                     CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders,
                     item.DynamicQuery?.WordTemplate ?? _defaultWordTemplate,
-                    BuildExportParameters(item.DynamicQuery, execution.Parameters));
+                    BuildExportParameters(item.DynamicQuery, execution.Parameters),
+                    _generatedBy);
                 var fileName = BuildFileName(task, item, queryName);
                 await WriteOutputAsync(task, fileName, bytes, cancellationToken);
 
@@ -302,7 +312,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             var bytes = _exporter.Export(
                 item.ExportFormat, sets, reportName,
                 CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders,
-                template, run.Parameters, run.Charts);
+                template, run.Parameters, run.Charts, _generatedBy);
 
             var fileName = BuildFileName(task, item, reportName);
             await WriteOutputAsync(task, fileName, bytes, cancellationToken);
@@ -382,7 +392,7 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
             var bytes = _exporter.Export(
                 item.ExportFormat, snapshot.Sections, dashboardName,
                 CsvSeparator.Parse(item.CsvSeparator), task.IncludeHeaders,
-                template, snapshot.Parameters, snapshot.Charts);
+                template, snapshot.Parameters, snapshot.Charts, _generatedBy);
 
             var fileName = BuildFileName(task, item, dashboardName);
             await WriteOutputAsync(task, fileName, bytes, cancellationToken);
@@ -480,7 +490,8 @@ public class ScheduledTaskRunner : IScheduledTaskRunner
                 CsvSeparator.Parse(task.CombinedCsvSeparator),
                 task.IncludeHeaders,
                 // Combined output merges several queries, so only the system default applies.
-                _defaultWordTemplate);
+                _defaultWordTemplate,
+                generatedBy: _generatedBy);
             var fileName = BuildCombinedFileName(task);
             await WriteOutputAsync(task, fileName, bytes, cancellationToken);
 

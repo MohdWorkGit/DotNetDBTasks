@@ -373,6 +373,7 @@ export class QueryFormComponent implements OnInit {
     results: '{{RESULTS}}',
     queryName: '{{QUERY_NAME}}',
     generatedAt: '{{GENERATED_AT}}',
+    generatedBy: '{{@generated_by}}',
     rowCount: '{{ROW_COUNT}}',
     parameter: '{{@paramName}}',
     params: '{{PARAMS}}'

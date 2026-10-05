@@ -244,7 +244,8 @@ public class UserReportsController : ControllerBase
             includeHeaders: true,
             wordTemplate: template,
             parameters: envelope.Parameters,
-            charts: envelope.Charts);
+            charts: envelope.Charts,
+            generatedBy: _currentUser.Username);
 
         var extension = _exporter.GetExtension(exportFormat);
         var fileName = $"{SafeFileName(envelope.ReportName)}_{DateTime.Now:yyyyMMdd-HHmmss}.{extension}";

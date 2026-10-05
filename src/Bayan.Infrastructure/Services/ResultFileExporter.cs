@@ -34,8 +34,10 @@ public class ResultFileExporter : IResultFileExporter
         string csvSeparator = ",",
         bool includeHeaders = true,
         byte[]? wordTemplate = null,
-        IReadOnlyList<ExportParameter>? parameters = null) =>
-        Export(format, new[] { new ExportResultSet(columns, rows) }, name, csvSeparator, includeHeaders, wordTemplate, parameters);
+        IReadOnlyList<ExportParameter>? parameters = null,
+        string? generatedBy = null) =>
+        Export(format, new[] { new ExportResultSet(columns, rows) }, name, csvSeparator, includeHeaders, wordTemplate, parameters,
+            generatedBy: generatedBy);
 
     public byte[] Export(
         ExportFileFormat format,
@@ -45,15 +47,16 @@ public class ResultFileExporter : IResultFileExporter
         bool includeHeaders = true,
         byte[]? wordTemplate = null,
         IReadOnlyList<ExportParameter>? parameters = null,
-        IReadOnlyList<ReportChartData>? charts = null)
+        IReadOnlyList<ReportChartData>? charts = null,
+        string? generatedBy = null)
     {
         return format switch
         {
             ExportFileFormat.Excel => _excelExporter.Export(results, name, includeHeaders),
             ExportFileFormat.Csv => ExportCsv(results, csvSeparator, includeHeaders),
             ExportFileFormat.Json => ExportJson(results),
-            ExportFileFormat.Pdf => ExportPdf(results, name, includeHeaders, wordTemplate, parameters, charts),
-            ExportFileFormat.Word => WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters, charts),
+            ExportFileFormat.Pdf => ExportPdf(results, name, includeHeaders, wordTemplate, parameters, charts, generatedBy),
+            ExportFileFormat.Word => WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters, charts, generatedBy),
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.")
         };
     }
@@ -91,11 +94,12 @@ public class ResultFileExporter : IResultFileExporter
         bool includeHeaders,
         byte[]? wordTemplate,
         IReadOnlyList<ExportParameter>? parameters,
-        IReadOnlyList<ReportChartData>? charts = null)
+        IReadOnlyList<ReportChartData>? charts = null,
+        string? generatedBy = null)
     {
         if (_docxToPdfConverter.IsAvailable)
         {
-            var docx = WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters, charts);
+            var docx = WordExporter.Export(results, name, includeHeaders, wordTemplate, parameters, charts, generatedBy);
             var pdf = _docxToPdfConverter.TryConvert(docx);
             if (pdf is not null)
                 return pdf;
