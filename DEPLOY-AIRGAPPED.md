@@ -389,6 +389,12 @@ Then commit/copy the `offline-nuget` folder alongside the source. Restore uses o
 > internet — the `ar.json` / `en.json` catalogs are served as static assets from the app's own
 > `assets/i18n/` folder.
 
+> **The same applies to the SQL editor (October 2026).** The query editor's colour-coded SQL box
+> is CodeMirror, which added `@codemirror/state`, `@codemirror/view`, `@codemirror/commands`,
+> `@codemirror/language`, `@codemirror/lang-sql`, `@codemirror/autocomplete` and
+> `@lezer/highlight`. A bundle prepared before then is missing them; regenerate it the same way.
+> They are bundled into the admin pages' JavaScript at build time and load nothing at run time.
+
 The repo's `client/node_modules/` is already populated, **but it contains native, platform-specific binaries**
 (`@rollup/rollup-win32-x64-msvc`, `@napi-rs/nice-win32-x64-msvc`, `lmdb`, …). How you carry npm depends on
 whether the target OS/arch matches.

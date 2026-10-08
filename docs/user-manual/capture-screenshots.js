@@ -218,7 +218,10 @@ async function captureLocale(browser, locale, sample) {
     /\/api\/user\/reports\/runs\//,
     // A dashboard tile fetches its data by POST (the filter values travel in the body), but it
     // only runs the tile's read query — a dashboard refuses a query that changes data.
-    /\/api\/user\/dashboards\/[^/]+\/tiles\/[^/]+\/(data|rows)$/
+    /\/api\/user\/dashboards\/[^/]+\/tiles\/[^/]+\/(data|rows)$/,
+    // A test run from the query editor. It never commits: a write runs inside a transaction
+    // that is always rolled back, and the capture only ever tests the sample SELECT.
+    /\/api\/admin\/dynamicqueries\/test$/
   ];
   await ctx.route('**/api/**', async (route) => {
     const request = route.request();
@@ -389,6 +392,55 @@ async function captureLocale(browser, locale, sample) {
   await step('edit query form', async () => {
     await go('/admin/queries/edit/' + (S.write || S.read), 'form');
     await shot('14-query-edit-parameters', { full: true });
+  });
+  await step('expanded SQL editor', async () => {
+    await go('/admin/queries/edit/' + S.read, 'app-sql-editor .cm-content');
+    await page.locator('.expand-sql').click();
+    await page.waitForSelector('app-sql-expand-dialog .cm-content');
+    await page.waitForTimeout(500);
+    await shot('14a-query-sql-expanded');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+  });
+  await step('query test run', async () => {
+    await go('/admin/queries/edit/' + S.read, 'app-sql-editor .cm-content');
+    await page.locator('.actions button').filter({ hasText: T('admin.queryForm.test') }).click();
+    await page.waitForSelector('app-query-test-dialog');
+    // Wide-open values, so the sample returns rows: the earliest "from" date, the latest "to"
+    // date, a zero minimum, and "All" wherever a dropdown offers it.
+    let dateIndex = 0;
+    for (const field of await page.locator('app-query-test-dialog mat-form-field').all()) {
+      const input = field.locator('input');
+      if (await input.count()) {
+        const type = await input.getAttribute('type');
+        if (type === 'date') await input.fill(dateIndex++ === 0 ? '2000-01-01' : '2035-12-31');
+        else if (type === 'number') await input.fill('0');
+        continue;
+      }
+      await field.locator('mat-select').click();
+      await page.waitForTimeout(300);
+      const all = page.locator('mat-option').filter({ hasText: /^\s*(all|الكل|جميع)/i });
+      await (await all.count() ? all.first() : page.locator('mat-option').first()).click();
+      await page.waitForTimeout(200);
+    }
+    await page.locator('app-query-test-dialog mat-dialog-actions button').last().click();
+    await page.waitForSelector('app-query-test-dialog .summary, app-query-test-dialog .test-error', { timeout: 30000 });
+    await page.waitForTimeout(400);
+    await shot('14b-query-test-run');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+  });
+  await step('query save problems', async () => {
+    // A semicolon and a -- comment: the two habits the SQL rules catch. Save is refused in the
+    // browser (nothing is sent), which is exactly what the figure shows.
+    await go('/admin/queries/create', 'app-sql-editor .cm-content');
+    await page.locator('app-sql-editor .cm-content').click();
+    await page.keyboard.insertText(
+      'SELECT ORDER_NO, TOTAL_AMOUNT -- order total\nFROM ORDERS\nWHERE TOTAL_AMOUNT > @MinTotal;');
+    await page.locator('.actions button[type=submit]').click();
+    await page.waitForSelector('.save-problems');
+    await page.waitForTimeout(500);
+    await shot('14c-query-save-problems', { full: true });
   });
   await step('query access', async () => {
     await go(`/admin/queries/${S.read}/roles`, 'mat-tab-group');

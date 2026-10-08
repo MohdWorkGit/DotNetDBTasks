@@ -1454,8 +1454,12 @@ def build_manual(doc):
                T("Shown under the name on My Queries. Required.",
                  "يظهر تحت الاسم في صفحة «الاستعلامات». مطلوب.")],
               [T("SQL Query", "استعلام SQL"),
-               T("The statement. Write parameters as @name. All statement types are supported.",
-                 "نص الجملة. تُكتب معايير البحث بالصيغة ‎@name‎. وجميع أنواع الجمل مدعومة.")],
+               T("The statement, in a colour-coded editor (see below). Write parameters as "
+                 "@name. Its length is limited by Maximum SQL length in System Settings — "
+                 "4,000 characters unless an administrator changes it.",
+                 "نص الجملة، في محرر ملوّن (انظر أدناه). تُكتب معايير البحث بالصيغة ‎@name‎. "
+                 "ويحدّ طوله «الحد الأقصى لطول نص SQL» في إعدادات النظام — ٤٠٠٠ حرف ما لم "
+                 "يغيّره المسؤول.")],
               [T("Timeout (seconds)", "المهلة (بالثواني)"),
                T("How long the query may run. 0 means no limit.",
                  "المدة المسموح بها للتنفيذ. والقيمة ٠ تعني بلا حد.")],
@@ -1494,6 +1498,63 @@ def build_manual(doc):
         "the SQL they describe.",
         "يُستنتج نوع الجملة من نص SQL عند الحفظ، ولا يُؤخذ من اختيارك — فلا يمكن أن يتعارض "
         "عمود «النوع» ولا معاينة استعلام التعديل مع النص الذي يصفانه."))
+
+    h3(doc, T("The SQL editor", "محرر SQL"))
+    para(doc, T(
+        "The SQL box is a code editor. Keywords, text in quotes, numbers and comments each have "
+        "their own colour, and every @parameter stands out, so it is easy to see which inputs "
+        "the query expects. It has line numbers, highlights the matching bracket, closes "
+        "brackets and quotes for you, and suggests SQL keywords as you type — Enter accepts a "
+        "suggestion, Esc dismisses it. The counter under the box shows how many characters are "
+        "used out of the allowed maximum.",
+        "مربع SQL محرر برمجي: للكلمات المحجوزة والنصوص بين علامات الاقتباس والأرقام والتعليقات "
+        "ألوان مختلفة، وتبرز كل معايير البحث ‎@parameter‎ فيسهل رؤية المدخلات التي يتوقعها "
+        "الاستعلام. وفيه أرقام للأسطر، ويميّز القوس المقابل، ويغلق الأقواس وعلامات الاقتباس "
+        "تلقائيًا، ويقترح كلمات SQL أثناء الكتابة — يقبل Enter الاقتراح ويتجاهله Esc. ويبيّن "
+        "العدّاد أسفل المربع عدد الأحرف المستخدمة من الحد المسموح."))
+    para(doc, T(
+        "For a long query, the expand button beside the label opens the same editor across "
+        "almost the whole screen. It edits the query directly — Done, Esc or the shrink button "
+        "returns to the form with every change kept. Nothing is saved until you press Save.",
+        "وللاستعلام الطويل، يفتح زر التكبير بجانب التسمية المحرر نفسه على معظم الشاشة. وهو يعدّل "
+        "الاستعلام مباشرة — فيعود «تم» أو Esc أو زر التصغير إلى النموذج مع الإبقاء على كل "
+        "التغييرات. ولا يُحفظ شيء حتى تضغط «حفظ»."))
+    figure(doc, "14a-query-sql-expanded",
+           T("The SQL opened in the large editor.", "نص SQL مفتوحًا في المحرر الكبير."))
+
+    h3(doc, T("When a query cannot be saved", "حين يتعذّر حفظ الاستعلام"))
+    para(doc, T(
+        "Save checks the form first. If anything is wrong, a panel above the buttons lists every "
+        "problem in plain words — a missing description, a parameter name with a space in it, "
+        "Parameter 2 without a display name — and it shrinks as you fix them. If the server "
+        "refuses the save, its reasons appear in the same panel and stay until you try again.",
+        "يفحص زر «حفظ» النموذج أولًا. فإن وُجد خطأ، تسرد لوحة فوق الأزرار كل مشكلة بعبارة واضحة "
+        "— وصف ناقص، أو اسم معيار فيه مسافة، أو المعيار ٢ بلا اسم معروض — وتتقلص كلما أصلحت "
+        "واحدة. وإن رفض الخادم الحفظ ظهرت أسبابه في اللوحة نفسها وبقيت حتى المحاولة التالية."))
+    para(doc, T("Three things are never allowed in a query's SQL:",
+                "ثلاثة أشياء لا يُسمح بها أبدًا في نص SQL للاستعلام:"))
+    bullets(doc, [
+        (T("A semicolon. ", "الفاصلة المنقوطة. "),
+         T("A saved query is a single statement, so leave the ; off the end.",
+           "الاستعلام المحفوظ عبارة واحدة، فلا تضع ‎;‎ في نهايته.")),
+        (T("A -- comment. ", "تعليق ‎--‎. "),
+         T("Use a /* … */ comment instead.", "استخدم تعليق ‎/* … */‎ بدلًا منه.")),
+        (T("System procedures and packages. ", "إجراءات النظام وحزمه. "),
+         T("Names starting with XP_, SP_, DBMS_ or UTL_.",
+           "الأسماء التي تبدأ بـ XP_ أو SP_ أو DBMS_ أو UTL_.")),
+    ])
+    para(doc, T(
+        "These are caught as you type: the line turns red, the offending characters are "
+        "underlined, and a message under the box names the line and the fix. Show, beside the "
+        "message in the panel, jumps to the exact place.",
+        "وتُكتشف هذه أثناء الكتابة: يتلوّن السطر بالأحمر، وتُسطَّر الأحرف المخالفة، وتذكر رسالة "
+        "أسفل المربع رقم السطر وطريقة الإصلاح. ويقفز «إظهار» بجانب الرسالة في اللوحة إلى "
+        "الموضع نفسه."))
+    figure(doc, "14c-query-save-problems",
+           T("A save refused: the -- comment and the semicolon are highlighted in the editor and "
+             "listed, with their lines, in the panel above the buttons.",
+             "حفظ مرفوض: يظهر تعليق ‎--‎ والفاصلة المنقوطة مميَّزين في المحرر، ومسرودين مع أرقام "
+             "أسطرهما في اللوحة فوق الأزرار."))
 
     h2(doc, T("6.3 Declaring parameters", "٦.٣ تعريف معايير البحث"))
     para(doc, T(
@@ -1537,6 +1598,48 @@ def build_manual(doc):
            "اختر استعلامًا محفوظًا آخر وحدّد العمود الذي يعطي القيمة والعمود الذي يعطي "
            "التسمية. وتُجلب القائمة محدَّثة في كل مرة يُفتح فيها النموذج.")),
     ])
+
+    h3(doc, T("Testing before you save", "الاختبار قبل الحفظ"))
+    para(doc, T(
+        "Test, beside Save, runs the query exactly as it is in the form — the SQL, the database "
+        "user and the parameters as you have them now — without saving anything. It asks for a "
+        "value for each parameter, pre-filled with the defaults, then shows the result:",
+        "يشغّل زر «اختبار» بجانب «حفظ» الاستعلام كما هو في النموذج تمامًا — نص SQL ومستخدم "
+        "قاعدة البيانات ومعايير البحث كما هي الآن — دون حفظ أي شيء. فيطلب قيمة لكل معيار، "
+        "معبّأة مسبقًا بالقيم الافتراضية، ثم يعرض النتيجة:"))
+    bullets(doc, [
+        (T("SELECT — ", "SELECT — "),
+         T("the first 100 rows.", "أول ١٠٠ صف.")),
+        (T("INSERT, UPDATE or DELETE — ", "INSERT أو UPDATE أو DELETE — "),
+         T("how many rows it would affect and, for UPDATE and DELETE, which ones. The statement "
+           "really runs, inside a transaction that is always rolled back, so nothing is changed.",
+           "عدد الصفوف التي ستتأثر، ولجملتي UPDATE وDELETE أيّها. تُنفَّذ الجملة فعلًا داخل "
+           "معاملة يُتراجع عنها دائمًا، فلا يتغيّر شيء.")),
+        (T("A database error — ", "خطأ من قاعدة البيانات — "),
+         T("shown as the database reports it, such as ORA-00942 for a table that does not exist, "
+           "so you can fix the SQL and run the test again.",
+           "يُعرض كما تبلّغ عنه قاعدة البيانات، مثل ORA-00942 لجدول غير موجود، فتصلح النص "
+           "وتعيد الاختبار.")),
+    ])
+    figure(doc, "14b-query-test-run",
+           T("A test run of the Orders by Period and Status query.",
+             "تشغيل تجريبي لاستعلام «الطلبات حسب الفترة والحالة»."))
+    para(doc, T(
+        "A name and description are not needed to test, and closing the window leaves the form "
+        "exactly as it was. Each test is recorded in the System Audit log as “Tested query "
+        "(unsaved)”, with its SQL.",
+        "لا يلزم الاسم والوصف للاختبار، وإغلاق النافذة يترك النموذج كما كان تمامًا. ويُسجَّل كل "
+        "اختبار في سجل تدقيق النظام باسم «اختبار استعلام (غير محفوظ)» مع نص SQL."))
+    note(doc, T(
+        "Only SELECT, INSERT, UPDATE and DELETE can be tested. MERGE, CREATE, ALTER, DROP and "
+        "PL/SQL are refused, because Oracle commits schema changes at once and no transaction "
+        "could undo them. A test INSERT that takes a number from a sequence (NEXTVAL) still "
+        "uses that number up — Oracle never gives sequence numbers back.",
+        "لا يمكن اختبار إلا SELECT وINSERT وUPDATE وDELETE. وتُرفض MERGE وCREATE وALTER وDROP "
+        "وPL/SQL، لأن Oracle يثبّت تغييرات البنية فورًا ولا تستطيع أي معاملة التراجع عنها. "
+        "واختبار INSERT يأخذ رقمًا من تسلسل (NEXTVAL) يستهلك ذلك الرقم مع ذلك — فلا يعيد Oracle "
+        "أرقام التسلسل أبدًا."),
+        kind="warning")
 
     h2(doc, T("6.4 Word export templates", "٦.٤ قوالب تصدير Word"))
     para(doc, T(
@@ -2997,6 +3100,16 @@ def build_manual(doc):
                  "يحدّ ممّا يُقرأ دفعةً واحدة حيث تُحفظ النتيجة كاملة في الذاكرة: معاينة "
                  "استعلام الكتابة، ولقطة ما قبل التغيير التي يسجّلها، وخيارات القائمة "
                  "المنسدلة. ولا يتأثر جدول النتائج ولا التصدير.")],
+              [T("Maximum SQL length (characters)",
+                 "الحد الأقصى لطول نص SQL (بالأحرف)"),
+               "4000",
+               T("The longest SQL a saved query may hold, between 1000 and 1000000, counting "
+                 "spaces, line breaks and comments. Lowering it does not affect queries already "
+                 "saved: a longer one keeps running and only has to be shortened the next time it "
+                 "is edited.",
+                 "أطول نص SQL يمكن أن يحمله الاستعلام المحفوظ، بين ١٠٠٠ و١٠٠٠٠٠٠، بما في ذلك "
+                 "المسافات وفواصل الأسطر والتعليقات. وخفضه لا يؤثر في الاستعلامات المحفوظة: "
+                 "فالأطول منها يستمر في العمل، ولا يلزم اختصاره إلا عند تعديله في المرة التالية.")],
           ],
           widths=[2.2, 0.8, 3.6])
     note(doc, T(
