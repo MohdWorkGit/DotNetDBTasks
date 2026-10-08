@@ -63,6 +63,18 @@
 
   --accent-primary: #4f46e5;
   --accent-hover: #4338ca;
+
+  // SQL editor syntax colours (shared/components/sql-editor). Each is at least 4.5:1 on white.
+  --sql-keyword: #6d28d9;
+  --sql-type: #0e7490;
+  --sql-string: #047857;
+  --sql-number: #b45309;
+  --sql-comment: #576275;
+  --sql-param: #be185d;
+  --sql-active-line: rgba(79, 70, 229, 0.06);
+  --sql-selection: rgba(79, 70, 229, 0.18);
+  --sql-problem-line: rgba(220, 38, 38, 0.08);
+  --sql-problem-mark: rgba(220, 38, 38, 0.16);
 }
 
 // ── Dark Theme Overrides ──
@@ -114,6 +126,18 @@ body.dark-theme {
 
   --accent-primary: #818cf8;
   --accent-hover: #6366f1;
+
+  // SQL editor syntax colours, lightened for the slate background.
+  --sql-keyword: #c4b5fd;
+  --sql-type: #67e8f9;
+  --sql-string: #6ee7b7;
+  --sql-number: #fcd34d;
+  --sql-comment: #94a3b8;
+  --sql-param: #f9a8d4;
+  --sql-active-line: rgba(129, 140, 248, 0.08);
+  --sql-selection: rgba(129, 140, 248, 0.28);
+  --sql-problem-line: rgba(248, 113, 113, 0.12);
+  --sql-problem-mark: rgba(248, 113, 113, 0.24);
 
   // ── Angular Material M3 system tokens ──
   // The azure-blue prebuilt theme defines --mat-sys-* on <html> with LIGHT values.

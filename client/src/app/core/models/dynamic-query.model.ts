@@ -42,6 +42,29 @@ export interface DropdownOption {
   value: string;
 }
 
+/** A test run from the query editor: the SQL and parameters as edited, plus values to try. */
+export interface TestQueryRequest {
+  sqlQuery: string;
+  timeoutSeconds: number;
+  databaseUserId?: string | null;
+  parameters: QueryParameter[];
+  /** Same wire format as a real run: multi-values as a JSON-array string. */
+  values: Record<string, string>;
+}
+
+/** What a test run found. Writes are always rolled back. */
+export interface QueryTestResult {
+  queryType: QueryType;
+  columns: string[];
+  rows: Record<string, unknown>[];
+  isLimitReached: boolean;
+  rowLimit: number;
+  affectedRows: number;
+  affectedRowColumns: string[];
+  affectedRowValues: Record<string, unknown>[];
+  durationMs: number;
+}
+
 export interface QueryParameter {
   id?: string;
   name: string;
@@ -564,6 +587,8 @@ export interface SystemSettings {
   sessionRefreshTokenDays: number;
   /** Rows a query may return to the grid before the result is capped and flagged. */
   queryMaxRows: number;
+  /** The longest SQL text a saved query may hold, in characters. */
+  querySqlMaxLength: number;
   /** When false, the Active Directory pages are switched off. */
   directoryEnabled: boolean;
 }
@@ -575,5 +600,6 @@ export interface SystemSettings {
 export const SETTING_LIMITS = {
   accessTokenMinutes: { min: 5, max: 1440 },
   refreshTokenDays: { min: 1, max: 90 },
-  maxRows: { min: 100, max: 1000000 }
+  maxRows: { min: 100, max: 1000000 },
+  sqlMaxLength: { min: 1000, max: 1000000 }
 } as const;

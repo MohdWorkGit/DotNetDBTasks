@@ -90,6 +90,19 @@ public class DynamicQueriesController : ControllerBase
     }
 
     /// <summary>
+    /// Runs the SQL being edited without saving it: a SELECT returns its first 100 rows, an
+    /// INSERT/UPDATE/DELETE runs in a transaction that is always rolled back and reports what it
+    /// would affect, and any other statement is refused. Same permission as saving.
+    /// </summary>
+    [HttpPost("test")]
+    [RequirePermission(Permissions.QueriesManage)]
+    public async Task<ActionResult<QueryTestResultDto>> Test(
+        [FromBody] TestDynamicQueryCommand command, CancellationToken cancellationToken)
+    {
+        return Ok(await _mediator.Send(command, cancellationToken));
+    }
+
+    /// <summary>
     /// Deletes a dynamic query. Requires Admin role.
     /// </summary>
     [HttpDelete("{id:guid}")]

@@ -16,8 +16,18 @@ import { TranslationParams } from '../models/locale';
  * relied on `||` binding tighter than `?:`, so an error carrying `message` but no
  * `errors` object called `Object.values(undefined)` and threw *inside* the error
  * callback — the snackbar never opened and a failed save showed the user nothing.
+ *
+ * The per-field `errors` win over `message` when both are present. A validation failure
+ * carries both, and its `message` is only the envelope ("One or more validation errors
+ * occurred") — preferring it meant every rejected save told the user that something was
+ * wrong and never what.
  */
 export function extractApiError(err: unknown, fallback: string): string {
+  const reasons = extractValidationErrors(err);
+  if (reasons.length) {
+    return reasons.map(r => r.message).join(' ');
+  }
+
   const body = (err as { error?: unknown } | null | undefined)?.error;
 
   if (typeof body === 'string' && body.trim()) {
@@ -29,17 +39,36 @@ export function extractApiError(err: unknown, fallback: string): string {
     return message;
   }
 
+  return fallback;
+}
+
+/** One reason a request was refused, with the field it was raised against (e.g. "Parameters[1].Name"). */
+export interface ApiValidationError {
+  field: string;
+  message: string;
+}
+
+/**
+ * Every per-field reason in a validation failure, in the order the server listed them — for a
+ * form that wants to show them all rather than squeeze them into one toast. Empty when the
+ * error is not a validation failure.
+ */
+export function extractValidationErrors(err: unknown): ApiValidationError[] {
+  const body = (err as { error?: unknown } | null | undefined)?.error;
   const errors = (body as { errors?: unknown } | null | undefined)?.errors;
-  if (errors && typeof errors === 'object') {
-    const flattened = Object.values(errors as Record<string, unknown>)
-      .flat()
-      .filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
-    if (flattened.length) {
-      return flattened.join(', ');
-    }
+  if (!errors || typeof errors !== 'object') {
+    return [];
   }
 
-  return fallback;
+  const out: ApiValidationError[] = [];
+  for (const [field, value] of Object.entries(errors as Record<string, unknown>)) {
+    for (const message of [value].flat()) {
+      if (typeof message === 'string' && message.trim() && !out.some(e => e.message === message && e.field === field)) {
+        out.push({ field, message });
+      }
+    }
+  }
+  return out;
 }
 
 /**

@@ -1,7 +1,11 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild, inject } from '@angular/core';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, FormArray, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ToastService } from '@core/services/toast.service';
+import { ToastService, extractApiError, extractValidationErrors } from '@core/services/toast.service';
+import { SqlEditorComponent } from '@shared/components/sql-editor.component';
+import { MatDialog } from '@angular/material/dialog';
+import { QueryTestDialogComponent, QueryTestDialogData } from './query-test-dialog.component';
+import { SqlExpandDialogComponent, SqlExpandDialogData } from './sql-expand-dialog.component';
 import { ConfirmService } from '@core/services/confirm.service';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
@@ -9,6 +13,33 @@ import { QueryService } from '@core/services/query.service';
 import { DatabaseUser, DropdownOption, DropdownSourceType, DynamicQuery, ParameterType, QueryGroup } from '@core/models/dynamic-query.model';
 import { EXPORT_FORMATS } from '@core/models/export-formats';
 import { TranslocoService } from '@jsverse/transloco';
+
+/** Mirrors the server's rules (CreateDynamicQueryValidator), so the form can say no first. */
+const PARAM_NAME_VALIDATORS = [
+  Validators.required, Validators.maxLength(100), Validators.pattern(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
+];
+const PARAM_DISPLAY_NAME_VALIDATORS = [Validators.required, Validators.maxLength(200)];
+
+/**
+ * Mirrors SqlSafetyRules on the server: no "--" line comments, no semicolons, and no calls into
+ * system procedures or packages. Checked here too so the author hears about a trailing ";" while
+ * typing, not only after pressing Save. The error carries what was found, for the message.
+ */
+const FORBIDDEN_SQL = /\b(XP_|SP_|DBMS_|UTL_)|--|;/i;
+function sqlSafetyValidator(control: AbstractControl): ValidationErrors | null {
+  const text: string = control.value ?? '';
+  // Every occurrence, not just the first: the editor highlights them all, so the messages must
+  // describe them all, or a highlighted line would have no explanation until another was fixed.
+  const all: ForbiddenSql[] = [...text.matchAll(new RegExp(FORBIDDEN_SQL.source, 'gi'))]
+    .map((m, index) => ({ found: m[0], line: text.slice(0, m.index).split('\n').length, index }));
+  return all.length ? { forbiddenSql: all } : null;
+}
+
+/** One forbidden occurrence; `index` is its position among the editor's highlights. */
+interface ForbiddenSql { found: string; line: number; index: number; }
+
+/** One line in the save-problems panel; `sqlIndex` ones get a "Show" link to that highlight. */
+interface SaveProblem { text: string; sqlIndex?: number; }
 
 @Component({
   standalone: false,
@@ -32,13 +63,37 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-error *ngIf="form.get('description')?.hasError('required')">{{ 'common.descriptionRequired' | transloco }}</mat-error>
             </mat-form-field>
 
-            <mat-form-field class="full-width" appearance="outline">
-              <mat-label>{{ 'admin.queryForm.sqlParameterized' | transloco }}</mat-label>
-              <textarea matInput formControlName="sqlQuery" rows="5" dir="ltr" class="force-ltr"
-                        [attr.placeholder]="'admin.queryForm.sqlPlaceholder' | transloco"></textarea>
-              <mat-hint>{{ 'admin.queryForm.sqlHint' | transloco }}</mat-hint>
-              <mat-error *ngIf="form.get('sqlQuery')?.hasError('required')">{{ 'admin.queryForm.sqlRequired' | transloco }}</mat-error>
-            </mat-form-field>
+            <!-- A code editor rather than a mat-form-field: the outlined field's notched label
+                 cannot sit over a multi-line editor, so the label, hint and errors are laid out
+                 here in the same places Material would put them. -->
+            <div class="sql-field" [class.sql-invalid]="sqlShowsError">
+              <div class="sql-label-row">
+                <label class="sql-label" id="sql-label">
+                  {{ 'admin.queryForm.sqlParameterized' | transloco }} *
+                </label>
+                <button mat-icon-button type="button" class="expand-sql" (click)="expandSql()"
+                        [attr.aria-label]="'admin.queryForm.expandSql' | transloco"
+                        [matTooltip]="'admin.queryForm.expandSql' | transloco">
+                  <mat-icon>open_in_full</mat-icon>
+                </button>
+              </div>
+              <app-sql-editor #sqlEditor formControlName="sqlQuery" [problemPattern]="forbiddenSqlPattern"
+                              [placeholder]="'admin.queryForm.sqlPlaceholder' | transloco"
+                              [ariaLabel]="'admin.queryForm.sqlParameterized' | transloco"></app-sql-editor>
+              <div class="sql-subscript">
+                <span *ngIf="!sqlShowsError && !sqlForbiddenMessages.length" class="sql-hint">{{ 'admin.queryForm.sqlHint' | transloco }}</span>
+                <span *ngIf="sqlShowsError && form.get('sqlQuery')?.hasError('required')" class="sql-error" role="alert">
+                  {{ 'admin.queryForm.sqlRequired' | transloco }}
+                </span>
+                <span *ngIf="sqlShowsError && form.get('sqlQuery')?.hasError('maxlength')" class="sql-error" role="alert">
+                  {{ 'admin.queryForm.sqlTooLong' | transloco: { max: sqlMaxLength } }}
+                </span>
+                <span *ngIf="sqlForbiddenMessages.length" class="sql-error" role="alert">
+                  <span *ngFor="let message of sqlForbiddenMessages" class="sql-error-line">{{ message }}</span>
+                </span>
+                <span class="sql-counter" dir="ltr">{{ form.get('sqlQuery')?.value?.length || 0 }} / {{ sqlMaxLength }}</span>
+              </div>
+            </div>
 
             <mat-form-field appearance="outline">
               <mat-label>{{ 'admin.queryForm.timeout' | transloco }}</mat-label>
@@ -292,11 +347,35 @@ import { TranslocoService } from '@jsverse/transloco';
               <mat-icon>add</mat-icon> {{ 'admin.queryForm.addParameter' | transloco }}
             </button>
 
+            <!-- Why the query was not saved. Save stays clickable while the form is invalid so this
+                 can be shown: a greyed-out button gave no clue, and the offending field could be a
+                 parameter far down the page. The form's own problems shrink as they are fixed; the
+                 server's reasons stay until the next attempt. -->
+            <div *ngIf="saveProblems.length" #problemsPanel class="save-problems" role="alert">
+              <mat-icon class="save-problems-icon">error_outline</mat-icon>
+              <div>
+                <strong>{{ (problemsFromServer ? 'admin.queryForm.serverRejected'
+                            : problemsScope === 'test' ? 'admin.queryForm.cannotTest' : 'admin.queryForm.cannotSave') | transloco }}</strong>
+                <ul>
+                  <li *ngFor="let problem of saveProblems">
+                    {{ problem.text }}
+                    <button *ngIf="problem.sqlIndex !== undefined" type="button" class="show-problem"
+                            (click)="revealSqlProblem(problem.sqlIndex)">
+                      {{ 'admin.queryForm.showProblem' | transloco }}
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
             <div class="actions">
               <button mat-button type="button" routerLink="/admin/queries">{{ 'common.cancel' | transloco }}</button>
-              <button mat-raised-button color="primary" type="submit"
-                      [disabled]="form.invalid || saving">
-                {{ saving ? 'Saving...' : (isEdit ? 'Update' : 'Create') }}
+              <button mat-stroked-button type="button" (click)="openTest()" [disabled]="saving"
+                      [matTooltip]="'admin.queryForm.testHint' | transloco">
+                <mat-icon>play_arrow</mat-icon> {{ 'admin.queryForm.test' | transloco }}
+              </button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="saving">
+                {{ (saving ? 'common.saving' : (isEdit ? 'common.update' : 'common.create')) | transloco }}
               </button>
             </div>
           </form>
@@ -309,6 +388,20 @@ import { TranslocoService } from '@jsverse/transloco';
     .param-card { margin-bottom: 12px; padding: 12px; }
     .param-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    .save-problems {
+      display: flex; gap: 12px; align-items: flex-start;
+      margin-top: 24px; padding: 12px 16px;
+      background: var(--bg-surface); color: var(--text-primary);
+      border: 1px solid var(--border-color); border-inline-start: 4px solid var(--status-error);
+      border-radius: 4px;
+    }
+    .save-problems-icon { color: var(--status-error); flex-shrink: 0; }
+    .save-problems ul { margin: 6px 0 0; padding-inline-start: 20px; }
+    .save-problems li { margin: 2px 0; }
+    .show-problem {
+      background: none; border: none; padding: 0 4px; cursor: pointer;
+      color: var(--accent-primary); text-decoration: underline; font: inherit;
+    }
     .add-btn { margin: 16px 0; }
     .toggle { margin: 16px 0 4px; display: block; }
     /* A setting and its hint icon read as one control, so they share a row. */
@@ -337,6 +430,20 @@ import { TranslocoService } from '@jsverse/transloco';
     .column-row { display: flex; gap: 16px; flex-wrap: wrap; }
     .load-failed-hint { color: var(--status-error); }
     .full-width { width: 100%; }
+    /* Laid out like an outlined Material field's label and subscript, with room below so the
+       hint line does not run into the floating label of the Timeout field. */
+    .sql-field { margin-bottom: 20px; }
+    .sql-label-row { display: flex; align-items: center; justify-content: space-between; }
+    .sql-label { display: block; font-size: 13px; color: var(--text-secondary); margin: 0 0 6px; }
+    .expand-sql { margin-block-end: 2px; }
+    .sql-invalid .sql-label { color: var(--status-error); }
+    .sql-subscript {
+      display: flex; gap: 16px; justify-content: space-between;
+      font-size: 12px; padding: 4px 16px 0; color: var(--text-secondary);
+    }
+    .sql-error { color: var(--status-error); }
+    .sql-error-line { display: block; }
+    .sql-counter { margin-inline-start: auto; white-space: nowrap; }
 
     .template-section { margin: 16px 0; }
     .template-section h3 { margin-bottom: 4px; }
@@ -407,6 +514,89 @@ export class QueryFormComponent implements OnInit {
   readonly ParameterType = ParameterType;
   readonly DropdownSourceType = DropdownSourceType;
 
+  /**
+   * The longest SQL the server will accept — an administrator's setting, so it is read rather
+   * than compiled in. Starts at the server's own default until the settings arrive; the server
+   * re-checks on save either way.
+   */
+  sqlMaxLength = 4000;
+
+  /** What stopped the last save, one readable line each. Empty hides the panel. */
+  saveProblems: SaveProblem[] = [];
+  /** Passed to the SQL editor, which highlights every match and its line. */
+  readonly forbiddenSqlPattern = FORBIDDEN_SQL;
+  @ViewChild('sqlEditor') sqlEditor?: SqlEditorComponent;
+  /** True when the problems are the server's refusal rather than the form's own checks. */
+  problemsFromServer = false;
+  /** Whether the panel answers Save (every field) or Test (only what a test runs with). */
+  problemsScope: 'save' | 'test' = 'save';
+
+  private readonly dialog = inject(MatDialog);
+
+  @ViewChild('problemsPanel') problemsPanel?: ElementRef<HTMLElement>;
+
+  /**
+   * The forbidden-SQL message, shown as soon as the text is typed rather than on leaving the box:
+   * a trailing ";" or a "--" comment is a habit, and the fix is in the line just written.
+   */
+  get sqlForbiddenMessages(): string[] {
+    const problems = this.form?.get('sqlQuery')?.getError('forbiddenSql') as ForbiddenSql[] | undefined;
+    return (problems ?? []).map(p => this.forbiddenSqlMessage(p));
+  }
+
+  /** "Line 3: Remove the semicolon…" — the line is the one highlighted in the editor. */
+  private forbiddenSqlMessage({ found, line }: ForbiddenSql): string {
+    const t = (key: string, params?: Record<string, unknown>) => this.transloco.translate(key, params);
+    const reason =
+      found === '--' ? t('admin.queryForm.sqlForbiddenComment') :
+      found === ';' ? t('admin.queryForm.sqlForbiddenSemicolon') :
+      t('admin.queryForm.sqlForbiddenSystemCall', { found: found.toUpperCase() });
+    return `${t('admin.queryForm.sqlProblemLine', { line })} ${reason}`;
+  }
+
+  /**
+   * Opens the SQL in a near-full-screen editor. It edits the same form control, so there is
+   * nothing to apply; on close the value is pushed back into the box on the page, because two
+   * editors on one control do not update each other's view (Angular only syncs model -> view).
+   */
+  expandSql(): void {
+    const control = this.form.get('sqlQuery') as FormControl<string>;
+    const data: SqlExpandDialogData = {
+      control,
+      problemPattern: this.forbiddenSqlPattern,
+      maxLength: this.sqlMaxLength,
+      problems: () => [
+        ...this.sqlForbiddenMessages,
+        ...(control.hasError('maxlength')
+          ? [this.transloco.translate('admin.queryForm.sqlTooLong', { max: this.sqlMaxLength })] : [])
+      ]
+    };
+    // The popup sits outside this component's view tree, so its edits do not mark the page for
+    // an update; in this zoneless app the counter and messages behind it would freeze (and dev
+    // mode reports NG0100). Refresh the page on every change while it is open.
+    const changes = control.valueChanges.subscribe(() => this.cdr.markForCheck());
+    this.dialog.open(SqlExpandDialogComponent, {
+      data, width: '95vw', maxWidth: '95vw', height: '90vh', ariaModal: true, autoFocus: false,
+      panelClass: 'sql-expand-panel'
+    }).afterClosed().subscribe(() => {
+      changes.unsubscribe();
+      control.setValue(control.value);
+      control.markAsTouched();
+      this.cdr.detectChanges();
+    });
+  }
+
+  /** Scrolls the editor to that highlight and selects it. */
+  revealSqlProblem(index = 0): void {
+    this.sqlEditor?.revealProblem(index);
+  }
+
+  /** Mirrors the editor's own error border: invalid, and the user has left the box. */
+  get sqlShowsError(): boolean {
+    const control = this.form?.get('sqlQuery');
+    return !!control && control.invalid && control.touched;
+  }
+
   constructor(
     private fb: FormBuilder,
     private queryService: QueryService,
@@ -422,7 +612,7 @@ export class QueryFormComponent implements OnInit {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(200)]],
       description: ['', [Validators.required, Validators.maxLength(1000)]],
-      sqlQuery: ['', [Validators.required, Validators.maxLength(4000)]],
+      sqlQuery: ['', [Validators.required, Validators.maxLength(this.sqlMaxLength), sqlSafetyValidator]],
       timeoutSeconds: [30, [Validators.min(0)]],
       isLongRunning: [false],
       allowRunWithoutConfirmation: [true],
@@ -431,6 +621,30 @@ export class QueryFormComponent implements OnInit {
       queryGroupId: [null],
       isEnabled: [true],
       parameters: this.fb.array([])
+    });
+
+    // While the panel lists the form's own problems, keep it in step: each one disappears as it
+    // is fixed, and the panel goes once nothing is left. The server's reasons are left alone,
+    // since only the server can say whether an edit answered them.
+    this.form.statusChanges.subscribe(() => {
+      if (this.saveProblems.length && !this.problemsFromServer) {
+        const remaining = this.collectProblems(this.problemsScope);
+        this.saveProblems = remaining.length && this.hasProblems(this.problemsScope) ? remaining : [];
+        this.cdr.detectChanges();
+      }
+    });
+
+    this.queryService.getSystemSettings().subscribe({
+      next: (settings) => {
+        // An API older than this setting omits it; keep the default rather than "undefined".
+        this.sqlMaxLength = settings.querySqlMaxLength ?? this.sqlMaxLength;
+        const sql = this.form.get('sqlQuery')!;
+        sql.setValidators([Validators.required, Validators.maxLength(this.sqlMaxLength), sqlSafetyValidator]);
+        sql.updateValueAndValidity({ emitEvent: false });
+        this.cdr.detectChanges();
+      },
+      // Keeping the default is safe: the server enforces the real limit and says so on save.
+      error: () => this.cdr.detectChanges()
     });
 
     // These three feed <mat-select> controls. Swallowing a failure leaves the
@@ -515,8 +729,8 @@ export class QueryFormComponent implements OnInit {
 
   addParameter(): void {
     this.parameters.push(this.fb.group({
-      name: ['', Validators.required],
-      displayName: ['', Validators.required],
+      name: ['', PARAM_NAME_VALIDATORS],
+      displayName: ['', PARAM_DISPLAY_NAME_VALIDATORS],
       parameterType: [ParameterType.String],
       isRequired: [true],
       defaultValue: [''],
@@ -629,8 +843,8 @@ export class QueryFormComponent implements OnInit {
 
         [...query.parameters].sort((a, b) => a.sortOrder - b.sortOrder).forEach(p => {
           this.parameters.push(this.fb.group({
-            name: [p.name, Validators.required],
-            displayName: [p.displayName, Validators.required],
+            name: [p.name, PARAM_NAME_VALIDATORS],
+            displayName: [p.displayName, PARAM_DISPLAY_NAME_VALIDATORS],
             parameterType: [p.parameterType],
             isRequired: [p.isRequired],
             defaultValue: [p.defaultValue || ''],
@@ -652,31 +866,17 @@ export class QueryFormComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) return;
+    this.problemsScope = 'save';
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.showProblems(this.collectProblems('save'), false);
+      return;
+    }
 
+    this.saveProblems = [];
     this.saving = true;
     const value = this.form.value;
-
-    // For non-dropdown parameters, clear dropdown-only config before sending. allowMultiple
-    // is preserved for String (used to enable comma-separated IN-clause expansion) but cleared
-    // for Number/Date/Boolean where it has no meaning.
-    const cleanedParams = value.parameters.map((p: any, i: number) => {
-      // Resequence sortOrder to the visible position so the stored order always matches
-      // what the admin sees here (and what the execution page renders by sortOrder).
-      const ordered = { ...p, sortOrder: i };
-      if (ordered.parameterType !== ParameterType.Dropdown) {
-        return {
-          ...ordered,
-          allowMultiple: ordered.parameterType === ParameterType.String ? !!ordered.allowMultiple : false,
-          dropdownSourceType: null,
-          dropdownStaticValues: null,
-          dropdownQueryId: null,
-          dropdownQueryValueColumn: null,
-          dropdownQueryLabelColumn: null
-        };
-      }
-      return ordered;
-    });
+    const cleanedParams = this.cleanedParameters();
 
     const payload = {
       ...value,
@@ -707,8 +907,148 @@ export class QueryFormComponent implements OnInit {
       error: (err) => {
         this.saving = false;
         this.toast.error(err, 'common.operationFailed');
+        this.showProblems(this.serverProblems(err), true);
       }
     });
+  }
+
+  /**
+   * Opens the test window with a copy of the SQL and parameters as edited — nothing is saved,
+   * and the form is left exactly as it was. Only what a test runs with is checked first: a
+   * missing name or description does not stop a test.
+   */
+  openTest(): void {
+    this.problemsScope = 'test';
+    if (this.hasProblems('test')) {
+      this.form.get('sqlQuery')?.markAsTouched();
+      this.form.get('timeoutSeconds')?.markAsTouched();
+      this.parameters.markAllAsTouched();
+      this.showProblems(this.collectProblems('test'), false);
+      return;
+    }
+    this.saveProblems = [];
+    const value = this.form.value;
+    const data: QueryTestDialogData = {
+      request: {
+        sqlQuery: value.sqlQuery,
+        timeoutSeconds: value.timeoutSeconds ?? 30,
+        databaseUserId: value.databaseUserId || null,
+        parameters: this.cleanedParameters()
+      }
+    };
+    this.dialog.open(QueryTestDialogComponent, {
+      data, width: '1000px', maxWidth: '95vw', ariaModal: true, autoFocus: 'dialog'
+    });
+  }
+
+  /** Whether anything in scope is invalid: Test looks only at the SQL, timeout and parameters. */
+  private hasProblems(scope: 'save' | 'test'): boolean {
+    if (scope === 'save') return this.form.invalid;
+    return !!this.form.get('sqlQuery')?.invalid || !!this.form.get('timeoutSeconds')?.invalid || this.parameters.invalid;
+  }
+
+  /**
+   * The parameters as they are sent to the server. For non-dropdown parameters the dropdown-only
+   * config is cleared; allowMultiple is kept for String (comma-separated IN-clause expansion) but
+   * cleared for Number/Date/Boolean, where it has no meaning. sortOrder is resequenced to the
+   * visible position so the stored order always matches what the admin sees here (and what the
+   * execution page renders by sortOrder).
+   */
+  private cleanedParameters(): any[] {
+    return this.form.value.parameters.map((p: any, i: number) => {
+      const ordered = { ...p, sortOrder: i };
+      if (ordered.parameterType !== ParameterType.Dropdown) {
+        return {
+          ...ordered,
+          allowMultiple: ordered.parameterType === ParameterType.String ? !!ordered.allowMultiple : false,
+          dropdownSourceType: null,
+          dropdownStaticValues: null,
+          dropdownQueryId: null,
+          dropdownQueryValueColumn: null,
+          dropdownQueryLabelColumn: null
+        };
+      }
+      return ordered;
+    });
+  }
+
+  private showProblems(problems: SaveProblem[], fromServer: boolean): void {
+    this.saveProblems = problems;
+    this.problemsFromServer = fromServer;
+    this.cdr.detectChanges();
+    this.problemsPanel?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  /** The form's own reasons for refusing to save, in page order, naming each field. */
+  private collectProblems(scope: 'save' | 'test' = 'save'): SaveProblem[] {
+    const t = (key: string, params?: Record<string, unknown>) => this.transloco.translate(key, params);
+    const problems: SaveProblem[] = [];
+
+    const describe = (control: AbstractControl | null, field: string, prefix = '') => {
+      if (!control || control.valid) return;
+      const e = control.errors ?? {};
+      const line =
+        e['required'] ? t('admin.queryForm.problemRequired', { field }) :
+        e['maxlength'] ? t('admin.queryForm.problemTooLong', { field, max: e['maxlength'].requiredLength }) :
+        e['min'] ? t('admin.queryForm.problemMin', { field, min: e['min'].min }) :
+        e['pattern'] ? t('admin.queryForm.problemParamName') :
+        t('admin.queryForm.problemInvalid', { field });
+      problems.push({ text: prefix + line });
+    };
+
+    if (scope === 'save') {
+      describe(this.form.get('name'), t('admin.queries.name'));
+      describe(this.form.get('description'), t('admin.queries.description'));
+    }
+    const sql = this.form.get('sqlQuery');
+    if (sql?.hasError('maxlength')) {
+      problems.push({ text: t('admin.queryForm.sqlTooLong', { max: this.sqlMaxLength }) });
+    } else if (sql?.hasError('forbiddenSql')) {
+      for (const problem of sql.getError('forbiddenSql') as ForbiddenSql[]) {
+        problems.push({ text: this.forbiddenSqlMessage(problem), sqlIndex: problem.index });
+      }
+    } else {
+      describe(sql, t('admin.queryForm.sqlParameterized'));
+    }
+    describe(this.form.get('timeoutSeconds'), t('admin.queryForm.timeout'));
+
+    this.parameters.controls.forEach((group, i) => {
+      if (group.valid) return;
+      const prefix = this.parameterPrefix(i, group.get('name')?.value) + ' ';
+      describe(group.get('name'), t('admin.queries.name'), prefix);
+      describe(group.get('displayName'), t('admin.queryForm.displayName'), prefix);
+    });
+
+    // Anything invalid without specific wording above still gets a line, so the panel can never
+    // be empty while Save is refusing.
+    return problems.length ? problems : [{ text: t('admin.queryForm.problemUnknown') }];
+  }
+
+  /**
+   * The server's reasons, one line each. Field paths such as "Parameters[1].Name" become
+   * "Parameter 2 (status):" so a rule broken in one parameter row points at that row.
+   */
+  private serverProblems(err: unknown): SaveProblem[] {
+    const reasons = extractValidationErrors(err);
+    if (!reasons.length) {
+      return [{ text: extractApiError(err, this.transloco.translate('common.operationFailed')) }];
+    }
+    return reasons.map(({ field, message }) => {
+      // A refusal about the SQL can point at the editor when the editor has something highlighted.
+      if (/^sqlquery$/i.test(field)) {
+        return { text: message, sqlIndex: this.form.get('sqlQuery')?.hasError('forbiddenSql') ? 0 : undefined };
+      }
+      const match = /^parameters\[(\d+)\]/i.exec(field);
+      if (!match) return { text: message };
+      const index = Number(match[1]);
+      return { text: `${this.parameterPrefix(index, this.parameters.at(index)?.get('name')?.value)} ${message}` };
+    });
+  }
+
+  private parameterPrefix(index: number, name: string | null | undefined): string {
+    return name
+      ? this.transloco.translate('admin.queryForm.problemParameterNamed', { n: index + 1, name })
+      : this.transloco.translate('admin.queryForm.problemParameter', { n: index + 1 });
   }
 
   /**

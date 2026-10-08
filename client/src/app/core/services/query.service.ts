@@ -4,6 +4,8 @@ import { Observable, of, throwError, timer } from 'rxjs';
 import { first, switchMap } from 'rxjs/operators';
 import { environment } from '@env/environment';
 import {
+  QueryTestResult,
+  TestQueryRequest,
   AssignDatabaseUserAccessRequest,
   AssignUserGroupsRequest,
   AssignRolesRequest,
@@ -87,6 +89,11 @@ export class QueryService {
 
   getQueryById(id: string): Observable<DynamicQuery> {
     return this.http.get<DynamicQuery>(`${this.adminUrl}/${id}`);
+  }
+
+  /** Runs the SQL being edited without saving it; writes are rolled back, other statements refused. */
+  testQuery(request: TestQueryRequest): Observable<QueryTestResult> {
+    return this.http.post<QueryTestResult>(`${this.adminUrl}/test`, request);
   }
 
   createQuery(request: CreateDynamicQueryRequest): Observable<DynamicQuery> {

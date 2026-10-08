@@ -1,5 +1,4 @@
-using Bayan.Application.Common.Security;
-using Bayan.Domain.Enums;
+using Bayan.Application.Common.Interfaces;
 using FluentValidation;
 
 namespace Bayan.Application.Features.DynamicQueries.Commands;
@@ -9,60 +8,11 @@ namespace Bayan.Application.Features.DynamicQueries.Commands;
 /// </summary>
 public class UpdateDynamicQueryValidator : AbstractValidator<UpdateDynamicQueryCommand>
 {
-    public UpdateDynamicQueryValidator()
+    public UpdateDynamicQueryValidator(ISystemSettingsService settings, IAppLocalizer messages)
     {
         RuleFor(x => x.Id).NotEmpty();
 
-        RuleFor(x => x.Name)
-            .NotEmpty().MaximumLength(200);
-
-        RuleFor(x => x.Description)
-            .NotEmpty().MaximumLength(1000);
-
-        RuleFor(x => x.SqlQuery)
-            .NotEmpty()
-            .MaximumLength(4000)
-            .Must(sql => !SqlSafetyRules.ContainsForbiddenPattern(sql)).WithMessage("Query contains forbidden SQL patterns.");
-
-        RuleFor(x => x.TimeoutSeconds)
-            .GreaterThanOrEqualTo(0).WithMessage("Timeout must be 0 or greater (0 = no timeout).");
-
-        RuleForEach(x => x.Parameters).ChildRules(param =>
-        {
-            param.RuleFor(p => p.Name)
-                .NotEmpty()
-                .MaximumLength(100)
-                .Matches(@"^[a-zA-Z_][a-zA-Z0-9_]*$");
-
-            param.RuleFor(p => p.DisplayName)
-                .NotEmpty().MaximumLength(200);
-
-            // Dropdown-specific validation (also covers the multi-select toggle).
-            param.When(p => p.ParameterType == ParameterType.Dropdown, () =>
-            {
-                param.RuleFor(p => p.DropdownSourceType)
-                    .NotNull().WithMessage("Dropdown source type is required for dropdown parameters.");
-
-                param.When(p => p.DropdownSourceType == DropdownSourceType.Static, () =>
-                {
-                    param.RuleFor(p => p.DropdownStaticValues)
-                        .NotEmpty().WithMessage("Static values are required when source type is Static.");
-                });
-
-                param.When(p => p.DropdownSourceType == DropdownSourceType.Query, () =>
-                {
-                    param.RuleFor(p => p.DropdownQueryId)
-                        .NotNull().WithMessage("A lookup query must be selected when source type is Query.");
-
-                    param.RuleFor(p => p.DropdownQueryValueColumn)
-                        .NotEmpty().WithMessage("Value column name is required when source type is Query.")
-                        .MaximumLength(100);
-
-                    param.RuleFor(p => p.DropdownQueryLabelColumn)
-                        .NotEmpty().WithMessage("Label column name is required when source type is Query.")
-                        .MaximumLength(100);
-                });
-            });
-        });
+        // Every field rule is shared with create, so the two cannot drift apart.
+        Include(new DynamicQueryFieldsValidator(settings, messages));
     }
 }

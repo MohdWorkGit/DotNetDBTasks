@@ -12,7 +12,7 @@ namespace Bayan.Application.Features.DynamicQueries.Commands;
 /// <summary>
 /// Creates a new dynamic query with its parameters. Admin-only.
 /// </summary>
-public class CreateDynamicQueryCommand : IRequest<DynamicQueryDto>
+public class CreateDynamicQueryCommand : IRequest<DynamicQueryDto>, IDynamicQueryFields
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;

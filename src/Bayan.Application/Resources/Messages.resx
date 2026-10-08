@@ -198,6 +198,72 @@
   <data name="SettingOutOfRange" xml:space="preserve">
     <value>{0} must be between {1} and {2}.</value>
   </data>
+  <data name="QueryNameRequired" xml:space="preserve">
+    <value>The query name is required.</value>
+  </data>
+  <data name="QueryNameTooLong" xml:space="preserve">
+    <value>The query name must not exceed {0} characters.</value>
+  </data>
+  <data name="QueryDescriptionRequired" xml:space="preserve">
+    <value>The description is required.</value>
+  </data>
+  <data name="QueryDescriptionTooLong" xml:space="preserve">
+    <value>The description must not exceed {0} characters.</value>
+  </data>
+  <data name="SqlRequired" xml:space="preserve">
+    <value>The SQL query is required.</value>
+  </data>
+  <data name="SqlForbiddenComment" xml:space="preserve">
+    <value>The SQL cannot contain a -- line comment. Use a /* ... */ block comment instead.</value>
+  </data>
+  <data name="SqlForbiddenSemicolon" xml:space="preserve">
+    <value>The SQL cannot contain a semicolon. Remove the ; at the end — a saved query is a single statement.</value>
+  </data>
+  <data name="SqlForbiddenSystemCall" xml:space="preserve">
+    <value>The SQL cannot call system procedures or packages (found "{0}"). Names starting with XP_, SP_, DBMS_ or UTL_ are blocked.</value>
+  </data>
+  <data name="QueryTimeoutNegative" xml:space="preserve">
+    <value>The timeout must be 0 or greater (0 means no timeout).</value>
+  </data>
+  <data name="ParameterNameRequired" xml:space="preserve">
+    <value>The parameter name is required.</value>
+  </data>
+  <data name="ParameterNameTooLong" xml:space="preserve">
+    <value>The parameter name must not exceed {0} characters.</value>
+  </data>
+  <data name="ParameterNameInvalid" xml:space="preserve">
+    <value>The parameter name must start with a letter or underscore and contain only letters, digits and underscores (no spaces or @).</value>
+  </data>
+  <data name="ParameterDisplayNameRequired" xml:space="preserve">
+    <value>The display name is required.</value>
+  </data>
+  <data name="ParameterDisplayNameTooLong" xml:space="preserve">
+    <value>The display name must not exceed {0} characters.</value>
+  </data>
+  <data name="DropdownSourceRequired" xml:space="preserve">
+    <value>A dropdown parameter needs a source: fixed values or a lookup query.</value>
+  </data>
+  <data name="DropdownStaticValuesRequired" xml:space="preserve">
+    <value>Enter the dropdown's values, or switch its source to a lookup query.</value>
+  </data>
+  <data name="DropdownLookupQueryRequired" xml:space="preserve">
+    <value>Choose the lookup query that supplies the dropdown's values.</value>
+  </data>
+  <data name="DropdownValueColumnRequired" xml:space="preserve">
+    <value>Enter the lookup query's value column.</value>
+  </data>
+  <data name="DropdownLabelColumnRequired" xml:space="preserve">
+    <value>Enter the lookup query's label column.</value>
+  </data>
+  <data name="DropdownColumnTooLong" xml:space="preserve">
+    <value>A column name must not exceed {0} characters.</value>
+  </data>
+  <data name="QueryTestUnsupported" xml:space="preserve">
+    <value>Only SELECT, INSERT, UPDATE and DELETE can be tested. Other statements (MERGE, CREATE, ALTER, DROP, PL/SQL) cannot be rolled back — Oracle commits schema changes immediately — so they are never run as a test.</value>
+  </data>
+  <data name="SqlTooLong" xml:space="preserve">
+    <value>The SQL query must not exceed {0} characters (it has {1}). An administrator can raise the limit in System Settings.</value>
+  </data>
   <data name="RefreshShorterThanAccess" xml:space="preserve">
     <value>The refresh token must last at least as long as the access token, otherwise a session could never be refreshed.</value>
   </data>

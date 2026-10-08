@@ -80,6 +80,21 @@ public static class SystemSettingKeys
     public const int QueryMaxRowsMax = 1_000_000;
 
     /// <summary>
+    /// The longest SQL text a saved query may hold, in characters.
+    ///
+    /// <para>4000 by default, which is what the limit was before it became a setting, so an
+    /// upgraded installation behaves the same until someone changes it. The column is a CLOB, so
+    /// the database itself is not the constraint; the ceiling of <see cref="QuerySqlMaxLengthMax"/>
+    /// only stops a runaway paste. Lowering it does not touch queries already saved — a longer
+    /// one keeps running, and is refused only when it is next saved.</para>
+    /// </summary>
+    public const string QuerySqlMaxLength = "query.sqlMaxLength";
+
+    public const int QuerySqlMaxLengthDefault = 4000;
+    public const int QuerySqlMaxLengthMin = 1000;
+    public const int QuerySqlMaxLengthMax = 1_000_000;
+
+    /// <summary>
     /// Whether the Active Directory pages are available.
     ///
     /// <para>On by default. Turn it off on an installation with no directory, where the AD Users

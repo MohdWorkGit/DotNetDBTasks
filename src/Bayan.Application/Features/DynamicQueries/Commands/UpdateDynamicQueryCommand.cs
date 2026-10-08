@@ -12,7 +12,7 @@ namespace Bayan.Application.Features.DynamicQueries.Commands;
 /// <summary>
 /// Updates an existing dynamic query including its parameters.
 /// </summary>
-public class UpdateDynamicQueryCommand : IRequest<DynamicQueryDto>
+public class UpdateDynamicQueryCommand : IRequest<DynamicQueryDto>, IDynamicQueryFields
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;

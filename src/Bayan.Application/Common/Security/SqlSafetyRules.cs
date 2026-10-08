@@ -26,4 +26,16 @@ public static class SqlSafetyRules
     /// </summary>
     public static bool ContainsForbiddenPattern(string? sql) =>
         !string.IsNullOrEmpty(sql) && ForbiddenPattern.IsMatch(sql);
+
+    /// <summary>
+    /// The first forbidden text in the SQL ("--", ";" or a prefix such as "DBMS_"), or null when
+    /// there is none — so the refusal can say which rule was broken rather than only that one was.
+    /// </summary>
+    public static string? FindForbiddenPattern(string? sql)
+    {
+        if (string.IsNullOrEmpty(sql))
+            return null;
+        var match = ForbiddenPattern.Match(sql);
+        return match.Success ? match.Value : null;
+    }
 }

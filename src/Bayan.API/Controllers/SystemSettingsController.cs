@@ -51,6 +51,10 @@ public class SystemSettingsController : ControllerBase
                 SystemSettingKeys.QueryMaxRows,
                 SystemSettingKeys.QueryMaxRowsDefault,
                 cancellationToken),
+            QuerySqlMaxLength = await _settings.GetIntAsync(
+                SystemSettingKeys.QuerySqlMaxLength,
+                SystemSettingKeys.QuerySqlMaxLengthDefault,
+                cancellationToken),
             DirectoryEnabled = await _settings.GetBoolAsync(
                 SystemSettingKeys.DirectoryEnabled,
                 SystemSettingKeys.DirectoryEnabledDefault,
@@ -86,6 +90,10 @@ public class SystemSettingsController : ControllerBase
             SystemSettingKeys.QueryMaxRows,
             request.QueryMaxRows,
             cancellationToken);
+        await _settings.SetIntAsync(
+            SystemSettingKeys.QuerySqlMaxLength,
+            request.QuerySqlMaxLength,
+            cancellationToken);
         await _settings.SetBoolAsync(
             SystemSettingKeys.DirectoryEnabled,
             request.DirectoryEnabled,
@@ -104,6 +112,7 @@ public class SystemSettingsController : ControllerBase
                 sessionAccessTokenMinutes = request.SessionAccessTokenMinutes,
                 sessionRefreshTokenDays = request.SessionRefreshTokenDays,
                 queryMaxRows = request.QueryMaxRows,
+                querySqlMaxLength = request.QuerySqlMaxLength,
                 directoryEnabled = request.DirectoryEnabled
             })
         }, cancellationToken);
@@ -135,6 +144,13 @@ public class SystemSettingsController : ControllerBase
                 SystemSettingKeys.QueryMaxRowsMin,
                 SystemSettingKeys.QueryMaxRowsMax];
 
+        if (OutOfRange(request.QuerySqlMaxLength,
+                SystemSettingKeys.QuerySqlMaxLengthMin, SystemSettingKeys.QuerySqlMaxLengthMax))
+            return _messages[MessageKeys.SettingOutOfRange,
+                SystemSettingKeys.QuerySqlMaxLength,
+                SystemSettingKeys.QuerySqlMaxLengthMin,
+                SystemSettingKeys.QuerySqlMaxLengthMax];
+
         // A refresh token that expires before the access token it renews could never be used.
         // The ranges above already rule this out — the shortest refresh (1 day) equals the
         // longest access token (1440 minutes) — so this cannot fire today. It is kept because
@@ -161,6 +177,9 @@ public class SystemSettingsDto
 
     /// <summary>Rows a query may return to the screen before the result is capped.</summary>
     public int QueryMaxRows { get; set; }
+
+    /// <summary>The longest SQL text a saved query may hold, in characters.</summary>
+    public int QuerySqlMaxLength { get; set; }
 
     /// <summary>When false, the Active Directory pages are switched off.</summary>
     public bool DirectoryEnabled { get; set; }

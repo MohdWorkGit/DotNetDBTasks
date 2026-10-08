@@ -198,6 +198,72 @@
   <data name="SettingOutOfRange" xml:space="preserve">
     <value>يجب أن تكون ⁨{0}⁩ بين ⁨{1}⁩ و⁨{2}⁩.</value>
   </data>
+  <data name="QueryNameRequired" xml:space="preserve">
+    <value>اسم الاستعلام مطلوب.</value>
+  </data>
+  <data name="QueryNameTooLong" xml:space="preserve">
+    <value>يجب ألا يتجاوز اسم الاستعلام ⁨{0}⁩ حرفًا.</value>
+  </data>
+  <data name="QueryDescriptionRequired" xml:space="preserve">
+    <value>الوصف مطلوب.</value>
+  </data>
+  <data name="QueryDescriptionTooLong" xml:space="preserve">
+    <value>يجب ألا يتجاوز الوصف ⁨{0}⁩ حرفًا.</value>
+  </data>
+  <data name="SqlRequired" xml:space="preserve">
+    <value>نص استعلام SQL مطلوب.</value>
+  </data>
+  <data name="SqlForbiddenComment" xml:space="preserve">
+    <value>لا يمكن أن يحتوي نص SQL على تعليق سطر يبدأ بـ ‎--‎. استخدم تعليق كتلة ‎/* ... */‎ بدلًا منه.</value>
+  </data>
+  <data name="SqlForbiddenSemicolon" xml:space="preserve">
+    <value>لا يمكن أن يحتوي نص SQL على فاصلة منقوطة. احذف ‎;‎ من النهاية — فالاستعلام المحفوظ عبارة واحدة.</value>
+  </data>
+  <data name="SqlForbiddenSystemCall" xml:space="preserve">
+    <value>لا يمكن أن يستدعي نص SQL إجراءات النظام أو حزمه (وُجد ‎"{0}"‎). الأسماء التي تبدأ بـ XP_ أو SP_ أو DBMS_ أو UTL_ محظورة.</value>
+  </data>
+  <data name="QueryTimeoutNegative" xml:space="preserve">
+    <value>يجب أن تكون مهلة التنفيذ 0 أو أكثر (0 تعني بلا مهلة).</value>
+  </data>
+  <data name="ParameterNameRequired" xml:space="preserve">
+    <value>اسم المعيار مطلوب.</value>
+  </data>
+  <data name="ParameterNameTooLong" xml:space="preserve">
+    <value>يجب ألا يتجاوز اسم المعيار ⁨{0}⁩ حرفًا.</value>
+  </data>
+  <data name="ParameterNameInvalid" xml:space="preserve">
+    <value>يجب أن يبدأ اسم المعيار بحرف إنجليزي أو شرطة سفلية، وألا يحتوي إلا على أحرف إنجليزية وأرقام وشرطات سفلية (بلا مسافات ولا @).</value>
+  </data>
+  <data name="ParameterDisplayNameRequired" xml:space="preserve">
+    <value>الاسم المعروض مطلوب.</value>
+  </data>
+  <data name="ParameterDisplayNameTooLong" xml:space="preserve">
+    <value>يجب ألا يتجاوز الاسم المعروض ⁨{0}⁩ حرفًا.</value>
+  </data>
+  <data name="DropdownSourceRequired" xml:space="preserve">
+    <value>يحتاج معيار القائمة المنسدلة إلى مصدر: قيم ثابتة أو استعلام بحث.</value>
+  </data>
+  <data name="DropdownStaticValuesRequired" xml:space="preserve">
+    <value>أدخل قيم القائمة المنسدلة، أو غيّر مصدرها إلى استعلام بحث.</value>
+  </data>
+  <data name="DropdownLookupQueryRequired" xml:space="preserve">
+    <value>اختر استعلام البحث الذي يوفّر قيم القائمة المنسدلة.</value>
+  </data>
+  <data name="DropdownValueColumnRequired" xml:space="preserve">
+    <value>أدخل عمود القيمة في استعلام البحث.</value>
+  </data>
+  <data name="DropdownLabelColumnRequired" xml:space="preserve">
+    <value>أدخل عمود العنوان في استعلام البحث.</value>
+  </data>
+  <data name="DropdownColumnTooLong" xml:space="preserve">
+    <value>يجب ألا يتجاوز اسم العمود ⁨{0}⁩ حرفًا.</value>
+  </data>
+  <data name="QueryTestUnsupported" xml:space="preserve">
+    <value>يمكن اختبار عبارات SELECT وINSERT وUPDATE وDELETE فقط. أما العبارات الأخرى (MERGE وCREATE وALTER وDROP وPL/SQL) فلا يمكن التراجع عنها — إذ يثبّت Oracle تغييرات البنية فورًا — لذلك لا تُشغَّل أبدًا كاختبار.</value>
+  </data>
+  <data name="SqlTooLong" xml:space="preserve">
+    <value>يجب ألا يتجاوز نص استعلام SQL ⁨{0}⁩ حرفًا (وطوله الحالي ⁨{1}⁩). ويمكن للمسؤول رفع الحد من إعدادات النظام.</value>
+  </data>
   <data name="RefreshShorterThanAccess" xml:space="preserve">
     <value>يجب أن تدوم صلاحية رمز التجديد مدة لا تقل عن مدة رمز الوصول، وإلا تعذّر تجديد الجلسة أبدًا.</value>
   </data>

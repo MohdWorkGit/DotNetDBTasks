@@ -98,6 +98,9 @@ public static class AuditActions
         ["CreateDynamicQueryCommand"] = ("queries.create", CategoryQueries),
         ["UpdateDynamicQueryCommand"] = ("queries.update", CategoryQueries),
         ["DeleteDynamicQueryCommand"] = ("queries.delete", CategoryQueries),
+        // A test run from the query editor: reads real data (and rolls back a write), so it is
+        // recorded with its SQL even though nothing is saved.
+        ["TestDynamicQueryCommand"] = ("queries.test", CategoryQueries),
         ["SetQueryWordTemplateCommand"] = ("queries.setTemplate", CategoryQueries),
         ["DeleteQueryWordTemplateCommand"] = ("queries.removeTemplate", CategoryQueries),
         ["SetDefaultWordTemplateCommand"] = ("queries.setDefaultTemplate", CategoryQueries),

@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Bayan.Application.Common.Interfaces;
 using Bayan.Application.Common.Security;
 using Bayan.Application.Common.Models;
@@ -98,31 +97,7 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         var queryParams = await _unitOfWork.QueryParameters.FindAsync(
             p => p.DynamicQueryId == request.QueryId, cancellationToken);
 
-        var typedParameters = new Dictionary<string, object?>();
-        foreach (var paramDef in queryParams)
-        {
-            request.Parameters.TryGetValue(paramDef.Name, out var rawValue);
-
-            if (paramDef.IsRequired && string.IsNullOrWhiteSpace(rawValue))
-                throw new DomainException($"Parameter '{paramDef.DisplayName}' is required.");
-
-            // AllowMultiple expands into IN-clause bind variables. Supported for Dropdown
-            // (UI sends the selected values as a JSON array) and String (UI converts the
-            // user's "a, b, c" textbox input into the same JSON-array wire format).
-            if (paramDef.AllowMultiple)
-            {
-                var items = ParseMultiSelectValue(rawValue, paramDef);
-                if (paramDef.IsRequired && items.Length == 0)
-                    throw new DomainException($"Parameter '{paramDef.DisplayName}' is required.");
-                typedParameters[paramDef.Name] = items;
-                continue;
-            }
-
-            if (paramDef.ParameterType == ParameterType.Dropdown && !string.IsNullOrWhiteSpace(rawValue))
-                ValidateDropdownOption(rawValue, paramDef);
-
-            typedParameters[paramDef.Name] = ConvertParameter(rawValue, paramDef.ParameterType);
-        }
+        var typedParameters = QueryParameterBinder.Bind(queryParams, request.Parameters);
 
         // Export runs the full result set with no row cap; it only makes sense for queries
         // that return rows, so reject write queries up front.
@@ -147,8 +122,8 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
                 previewResult.Parameters = typedParameters;
 
                 // For UPDATE/DELETE, also fetch the affected rows so the user can review them.
-                var affectedRowsPreview = await FetchAffectedRowsPreviewAsync(
-                    query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser, cancellationToken);
+                var affectedRowsPreview = await AffectedRowsPreview.FetchAsync(
+                    _queryExecutor, query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser?.ServerType, cancellationToken);
                 if (affectedRowsPreview is not null)
                 {
                     previewResult.PreviewColumns = affectedRowsPreview.Columns;
@@ -185,8 +160,8 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
         string? oldValuesJson = null;
         if (query.SaveOldValues && query.QueryType is QueryType.Update or QueryType.Delete)
         {
-            var oldRows = await FetchAffectedRowsPreviewAsync(
-                query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser, cancellationToken);
+            var oldRows = await AffectedRowsPreview.FetchAsync(
+                _queryExecutor, query.SqlQuery, typedParameters, query.TimeoutSeconds, connectionString, resolvedDbUser?.ServerType, cancellationToken);
             if (oldRows is not null && oldRows.Rows.Count > 0)
             {
                 var serializable = oldRows.Rows.Select(r =>
@@ -265,187 +240,4 @@ public class ExecuteQueryCommandHandler : IRequestHandler<ExecuteQueryCommand, Q
     /// </summary>
     private Task<DatabaseUser> ResolveAndValidateDbUserAsync(Guid databaseUserId, CancellationToken cancellationToken) =>
         QueryAccess.EnsureCanUseDatabaseUserAsync(databaseUserId, _unitOfWork, _currentUser, cancellationToken);
-
-    private static object? ConvertParameter(string? rawValue, ParameterType type)
-    {
-        if (string.IsNullOrWhiteSpace(rawValue))
-            return DBNull.Value;
-
-        return type switch
-        {
-            ParameterType.String => rawValue.Length > 4000
-                ? throw new DomainException($"Parameter value exceeds the maximum allowed length of 4000 characters.")
-                : rawValue,
-            ParameterType.Number => decimal.TryParse(rawValue, out var num) ? num
-                : throw new DomainException($"Invalid number value: {rawValue}"),
-            ParameterType.Date => DateTime.TryParse(rawValue, out var date) ? date
-                : throw new DomainException($"Invalid date value: {rawValue}"),
-            // Oracle NUMBER(1) columns require 0/1 integers, not .NET bool values
-            ParameterType.Boolean => bool.TryParse(rawValue, out var flag) ? (flag ? 1 : 0)
-                : throw new DomainException($"Invalid boolean value: {rawValue}"),
-            // Dropdown value is passed as a plain string (the selected option's value)
-            ParameterType.Dropdown => rawValue,
-            _ => rawValue
-        };
-    }
-
-    private static void ValidateDropdownOption(string rawValue, QueryParameter paramDef)
-    {
-        var allowed = GetStaticDropdownAllowedValues(paramDef);
-        if (allowed is null) return;
-
-        if (!allowed.Contains(rawValue))
-            throw new DomainException($"Invalid value for parameter '{paramDef.DisplayName}'. Select a valid option.");
-    }
-
-    /// <summary>
-    /// Parses the JSON-array payload sent for a MultiSelect parameter and returns the
-    /// individual string values. For static dropdowns, each value is verified against
-    /// the configured option list. Empty/null input yields an empty array (caller
-    /// enforces the required check separately).
-    /// </summary>
-    private static string[] ParseMultiSelectValue(string? rawValue, QueryParameter paramDef)
-    {
-        if (string.IsNullOrWhiteSpace(rawValue))
-            return Array.Empty<string>();
-
-        string[] items;
-        try
-        {
-            using var doc = JsonDocument.Parse(rawValue);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array)
-                throw new DomainException($"Parameter '{paramDef.DisplayName}' must be a JSON array of values.");
-
-            items = doc.RootElement.EnumerateArray()
-                .Select(e => e.ValueKind == JsonValueKind.String ? e.GetString() : e.ToString())
-                .Where(v => !string.IsNullOrEmpty(v))
-                .Select(v => v!)
-                .ToArray();
-        }
-        catch (JsonException)
-        {
-            throw new DomainException($"Parameter '{paramDef.DisplayName}' must be a JSON array of values.");
-        }
-
-        var allowed = GetStaticDropdownAllowedValues(paramDef);
-        if (allowed is not null)
-        {
-            foreach (var item in items)
-            {
-                if (!allowed.Contains(item))
-                    throw new DomainException($"Invalid value for parameter '{paramDef.DisplayName}'. Select a valid option.");
-            }
-        }
-
-        return items;
-    }
-
-    private static HashSet<string>? GetStaticDropdownAllowedValues(QueryParameter paramDef)
-    {
-        if (paramDef.DropdownSourceType != DropdownSourceType.Static
-            || string.IsNullOrWhiteSpace(paramDef.DropdownStaticValues))
-            return null;
-
-        using var doc = JsonDocument.Parse(paramDef.DropdownStaticValues);
-        return doc.RootElement.EnumerateArray()
-            .Select(e => e.TryGetProperty("value", out var v) ? v.GetString() : null)
-            .Where(v => v is not null)
-            .Select(v => v!)
-            .ToHashSet(StringComparer.Ordinal);
-    }
-
-    /// <summary>
-    /// For UPDATE/DELETE statements, parses out the table and WHERE clause and runs a
-    /// SELECT * against the same predicate so the user can see which rows will be affected
-    /// before confirming. Returns null for INSERT or when the SQL can't be parsed.
-    /// </summary>
-    private async Task<QueryExecutionResult?> FetchAffectedRowsPreviewAsync(
-        string sql,
-        Dictionary<string, object?> typedParameters,
-        int timeoutSeconds,
-        string? connectionString,
-        DatabaseUser? resolvedDbUser,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var trimmed = sql.TrimStart();
-            string? tableName = null;
-            string? wherePart = null;
-
-            // Identifier: bare word, "double-quoted", or [bracketed], optionally schema-qualified
-            // (each segment may use any of the three forms). Captured group includes an optional
-            // table alias so it can be embedded directly into the SELECT's FROM clause —
-            // preserving the alias is required when the WHERE clause references it.
-            const string ident = @"(?:""[^""]+""|\[[^\]]+\]|\w+)(?:\.(?:""[^""]+""|\[[^\]]+\]|\w+))?";
-
-            if (trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase))
-            {
-                var match = Regex.Match(
-                    trimmed,
-                    $@"UPDATE\s+({ident}(?:\s+(?:AS\s+)?(?!SET\b)\w+)?)\s+SET\s+.*?\s+WHERE\s+(.*)",
-                    RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                if (match.Success)
-                {
-                    tableName = match.Groups[1].Value;
-                    wherePart = match.Groups[2].Value;
-                }
-            }
-            else if (trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase))
-            {
-                var match = Regex.Match(
-                    trimmed,
-                    $@"DELETE\s+FROM\s+({ident}(?:\s+(?:AS\s+)?(?!WHERE\b)\w+)?)(?:\s+WHERE\s+(.*))?",
-                    RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                if (match.Success)
-                {
-                    tableName = match.Groups[1].Value;
-                    wherePart = match.Groups[2].Success ? match.Groups[2].Value : null;
-                }
-            }
-            else
-            {
-                return null;
-            }
-
-            if (string.IsNullOrWhiteSpace(tableName)) return null;
-
-            var selectSql = string.IsNullOrWhiteSpace(wherePart)
-                ? $"SELECT * FROM {tableName}"
-                : $"SELECT * FROM {tableName} WHERE {wherePart}";
-
-            Dictionary<string, object?> selectParams;
-            if (string.IsNullOrWhiteSpace(wherePart))
-            {
-                selectParams = new Dictionary<string, object?>();
-            }
-            else
-            {
-                var whereParamNames = Regex.Matches(wherePart, @"[@:](\w+)")
-                    .Select(m => m.Groups[1].Value)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                selectParams = typedParameters
-                    .Where(p => whereParamNames.Contains(p.Key))
-                    .ToDictionary(p => p.Key, p => p.Value);
-            }
-
-            if (connectionString != null && resolvedDbUser != null)
-            {
-                return await _queryExecutor.ExecuteAsync(
-                    selectSql, selectParams, timeoutSeconds, connectionString, resolvedDbUser.ServerType, cancellationToken);
-            }
-            return await _queryExecutor.ExecuteAsync(selectSql, selectParams, timeoutSeconds, cancellationToken);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Attempts to build a SELECT from the UPDATE statement to read current column values
-    /// before the update is applied. Returns serialized JSON of the first matching row,
-    /// or null if the SQL cannot be parsed or the pre-SELECT fails.
-    /// </summary>
 }

@@ -93,6 +93,19 @@ import { SETTING_LIMITS, SystemSettings } from '@core/models/dynamic-query.model
                 <p class="hint">{{ 'admin.settings.maxRowsHint' | transloco }}</p>
               </div>
 
+              <div class="setting">
+                <mat-form-field appearance="outline" class="number-field">
+                  <mat-label>{{ 'admin.settings.sqlMaxLength' | transloco }}</mat-label>
+                  <input matInput type="number" formControlName="querySqlMaxLength"
+                         [min]="limits.sqlMaxLength.min" [max]="limits.sqlMaxLength.max">
+                  <mat-error>
+                    {{ 'admin.settings.outOfRange' | transloco:
+                       { min: limits.sqlMaxLength.min, max: limits.sqlMaxLength.max } }}
+                  </mat-error>
+                </mat-form-field>
+                <p class="hint">{{ 'admin.settings.sqlMaxLengthHint' | transloco }}</p>
+              </div>
+
               <div class="actions">
                 <button mat-button type="button" (click)="resetNumbers()"
                         [disabled]="saving || numbersForm.pristine">
@@ -164,6 +177,11 @@ export class SystemSettingsComponent implements OnInit {
         Validators.required,
         Validators.min(SETTING_LIMITS.maxRows.min),
         Validators.max(SETTING_LIMITS.maxRows.max)
+      ]],
+      querySqlMaxLength: [SETTING_LIMITS.sqlMaxLength.min, [
+        Validators.required,
+        Validators.min(SETTING_LIMITS.sqlMaxLength.min),
+        Validators.max(SETTING_LIMITS.sqlMaxLength.max)
       ]]
     });
   }
@@ -199,7 +217,8 @@ export class SystemSettingsComponent implements OnInit {
     this.numbersForm.reset({
       sessionAccessTokenMinutes: this.settings.sessionAccessTokenMinutes,
       sessionRefreshTokenDays: this.settings.sessionRefreshTokenDays,
-      queryMaxRows: this.settings.queryMaxRows
+      queryMaxRows: this.settings.queryMaxRows,
+      querySqlMaxLength: this.settings.querySqlMaxLength
     });
   }
 
