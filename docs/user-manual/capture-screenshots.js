@@ -138,6 +138,8 @@ async function discover() {
             || full.filter(isSelect)[0];
   const multi = full.find(q => isSelect(q) && (q.parameters || []).some(p => p.allowMultiple));
   const write = full.filter(isWrite).sort((a, b) => paramCount(b) - paramCount(a))[0];
+  // A query filed in more than one group, for the figure of the Groups field.
+  const multiGroup = full.find(q => (q.queryGroupIds || []).length > 1);
   const groups = unwrap(await get('/admin/querygroups'));
   const tasks = unwrap(await get('/scheduledtasks'));
 
@@ -162,6 +164,7 @@ async function discover() {
     read: read?.id, readParams: read?.parameters || [], readName: read?.name,
     multi: multi?.id, multiName: multi?.name,
     write: write?.id, writeParams: write?.parameters || [], writeName: write?.name,
+    multiGroup: multiGroup?.id, multiGroupName: multiGroup?.name,
     group: groups[0]?.id, groupName: groups[0]?.name,
     task: tasks[0]?.id, taskName: tasks[0]?.name,
     report: report?.id, reportParams: report?.parameters || [], reportName: report?.name,
@@ -169,7 +172,7 @@ async function discover() {
   };
   log('sample data:', JSON.stringify({
     read: sample.readName, multi: sample.multiName, write: sample.writeName,
-    group: sample.groupName, task: sample.taskName,
+    multiGroup: sample.multiGroupName, group: sample.groupName, task: sample.taskName,
     report: sample.reportName, reportHasChart: sample.reportHasChart,
     dashboard: sample.dashboardName
   }));
@@ -253,6 +256,14 @@ async function captureLocale(browser, locale, sample) {
     await page.screenshot({ path: path.join(out, name + '.png'), fullPage: full });
     captured.push(name);
     log('saved', `${locale}/${name}`, full ? '(full page)' : '');
+  };
+
+  /** One element rather than the viewport — for a card or dialog that is the whole point. */
+  const shotOf = async (name, locator) => {
+    await locator.scrollIntoViewIfNeeded();
+    await locator.screenshot({ path: path.join(out, name + '.png') });
+    captured.push(name);
+    log('saved', `${locale}/${name}`, '(element)');
   };
 
   const step = async (name, fn) => {
@@ -392,6 +403,18 @@ async function captureLocale(browser, locale, sample) {
   await step('edit query form', async () => {
     await go('/admin/queries/edit/' + (S.write || S.read), 'form');
     await shot('14-query-edit-parameters', { full: true });
+  });
+  await step('query in several groups', async () => {
+    if (!S.multiGroup) throw new Error('no query is filed in more than one group');
+    await go('/admin/queries/edit/' + S.multiGroup, 'mat-select[formcontrolname=queryGroupIds]');
+    const field = page.locator('mat-select[formcontrolname=queryGroupIds]');
+    await field.scrollIntoViewIfNeeded();
+    await page.evaluate(() => window.scrollBy(0, 120));
+    await field.click();
+    await page.waitForSelector('mat-option');
+    await settle(page, 600);
+    await shot('14b-query-groups-field');
+    await closeOverlay();
   });
   await step('expanded SQL editor', async () => {
     await go('/admin/queries/edit/' + S.read, 'app-sql-editor .cm-content');
@@ -555,6 +578,19 @@ async function captureLocale(browser, locale, sample) {
     await go('/admin/logs', 'table');
     await shot('40-execution-logs');
   });
+  await step('execution log details', async () => {
+    // A run that kept its before-change rows shows the most; any run will do otherwise.
+    const withRows = page.locator('tr.mat-mdc-row', { has: page.locator('.old-rows-trigger') }).first();
+    const row = (await withRows.count()) ? withRows : page.locator('tr.mat-mdc-row').first();
+    await row.locator('td.mat-column-details button').click();
+    await page.waitForSelector('app-execution-log-detail-dialog');
+    await page.waitForSelector('app-execution-log-detail-dialog app-old-rows-table table', { timeout: 15000 })
+      .catch(() => {});
+    await settle(page, 800);
+    await redactSensitiveColumns(page);
+    await shotOf('40a-execution-log-details', page.locator('mat-dialog-container'));
+    await closeOverlay();
+  });
   await step('system audit', async () => {
     await go('/admin/system-audit', 'table');
     await shot('41-system-audit');
@@ -564,6 +600,10 @@ async function captureLocale(browser, locale, sample) {
   await step('system settings', async () => {
     await go('/admin/settings', 'mat-slide-toggle');
     await shot('50-system-settings');
+  });
+  await step('log retention', async () => {
+    const card = page.locator('mat-card', { has: page.locator('input[formcontrolname=executionLogRetentionDays]') });
+    await shotOf('50a-log-retention', card);
   });
   await step('user management', async () => {
     await go('/admin/users', 'table');

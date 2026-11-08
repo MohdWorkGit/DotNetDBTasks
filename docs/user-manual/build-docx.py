@@ -45,6 +45,13 @@ WARN_FILL = "FDF0E6"
 LATIN_FONT = "Calibri"
 ARABIC_FONT = "Segoe UI"
 
+# The tick in yes/no tables. Neither body font has a check-mark glyph, so Word drew it as an
+# empty box; Segoe UI Symbol ships with Windows and has one. Set on every font slot so neither
+# Word's script detection nor the RTL pass swaps it back.
+TICK = "\u2714"
+TICK_FONT = "Segoe UI Symbol"
+TICK_COLOR = RGBColor(0x05, 0x7A, 0x55)
+
 LANG = "en"
 _figure_no = [0]
 
@@ -98,6 +105,8 @@ def _mark_rtl_run(run):
     rtl.set(qn("w:val"), "1")
     rpr.append(rtl)
     rfonts = rpr.find(qn("w:rFonts"))
+    if rfonts is not None and rfonts.get(qn("w:ascii")) == TICK_FONT:
+        return  # a tick: the Arabic font has no check-mark glyph either
     if rfonts is None:
         rfonts = OxmlElement("w:rFonts")
         rpr.insert(0, rfonts)
@@ -254,6 +263,20 @@ def note(doc, text, kind="note"):
     doc.add_paragraph()
 
 
+def _tick_run(run):
+    """Draws the run in the symbol font, on every slot, so the tick is a tick and not a box."""
+    run.font.name = TICK_FONT
+    run.font.bold = True
+    run.font.color.rgb = TICK_COLOR
+    rpr = run._r.get_or_add_rPr()
+    rfonts = rpr.find(qn("w:rFonts"))
+    if rfonts is None:
+        rfonts = OxmlElement("w:rFonts")
+        rpr.insert(0, rfonts)
+    for slot in ("w:ascii", "w:hAnsi", "w:cs", "w:eastAsia"):
+        rfonts.set(qn(slot), TICK_FONT)
+
+
 def table(doc, header, rows, widths=None, font_size=9):
     t = doc.add_table(rows=1, cols=len(header))
     t.style = "Table Grid"
@@ -284,7 +307,13 @@ def table(doc, header, rows, widths=None, font_size=9):
             p.paragraph_format.space_after = Pt(2)
             run = p.add_run(str(text))
             run.font.size = Pt(font_size)
-            if i == 0 and len(header) > 2:
+            if text == TICK:
+                _tick_run(run)
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            elif text == "—" and i > 0:
+                run.font.color.rgb = RGBColor(0x9C, 0xA3, 0xAF)
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            elif i == 0 and len(header) > 2:
                 run.bold = True
     if widths:
         for row in t.rows:
@@ -484,8 +513,9 @@ def build_manual(doc):
                  "وقائمة منسدلة.")],
               [T("Query group", "مجموعة استعلامات"),
                T("A folder of queries. Granting access to the group grants all the queries "
-                 "inside it.",
-                 "مجلد يضم استعلامات. ومنح الوصول إلى المجموعة يمنح كل الاستعلامات داخلها.")],
+                 "inside it. A query can be in several groups at once.",
+                 "مجلد يضم استعلامات. ومنح الوصول إلى المجموعة يمنح كل الاستعلامات داخلها. "
+                 "ويمكن أن يكون الاستعلام في عدة مجموعات معًا.")],
               [T("User group", "مجموعة مستخدمين"),
                T("A named list of people, kept inside this application. Granting a query to a "
                  "user group grants it to every member. Not an Active Directory group, and not "
@@ -792,12 +822,14 @@ def build_manual(doc):
     h2(doc, T("4.2 The permission catalogue", "٤.٢ فهرس الصلاحيات"))
     para(doc, T(
         "Every capability the system can grant, and which roles hold it when the system is "
-        "first installed. A tick is a default, not a fact: all of these are editable on "
+        "first installed (a tick, ✔, means the role holds it; a dash means it does not). A "
+        "tick is a default, not a fact: all of these are editable on "
         "Settings → Permissions, and the Admin column cannot be changed at all.",
-        "كل ما يمكن للنظام منحه من إمكانات، والأدوار التي تحملها عند التنصيب لأول مرة. "
+        "كل ما يمكن للنظام منحه من إمكانات، والأدوار التي تحملها عند التنصيب لأول مرة "
+        "(علامة ✔ تعني أن الدور يحملها، والشرطة تعني أنه لا يحملها). "
         "والعلامة هنا إعداد افتراضي لا حقيقة ثابتة: فكل هذه الصلاحيات قابلة للتعديل من "
         "«الإعدادات ← الصلاحيات»، أما عمود Admin فلا يمكن تغييره إطلاقًا."))
-    yes, dash = "✓", "—"
+    yes, dash = TICK, "—"
     table(doc,
           [T("Capability", "الإمكانية"), "Admin", "Auditor", "AccessManager", "User"],
           [
@@ -837,6 +869,9 @@ def build_manual(doc):
               [T("Grant a report",
                  "منح صلاحية تقرير"),
                yes, dash, dash, dash],
+              [T("Export and import report definitions",
+                 "تصدير تعريفات التقارير واستيرادها"),
+               yes, dash, dash, dash],
               [T("See the dashboard list",
                  "عرض قائمة لوحات المعلومات"),
                yes, dash, dash, dash],
@@ -848,6 +883,9 @@ def build_manual(doc):
                yes, dash, dash, dash],
               [T("Grant a dashboard",
                  "منح صلاحية لوحة معلومات"),
+               yes, dash, dash, dash],
+              [T("Export and import dashboard definitions",
+                 "تصدير تعريفات لوحات المعلومات واستيرادها"),
                yes, dash, dash, dash],
               [T("See the user list",
                  "عرض قائمة المستخدمين"),
@@ -1030,8 +1068,10 @@ def build_manual(doc):
                T("The user is assigned to the query (or its group) individually.",
                  "المستخدم مسنَد إلى الاستعلام (أو مجموعته) بصفة فردية.")],
               [T("Group", "المجموعة"),
-               T("Anything granted on a query group applies to every query inside it.",
-                 "كل ما يُمنح على مجموعة استعلامات يسري على كل استعلام داخلها.")],
+               T("Anything granted on a query group applies to every query inside it. A query "
+                 "in several groups is reached through a grant on any one of them.",
+                 "كل ما يُمنح على مجموعة استعلامات يسري على كل استعلام داخلها. والاستعلام "
+                 "الموجود في عدة مجموعات يُوصَل إليه بمنح أيٍّ منها.")],
               [T("Administrator", "المسؤول"),
                T("An administrator reaches every query without an assignment.",
                  "يصل المسؤول إلى كل استعلام دون حاجة إلى إسناد.")],
@@ -1137,12 +1177,13 @@ def build_manual(doc):
 
     h2(doc, T("5.1 My Queries", "٥.١ الاستعلامات"))
     para(doc, T(
-        "My Queries lists everything you have been granted, arranged by query group. Queries "
-        "that belong to no group appear together at the end. Each card shows the query's name "
-        "and description and a button to run it.",
-        "تعرض صفحة «الاستعلامات» كل ما أُسنِد إليك، مرتَّبًا حسب مجموعات الاستعلامات. وتظهر "
-        "الاستعلامات غير المصنَّفة معًا في النهاية. وتُظهر كل بطاقة اسم الاستعلام ووصفه وزرًا "
-        "لتنفيذه."))
+        "My Queries lists everything you have been granted, arranged by query group. A query "
+        "filed in more than one group appears under each of them. Queries that belong to no "
+        "group appear together at the end. Each card shows the query's name and description "
+        "and a button to run it.",
+        "تعرض صفحة «الاستعلامات» كل ما أُسنِد إليك، مرتَّبًا حسب مجموعات الاستعلامات. ويظهر "
+        "الاستعلام الموجود في أكثر من مجموعة تحت كلٍّ منها. وتظهر الاستعلامات غير المصنَّفة معًا "
+        "في النهاية. وتُظهر كل بطاقة اسم الاستعلام ووصفه وزرًا لتنفيذه."))
     figure(doc, "60-my-queries",
            T("My Queries. Groups act as folders; the count next to each heading is the number "
              "of queries you can reach inside it.",
@@ -1357,15 +1398,23 @@ def build_manual(doc):
     h2(doc, T("5.9 Your execution history", "٥.٩ سجل تنفيذك"))
     para(doc, T(
         "History lists every query you have run: when, with which parameters, how long it "
-        "took, how many rows came back, and whether it succeeded. A failed run shows the error "
-        "message.",
+        "took, how many rows came back, and whether it succeeded. The parameters are shown for "
+        "every kind of query — a SELECT, an INSERT, an UPDATE or a DELETE — as name = value "
+        "chips; a run with many shows the first three and “+N more”.",
         "يسرد «السجل» كل استعلام نفّذته: متى، وبأي معايير بحث، وكم استغرق، وكم صفًّا أعاد، وهل "
-        "نجح. ويعرض التنفيذ الفاشل رسالة الخطأ."))
+        "نجح. وتظهر معايير البحث لكل أنواع الاستعلامات — SELECT وINSERT وUPDATE وDELETE — على "
+        "هيئة شارات «الاسم = القيمة»، ويعرض التنفيذ ذو المعايير الكثيرة أول ثلاثة منها ثم "
+        "«+N أخرى»."))
     figure(doc, "70-execution-history",
-           T("My Execution History. For UPDATE and DELETE runs, the row count is a link that "
-             "opens the values as they were before the change.",
-             "سجل تنفيذي. في عمليات UPDATE وDELETE يكون عدد الصفوف رابطًا يفتح القيم كما كانت "
-             "قبل التغيير."))
+           T("My Execution History. Each run lists its parameters; Rows before opens the rows an "
+             "UPDATE or DELETE changed, as they were; the eye opens the run's details.",
+             "سجل تنفيذي. يسرد كل تنفيذ معايير بحثه، ويفتح «الصفوف قبل التغيير» الصفوف التي غيّرها "
+             "UPDATE أو DELETE بحالتها السابقة، وتفتح أيقونة العين تفاصيل التنفيذ."))
+    para(doc, T(
+        "The eye at the end of a row opens everything recorded about that run in one window — "
+        "the same details window administrators see, described in 14.1.",
+        "تفتح أيقونة العين في نهاية الصف كل ما سُجِّل عن ذلك التنفيذ في نافذة واحدة — وهي نافذة "
+        "التفاصيل نفسها التي يراها المسؤولون، والموصوفة في ١٤.١."))
 
     h2(doc, T("5.10 Scheduled task status", "٥.١٠ حالة المهام المجدولة"))
     para(doc, T(
@@ -1395,11 +1444,12 @@ def build_manual(doc):
              "إدارة الاستعلامات. عوامل التصفية في الأعلى، وصف لكل استعلام، وإجراءات كل صف في "
              "طرفه."))
     para(doc, T(
-        "The columns are Name, Description, Type, Status, Group, DB User and the number of "
-        "parameters. Five filters narrow the list and are remembered when you navigate away "
-        "and come back:",
-        "الأعمدة هي: الاسم والوصف والنوع والحالة والمجموعة ومستخدم قاعدة البيانات وعدد "
-        "معايير البحث. وتضيّق خمسة عوامل تصفية القائمة، وتُحفظ عند مغادرة الصفحة والعودة إليها:"))
+        "The columns are Name, Description, Type, Status, Groups, DB User and the number of "
+        "parameters. Groups lists every group the query is filed in. Five filters narrow the "
+        "list and are remembered when you navigate away and come back:",
+        "الأعمدة هي: الاسم والوصف والنوع والحالة والمجموعات ومستخدم قاعدة البيانات وعدد "
+        "معايير البحث. ويسرد عمود «المجموعات» كل مجموعة يوجد فيها الاستعلام. وتضيّق خمسة عوامل "
+        "تصفية القائمة، وتُحفظ عند مغادرة الصفحة والعودة إليها:"))
     bullets(doc, [
         (T("Search — ", "البحث — "),
          T("matches name, description, group and database connection.",
@@ -1407,8 +1457,9 @@ def build_manual(doc):
         (T("Status — ", "الحالة — "), T("All, Active or Disabled.", "الكل أو نشط أو معطَّل.")),
         (T("Type — ", "النوع — "), T("SELECT, INSERT, UPDATE, DELETE or Other.",
                                      "SELECT أو INSERT أو UPDATE أو DELETE أو أخرى.")),
-        (T("Group — ", "المجموعة — "), T("one group, or Ungrouped.",
-                                         "مجموعة واحدة، أو غير مُصنَّف.")),
+        (T("Group — ", "المجموعة — "),
+         T("one group — a query in several groups matches each of them — or Ungrouped.",
+           "مجموعة واحدة — ويطابق الاستعلام الموجود في عدة مجموعات كلًّا منها — أو غير مُصنَّف.")),
         (T("DB User — ", "مستخدم قاعدة البيانات — "),
          T("the database connection the query runs through.",
            "اتصال قاعدة البيانات الذي يُنفَّذ الاستعلام من خلاله.")),
@@ -1484,14 +1535,22 @@ def build_manual(doc):
                T("Which connection the query runs through. Default uses the system connection.",
                  "الاتصال الذي يُنفَّذ الاستعلام من خلاله. ويستخدم الخيار الافتراضي اتصال "
                  "النظام.")],
-              [T("Group", "المجموعة"),
-               T("The folder the query appears under on My Queries.",
-                 "المجلد الذي يظهر الاستعلام تحته في «الاستعلامات».")],
+              [T("Groups", "المجموعات"),
+               T("The folders the query appears under on My Queries. Pick as many as apply, or "
+                 "none to leave it Ungrouped. A grant on any of them reaches the query.",
+                 "المجلدات التي يظهر الاستعلام تحتها في «الاستعلامات». اختر منها ما يلزم، أو لا "
+                 "شيء ليبقى غير مُصنَّف. ومنح أيٍّ منها يصل إلى الاستعلام.")],
               [T("Enabled", "نشط"),
                T("Editing only. A disabled query cannot be run by anyone.",
                  "عند التعديل فقط. ولا يستطيع أحد تنفيذ استعلام معطَّل.")],
           ],
           widths=[1.9, 4.7])
+    figure(doc, "14b-query-groups-field",
+           T("The Groups field. Outstanding Invoices is filed under both Finance and Invoicing and "
+             "Customer Service, so it appears in both folders and either group's grant reaches "
+             "it.",
+             "حقل «المجموعات». استعلام «الفواتير المستحقة» موجود في «المالية والفواتير» و«خدمة "
+             "العملاء» معًا، فيظهر في المجلدين ويصل إليه منح أيٍّ من المجموعتين."))
     note(doc, T(
         "The statement type is worked out from the SQL when you save, not taken from anything "
         "you choose — so the Type column and the write-query preview can never disagree with "
@@ -1716,9 +1775,10 @@ def build_manual(doc):
     table(doc,
           [T("Reference", "المرجع"), T("On import", "عند الاستيراد")],
           [
-              [T("Query group", "مجموعة الاستعلامات"),
-               T("Matched by name, and created if it does not exist.",
-                 "تُطابَق بالاسم، وتُنشأ إن لم تكن موجودة.")],
+              [T("Query groups", "مجموعات الاستعلامات"),
+               T("Every group the query is in, matched by name; one that does not exist is "
+                 "created.",
+                 "كل مجموعة يوجد فيها الاستعلام، تُطابَق بالاسم، ويُنشأ ما لم يكن موجودًا منها.")],
               [T("Database connection", "اتصال قاعدة البيانات"),
                T("Matched by name. If it is missing, the query lands on the default connection "
                  "and a warning is reported.",
@@ -1743,10 +1803,12 @@ def build_manual(doc):
         "Import never overwrites. A query whose name is already taken is imported as "
         "“Name (imported)”, so a mistaken import is undone by deleting what it added. The "
         "result dialog lists everything imported, everything renamed and every reference that "
-        "could not be resolved.",
+        "could not be resolved. Reports and dashboards have Backup menus of their own (7.9 and "
+        "8.7), and Import accepts a file from any of the three.",
         "لا يستبدل الاستيراد شيئًا أبدًا. فالاستعلام الذي يحمل اسمًا مستخدَمًا يُستورد باسم "
         "«الاسم (imported)»، فيُلغى الاستيراد الخاطئ بحذف ما أضافه. وتسرد نافذة النتيجة كل ما "
-        "استُورد وما أُعيدت تسميته وكل مرجع تعذّر حلّه."))
+        "استُورد وما أُعيدت تسميته وكل مرجع تعذّر حلّه. وللتقارير ولوحات المعلومات قوائم «نسخ "
+        "احتياطي» خاصة بها (٧.٩ و٨.٧)، ويقبل الاستيراد ملفًا من أيٍّ منها."))
     note(doc, T(
         "Database passwords are never written to an export file — only the connection's name. "
         "After restoring onto a new installation, create the connection there with its own "
@@ -1920,7 +1982,28 @@ def build_manual(doc):
               [T("Pie", "دائري"),
                T("Parts of one whole. One series only.",
                  "أجزاء من كلٍّ واحد. سلسلة واحدة فقط.")],
+              [T("Doughnut", "دائري مجوف"),
+               T("The same as a pie, with a hole. One series only.",
+                 "مثل الدائري، مع فراغ في وسطه. سلسلة واحدة فقط.")],
+              [T("Area", "مساحة"),
+               T("A line with the area beneath it filled — volume over time.",
+                 "خط تُملأ المساحة تحته — حجم يتغيّر عبر الزمن.")],
+              [T("Stacked columns", "أعمدة مكدسة"),
+               T("Each category's series stacked into one column, so the column is the total "
+                 "and the pieces are its make-up.",
+                 "تُكدَّس سلاسل كل فئة في عمود واحد، فيكون العمود هو الإجمالي والأجزاء مكوّناته.")],
+              [T("Stacked bars", "أشرطة مكدسة"),
+               T("The same, horizontally.", "الشيء نفسه، أفقيًا.")],
+              [T("Columns + line", "أعمدة + خط"),
+               T("Every series but the last as columns; the last as a line on its own scale — "
+                 "revenue against margin %. Needs at least two series.",
+                 "كل السلاسل أعمدة عدا الأخيرة، فتُرسم خطًا بمقياس مستقل — كالإيرادات مقابل "
+                 "نسبة الهامش. ويحتاج إلى سلسلتين على الأقل.")],
           ], widths=[1.4, 4.8])
+    para(doc, T(
+        "Every type is a native Word chart in the exported document, so it can still be "
+        "restyled in Word afterwards.",
+        "كل نوع منها مخطط Word أصيل في المستند المصدَّر، فيمكن تعديل تنسيقه في Word لاحقًا."))
     bullets(doc, [
         (T("The column names are the ones the query returns. ",
            "أسماء الأعمدة هي التي يعيدها الاستعلام. "),
@@ -2038,6 +2121,35 @@ def build_manual(doc):
         "بنفسه ويُنبَّه إلى ذلك — بينما يُنتج باقي التقرير. ولذلك لا يمكن أن يصبح التقرير طريقًا "
         "للالتفاف على صلاحيات الاستعلامات."), kind="warning")
 
+    h2(doc, T("7.9 Moving reports to another system", "٧.٩ نقل التقارير إلى نظام آخر"))
+    para(doc, T(
+        "The Backup menu on the report list exports every report to one JSON file, and each "
+        "report's row menu exports just that one. Import from file brings a file back in — on "
+        "this system or another. It needs “Export and import report definitions”.",
+        "تصدّر قائمة «النسخ الاحتياطي» في قائمة التقارير كل التقارير في ملف JSON واحد، ويصدّر "
+        "«تصدير» في قائمة الصف ذلك التقرير وحده. ويعيد «الاستيراد من ملف» الملف — على هذا النظام "
+        "أو على غيره. ويتطلّب ذلك «تصدير تعريفات التقارير واستيرادها»."))
+    bullets(doc, [
+        (T("Include the queries they use — ", "تضمين الاستعلامات التي تستخدمها — "),
+         T("also writes the queries behind the datasets and dropdowns, so the file works on a "
+           "system that does not have them. Because the file then carries their SQL, this also "
+           "needs “Export and import query definitions”. Without it, the import links each "
+           "dataset to a query of the same name already there.",
+           "يكتب أيضًا الاستعلامات التي تقوم عليها مجموعات البيانات والقوائم المنسدلة، فيعمل "
+           "الملف على نظام لا يحتويها. ولأن الملف يحمل حينئذٍ نص SQL الخاص بها، فإن ذلك يتطلّب "
+           "أيضًا «تصدير تعريفات الاستعلامات واستيرادها». ومن دونه يربط الاستيراد كل مجموعة "
+           "بيانات باستعلام يحمل الاسم نفسه موجود هناك.")),
+        (T("The Word template travels with the report; ", "ينتقل قالب Word مع التقرير؛ "),
+         T("database passwords never do.", "أما كلمات مرور قواعد البيانات فلا تنتقل أبدًا.")),
+        (T("Nothing is overwritten. ", "لا يُستبدل شيء. "),
+         T("A name already taken comes in as “Name (imported)”, and anything that cannot be "
+           "matched is listed as a warning rather than stopping the import — a report whose "
+           "dataset query is missing is skipped with the reason.",
+           "فالاسم المستخدَم يُستورد باسم «الاسم (imported)»، وما تعذّرت مطابقته يُدرج تنبيهًا "
+           "بدل أن يوقف الاستيراد — ويُتخطّى التقرير الذي فُقد استعلام إحدى مجموعات بياناته مع "
+           "ذكر السبب.")),
+    ])
+
     page_break(doc)
 
     # ===================================================================== 8
@@ -2122,9 +2234,22 @@ def build_manual(doc):
                  "returns a series — a small trend line underneath.",
                  "رقمًا بارزًا واحدًا، ومقدار تغيّره مقارنةً بقيمة أخرى، وخطًا صغيرًا للاتجاه "
                  "أسفله حين يعيد الاستعلام سلسلة من القيم.")],
-              [T("Column, bar, line and pie charts", "مخططات الأعمدة والأشرطة والخطوط والدائري"),
-               T("The same four charts a report draws, with the same rules — see 7.4.",
-                 "المخططات الأربعة نفسها التي يرسمها التقرير، وبالقواعد نفسها — انظر ٧.٤.")],
+              [T("Charts", "المخططات"),
+               T("Every chart a report draws — columns, bars, line, area, pie, doughnut, stacked "
+                 "columns and bars, and columns + line — with the same rules; see 7.4.",
+                 "كل مخطط يرسمه التقرير — الأعمدة والأشرطة والخط والمساحة والدائري والدائري "
+                 "المجوف والأعمدة والأشرطة المكدسة والأعمدة مع الخط — وبالقواعد نفسها؛ انظر ٧.٤.")],
+              [T("Gauge", "مقياس"),
+               T("A KPI drawn as a dial from zero to a maximum, with the target marked on it.",
+                 "مؤشر رقمي مرسوم كقرص مدرّج من الصفر إلى حد أعلى، مع تعليم الهدف عليه.")],
+              [T("Funnel", "قمع"),
+               T("Stages largest first, each as a share of the first — enquiries, quotes, orders.",
+                 "مراحل من الأكبر إلى الأصغر، كلٌّ منها نسبةً من الأولى — استفسارات ثم عروض ثم طلبات.")],
+              [T("Heatmap", "خريطة حرارية"),
+               T("A grid of one category against another, each cell shaded by its value — sales "
+                 "by region and month.",
+                 "شبكة تقابل فئةً بفئة أخرى، تُظلَّل كل خلية بحسب قيمتها — كالمبيعات حسب المنطقة "
+                 "والشهر.")],
               [T("Table", "جدول"),
                T("The first rows of the result. The footer says how many there are in all.",
                  "أول صفوف النتيجة، ويذكر أسفل الجدول عددها الإجمالي.")],
@@ -2291,6 +2416,69 @@ def build_manual(doc):
          T("overrides the dashboard's interval for this tile. Leave it empty to inherit it.",
            "يتجاوز فترة تحديث اللوحة لهذا العنصر. اتركه فارغًا ليرثها.")),
     ])
+    para(doc, T(
+        "Show as picks the kind of tile (8.2). A chart tile then has Display options, all "
+        "optional — left alone, the tile draws as it always did:",
+        "يحدّد «طريقة العرض» نوع العنصر (٨.٢). ثم يملك عنصر المخطط «خيارات العرض»، وكلها "
+        "اختيارية — فإن تُركت رُسم العنصر كما كان دائمًا:"))
+    table(doc,
+          [T("Option", "الخيار"), T("Does", "وظيفته")],
+          [
+              [T("Legend", "وسيلة الإيضاح"),
+               T("Automatic, above the chart, below it, or hidden.",
+                 "تلقائي، أو أعلى المخطط، أو أسفله، أو مخفية.")],
+              [T("Show values on the chart", "إظهار القيم على المخطط"),
+               T("Writes each value on its bar, point or slice.",
+                 "يكتب كل قيمة على عمودها أو نقطتها أو شريحتها.")],
+              [T("Order", "الترتيب"),
+               T("As the query returns them, largest first, smallest first, or by category name.",
+                 "كما يعيدها الاستعلام، أو الأكبر أولًا، أو الأصغر أولًا، أو حسب اسم الفئة.")],
+              [T("Group the rest as “Other”", "جمع الباقي تحت «أخرى»"),
+               T("Past the category limit, adds the remaining categories together instead of "
+                 "leaving them out, so a pie still adds up to the whole.",
+                 "بعد حد الفئات، تُجمع الفئات المتبقية معًا بدل حذفها، فيبقى مجموع الدائري هو الكل.")],
+              [T("Split into series by", "تقسيم إلى سلاسل حسب"),
+               T("For rows such as month, region, total: one series per region. A heatmap "
+                 "needs it for its columns.",
+                 "لصفوف مثل الشهر والمنطقة والإجمالي: سلسلة لكل منطقة. وتحتاجه الخريطة الحرارية "
+                 "لأعمدتها.")],
+              [T("Show as 100% (shares)", "العرض كنسب (100%)"),
+               T("Stacked charts only: each column becomes the shares of its total.",
+                 "للمخططات المكدسة فقط: يصبح كل عمود نِسَب إجماليه.")],
+              [T("Drawn as a line / its own scale", "تُرسم كخط / مقياس مستقل"),
+               T("Columns + line only: which series are lines, and whether the line gets a "
+                 "second scale — only when it is in different units.",
+                 "للأعمدة مع الخط فقط: أي السلاسل تُرسم خطوطًا، وهل يُعطى الخط مقياسًا ثانيًا — "
+                 "فقط حين يكون بوحدة مختلفة.")],
+              [T("Axis from / to", "المحور من / إلى"),
+               T("Fixes the value axis instead of fitting it to the data.",
+                 "يثبّت محور القيم بدل ملاءمته للبيانات.")],
+              [T("Reference line", "خط مرجعي"),
+               T("A dashed line across the chart at a target or a limit, with an optional label.",
+                 "خط متقطع عبر المخطط عند هدف أو حد، مع تسمية اختيارية.")],
+              [T("Colours", "الألوان"),
+               T("Picks each series' colour from the palette.",
+                 "يختار لون كل سلسلة من لوحة الألوان.")],
+              [T("Dial maximum", "الحد الأعلى للمقياس"),
+               T("Gauge only. Empty: a round number above the target or the value.",
+                 "للمقياس فقط. إن تُرك فارغًا: رقم مقرّب أعلى من الهدف أو القيمة.")],
+              [T("Totals row, column formats", "صف الإجماليات، تنسيق الأعمدة"),
+               T("Table only: a totals row underneath, and how each column's numbers are shown.",
+                 "للجدول فقط: صف إجماليات في الأسفل، وطريقة عرض أرقام كل عمود.")],
+          ], widths=[2.0, 4.2])
+    para(doc, T(
+        "On Sales Overview, Sales by region sorts largest first with the values written on the "
+        "columns, Staff by department is a doughnut with its legend below, and Daily sales is an "
+        "area chart.",
+        "في لوحة أداء المبيعات، يُرتَّب «المبيعات حسب المنطقة» من الأكبر مع كتابة القيم على "
+        "الأعمدة، و«الموظفون حسب الإدارة» دائري مجوف بوسيلة إيضاح في الأسفل، و«المبيعات اليومية» "
+        "مخطط مساحة."))
+    note(doc, T(
+        "A scheduled task writes a dashboard to Word with native charts. Word has none for a "
+        "funnel or a heatmap, so in that file a funnel is drawn as a bar chart and a heatmap "
+        "appears as its table.",
+        "تكتب المهمة المجدولة لوحة المعلومات في Word بمخططات أصيلة. وليس في Word مخطط للقمع ولا "
+        "للخريطة الحرارية، فيُرسم القمع في ذلك الملف مخطط أشرطة، وتظهر الخريطة الحرارية كجدول."))
     para(doc, T("A KPI tile turns the query's rows into one number. Summary says how:",
                 "يحوّل عنصر المؤشر الرقمي صفوف الاستعلام إلى رقم واحد، ويحدّد «الملخص» الطريقة:"))
     table(doc,
@@ -2373,6 +2561,28 @@ def build_manual(doc):
            "اللوحة عاملة.")),
     ])
 
+    h2(doc, T("8.7 Moving dashboards to another system", "٨.٧ نقل لوحات المعلومات إلى نظام آخر"))
+    para(doc, T(
+        "The dashboard list has the same Backup menu as the report list (7.9): export one "
+        "dashboard or all of them, and import from a file. It needs “Export and import "
+        "dashboard definitions”. Include the queries and reports they use also writes the "
+        "tiles' queries, the filters' lookup queries and the reports a tile opens on a click — "
+        "which needs the query and report export permissions as well, since the file then "
+        "carries them.",
+        "لقائمة لوحات المعلومات قائمة «النسخ الاحتياطي» نفسها التي لقائمة التقارير (٧.٩): تصدير "
+        "لوحة واحدة أو كل اللوحات، والاستيراد من ملف. ويتطلّب ذلك «تصدير تعريفات لوحات المعلومات "
+        "واستيرادها». ويكتب «تضمين الاستعلامات والتقارير التي تستخدمها» أيضًا استعلامات العناصر "
+        "واستعلامات قوائم عوامل التصفية والتقارير التي يفتحها العنصر عند النقر — وذلك يتطلّب "
+        "صلاحيتَي تصدير الاستعلامات والتقارير أيضًا، لأن الملف يحملها حينئذٍ."))
+    para(doc, T(
+        "On import, anything that cannot be matched becomes a warning, not a failure: a tile "
+        "whose query is missing is left out, a click-through to a missing report is switched "
+        "off, a filter whose lookup is missing becomes a text box, and a grant to a role, group "
+        "or user that does not exist here is dropped.",
+        "عند الاستيراد يصبح ما تعذّرت مطابقته تنبيهًا لا فشلًا: فيُستبعد العنصر الذي فُقد "
+        "استعلامه، ويُعطَّل النقر إلى تقرير مفقود، ويصبح عامل التصفية الذي فُقد استعلام قائمته "
+        "مربع نص، ويُسقَط المنح لدور أو مجموعة أو مستخدم غير موجود هنا."))
+
     page_break(doc)
 
     # ===================================================================== 9
@@ -2394,9 +2604,19 @@ def build_manual(doc):
              "مُصفّاة على تلك المجموعة."))
     figure(doc, "21-query-group-create",
            T("Creating a group: a name and a description.", "إنشاء مجموعة: اسم ووصف."))
-    note(doc, T("Deleting a group does not delete its queries. They stay, and become "
-                "ungrouped.",
-                "حذف المجموعة لا يحذف استعلاماتها. فهي تبقى وتصبح غير مُصنَّفة."))
+    para(doc, T(
+        "A query can be filed in several groups at once — choose them in the query's Groups "
+        "field (6.2). It then appears in each folder on My Queries, and is counted in each "
+        "group's Queries column. A shared lookup, or a report both Finance and Customer Service "
+        "need, can sit in both teams' groups instead of being granted twice.",
+        "يمكن وضع الاستعلام في عدة مجموعات معًا — اخترها في حقل «المجموعات» للاستعلام (٦.٢). "
+        "فيظهر حينئذٍ في كل مجلد منها في «الاستعلامات»، ويُحسب في عمود «الاستعلامات» لكل مجموعة. "
+        "فقائمة مشتركة، أو تقرير تحتاجه «المالية» و«خدمة العملاء» معًا، يمكن وضعه في مجموعتي "
+        "الفريقين بدل منحه مرتين."))
+    note(doc, T("Deleting a group does not delete its queries. They stay in any other groups "
+                "they are in, and a query that was only in this group becomes ungrouped.",
+                "حذف المجموعة لا يحذف استعلاماتها. فهي تبقى في أي مجموعات أخرى توجد فيها، ويصبح "
+                "الاستعلام الذي لم يكن إلا في هذه المجموعة غير مُصنَّف."))
 
     page_break(doc)
 
@@ -2428,25 +2648,27 @@ def build_manual(doc):
     h2(doc, T("10.2 Access to a group", "١٠.٢ صلاحية المجموعة"))
     para(doc, T(
         "Manage Group Access works the same way, with the same three tabs, and applies to "
-        "every query in the group. This is the page an Access Manager uses by default.",
+        "every query in the group — including one that is also in other groups. This is the "
+        "page an Access Manager uses by default.",
         "تعمل صفحة «إدارة صلاحيات المجموعة» بالطريقة نفسها وبالتبويبات الثلاثة نفسها، وتسري "
-        "على كل استعلام في المجموعة. وهي الصفحة التي يستخدمها مدير الصلاحيات افتراضيًا."))
+        "على كل استعلام في المجموعة — بما فيه الاستعلام الموجود في مجموعات أخرى أيضًا. وهي "
+        "الصفحة التي يستخدمها مدير الصلاحيات افتراضيًا."))
     figure(doc, "22-query-group-access",
            T("Manage Group Access.", "إدارة صلاحيات المجموعة."))
 
     h2(doc, T("10.3 How the grants combine", "١٠.٣ كيف تتجمّع الأذونات"))
     para(doc, T(
         "Grants add up and there is no “deny”. A user reaches a query if any one of the "
-        "following is true: a role they hold is granted the query or its group; a user group "
-        "they belong to is granted it; they are granted it by name; or they are an "
+        "following is true: a role they hold is granted the query or any group it is in; a "
+        "user group they belong to is granted it; they are granted it by name; or they are an "
         "administrator. Removing one route leaves the others in place — to remove access "
-        "completely, check all three tabs on both the query and its group, and the membership "
-        "of any group that was granted it.",
+        "completely, check all three tabs on the query and on every group it is in, and the "
+        "membership of any user group that was granted it.",
         "تتراكم الأذونات ولا يوجد «منع». فيصل المستخدم إلى الاستعلام إذا تحقّق أي مما يلي: أن "
-        "يكون دور يحمله ممنوحًا الاستعلام أو مجموعته، أو أن تكون مجموعة مستخدمين ينتمي إليها "
-        "ممنوحة إياه، أو أن يُمنح باسمه، أو أن يكون مسؤولًا. وإزالة طريق واحد تبقي البقية "
-        "قائمة — ولإزالة الصلاحية تمامًا راجع التبويبات الثلاثة على الاستعلام وعلى مجموعته "
-        "معًا، وراجع أعضاء أي مجموعة مُنِحت إياه."))
+        "يكون دور يحمله ممنوحًا الاستعلام أو أي مجموعة يوجد فيها، أو أن تكون مجموعة مستخدمين "
+        "ينتمي إليها ممنوحة إياه، أو أن يُمنح باسمه، أو أن يكون مسؤولًا. وإزالة طريق واحد تبقي "
+        "البقية قائمة — ولإزالة الصلاحية تمامًا راجع التبويبات الثلاثة على الاستعلام وعلى كل "
+        "مجموعة يوجد فيها، وراجع أعضاء أي مجموعة مستخدمين مُنِحت إياه."))
 
     page_break(doc)
 
@@ -2879,13 +3101,34 @@ def build_manual(doc):
         (T("Type — ", "النوع — "),
          T("SELECT, INSERT, UPDATE, DELETE or Other.",
            "SELECT أو INSERT أو UPDATE أو DELETE أو أخرى.")),
-        (T("Before-change values — ", "قيم ما قبل التغيير — "),
-         T("for an UPDATE or DELETE run, the row count is a link that opens the affected rows "
-           "as they were before the change. It is available only when the query had “Save "
-           "before-change values” switched on at the time.",
-           "في عمليات UPDATE وDELETE يكون عدد الصفوف رابطًا يفتح الصفوف المتأثرة بحالتها قبل "
-           "التغيير. وهي متاحة فقط إذا كان خيار «حفظ القيم قبل التغيير» مفعَّلًا حينها.")),
+        (T("Parameters — ", "معايير البحث — "),
+         T("shown for every run, whatever the statement — so a DELETE shows exactly which "
+           "values chose the rows it removed, and an INSERT what it wrote. Each is a name = "
+           "value chip; a multi-select parameter lists its values; hovering shows them all.",
+           "تظهر لكل تنفيذ أيًّا كانت الجملة — فيُظهر DELETE بالضبط القيم التي اختارت الصفوف "
+           "التي حذفها، ويُظهر INSERT ما كتبه. وكل معيار شارة «الاسم = القيمة»، ويسرد المعيار "
+           "متعدد الاختيار قيمه، ويعرضها التمرير فوقها كلها.")),
+        (T("Rows before — ", "الصفوف قبل التغيير — "),
+         T("for an UPDATE or DELETE run, opens the affected rows as they were before the "
+           "change. It is there only when the query had “Save before-change values” switched "
+           "on at the time.",
+           "في عمليات UPDATE وDELETE يفتح الصفوف المتأثرة بحالتها قبل التغيير. ولا يظهر إلا إذا "
+           "كان خيار «حفظ القيم قبل التغيير» مفعَّلًا حينها.")),
     ])
+    para(doc, T(
+        "The eye at the end of a row opens the run's details: who ran it and when, how long it "
+        "took, how many rows it returned or affected, the full error if it failed, every "
+        "parameter in a table, and — for an UPDATE or DELETE — the rows as they were before the "
+        "change, paged. If an UPDATE or DELETE kept no snapshot, the window says why rather "
+        "than leaving the space empty.",
+        "تفتح أيقونة العين في نهاية الصف تفاصيل التنفيذ: من نفّذه ومتى، وكم استغرق، وكم صفًّا "
+        "أعاد أو أثّر فيه، والخطأ كاملًا إن فشل، وكل معايير البحث في جدول، و— في عمليات UPDATE "
+        "وDELETE — الصفوف بحالتها قبل التغيير مقسّمة إلى صفحات. وإن لم يحفظ UPDATE أو DELETE "
+        "لقطة، ذكرت النافذة السبب بدل أن تترك المساحة فارغة."))
+    figure(doc, "40a-execution-log-details",
+           T("The details of one UPDATE run: its parameters, and the row it changed as it was "
+             "before.",
+             "تفاصيل تنفيذ UPDATE واحد: معايير بحثه، والصف الذي غيّره بحالته السابقة."))
 
     h2(doc, T("14.2 System audit", "١٤.٢ سجل عمليات النظام"))
     para(doc, T(
@@ -2915,17 +3158,20 @@ def build_manual(doc):
          T("the values submitted with the change.", "القيم المرسَلة مع التغيير.")),
     ])
     note(doc, T(
-        "The trail is read-only through the application: there is no way to edit or delete an "
-        "entry. Passwords, tokens, connection strings and similar values are replaced with "
-        "*** before an entry is stored, and uploaded file contents are omitted.",
-        "السجل للقراءة فقط من خلال التطبيق: فلا سبيل إلى تعديل قيد أو حذفه. وتُستبدل كلمات "
-        "المرور والرموز وسلاسل الاتصال وما شابهها بـ *** قبل تخزين القيد، وتُحذف محتويات "
+        "The trail is read-only through the application: there is no way to edit or delete a "
+        "single entry. Passwords, tokens, connection strings and similar values are replaced "
+        "with *** before an entry is stored, and uploaded file contents are omitted.",
+        "السجل للقراءة فقط من خلال التطبيق: فلا سبيل إلى تعديل قيد بعينه أو حذفه. وتُستبدل "
+        "كلمات المرور والرموز وسلاسل الاتصال وما شابهها بـ *** قبل تخزين القيد، وتُحذف محتويات "
         "الملفات المرفوعة."))
     note(doc, T(
-        "There is no automatic pruning — the table only grows. Plan a housekeeping job for a "
-        "long-lived installation.",
-        "لا توجد عملية تنظيف تلقائية — فالجدول ينمو باستمرار. خطّط لمهمة صيانة دورية في "
-        "التثبيتات طويلة العمر."),
+        "Both trails are kept forever unless an administrator sets a retention period in "
+        "System Settings (16.1). Then entries older than it are deleted every six hours, and "
+        "each rotation that deletes anything adds an entry here — “Rotated the logs” — saying "
+        "how many went from each.",
+        "يُحتفظ بالسجلّين دائمًا ما لم يضبط المسؤول مدة احتفاظ في إعدادات النظام (١٦.١). فعندئذٍ "
+        "تُحذف الإدخالات الأقدم منها كل ست ساعات، ويضيف كل تدوير يحذف شيئًا قيدًا هنا — «دوّر "
+        "السجلات» — يذكر عدد ما حُذف من كلٍّ منهما."),
         kind="warning")
     figure(doc, "92-auditor-system-audit",
            T("The same page seen by an Auditor. The content is identical; the navigation "
@@ -3121,6 +3367,53 @@ def build_manual(doc):
         "التجديد التالي."),
         kind="warning")
 
+    h3(doc, T("Log retention", "الاحتفاظ بالسجلات"))
+    para(doc, T(
+        "The execution logs and the system audit grow with every run and every change. Log "
+        "retention says how long each is kept; older entries are deleted automatically, two "
+        "minutes after the server starts and then every six hours.",
+        "تنمو سجلات التنفيذ وسجل عمليات النظام مع كل تنفيذ وكل تغيير. ويحدّد «الاحتفاظ بالسجلات» "
+        "مدة الاحتفاظ بكلٍّ منهما، وتُحذف الإدخالات الأقدم تلقائيًا بعد دقيقتين من بدء تشغيل "
+        "الخادم ثم كل ست ساعات."))
+    figure(doc, "50a-log-retention",
+           T("Log retention. Under each field, the saved value in words.",
+             "الاحتفاظ بالسجلات. وتحت كل حقل، القيمة المحفوظة مكتوبةً."))
+    table(doc,
+          [T("Setting", "الإعداد"), T("Default", "الافتراضي"), T("Effect", "الأثر")],
+          [
+              [T("Keep execution logs for (days)", "الاحتفاظ بسجلات التنفيذ لمدة (بالأيام)"),
+               "0",
+               T("Every run of a query, with its parameters and before-change rows. 0 keeps "
+                 "them forever; otherwise 7 to 3650 days.",
+                 "كل تنفيذ لاستعلام، مع معاييره وصفوفه قبل التغيير. والقيمة ٠ تحتفظ بها دائمًا، "
+                 "وإلا فمن ٧ إلى ٣٦٥٠ يومًا.")],
+              [T("Keep system audit for (days)", "الاحتفاظ بتدقيق النظام لمدة (بالأيام)"),
+               "0",
+               T("The administrative actions in 14.2, with the same rules. Set separately, since "
+                 "an audit policy often keeps changes far longer than query runs.",
+                 "الإجراءات الإدارية في ١٤.٢، بالقواعد نفسها. وتُضبط على حدة، إذ كثيرًا ما تحتفظ "
+                 "سياسة التدقيق بالتغييرات مدةً أطول بكثير من عمليات التنفيذ.")],
+          ],
+          widths=[2.2, 0.8, 3.6])
+    bullets(doc, [
+        (T("Saving does not delete anything by itself. ", "الحفظ لا يحذف شيئًا بحد ذاته. "),
+         T("The next rotation does — or Rotate now, which asks first, then deletes what the "
+           "saved periods say is due and reports how many entries went from each log.",
+           "بل يحذفه التدوير التالي — أو «تدوير الآن»، الذي يطلب التأكيد أولًا، ثم يحذف ما حان "
+           "حذفه وفق المدد المحفوظة ويذكر عدد ما حُذف من كل سجل.")),
+        (T("Rotate now is greyed out ", "يظهر «تدوير الآن» معطَّلًا "),
+         T("while both periods are 0, and while there are unsaved changes — save or cancel them "
+           "first, so it never runs with a value you have not saved.",
+           "ما دامت المدتان ٠، وما دامت هناك تغييرات غير محفوظة — فاحفظها أو ألغِها أولًا، حتى لا "
+           "يعمل أبدًا بقيمة لم تحفظها.")),
+    ])
+    note(doc, T(
+        "Deleted entries cannot be recovered. If a regulation says how long logs must be kept, "
+        "set the period to at least that.",
+        "لا يمكن استرجاع الإدخالات المحذوفة. وإن كانت هناك لائحة تحدّد مدة وجوب الاحتفاظ "
+        "بالسجلات، فاضبط المدة على ما لا يقل عنها."),
+        kind="warning")
+
     h2(doc, T("16.2 Permissions", "١٦.٢ الصلاحيات"))
     para(doc, T(
         "The second tab is the whole authorization model in one grid: every capability the "
@@ -3231,6 +3524,17 @@ def build_manual(doc):
                  "the two and delete the one you do not want.",
                  "كان هناك استعلام بالاسم نفسه. ولا يستبدل الاستيراد شيئًا — راجع الاثنين "
                  "واحذف ما لا تريده.")],
+              [T("The same query appears in two folders on My Queries.",
+                 "يظهر الاستعلام نفسه في مجلدين في «الاستعلامات»."),
+               T("It is filed in both groups. It is one query — running it from either folder is "
+                 "the same thing.",
+                 "فهو موضوع في المجموعتين. وهو استعلام واحد — فتشغيله من أي المجلدين سواء.")],
+              [T("Old execution logs or audit entries have gone.",
+                 "اختفت سجلات تنفيذ أو قيود تدقيق قديمة."),
+               T("A retention period is set in System Settings (16.1), and entries older than it "
+                 "are deleted. The system audit records each rotation and how much it removed.",
+                 "ضُبطت مدة احتفاظ في إعدادات النظام (١٦.١)، فتُحذف الإدخالات الأقدم منها. ويسجّل "
+                 "سجل عمليات النظام كل تدوير ومقدار ما حذفه.")],
           ],
           widths=[2.2, 4.4])
 

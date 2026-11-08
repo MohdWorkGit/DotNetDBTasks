@@ -592,6 +592,9 @@ HAVING NVL(MAX(o.ORDER_DATE), SYSDATE - 9999) < SYSDATE - (@Months * 30)
     description: T('Unpaid invoices due before a chosen date, with the balance still owed.',
                    'الفواتير غير المسددة المستحقة قبل تاريخ محدد، مع الرصيد المتبقي.'),
     group: 'finance',
+    // Also filed under Customer Service, whose desk answers "what do I still owe?" calls —
+    // the manual's example of one query in two groups.
+    alsoIn: ['service'],
     exports: EXPORTS,
     sql: `SELECT i.INVOICE_NO ${A('INVOICE_NO', 'رقم الفاتورة')},
        c.CUSTOMER_NAME ${A('CUSTOMER_NAME', 'اسم العميل')},
@@ -842,7 +845,9 @@ const REPORTS = [
  * <p>Column names are the query's aliases, so they go through T() exactly as the aliases do —
  * a tile naming the English alias would find nothing in the Arabic pass.</p>
  *
- * <p>`visualType` is 0 KPI, 1 Column, 3 Line, 4 Pie, 5 Table. `kpiAggregate` 3 counts rows.
+ * <p>`visualType` is 0 KPI, 1 Column, 3 Line, 4 Pie, 5 Table, 6 Area, 9 Doughnut (the full list is
+ * in DashboardVisualType). `displayOptions` holds the presentation choices — legend, values on
+ * the chart, sort order. `kpiAggregate` 3 counts rows.
  * `valueFormat` 1 is a percentage. `drillAction` is 1 filter the dashboard, 2 open a report
  * (`drillReport` names it by key), 3 show the rows. A map's `sourceKind` is 0 a dashboard filter,
  * 1 a constant.</p>
@@ -876,11 +881,13 @@ const DASHBOARDS = [
       { title: T('Sales by region', 'المبيعات حسب المنطقة'), query: 'salesByRegion', width: 6, height: 2,
         visualType: 1, categoryColumn: T('REGION', 'المنطقة'),
         seriesColumns: [T('TOTAL_SALES', 'إجمالي المبيعات')],
+        displayOptions: { sort: 'valueDesc', dataLabels: true },
         drillAction: 1, drillFilterName: 'Regions',
         parameterMaps: [...PERIOD_MAPS, fromFilter('Regions', 'Regions')] },
       { title: T('Staff by department', 'الموظفون حسب الإدارة'), query: 'headcount', width: 3, height: 2,
-        visualType: 4, categoryColumn: T('DEPT_NAME', 'اسم الإدارة بالعربية'),
-        seriesColumns: [T('HEADCOUNT', 'عدد الموظفين')], drillAction: 3, parameterMaps: [] },
+        visualType: 9, categoryColumn: T('DEPT_NAME', 'اسم الإدارة بالعربية'),
+        seriesColumns: [T('HEADCOUNT', 'عدد الموظفين')],
+        displayOptions: { legend: 'bottom' }, drillAction: 3, parameterMaps: [] },
       { title: T('Headcount', 'عدد الموظفين'), query: 'headcount', width: 3, height: 1,
         visualType: 0, kpiAggregate: 3, valueColumn: T('HEADCOUNT', 'عدد الموظفين'), valueFormat: 0,
         targetValue: 20, targetWarnPercent: 10,
@@ -894,7 +901,7 @@ const DASHBOARDS = [
         drillAction: 2, drillReport: 'monthlySales',
         parameterMaps: [...PERIOD_MAPS, constant('TopCount', '10')] },
       { title: T('Daily sales (30 days)', 'المبيعات اليومية (آخر 30 يومًا)'), query: 'dailySales',
-        width: 6, height: 1, visualType: 3, categoryColumn: T('ORDER_DAY', 'اليوم'),
+        width: 6, height: 1, visualType: 6, categoryColumn: T('ORDER_DAY', 'اليوم'),
         seriesColumns: [T('TOTAL_SALES', 'إجمالي المبيعات')], refreshSeconds: 60, parameterMaps: [] },
       { title: T('Departments', 'الإدارات'), query: 'headcount', width: 6, height: 1, visualType: 5,
         conditionalRules: [
@@ -1037,7 +1044,8 @@ async function main() {
       isLongRunning: false,
       allowRunWithoutConfirmation: true,
       saveOldValues: true,
-      queryGroupId: queryGroupIds.get(q.group),
+      // A query may sit in several groups: `group` is its home, `alsoIn` any others.
+      queryGroupIds: [q.group, ...(q.alsoIn || [])].filter(Boolean).map(g => queryGroupIds.get(g)),
       allowedExportFormats: q.exports || [],
       parameters
     });
