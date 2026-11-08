@@ -398,7 +398,25 @@ import {
                           <mat-option [value]="chartTypes.Pie">
                             {{ 'admin.reports.typePie' | transloco }}
                           </mat-option>
+                          <mat-option [value]="chartTypes.Area">
+                            {{ 'admin.reports.typeArea' | transloco }}
+                          </mat-option>
+                          <mat-option [value]="chartTypes.StackedColumn">
+                            {{ 'admin.reports.typeStackedColumn' | transloco }}
+                          </mat-option>
+                          <mat-option [value]="chartTypes.StackedBar">
+                            {{ 'admin.reports.typeStackedBar' | transloco }}
+                          </mat-option>
+                          <mat-option [value]="chartTypes.Doughnut">
+                            {{ 'admin.reports.typeDoughnut' | transloco }}
+                          </mat-option>
+                          <mat-option [value]="chartTypes.Combo">
+                            {{ 'admin.reports.typeCombo' | transloco }}
+                          </mat-option>
                         </mat-select>
+                        <mat-hint *ngIf="ch.get('chartType')?.value === chartTypes.Combo">
+                          {{ 'admin.reports.typeComboHint' | transloco }}
+                        </mat-hint>
                       </mat-form-field>
                     </div>
 

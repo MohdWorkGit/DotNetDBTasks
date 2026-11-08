@@ -4,7 +4,8 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { QueryImportResult } from '@core/models/dynamic-query.model';
+import { ImportedQueryResult, QueryImportResult } from '@core/models/dynamic-query.model';
+import { TransferImportResult } from '@core/models/transfer.model';
 
 /**
  * Reports exactly what an import did. A toast would be the wrong shape here: an import can
@@ -18,8 +19,7 @@ import { QueryImportResult } from '@core/models/dynamic-query.model';
   template: `
     <h2 mat-dialog-title class="title">
       <mat-icon aria-hidden="true">download_done</mat-icon>
-      {{ (data.importedCount === 1 ? 'admin.queries.importedOne' : 'admin.queries.importedMany')
-         | transloco: { count: data.importedCount } }}
+      {{ titleKey | transloco: { count: data.importedCount } }}
     </h2>
 
     <mat-dialog-content>
@@ -29,12 +29,18 @@ import { QueryImportResult } from '@core/models/dynamic-query.model';
            | transloco: { count: data.renamedCount } }}
       </p>
 
-      <ul class="query-list">
-        <li *ngFor="let q of data.queries">
-          <span class="name">{{ q.importedName }}</span>
-          <span *ngIf="q.wasRenamed" class="from">{{ 'admin.queries.renamedFrom' | transloco: { name: q.originalName } }}</span>
-        </li>
-      </ul>
+      <!-- A query-only import lists its queries as before; a transfer file is sectioned by kind. -->
+      <ng-container *ngFor="let section of sections">
+        <h3 class="section-title" *ngIf="sections.length > 1">
+          {{ section.titleKey | transloco: { count: section.items.length } }}
+        </h3>
+        <ul class="query-list">
+          <li *ngFor="let q of section.items">
+            <span class="name" dir="auto">{{ q.importedName }}</span>
+            <span *ngIf="q.wasRenamed" class="from">{{ 'admin.queries.renamedFrom' | transloco: { name: q.originalName } }}</span>
+          </li>
+        </ul>
+      </ng-container>
 
       <div *ngIf="data.warnings.length" class="warnings">
         <h3 class="warnings-title">
@@ -62,6 +68,7 @@ import { QueryImportResult } from '@core/models/dynamic-query.model';
       gap: 6px;
     }
     .query-list { margin: 0; padding-inline-start: 20px; }
+    .section-title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-primary); }
     .query-list li { margin-bottom: 4px; }
     .name { font-weight: 500; }
     .from { margin-inline-start: 6px; font-size: 12px; color: var(--text-secondary); }
@@ -86,5 +93,17 @@ import { QueryImportResult } from '@core/models/dynamic-query.model';
 })
 export class ImportResultDialogComponent {
   readonly dialogRef = inject<MatDialogRef<ImportResultDialogComponent>>(MatDialogRef);
-  readonly data = inject<QueryImportResult>(MAT_DIALOG_DATA);
+  readonly data = inject<QueryImportResult | TransferImportResult>(MAT_DIALOG_DATA);
+
+  /** A transfer file can hold several kinds, so its title counts items, not queries. */
+  readonly titleKey = 'reports' in this.data
+    ? (this.data.importedCount === 1 ? 'admin.transfer.importedOne' : 'admin.transfer.importedMany')
+    : (this.data.importedCount === 1 ? 'admin.queries.importedOne' : 'admin.queries.importedMany');
+
+  /** Only the kinds that brought something in, in the order they were imported. */
+  readonly sections: { titleKey: string; items: ImportedQueryResult[] }[] = [
+    { titleKey: 'admin.transfer.sectionQueries', items: this.data.queries ?? [] },
+    { titleKey: 'admin.transfer.sectionReports', items: (this.data as TransferImportResult).reports ?? [] },
+    { titleKey: 'admin.transfer.sectionDashboards', items: (this.data as TransferImportResult).dashboards ?? [] }
+  ].filter(s => s.items.length > 0);
 }

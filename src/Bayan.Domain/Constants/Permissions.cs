@@ -90,6 +90,12 @@ public static class Permissions
     /// <summary>Run a report that has been granted to you, and read it on screen.</summary>
     public const string ReportsRun = "reports.run";
 
+    /// <summary>
+    /// Export report definitions to a file, and import them. A report exported with the queries
+    /// it reads also needs <see cref="QueriesTransfer"/>, since the file then carries their SQL.
+    /// </summary>
+    public const string ReportsTransfer = "reports.transfer";
+
     // Export is gated twice, exactly like queries: the report lists the formats it may be
     // exported as at all, and the role says which of those this person may use.
 
@@ -122,6 +128,13 @@ public static class Permissions
 
     /// <summary>Open a dashboard that has been granted to you.</summary>
     public const string DashboardsRun = "dashboards.run";
+
+    /// <summary>
+    /// Export dashboard definitions to a file, and import them. Including the queries and the
+    /// drill-through reports they use also needs <see cref="QueriesTransfer"/> and
+    /// <see cref="ReportsTransfer"/>.
+    /// </summary>
+    public const string DashboardsTransfer = "dashboards.transfer";
 
     // ---- User groups
     /// <summary>See the user groups and who is in them.</summary>
@@ -181,9 +194,9 @@ public static class Permissions
         QueriesView, QueriesReadSql, QueriesManage, QueriesTransfer, QueriesRun,
         QueriesExportExcel, QueriesExportCsv, QueriesExportJson, QueriesExportPdf, QueriesExportWord,
         AccessManageQuery, AccessManageGroup, AccessManageReport, AccessManageDashboard, QueryGroupsManage,
-        ReportsView, ReportsManage, ReportsRun,
+        ReportsView, ReportsManage, ReportsRun, ReportsTransfer,
         ReportsExportExcel, ReportsExportCsv, ReportsExportJson, ReportsExportPdf, ReportsExportWord,
-        DashboardsView, DashboardsManage, DashboardsRun,
+        DashboardsView, DashboardsManage, DashboardsRun, DashboardsTransfer,
         UserGroupsView, UserGroupsManage,
         UsersView, UsersManage,
         DirectoryView, DirectoryManage,

@@ -45,6 +45,7 @@ public class DashboardTileDto
     public decimal? TargetValue { get; set; }
     public int TargetWarnPercent { get; set; } = 10;
     public List<DashboardConditionalRule> ConditionalRules { get; set; } = new();
+    public DashboardDisplayOptions DisplayOptions { get; set; } = new();
     public bool HigherIsBetter { get; set; }
 
     /// <summary>The tile's own interval, or null when it inherits the dashboard's.</summary>
@@ -91,6 +92,77 @@ public class DashboardConditionalRule
         new HashSet<string> { "gt", "gte", "lt", "lte", "eq", "neq", "contains" };
 
     public static readonly IReadOnlySet<string> Tones = new HashSet<string> { "good", "warn", "bad" };
+}
+
+/// <summary>
+/// How a tile draws, beyond what it draws. Stored as one JSON column so a new option is a new
+/// property, not a migration — Oracle DDL is the expensive part of every schema change here.
+/// Every property defaults to today's behaviour, so an absent column means "as before".
+/// </summary>
+public class DashboardDisplayOptions
+{
+    public static readonly IReadOnlySet<string> LegendPositions =
+        new HashSet<string> { "auto", "hidden", "top", "bottom" };
+
+    public static readonly IReadOnlySet<string> SortModes =
+        new HashSet<string> { "none", "valueDesc", "valueAsc", "category" };
+
+    /// <summary>The categorical palette's size, client and Word alike.</summary>
+    public const int PaletteSize = 10;
+
+    /// <summary><c>auto</c> shows a legend only when there is more than one series (or a pie).</summary>
+    public string Legend { get; set; } = "auto";
+
+    /// <summary>Print each bar's, point's or slice's value on the chart itself.</summary>
+    public bool DataLabels { get; set; }
+
+    /// <summary>One of <see cref="SortModes"/>. Value sorts use the category's total across series.</summary>
+    public string Sort { get; set; } = "none";
+
+    /// <summary>
+    /// Beyond the tile's category limit, sum the remainder into one "Other" category rather than
+    /// dropping it — so a pie's slices still add up to the whole.
+    /// </summary>
+    public bool GroupOthers { get; set; }
+
+    /// <summary>
+    /// Pivots long-format rows into one series per distinct value of this column — for
+    /// <c>month, region, total</c> rows, one line per region. The first series column is the value.
+    /// A heatmap's second axis.
+    /// </summary>
+    public string? SplitByColumn { get; set; }
+
+    /// <summary>Stacked charts: each bar is 100% and the segments are shares of it.</summary>
+    public bool StackPercent { get; set; }
+
+    /// <summary>Combo: the series drawn as a line. Empty means the last series.</summary>
+    public List<string> LineSeries { get; set; } = new();
+
+    /// <summary>
+    /// Combo: the line has its own scale on the far side of the plot. Off by default — two scales
+    /// on one plot let the crossing point of the marks look meaningful when it is not; turn it on
+    /// only when the line's units differ (a percentage over amounts).
+    /// </summary>
+    public bool SecondaryAxis { get; set; }
+
+    public double? AxisMin { get; set; }
+    public double? AxisMax { get; set; }
+
+    /// <summary>A horizontal rule across the plot — a target, a limit, last year's average.</summary>
+    public double? ReferenceLine { get; set; }
+    public string? ReferenceLabel { get; set; }
+
+    /// <summary>Series name → palette index, so a series keeps a meaningful colour.</summary>
+    public Dictionary<string, int> SeriesColors { get; set; } = new();
+
+    /// <summary>Gauge: the end of the dial. Null uses the target, or the value, with headroom.</summary>
+    public double? GaugeMax { get; set; }
+
+    /// <summary>Table: a last row summing each numeric column.</summary>
+    public bool TotalsRow { get; set; }
+
+    /// <summary>Table: column → how its numbers are shown.</summary>
+    public Dictionary<string, DashboardValueFormat> ColumnFormats { get; set; } = new();
 }
 
 public class DashboardTileParameterMapDto
@@ -162,6 +234,7 @@ public class DashboardTileInput
     public decimal? TargetValue { get; set; }
     public int TargetWarnPercent { get; set; } = 10;
     public List<DashboardConditionalRule> ConditionalRules { get; set; } = new();
+    public DashboardDisplayOptions? DisplayOptions { get; set; }
     public bool HigherIsBetter { get; set; } = true;
     public int? RefreshSeconds { get; set; }
     public DashboardDrillAction DrillAction { get; set; }

@@ -13,7 +13,69 @@ export enum DashboardVisualType {
   Bar = 2,
   Line = 3,
   Pie = 4,
-  Table = 5
+  Table = 5,
+  Area = 6,
+  StackedColumn = 7,
+  StackedBar = 8,
+  Doughnut = 9,
+  Combo = 10,
+  /** A KPI drawn as a dial. */
+  Gauge = 11,
+  Funnel = 12,
+  /** Category × split-by column, each cell shaded by value. */
+  Heatmap = 13
+}
+
+/** The visual types drawn by the shared chart component, from a category and series columns. */
+export const DASHBOARD_CHART_TYPES: readonly DashboardVisualType[] = [
+  DashboardVisualType.Column, DashboardVisualType.Bar, DashboardVisualType.Line,
+  DashboardVisualType.Area, DashboardVisualType.StackedColumn, DashboardVisualType.StackedBar,
+  DashboardVisualType.Pie, DashboardVisualType.Doughnut, DashboardVisualType.Combo,
+  DashboardVisualType.Funnel, DashboardVisualType.Heatmap
+];
+
+/** Mirrors DashboardDisplayOptions. Every field has a default meaning "as before options existed". */
+export interface DashboardDisplayOptions {
+  legend: 'auto' | 'hidden' | 'top' | 'bottom';
+  dataLabels: boolean;
+  sort: 'none' | 'valueDesc' | 'valueAsc' | 'category';
+  groupOthers: boolean;
+  splitByColumn?: string | null;
+  stackPercent: boolean;
+  /** Combo: the series drawn as a line; empty means the last. */
+  lineSeries: string[];
+  /** Combo: give the line its own scale. Off by default — two scales on one plot invite misreading. */
+  secondaryAxis: boolean;
+  axisMin?: number | null;
+  axisMax?: number | null;
+  referenceLine?: number | null;
+  referenceLabel?: string | null;
+  /** Series name → palette index. */
+  seriesColors: Record<string, number>;
+  gaugeMax?: number | null;
+  totalsRow: boolean;
+  columnFormats: Record<string, DashboardValueFormat>;
+}
+
+export function defaultDisplayOptions(): DashboardDisplayOptions {
+  return {
+    legend: 'auto', dataLabels: false, sort: 'none', groupOthers: false, splitByColumn: null,
+    stackPercent: false, lineSeries: [], secondaryAxis: false, axisMin: null, axisMax: null,
+    referenceLine: null, referenceLabel: null, seriesColors: {}, gaugeMax: null,
+    totalsRow: false, columnFormats: {}
+  };
+}
+
+/** A number as a dashboard shows it. "Currency" is money-shaped — no currency is configured anywhere. */
+export function formatDashboardValue(value: number, format: DashboardValueFormat): string {
+  switch (format) {
+    case DashboardValueFormat.Percent:
+      return value.toLocaleString(undefined, { style: 'percent', maximumFractionDigits: 1 });
+    case DashboardValueFormat.Currency:
+      return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    default:
+      return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
 }
 
 /** Mirrors DashboardDrillAction — what clicking a category on a tile does. */
@@ -108,6 +170,7 @@ export interface DashboardTile {
   /** Within this percent of the target, on the wrong side, counts as "near". */
   targetWarnPercent: number;
   conditionalRules: DashboardConditionalRule[];
+  displayOptions: DashboardDisplayOptions;
   /** The tile's own interval; null inherits the dashboard's. */
   refreshSeconds?: number | null;
   /** What the viewer polls at. */

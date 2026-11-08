@@ -270,4 +270,58 @@
   <data name="QueryAccessGroupsOnly" xml:space="preserve">
     <value>يمكن لمدير الوصول تغيير الصلاحيات على مجموعات الاستعلامات فقط، وليس على الاستعلامات الفردية. يمكن للمسؤول تفعيل الوصول لكل استعلام من إعدادات النظام.</value>
   </data>
+  <data name="TransferNoContent" xml:space="preserve">
+    <value>لا يحتوي الملف على شيء لاستيراده.</value>
+  </data>
+  <data name="TransferNewerFormat" xml:space="preserve">
+    <value>كُتب هذا الملف بإصدار أحدث (التنسيق {0})؛ يقرأ هذا النظام حتى التنسيق {1}.</value>
+  </data>
+  <data name="TransferInvalidFile" xml:space="preserve">
+    <value>الملف ليس ملف تصدير صالحاً: {0}</value>
+  </data>
+  <data name="TransferNoFile" xml:space="preserve">
+    <value>لم يُرفع أي ملف.</value>
+  </data>
+  <data name="TransferTooLarge" xml:space="preserve">
+    <value>يجب ألا يتجاوز حجم الملف 50 ميغابايت.</value>
+  </data>
+  <data name="TransferNeedsPermission" xml:space="preserve">
+    <value>يتطلب هذا صلاحية «⁨{0}⁩» وهي غير ممنوحة لك.</value>
+  </data>
+  <data name="TransferItemSkipped" xml:space="preserve">
+    <value>تم تخطي «⁨{0}⁩»: {1}</value>
+  </data>
+  <data name="TransferNoNameOrSql" xml:space="preserve">
+    <value>تم تخطي عنصر بلا اسم أو بلا SQL.</value>
+  </data>
+  <data name="TransferRoleMissing" xml:space="preserve">
+    <value>«⁨{0}⁩»: الدور «⁨{1}⁩» غير موجود هنا ولم يُسند.</value>
+  </data>
+  <data name="TransferUserGroupMissing" xml:space="preserve">
+    <value>«⁨{0}⁩»: مجموعة المستخدمين «⁨{1}⁩» غير موجودة هنا ولم تُسند.</value>
+  </data>
+  <data name="TransferUserMissing" xml:space="preserve">
+    <value>«⁨{0}⁩»: المستخدم «⁨{1}⁩» غير موجود هنا ولم يُسند.</value>
+  </data>
+  <data name="TransferConnectionMissing" xml:space="preserve">
+    <value>«⁨{0}⁩»: اتصال قاعدة البيانات «⁨{1}⁩» غير مُعد هنا، فتُرك الاستعلام على الاتصال الافتراضي. اضبطه قبل تشغيل الاستعلام.</value>
+  </data>
+  <data name="TransferTemplateUnreadable" xml:space="preserve">
+    <value>«⁨{0}⁩»: تعذرت قراءة قالب Word فتم تخطيه.</value>
+  </data>
+  <data name="TransferQueryDropdownMissing" xml:space="preserve">
+    <value>«⁨{0}⁩»: المعامل «⁨{1}⁩» يأخذ خياراته من الاستعلام «⁨{2}⁩» غير الموجود هنا، فستبقى القائمة فارغة حتى توجهها إلى استعلام.</value>
+  </data>
+  <data name="TransferDropdownToText" xml:space="preserve">
+    <value>«⁨{0}⁩»: «⁨{1}⁩» يأخذ خياراته من الاستعلام «⁨{2}⁩» غير الموجود هنا، فحُوّل إلى حقل نصي.</value>
+  </data>
+  <data name="TransferReportQueryMissing" xml:space="preserve">
+    <value>تم تخطي «⁨{0}⁩»: مجموعة البيانات «⁨{1}⁩» تقرأ الاستعلام «⁨{2}⁩» غير الموجود هنا.</value>
+  </data>
+  <data name="TransferTileQueryMissing" xml:space="preserve">
+    <value>«⁨{0}⁩»: العنصر «⁨{1}⁩» يقرأ الاستعلام «⁨{2}⁩» غير الموجود هنا، فلم يُضف العنصر.</value>
+  </data>
+  <data name="TransferDrillReportMissing" xml:space="preserve">
+    <value>«⁨{0}⁩»: العنصر «⁨{1}⁩» كان يفتح التقرير «⁨{2}⁩» غير الموجود هنا، فأُوقف إجراء النقر.</value>
+  </data>
 </root>

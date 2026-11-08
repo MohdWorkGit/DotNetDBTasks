@@ -19,8 +19,9 @@ import {
   Dashboard, DashboardConditionalRule, DashboardDrillAction, DashboardFilter, DashboardInput,
   DashboardKpiAggregate, DashboardTile, DashboardTileParameterSource, DashboardValueFormat,
   DashboardVisualType, DASHBOARD_MAX_REFRESH_SECONDS, DASHBOARD_MIN_REFRESH_SECONDS,
-  DASHBOARD_TILE_WIDTHS
+  DASHBOARD_TILE_WIDTHS, DASHBOARD_CHART_TYPES, DashboardDisplayOptions, defaultDisplayOptions
 } from '@core/models/dashboard.model';
+import { CHART_PALETTE } from '@shared/components/chart-geometry';
 import { DATE_PRESETS } from '@core/models/date-presets';
 
 /** A map row's source in the form: '' means "not mapped — the query's own default applies". */
@@ -248,7 +249,7 @@ type MapSource = '' | DashboardTileParameterSource;
                   </div>
 
                   <!-- Columns: learned by running the query once, then offered in the pickers below. -->
-                  <div class="columns-bar" *ngIf="t.get('dynamicQueryId')?.value && t.get('visualType')?.value !== VisualType.Table">
+                  <div class="columns-bar" *ngIf="t.get('dynamicQueryId')?.value">
                     <button mat-stroked-button type="button" (click)="loadColumns(i)" [disabled]="probing.has(t)">
                       <mat-icon>view_column</mat-icon> {{ 'admin.dashboards.loadColumns' | transloco }}
                     </button>
@@ -259,8 +260,8 @@ type MapSource = '' | DashboardTileParameterSource;
                     <span class="error-text" *ngIf="probeErrors.get(t) as err">{{ err }}</span>
                   </div>
 
-                  <!-- KPI -->
-                  <div class="row" *ngIf="t.get('visualType')?.value === VisualType.Kpi">
+                  <!-- KPI (and gauge, a KPI drawn as a dial) -->
+                  <div class="row" *ngIf="isKpiLike(t.get('visualType')?.value)">
                     <mat-form-field appearance="outline">
                       <mat-label>{{ 'admin.dashboards.kpiAggregate' | transloco }}</mat-label>
                       <mat-select formControlName="kpiAggregate">
@@ -297,7 +298,7 @@ type MapSource = '' | DashboardTileParameterSource;
                       {{ 'admin.dashboards.higherIsBetter' | transloco }}
                     </mat-checkbox>
                   </div>
-                  <div class="row" *ngIf="t.get('visualType')?.value === VisualType.Kpi">
+                  <div class="row" *ngIf="isKpiLike(t.get('visualType')?.value)">
                     <mat-form-field appearance="outline">
                       <mat-label>{{ 'admin.dashboards.target' | transloco }}</mat-label>
                       <input matInput type="number" formControlName="targetValue" />
@@ -339,6 +340,124 @@ type MapSource = '' | DashboardTileParameterSource;
                       <input matInput type="number" formControlName="maxCategories" min="1" />
                     </mat-form-field>
                   </div>
+
+                  <!-- Display options: only those that apply to the chosen visual are shown. -->
+                  <ng-container formGroupName="displayOptions" *ngIf="t.get('visualType')?.value as vt">
+                    <h3 class="sub" *ngIf="vt !== VisualType.Kpi">{{ 'admin.dashboards.options.title' | transloco }}</h3>
+
+                    <div class="row" *ngIf="isChart(vt) && vt !== VisualType.Funnel && vt !== VisualType.Heatmap">
+                      <mat-form-field appearance="outline">
+                        <mat-label>{{ 'admin.dashboards.options.legend' | transloco }}</mat-label>
+                        <mat-select formControlName="legend">
+                          <mat-option *ngFor="let l of legendPositions" [value]="l">{{ ('admin.dashboards.options.legend_' + l) | transloco }}</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>{{ 'admin.dashboards.options.sort' | transloco }}</mat-label>
+                        <mat-select formControlName="sort">
+                          <mat-option *ngFor="let o of sortModes" [value]="o">{{ ('admin.dashboards.options.sort_' + o) | transloco }}</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-checkbox formControlName="dataLabels" class="inline-check">{{ 'admin.dashboards.options.dataLabels' | transloco }}</mat-checkbox>
+                      <mat-checkbox formControlName="groupOthers" class="inline-check"
+                                    [matTooltip]="'admin.dashboards.options.groupOthersHint' | transloco">
+                        {{ 'admin.dashboards.options.groupOthers' | transloco }}
+                      </mat-checkbox>
+                    </div>
+
+                    <div class="row" *ngIf="isSplittable(vt)">
+                      <mat-form-field appearance="outline">
+                        <mat-label>{{ 'admin.dashboards.options.splitBy' | transloco }}</mat-label>
+                        <input matInput formControlName="splitByColumn" dir="auto" [matAutocomplete]="splitAuto"
+                               [required]="vt === VisualType.Heatmap" />
+                        <mat-autocomplete #splitAuto="matAutocomplete">
+                          <mat-option *ngFor="let c of columnsOf(t)" [value]="c"><span dir="auto">{{ c }}</span></mat-option>
+                        </mat-autocomplete>
+                        <mat-hint>{{ (vt === VisualType.Heatmap ? 'admin.dashboards.options.splitByHeatmapHint' : 'admin.dashboards.options.splitByHint') | transloco }}</mat-hint>
+                      </mat-form-field>
+                      <mat-checkbox *ngIf="vt === VisualType.StackedColumn || vt === VisualType.StackedBar"
+                                    formControlName="stackPercent" class="inline-check">
+                        {{ 'admin.dashboards.options.stackPercent' | transloco }}
+                      </mat-checkbox>
+                    </div>
+
+                    <div class="row" *ngIf="vt === VisualType.Combo">
+                      <mat-form-field appearance="outline">
+                        <mat-label>{{ 'admin.dashboards.options.lineSeries' | transloco }}</mat-label>
+                        <mat-select multiple formControlName="lineSeries">
+                          <mat-option *ngFor="let c of seriesOf(t)" [value]="c"><span dir="auto">{{ c }}</span></mat-option>
+                        </mat-select>
+                        <mat-hint>{{ 'admin.dashboards.options.lineSeriesHint' | transloco }}</mat-hint>
+                      </mat-form-field>
+                      <mat-checkbox formControlName="secondaryAxis" class="inline-check"
+                                    [matTooltip]="'admin.dashboards.options.secondaryAxisHint' | transloco">
+                        {{ 'admin.dashboards.options.secondaryAxis' | transloco }}
+                      </mat-checkbox>
+                    </div>
+
+                    <div class="row" *ngIf="hasAxis(vt)">
+                      <mat-form-field appearance="outline">
+                        <mat-label>{{ 'admin.dashboards.options.axisMin' | transloco }}</mat-label>
+                        <input matInput type="number" formControlName="axisMin" />
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>{{ 'admin.dashboards.options.axisMax' | transloco }}</mat-label>
+                        <input matInput type="number" formControlName="axisMax" />
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>{{ 'admin.dashboards.options.referenceLine' | transloco }}</mat-label>
+                        <input matInput type="number" formControlName="referenceLine" />
+                        <mat-hint>{{ 'admin.dashboards.options.referenceLineHint' | transloco }}</mat-hint>
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>{{ 'admin.dashboards.options.referenceLabel' | transloco }}</mat-label>
+                        <input matInput formControlName="referenceLabel" dir="auto" maxlength="100" />
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Series colours: a series keeps a meaningful colour (e.g. "Returns" in red). -->
+                    <div class="row colours" *ngIf="isChart(vt) && vt !== VisualType.Heatmap && !hasSplit(t) && seriesOf(t).length > 0">
+                      <div class="colour-pick" *ngFor="let name of seriesOf(t)">
+                        <span class="colour-name" dir="auto">{{ name }}</span>
+                        <mat-select class="colour-select" [value]="colourOf(t, name)" (selectionChange)="setColour(t, name, $event.value)"
+                                    [attr.aria-label]="'admin.dashboards.options.seriesColour' | transloco: { series: name }">
+                          <mat-select-trigger>
+                            <span class="swatch" [style.background]="palette[colourOf(t, name)]"></span>
+                          </mat-select-trigger>
+                          <mat-option *ngFor="let c of palette; let k = index" [value]="k">
+                            <span class="swatch" [style.background]="c"></span>
+                            {{ 'admin.dashboards.options.colourN' | transloco: { n: k + 1 } }}
+                          </mat-option>
+                        </mat-select>
+                      </div>
+                    </div>
+
+                    <div class="row" *ngIf="vt === VisualType.Gauge">
+                      <mat-form-field appearance="outline">
+                        <mat-label>{{ 'admin.dashboards.options.gaugeMax' | transloco }}</mat-label>
+                        <input matInput type="number" formControlName="gaugeMax" min="0" />
+                        <mat-hint>{{ 'admin.dashboards.options.gaugeMaxHint' | transloco }}</mat-hint>
+                      </mat-form-field>
+                    </div>
+
+                    <ng-container *ngIf="vt === VisualType.Table">
+                      <div class="row">
+                        <mat-checkbox formControlName="totalsRow" class="inline-check">{{ 'admin.dashboards.options.totalsRow' | transloco }}</mat-checkbox>
+                      </div>
+                      <p class="muted" *ngIf="columnsOf(t).length === 0">{{ 'admin.dashboards.options.columnFormatsHint' | transloco }}</p>
+                      <div class="row" *ngIf="columnsOf(t).length > 0">
+                        <mat-form-field appearance="outline" *ngFor="let c of columnsOf(t)">
+                          <mat-label dir="auto">{{ c }}</mat-label>
+                          <mat-select [value]="formatOf(t, c)" (selectionChange)="setFormat(t, c, $event.value)">
+                            <mat-option [value]="null">{{ 'admin.dashboards.options.formatAsIs' | transloco }}</mat-option>
+                            <mat-option [value]="ValueFormat.Number">{{ 'admin.dashboards.formatNumber' | transloco }}</mat-option>
+                            <mat-option [value]="ValueFormat.Percent">{{ 'admin.dashboards.formatPercent' | transloco }}</mat-option>
+                            <mat-option [value]="ValueFormat.Currency">{{ 'admin.dashboards.formatCurrency' | transloco }}</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                    </ng-container>
+                  </ng-container>
 
                   <!-- Colour rules: tables colour cells, KPIs colour their number. -->
                   <ng-container *ngIf="t.get('visualType')?.value === VisualType.Table || t.get('visualType')?.value === VisualType.Kpi">
@@ -502,6 +621,11 @@ type MapSource = '' | DashboardTileParameterSource;
     .add-tile { margin-block-start: 12px; }
     .actions { display: flex; justify-content: flex-end; gap: 12px; margin-block-start: 16px; }
     .spacer { flex: 1 1 auto; }
+    .colours { gap: 8px 20px; align-items: center; }
+    .colour-pick { display: flex; align-items: center; gap: 8px; }
+    .colour-name { font-size: 13px; color: var(--text-primary); }
+    .colour-select { inline-size: 56px; }
+    .swatch { display: inline-block; inline-size: 16px; block-size: 16px; border-radius: 3px; vertical-align: middle; margin-inline-end: 6px; }
 
     .layout {
       display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 44px;
@@ -560,12 +684,23 @@ export class DashboardFormComponent implements OnInit {
 
   readonly visualTypes = [
     { value: DashboardVisualType.Kpi, icon: 'speed', labelKey: 'admin.dashboards.visualKpi' },
+    { value: DashboardVisualType.Gauge, icon: 'av_timer', labelKey: 'admin.dashboards.visualGauge' },
     { value: DashboardVisualType.Column, icon: 'bar_chart', labelKey: 'admin.dashboards.visualColumn' },
     { value: DashboardVisualType.Bar, icon: 'align_horizontal_left', labelKey: 'admin.dashboards.visualBar' },
+    { value: DashboardVisualType.StackedColumn, icon: 'stacked_bar_chart', labelKey: 'admin.dashboards.visualStackedColumn' },
+    { value: DashboardVisualType.StackedBar, icon: 'view_week', labelKey: 'admin.dashboards.visualStackedBar' },
     { value: DashboardVisualType.Line, icon: 'show_chart', labelKey: 'admin.dashboards.visualLine' },
+    { value: DashboardVisualType.Area, icon: 'area_chart', labelKey: 'admin.dashboards.visualArea' },
+    { value: DashboardVisualType.Combo, icon: 'multiline_chart', labelKey: 'admin.dashboards.visualCombo' },
     { value: DashboardVisualType.Pie, icon: 'pie_chart', labelKey: 'admin.dashboards.visualPie' },
+    { value: DashboardVisualType.Doughnut, icon: 'donut_large', labelKey: 'admin.dashboards.visualDoughnut' },
+    { value: DashboardVisualType.Funnel, icon: 'filter_alt', labelKey: 'admin.dashboards.visualFunnel' },
+    { value: DashboardVisualType.Heatmap, icon: 'grid_on', labelKey: 'admin.dashboards.visualHeatmap' },
     { value: DashboardVisualType.Table, icon: 'table_chart', labelKey: 'admin.dashboards.visualTable' }
   ];
+  readonly legendPositions = ['auto', 'top', 'bottom', 'hidden'];
+  readonly sortModes = ['none', 'valueDesc', 'valueAsc', 'category'];
+  readonly palette = CHART_PALETTE;
 
   private fb = inject(FormBuilder);
   private dashboards = inject(DashboardService);
@@ -775,8 +910,49 @@ export class DashboardFormComponent implements OnInit {
   }
 
   isChart(type: DashboardVisualType): boolean {
-    return type === DashboardVisualType.Column || type === DashboardVisualType.Bar
-      || type === DashboardVisualType.Line || type === DashboardVisualType.Pie;
+    return DASHBOARD_CHART_TYPES.includes(type);
+  }
+
+  isKpiLike(type: DashboardVisualType): boolean {
+    return type === DashboardVisualType.Kpi || type === DashboardVisualType.Gauge;
+  }
+
+  /** Long-format rows can be pivoted into series for these (and a heatmap needs it). */
+  isSplittable(type: DashboardVisualType): boolean {
+    return [DashboardVisualType.Column, DashboardVisualType.Bar, DashboardVisualType.Line, DashboardVisualType.Area,
+      DashboardVisualType.StackedColumn, DashboardVisualType.StackedBar, DashboardVisualType.Combo,
+      DashboardVisualType.Heatmap].includes(type);
+  }
+
+  /** Charts with a value axis — range and a reference line make sense on these. */
+  hasAxis(type: DashboardVisualType): boolean {
+    return this.isSplittable(type) && type !== DashboardVisualType.Heatmap;
+  }
+
+  hasSplit(tile: AbstractControl): boolean {
+    return !!String(tile.get('displayOptions.splitByColumn')?.value ?? '').trim();
+  }
+
+  colourOf(tile: AbstractControl, series: string): number {
+    const colours = tile.get('displayOptions.seriesColors')?.value as Record<string, number> ?? {};
+    const own = colours[series];
+    return own !== undefined ? own : Math.max(0, this.seriesOf(tile).indexOf(series)) % this.palette.length;
+  }
+
+  setColour(tile: AbstractControl, series: string, index: number): void {
+    const control = tile.get('displayOptions.seriesColors');
+    control?.setValue({ ...(control.value ?? {}), [series]: index });
+  }
+
+  formatOf(tile: AbstractControl, column: string): DashboardValueFormat | null {
+    return (tile.get('displayOptions.columnFormats')?.value ?? {})[column] ?? null;
+  }
+
+  setFormat(tile: AbstractControl, column: string, format: DashboardValueFormat | null): void {
+    const control = tile.get('displayOptions.columnFormats');
+    const next = { ...(control?.value ?? {}) };
+    if (format === null) delete next[column]; else next[column] = format;
+    control?.setValue(next);
   }
 
   visualIcon(type: DashboardVisualType): string {
@@ -866,6 +1042,7 @@ export class DashboardFormComponent implements OnInit {
         higherIsBetter: !!t.higherIsBetter,
         targetValue: t.targetValue === null || t.targetValue === '' ? null : Number(t.targetValue),
         targetWarnPercent: Number(t.targetWarnPercent ?? 10),
+        displayOptions: this.toOptions(t.displayOptions, t.seriesColumns),
         conditionalRules: (t.conditionalRules as DashboardConditionalRule[])
           .filter(r => String(r.value ?? '').trim() !== '')
           .map(r => ({ column: r.column?.trim() || null, operator: r.operator, value: String(r.value).trim(), tone: r.tone })),
@@ -883,6 +1060,34 @@ export class DashboardFormComponent implements OnInit {
             constantValue: m.sourceKind === DashboardTileParameterSource.Constant ? m.constantValue : null
           }))
       }))
+    };
+  }
+
+  private toOptions(o: any, seriesText: string): DashboardDisplayOptions {
+    const num = (v: unknown) => v === null || v === undefined || v === '' ? null : Number(v);
+    const series = String(seriesText ?? '').split(',').map(s => s.trim()).filter(s => s);
+    // Colours for series no longer plotted are dropped rather than carried forever.
+    const colours: Record<string, number> = {};
+    for (const [name, index] of Object.entries(o.seriesColors ?? {})) {
+      if (series.includes(name)) colours[name] = Number(index);
+    }
+    return {
+      legend: o.legend ?? 'auto',
+      dataLabels: !!o.dataLabels,
+      sort: o.sort ?? 'none',
+      groupOthers: !!o.groupOthers,
+      splitByColumn: String(o.splitByColumn ?? '').trim() || null,
+      stackPercent: !!o.stackPercent,
+      lineSeries: (o.lineSeries ?? []).filter((s: string) => series.includes(s)),
+      secondaryAxis: !!o.secondaryAxis,
+      axisMin: num(o.axisMin),
+      axisMax: num(o.axisMax),
+      referenceLine: num(o.referenceLine),
+      referenceLabel: String(o.referenceLabel ?? '').trim() || null,
+      seriesColors: colours,
+      gaugeMax: num(o.gaugeMax),
+      totalsRow: !!o.totalsRow,
+      columnFormats: o.columnFormats ?? {}
     };
   }
 
@@ -936,11 +1141,35 @@ export class DashboardFormComponent implements OnInit {
       targetValue: [t?.targetValue ?? null],
       targetWarnPercent: [t?.targetWarnPercent ?? 10, [Validators.min(0), Validators.max(100)]],
       conditionalRules: this.fb.array((t?.conditionalRules ?? []).map(r => this.ruleGroup(r))),
+      displayOptions: this.optionsGroup(t?.displayOptions),
       drillAction: [t?.drillAction ?? DashboardDrillAction.None],
       drillFilterName: [t?.drillFilterName ?? null],
       drillReportId: [t?.drillReportId ?? null],
       drillReportParameter: [t?.drillReportParameter ?? ''],
       parameterMaps: this.fb.array([])
+    });
+  }
+
+  private optionsGroup(saved?: DashboardDisplayOptions | null): FormGroup {
+    const o = { ...defaultDisplayOptions(), ...(saved ?? {}) };
+    return this.fb.group({
+      legend: [o.legend],
+      dataLabels: [o.dataLabels],
+      sort: [o.sort],
+      groupOthers: [o.groupOthers],
+      splitByColumn: [o.splitByColumn ?? ''],
+      stackPercent: [o.stackPercent],
+      lineSeries: [o.lineSeries ?? []],
+      secondaryAxis: [o.secondaryAxis],
+      axisMin: [o.axisMin ?? null],
+      axisMax: [o.axisMax ?? null],
+      referenceLine: [o.referenceLine ?? null],
+      referenceLabel: [o.referenceLabel ?? ''],
+      // Maps, held whole in one control each: they are edited through helpers, not bound fields.
+      seriesColors: [o.seriesColors ?? {}],
+      gaugeMax: [o.gaugeMax ?? null, [Validators.min(0)]],
+      totalsRow: [o.totalsRow],
+      columnFormats: [o.columnFormats ?? {}]
     });
   }
 

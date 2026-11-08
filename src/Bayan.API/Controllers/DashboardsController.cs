@@ -1,4 +1,6 @@
 using Bayan.API.Authorization;
+using Bayan.API.Extensions;
+using Bayan.Application.Features.Transfer;
 using Bayan.Application.Features.Dashboards.Commands;
 using Bayan.Application.Features.Dashboards.Dtos;
 using Bayan.Application.Features.Dashboards.Queries;
@@ -96,5 +98,31 @@ public class DashboardsController : ControllerBase
         }, cancellationToken);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Exports one dashboard as a portable JSON file. With <paramref name="includeDependencies"/>
+    /// the file also carries what it needs elsewhere (see <see cref="ExportTransferQuery"/>).
+    /// </summary>
+    [HttpGet("{id:guid}/export")]
+    [RequirePermission(Permissions.DashboardsTransfer)]
+    public async Task<IActionResult> Export(
+        Guid id, [FromQuery] bool includeDependencies = true, CancellationToken cancellationToken = default)
+    {
+        var file = await _mediator.Send(
+            new ExportTransferQuery(TransferKind.Dashboard, id, includeDependencies), cancellationToken);
+        var name = file.Dashboards.FirstOrDefault()?.Name ?? "dashboard";
+        return TransferFiles.ToFile(file, $"{TransferFiles.Slug(name, "dashboard")}-{DateTime.Now:yyyyMMdd}.json");
+    }
+
+    /// <summary>Exports every dashboard as one JSON file. Import it at <c>api/admin/transfer/import</c>.</summary>
+    [HttpGet("export")]
+    [RequirePermission(Permissions.DashboardsTransfer)]
+    public async Task<IActionResult> ExportAll(
+        [FromQuery] bool includeDependencies = true, CancellationToken cancellationToken = default)
+    {
+        var file = await _mediator.Send(
+            new ExportTransferQuery(TransferKind.Dashboard, null, includeDependencies), cancellationToken);
+        return TransferFiles.ToFile(file, $"dashboards-backup-{DateTime.Now:yyyyMMdd-HHmmss}.json");
     }
 }

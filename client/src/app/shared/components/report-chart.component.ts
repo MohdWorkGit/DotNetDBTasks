@@ -1,18 +1,16 @@
 import { Component, Input, Output, EventEmitter, OnChanges, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReportRunChart, ReportChartType } from '@core/models/report.model';
-
-interface Bar { x: number; y: number; w: number; h: number; fill: string; label: string; value: string; }
-interface Slice { path: string; fill: string; label: string; value: string; percent: string; }
-interface Line { points: string; stroke: string; name: string; dots: { cx: number; cy: number; label: string; value: string }[]; }
-interface Tick { y: number; label: string; }
+import { ReportRunChart } from '@core/models/report.model';
+import { ChartDrawOptions, ChartGeometry, buildChartGeometry } from './chart-geometry';
 
 /**
- * Draws a report chart as inline SVG.
+ * Draws a report or dashboard chart as inline SVG — column, bar, line, area, stacked, pie,
+ * doughnut and combo.
  *
  * <p>Hand-rolled because the offline bundle admits no chart library. It reads the same
  * categories and series the server built for the Word document, so the figure on screen and the
- * figure in the exported file are the same figure — not two renderings that can drift.</p>
+ * figure in the exported file are the same figure — not two renderings that can drift. The
+ * geometry lives in {@link buildChartGeometry}; this component is only its template.</p>
  *
  * <p>Geometry is computed once in {@link ngOnChanges} rather than in the template: expressions
  * in an *ngFor re-evaluate on every change-detection pass, and this component sits inside a
@@ -27,74 +25,100 @@ interface Tick { y: number; label: string; }
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <figure class="chart" [class.compact]="compact" *ngIf="chart">
+    <figure class="chart" [class.compact]="compact" *ngIf="chart && g">
       <figcaption *ngIf="chart.title" dir="auto">{{ chart.title }}</figcaption>
 
-      <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" role="img"
+      <ng-container *ngIf="g.legendPosition === 'top'">
+        <ng-container *ngTemplateOutlet="legendTpl"></ng-container>
+      </ng-container>
+
+      <svg [attr.viewBox]="'0 0 ' + g.width + ' ' + g.height" role="img"
            [attr.aria-label]="chart.title || 'chart'" preserveAspectRatio="xMidYMid meet">
 
         <!-- value axis gridlines, skipped for a pie -->
-        <ng-container *ngIf="!isPie">
-          <g *ngFor="let t of ticks">
-            <line [attr.x1]="padLeft" [attr.x2]="width - padRight" [attr.y1]="t.y" [attr.y2]="t.y"
-                  class="grid" />
-            <text [attr.x]="padLeft - 6" [attr.y]="t.y + 4" class="tick" text-anchor="end">
-              {{ t.label }}
-            </text>
-          </g>
-          <line [attr.x1]="padLeft" [attr.x2]="padLeft"
-                [attr.y1]="padTop" [attr.y2]="height - padBottom" class="axis" />
-          <line [attr.x1]="padLeft" [attr.x2]="width - padRight"
-                [attr.y1]="height - padBottom" [attr.y2]="height - padBottom" class="axis" />
+        <ng-container *ngIf="!g.pieLike">
+          <ng-container *ngIf="!g.horizontal">
+            <g *ngFor="let t of g.valueTicks">
+              <line [attr.x1]="g.plot.left" [attr.x2]="g.plot.right" [attr.y1]="t.pos" [attr.y2]="t.pos" class="grid" />
+              <text [attr.x]="g.plot.left - 6" [attr.y]="t.pos + 4" class="tick" text-anchor="end">{{ t.label }}</text>
+            </g>
+            <text *ngFor="let t of g.secondaryTicks" [attr.x]="g.plot.right + 6" [attr.y]="t.pos + 4"
+                  class="tick" text-anchor="start">{{ t.label }}</text>
+          </ng-container>
+          <ng-container *ngIf="g.horizontal">
+            <g *ngFor="let t of g.valueTicks">
+              <line [attr.x1]="t.pos" [attr.x2]="t.pos" [attr.y1]="g.plot.top" [attr.y2]="g.plot.bottom" class="grid" />
+              <text [attr.x]="t.pos" [attr.y]="g.plot.bottom + 16" class="tick" text-anchor="middle">{{ t.label }}</text>
+            </g>
+          </ng-container>
+          <line [attr.x1]="g.plot.left" [attr.x2]="g.plot.left"
+                [attr.y1]="g.plot.top" [attr.y2]="g.plot.bottom" class="axis" />
+          <line [attr.x1]="g.plot.left" [attr.x2]="g.plot.right"
+                [attr.y1]="g.plot.bottom" [attr.y2]="g.plot.bottom" class="axis" />
         </ng-container>
 
+        <!-- areas sit behind everything else -->
+        <path *ngFor="let a of g.areas" [attr.d]="a.path" [attr.fill]="a.fill" class="area" />
+
         <!-- bars -->
-        <g *ngFor="let b of bars">
-          <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h"
-                [attr.fill]="b.fill" rx="2" [class.clickable]="interactive"
-                [attr.tabindex]="interactive ? 0 : null" [attr.role]="interactive ? 'button' : null"
-                [attr.aria-label]="interactive ? b.label + ': ' + b.value : null"
-                (click)="select(b.label)" (keydown.enter)="select(b.label)" (keydown.space)="select(b.label, $event)">
-            <title>{{ b.label }}: {{ b.value }}</title>
-          </rect>
-        </g>
+        <rect *ngFor="let b of g.bars" [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h"
+              [attr.fill]="b.fill" rx="2" class="mark" [class.clickable]="interactive"
+              [attr.tabindex]="interactive ? 0 : null" [attr.role]="interactive ? 'button' : null"
+              [attr.aria-label]="interactive ? b.label + ', ' + b.series + ': ' + b.value : null"
+              (click)="select(b.label)" (keydown.enter)="select(b.label)" (keydown.space)="select(b.label, $event)">
+          <title>{{ b.label }} · {{ b.series }}: {{ b.value }}</title>
+        </rect>
 
         <!-- lines -->
-        <g *ngFor="let l of lines">
-          <polyline [attr.points]="l.points" [attr.stroke]="l.stroke" fill="none" stroke-width="2" />
+        <g *ngFor="let l of g.lines">
+          <polyline *ngFor="let points of l.segments" [attr.points]="points" [attr.stroke]="l.stroke"
+                    fill="none" stroke-width="2" stroke-linejoin="round" />
           <circle *ngFor="let d of l.dots" [attr.cx]="d.cx" [attr.cy]="d.cy"
-                  [attr.r]="interactive ? 5 : 3" [attr.fill]="l.stroke" [class.clickable]="interactive"
+                  [attr.r]="interactive ? 5 : 3" [attr.fill]="l.stroke" class="dot" [class.clickable]="interactive"
                   [attr.tabindex]="interactive ? 0 : null" [attr.role]="interactive ? 'button' : null"
-                  [attr.aria-label]="interactive ? d.label + ': ' + d.value : null"
+                  [attr.aria-label]="interactive ? d.label + ', ' + l.name + ': ' + d.value : null"
                   (click)="select(d.label)" (keydown.enter)="select(d.label)" (keydown.space)="select(d.label, $event)">
-            <title>{{ d.label }}: {{ d.value }}</title>
+            <title>{{ d.label }} · {{ l.name }}: {{ d.value }}</title>
           </circle>
         </g>
 
-        <!-- pie -->
-        <g *ngFor="let s of slices">
-          <path [attr.d]="s.path" [attr.fill]="s.fill" [class.clickable]="interactive"
-                [attr.tabindex]="interactive ? 0 : null" [attr.role]="interactive ? 'button' : null"
-                [attr.aria-label]="interactive ? s.label + ': ' + s.value : null"
-                (click)="select(s.label)" (keydown.enter)="select(s.label)" (keydown.space)="select(s.label, $event)">
-            <title>{{ s.label }}: {{ s.value }} ({{ s.percent }})</title>
-          </path>
+        <!-- pie and doughnut -->
+        <path *ngFor="let s of g.slices" [attr.d]="s.path" [attr.fill]="s.fill" class="mark slice" [class.clickable]="interactive"
+              [attr.tabindex]="interactive ? 0 : null" [attr.role]="interactive ? 'button' : null"
+              [attr.aria-label]="interactive ? s.label + ': ' + s.value + ' (' + s.percent + ')' : null"
+              (click)="select(s.label)" (keydown.enter)="select(s.label)" (keydown.space)="select(s.label, $event)">
+          <title>{{ s.label }}: {{ s.value }} ({{ s.percent }})</title>
+        </path>
+        <text *ngIf="g.centre" [attr.x]="g.centre.x" [attr.y]="g.centre.y" class="centre" text-anchor="middle">{{ g.centre.text }}</text>
+
+        <!-- reference line -->
+        <g *ngIf="g.reference as r">
+          <line [attr.x1]="r.x1" [attr.y1]="r.y1" [attr.x2]="r.x2" [attr.y2]="r.y2" class="reference" />
+          <text *ngIf="r.label" [attr.x]="r.label.x" [attr.y]="r.label.y" [attr.text-anchor]="r.label.anchor"
+                class="reference-label" dir="auto">{{ r.label.text }}</text>
         </g>
+
+        <!-- data labels -->
+        <text *ngFor="let t of g.dataLabels" [attr.x]="t.x" [attr.y]="t.y" [attr.text-anchor]="t.anchor"
+              class="data-label" [class.inside]="!!t.ink" [style.fill]="t.ink || null" aria-hidden="true">{{ t.text }}</text>
 
         <!-- category labels -->
-        <g *ngIf="!isPie">
-          <text *ngFor="let c of categoryLabels; let i = index"
-                [attr.x]="c.x" [attr.y]="height - padBottom + 16"
-                class="tick" text-anchor="middle" dir="auto">{{ c.text }}</text>
-        </g>
+        <text *ngFor="let c of g.categoryLabels" [attr.x]="c.x" [attr.y]="c.y" [attr.text-anchor]="c.anchor"
+              class="tick" dir="auto">{{ c.text }}</text>
       </svg>
 
-      <ul class="legend" *ngIf="legend.length > 1 || isPie">
-        <li *ngFor="let item of legend">
-          <span class="swatch" [style.background]="item.color"></span>
-          <span dir="auto">{{ item.name }}</span>
-        </li>
-      </ul>
+      <ng-container *ngIf="g.legendPosition === 'bottom'">
+        <ng-container *ngTemplateOutlet="legendTpl"></ng-container>
+      </ng-container>
+
+      <ng-template #legendTpl>
+        <ul class="legend">
+          <li *ngFor="let item of g.legend">
+            <span class="swatch" [style.background]="item.color"></span>
+            <span dir="auto">{{ item.name }}</span>
+          </li>
+        </ul>
+      </ng-template>
 
       <!-- The same numbers as a table, for anyone using a screen reader. -->
       <table class="sr-only">
@@ -112,7 +136,7 @@ interface Tick { y: number; label: string; }
     /* In a dashboard tile the chart fills whatever height the tile has, rather than its own. */
     .chart.compact { margin: 0; block-size: 100%; display: flex; flex-direction: column; }
     .chart.compact svg { flex: 1 1 auto; min-block-size: 0; max-block-size: none; block-size: 100%; }
-    .chart.compact .legend { margin-block-start: 4px; }
+    .chart.compact .legend { margin-block: 4px; }
     .clickable { cursor: pointer; }
     .clickable:hover, .clickable:focus-visible { opacity: 0.8; }
     .clickable:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
@@ -121,6 +145,15 @@ interface Tick { y: number; label: string; }
     .grid { stroke: var(--divider-color); stroke-width: 1; }
     .axis { stroke: var(--border-color); stroke-width: 1; }
     .tick { font-size: 11px; fill: var(--text-secondary); }
+    /* A thin surface-coloured edge separates touching fills: stacked segments, pie slices. */
+    .mark { stroke: var(--bg-card); stroke-width: 1; }
+    .dot { stroke: var(--bg-card); stroke-width: 1.5; }
+    .area { opacity: 0.22; }
+    .centre { font-size: 22px; font-weight: 600; fill: var(--text-primary); }
+    .reference { stroke: var(--text-secondary); stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .reference-label { font-size: 11px; fill: var(--text-secondary); }
+    .data-label { font-size: 10px; fill: var(--text-primary); }
+    .data-label.inside { font-weight: 600; }
     .legend { display: flex; flex-wrap: wrap; gap: 12px; list-style: none; padding: 0; margin: 8px 0 0; }
     .legend li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
     .swatch { inline-size: 12px; block-size: 12px; border-radius: 2px; }
@@ -133,6 +166,9 @@ interface Tick { y: number; label: string; }
 export class ReportChartComponent implements OnChanges {
   @Input({ required: true }) chart!: ReportRunChart;
 
+  /** Presentation options; a report chart has none and draws with the defaults. */
+  @Input() options: ChartDrawOptions | null = null;
+
   /** Makes each bar, slice and point a focusable button emitting {@link categoryClick}. */
   @Input() interactive = false;
 
@@ -142,56 +178,10 @@ export class ReportChartComponent implements OnChanges {
   /** The category of the bar, slice or point the user activated. Only emitted when interactive. */
   @Output() categoryClick = new EventEmitter<string>();
 
-  readonly width = 640;
-  readonly height = 300;
-  readonly padLeft = 56;
-  readonly padRight = 16;
-  readonly padTop = 12;
-  readonly padBottom = 34;
-
-  bars: Bar[] = [];
-  lines: Line[] = [];
-  slices: Slice[] = [];
-  ticks: Tick[] = [];
-  categoryLabels: { x: number; text: string }[] = [];
-  legend: { name: string; color: string }[] = [];
-  isPie = false;
-
-  /**
-   * Categorical palette. Fixed rather than themed: a series must keep its colour when the
-   * viewer switches between light and dark, or the chart appears to change meaning.
-   */
-  private readonly palette = [
-    '#4f46e5', '#0891b2', '#16a34a', '#ca8a04', '#dc2626',
-    '#7c3aed', '#0d9488', '#65a30d', '#ea580c', '#be123c'
-  ];
+  g: ChartGeometry | null = null;
 
   ngOnChanges(): void {
-    this.bars = [];
-    this.lines = [];
-    this.slices = [];
-    this.ticks = [];
-    this.categoryLabels = [];
-    this.legend = [];
-
-    if (!this.chart || this.chart.categories.length === 0 || this.chart.series.length === 0) {
-      return;
-    }
-
-    this.isPie = this.chart.type === ReportChartType.Pie;
-    this.legend = this.isPie
-      ? this.chart.categories.map((c, i) => ({ name: c, color: this.colour(i) }))
-      : this.chart.series.map((s, i) => ({ name: s.name, color: this.colour(i) }));
-
-    if (this.isPie) {
-      this.buildPie();
-    } else if (this.chart.type === ReportChartType.Line) {
-      this.buildAxes();
-      this.buildLines();
-    } else {
-      this.buildAxes();
-      this.buildBars();
-    }
+    this.g = this.chart ? buildChartGeometry(this.chart, this.options ?? {}) : null;
   }
 
   select(category: string, event?: Event): void {
@@ -199,130 +189,5 @@ export class ReportChartComponent implements OnChanges {
     // Space would otherwise scroll the page as well as activating the mark.
     event?.preventDefault();
     this.categoryClick.emit(category);
-  }
-
-  private colour(index: number): string {
-    return this.palette[index % this.palette.length];
-  }
-
-  /** Highest value across every series; the axis always includes zero. */
-  private get maxValue(): number {
-    const values = this.chart.series.flatMap(s => s.values).filter(v => v !== null) as number[];
-    return values.length === 0 ? 1 : Math.max(1, ...values);
-  }
-
-  private buildAxes(): void {
-    const max = this.maxValue;
-    const plotHeight = this.height - this.padTop - this.padBottom;
-
-    for (let i = 0; i <= 4; i++) {
-      const value = (max / 4) * i;
-      this.ticks.push({
-        y: this.height - this.padBottom - (plotHeight * i) / 4,
-        label: this.abbreviate(value)
-      });
-    }
-
-    const plotWidth = this.width - this.padLeft - this.padRight;
-    const step = plotWidth / this.chart.categories.length;
-
-    // Crowded axes become unreadable, so labels thin out rather than overlap.
-    const every = Math.ceil(this.chart.categories.length / 8);
-    this.chart.categories.forEach((text, i) => {
-      if (i % every !== 0) return;
-      this.categoryLabels.push({
-        x: this.padLeft + step * i + step / 2,
-        text: text.length > 12 ? text.slice(0, 11) + '…' : text
-      });
-    });
-  }
-
-  private buildBars(): void {
-    const max = this.maxValue;
-    const plotWidth = this.width - this.padLeft - this.padRight;
-    const plotHeight = this.height - this.padTop - this.padBottom;
-    const groupWidth = plotWidth / this.chart.categories.length;
-    const barWidth = Math.max(2, (groupWidth * 0.7) / this.chart.series.length);
-
-    this.chart.series.forEach((series, s) => {
-      series.values.forEach((value, i) => {
-        if (value === null) return;
-        const h = (value / max) * plotHeight;
-        this.bars.push({
-          x: this.padLeft + groupWidth * i + groupWidth * 0.15 + barWidth * s,
-          y: this.height - this.padBottom - h,
-          w: barWidth,
-          h,
-          fill: this.colour(s),
-          label: this.chart.categories[i],
-          value: this.format(value)
-        });
-      });
-    });
-  }
-
-  private buildLines(): void {
-    const max = this.maxValue;
-    const plotWidth = this.width - this.padLeft - this.padRight;
-    const plotHeight = this.height - this.padTop - this.padBottom;
-    const step = plotWidth / Math.max(1, this.chart.categories.length - 1);
-
-    this.chart.series.forEach((series, s) => {
-      const dots: Line['dots'] = [];
-      const points: string[] = [];
-
-      series.values.forEach((value, i) => {
-        if (value === null) return;   // a gap breaks the line rather than dropping to zero
-        const cx = this.padLeft + step * i;
-        const cy = this.height - this.padBottom - (value / max) * plotHeight;
-        points.push(`${cx},${cy}`);
-        dots.push({ cx, cy, label: this.chart.categories[i], value: this.format(value) });
-      });
-
-      this.lines.push({ points: points.join(' '), stroke: this.colour(s), name: series.name, dots });
-    });
-  }
-
-  private buildPie(): void {
-    const values = this.chart.series[0].values.map(v => v ?? 0);
-    const total = values.reduce((sum, v) => sum + v, 0);
-    if (total <= 0) return;
-
-    const cx = this.width / 2;
-    const cy = this.height / 2;
-    const r = Math.min(this.width, this.height) / 2 - 20;
-    let angle = -Math.PI / 2;
-
-    values.forEach((value, i) => {
-      const sweep = (value / total) * Math.PI * 2;
-      const end = angle + sweep;
-      const large = sweep > Math.PI ? 1 : 0;
-
-      const x1 = cx + r * Math.cos(angle);
-      const y1 = cy + r * Math.sin(angle);
-      const x2 = cx + r * Math.cos(end);
-      const y2 = cy + r * Math.sin(end);
-
-      this.slices.push({
-        path: `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`,
-        fill: this.colour(i),
-        label: this.chart.categories[i],
-        value: this.format(value),
-        percent: ((value / total) * 100).toFixed(1) + '%'
-      });
-
-      angle = end;
-    });
-  }
-
-  private format(value: number): string {
-    return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  }
-
-  /** Axis labels stay short so they do not eat the plot. */
-  private abbreviate(value: number): string {
-    if (Math.abs(value) >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M';
-    if (Math.abs(value) >= 1_000) return (value / 1_000).toFixed(0) + 'K';
-    return value.toFixed(Math.abs(value) < 10 && value % 1 !== 0 ? 1 : 0);
   }
 }

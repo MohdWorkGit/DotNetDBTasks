@@ -71,6 +71,7 @@ public static class DashboardMapper
                 TargetValue = t.TargetValue,
                 TargetWarnPercent = t.TargetWarnPercent,
                 ConditionalRules = ParseRules(t.ConditionalRulesJson),
+                DisplayOptions = ParseOptions(t.DisplayOptionsJson),
                 HigherIsBetter = t.HigherIsBetter,
                 RefreshSeconds = t.RefreshSeconds,
                 EffectiveRefreshSeconds = EffectiveRefreshSeconds(dashboard, t),
@@ -138,6 +139,38 @@ public static class DashboardMapper
             return new List<DashboardConditionalRule>();
         }
     }
+
+    public static DashboardDisplayOptions ParseOptions(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new DashboardDisplayOptions();
+
+        try
+        {
+            return JsonSerializer.Deserialize<DashboardDisplayOptions>(json, JsonOptions)
+                ?? new DashboardDisplayOptions();
+        }
+        catch (JsonException)
+        {
+            // Validated on the way in; a hand edit falls back to drawing the tile plainly.
+            return new DashboardDisplayOptions();
+        }
+    }
+
+    /// <summary>
+    /// The JSON to store, or null when every option is at its default — so a tile saved without
+    /// touching the options looks exactly like one saved before they existed.
+    /// </summary>
+    public static string? SerializeOptions(DashboardDisplayOptions? options)
+    {
+        if (options is null)
+            return null;
+        var json = JsonSerializer.Serialize(options, JsonOptions);
+        return json == DefaultOptionsJson ? null : json;
+    }
+
+    private static readonly string DefaultOptionsJson =
+        JsonSerializer.Serialize(new DashboardDisplayOptions(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
     public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

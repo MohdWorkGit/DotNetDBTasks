@@ -189,7 +189,8 @@ public class BuildDashboardSnapshotQueryHandler : IRequestHandler<BuildDashboard
             snapshot.TemplateSections.Add(new ReportTemplateSection(key, tile.Title));
             snapshot.RowCount += section.Rows.Count;
 
-            if (data.Chart is not null)
+            // A heatmap has no native Word chart; its pivoted table above already shows the grid.
+            if (data.Chart is not null && tile.VisualType != DashboardVisualType.Heatmap)
             {
                 // Marker keys must start with a letter; a tile id may not.
                 var chartKey = $"chart{number}";

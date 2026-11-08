@@ -72,6 +72,12 @@ public class DashboardTile : BaseEntity
     /// </summary>
     public string? ConditionalRulesJson { get; set; }
 
+    /// <summary>
+    /// Presentation options as JSON — legend, labels, sort, stacking, axis range and the like.
+    /// Null means every option at its default, which is how tiles drew before options existed.
+    /// </summary>
+    public string? DisplayOptionsJson { get; set; }
+
     /// <summary>Colours a rise green (true) or red (false). Complaints falling is good news.</summary>
     public bool HigherIsBetter { get; set; } = true;
 

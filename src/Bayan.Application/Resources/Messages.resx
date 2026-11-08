@@ -270,4 +270,58 @@
   <data name="QueryAccessGroupsOnly" xml:space="preserve">
     <value>An Access Manager may only change access on query groups, not on individual queries. An administrator can enable per-query access in system settings.</value>
   </data>
+  <data name="TransferNoContent" xml:space="preserve">
+    <value>The file contains nothing to import.</value>
+  </data>
+  <data name="TransferNewerFormat" xml:space="preserve">
+    <value>This file was written by a newer version (format {0}); this system reads up to format {1}.</value>
+  </data>
+  <data name="TransferInvalidFile" xml:space="preserve">
+    <value>The file is not a valid export: {0}</value>
+  </data>
+  <data name="TransferNoFile" xml:space="preserve">
+    <value>No file was uploaded.</value>
+  </data>
+  <data name="TransferTooLarge" xml:space="preserve">
+    <value>The file must be 50 MB or smaller.</value>
+  </data>
+  <data name="TransferNeedsPermission" xml:space="preserve">
+    <value>This needs the '{0}' permission, which you do not have.</value>
+  </data>
+  <data name="TransferItemSkipped" xml:space="preserve">
+    <value>'{0}' was skipped: {1}</value>
+  </data>
+  <data name="TransferNoNameOrSql" xml:space="preserve">
+    <value>Skipped an entry with no name or SQL.</value>
+  </data>
+  <data name="TransferRoleMissing" xml:space="preserve">
+    <value>'{0}': role '{1}' does not exist here and was not assigned.</value>
+  </data>
+  <data name="TransferUserGroupMissing" xml:space="preserve">
+    <value>'{0}': user group '{1}' does not exist here and was not assigned.</value>
+  </data>
+  <data name="TransferUserMissing" xml:space="preserve">
+    <value>'{0}': user '{1}' does not exist here and was not assigned.</value>
+  </data>
+  <data name="TransferConnectionMissing" xml:space="preserve">
+    <value>'{0}': database connection '{1}' is not configured here — the query was left on the default connection. Set it before running the query.</value>
+  </data>
+  <data name="TransferTemplateUnreadable" xml:space="preserve">
+    <value>'{0}': the Word template could not be read and was skipped.</value>
+  </data>
+  <data name="TransferQueryDropdownMissing" xml:space="preserve">
+    <value>'{0}': parameter '{1}' gets its options from query '{2}', which does not exist here — the dropdown will be empty until you point it at a query.</value>
+  </data>
+  <data name="TransferDropdownToText" xml:space="preserve">
+    <value>'{0}': '{1}' gets its options from query '{2}', which does not exist here — it was turned into a text field.</value>
+  </data>
+  <data name="TransferReportQueryMissing" xml:space="preserve">
+    <value>'{0}' was skipped: its dataset '{1}' reads query '{2}', which does not exist here.</value>
+  </data>
+  <data name="TransferTileQueryMissing" xml:space="preserve">
+    <value>'{0}': tile '{1}' reads query '{2}', which does not exist here — the tile was left out.</value>
+  </data>
+  <data name="TransferDrillReportMissing" xml:space="preserve">
+    <value>'{0}': tile '{1}' opened report '{2}', which does not exist here — its click action was turned off.</value>
+  </data>
 </root>

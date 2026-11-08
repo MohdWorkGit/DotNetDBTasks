@@ -19,6 +19,7 @@ import { PERM } from '@core/models/permissions';
       <div class="page-header">
         <h1>{{ 'admin.dashboards.title' | transloco }}</h1>
         <span class="spacer"></span>
+        <app-transfer-menu #transfer kind="dashboard" (imported)="reload()"></app-transfer-menu>
         <button mat-flat-button color="primary" *ngIf="canManage" (click)="create()">
           <mat-icon>add</mat-icon> {{ 'admin.dashboards.create' | transloco }}
         </button>
@@ -107,6 +108,9 @@ import { PERM } from '@core/models/permissions';
                     <button mat-menu-item *ngIf="canManageAccess" (click)="access(d)">
                       <mat-icon>group</mat-icon> {{ 'admin.dashboards.access' | transloco }}
                     </button>
+                    <button mat-menu-item *ngIf="transfer.canTransfer" (click)="transfer.exportOne(d.id, d.name)">
+                      <mat-icon>file_download</mat-icon> {{ 'admin.transfer.exportOne' | transloco }}
+                    </button>
                     <button mat-menu-item *ngIf="canManage" (click)="remove(d)">
                       <mat-icon>delete</mat-icon> {{ 'common.delete' | transloco }}
                     </button>
@@ -164,6 +168,11 @@ export class DashboardsAdminListComponent implements OnInit {
     this.dataSource.filterPredicate = (d, filter) =>
       (d.name + ' ' + (d.description ?? '')).toLowerCase().includes(filter);
 
+    this.load();
+  }
+
+  /** After an import: whatever came in belongs in the list. */
+  reload(): void {
     this.load();
   }
 

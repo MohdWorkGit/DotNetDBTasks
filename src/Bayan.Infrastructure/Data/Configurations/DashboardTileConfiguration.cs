@@ -21,6 +21,7 @@ public class DashboardTileConfiguration : IEntityTypeConfiguration<DashboardTile
         builder.Property(e => e.TargetValue).HasPrecision(18, 4);
         builder.Property(e => e.TargetWarnPercent).HasDefaultValue(10);
         builder.Property(e => e.ConditionalRulesJson).HasColumnType("CLOB");
+        builder.Property(e => e.DisplayOptionsJson).HasColumnType("CLOB");
 
         // No cascade from DynamicQuery: deleting a query a tile depends on must fail loudly
         // rather than silently emptying the dashboard — the rule report datasets follow.

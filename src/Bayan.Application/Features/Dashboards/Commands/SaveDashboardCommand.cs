@@ -190,9 +190,13 @@ public partial class SaveDashboardCommandHandler : IRequestHandler<SaveDashboard
             if (!Enum.IsDefined(tile.VisualType))
                 throw new DomainException($"{label} has an unknown visual type.");
 
+            var options = tile.DisplayOptions ?? new DashboardDisplayOptions();
+            ValidateOptions(tile, options, label);
+
             switch (tile.VisualType)
             {
                 case DashboardVisualType.Kpi:
+                case DashboardVisualType.Gauge:
                     if (!Enum.IsDefined(tile.KpiAggregate))
                         throw new DomainException($"{label} has an unknown summary mode.");
                     // Counting rows reads no column; every other mode needs one.
@@ -210,6 +214,11 @@ public partial class SaveDashboardCommandHandler : IRequestHandler<SaveDashboard
                         throw new DomainException($"{label} is a chart, so it needs a category column.");
                     if (tile.SeriesColumns.Count == 0)
                         throw new DomainException($"{label} is a chart, so it needs at least one series column.");
+                    if (tile.VisualType == DashboardVisualType.Heatmap && string.IsNullOrWhiteSpace(options.SplitByColumn))
+                        throw new DomainException($"{label} is a heatmap, so it needs a column for its second axis (split by).");
+                    if (tile.VisualType == DashboardVisualType.Combo &&
+                        string.IsNullOrWhiteSpace(options.SplitByColumn) && tile.SeriesColumns.Count < 2)
+                        throw new DomainException($"{label} is a combo chart, so it needs at least two series: bars and a line.");
                     break;
             }
 
@@ -325,13 +334,15 @@ public partial class SaveDashboardCommandHandler : IRequestHandler<SaveDashboard
         MaxCategories = input.MaxCategories <= 0 ? 25 : input.MaxCategories,
         ValueColumn = Blank(input.ValueColumn),
         CompareColumn = Blank(input.CompareColumn),
-        KpiAggregate = input.VisualType == DashboardVisualType.Kpi ? input.KpiAggregate : DashboardKpiAggregate.Last,
+        KpiAggregate = IsKpiLike(input.VisualType) ? input.KpiAggregate : DashboardKpiAggregate.Last,
         ValueFormat = input.ValueFormat,
-        TargetValue = input.VisualType == DashboardVisualType.Kpi ? input.TargetValue : null,
+        TargetValue = IsKpiLike(input.VisualType) ? input.TargetValue : null,
+        DisplayOptionsJson = DashboardMapper.SerializeOptions(input.DisplayOptions),
         TargetWarnPercent = input.TargetWarnPercent,
         // Only the tiles that draw them keep rules; a chart has no cell to colour.
         ConditionalRulesJson = input.ConditionalRules.Count > 0 &&
                                input.VisualType is DashboardVisualType.Table or DashboardVisualType.Kpi
+                                   or DashboardVisualType.Gauge
             ? JsonSerializer.Serialize(input.ConditionalRules.Select(r => new DashboardConditionalRule
                 {
                     Column = Blank(r.Column),
@@ -355,6 +366,37 @@ public partial class SaveDashboardCommandHandler : IRequestHandler<SaveDashboard
 
     private static string? Blank(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>A gauge is a KPI drawn as a dial: same summary, same target.</summary>
+    private static bool IsKpiLike(DashboardVisualType type) =>
+        type is DashboardVisualType.Kpi or DashboardVisualType.Gauge;
+
+    private static void ValidateOptions(DashboardTileInput tile, DashboardDisplayOptions options, string label)
+    {
+        // A client may send null for a collection or a mode it never touched; that means "default".
+        options.Legend ??= "auto";
+        options.Sort ??= "none";
+        options.LineSeries ??= new();
+        options.SeriesColors ??= new();
+        options.ColumnFormats ??= new();
+
+        if (!DashboardDisplayOptions.LegendPositions.Contains(options.Legend))
+            throw new DomainException($"{label} has an unknown legend position '{options.Legend}'.");
+        if (!DashboardDisplayOptions.SortModes.Contains(options.Sort))
+            throw new DomainException($"{label} has an unknown sort order '{options.Sort}'.");
+        if (options.AxisMin is { } min && options.AxisMax is { } max && min >= max)
+            throw new DomainException($"{label}: the axis minimum must be below the axis maximum.");
+        if (options.GaugeMax is <= 0)
+            throw new DomainException($"{label}: the gauge maximum must be above zero.");
+        if (options.SeriesColors.Values.Any(i => i is < 0 or >= DashboardDisplayOptions.PaletteSize))
+            throw new DomainException($"{label} has a series colour outside the palette.");
+        if (options.ColumnFormats.Values.Any(f => !Enum.IsDefined(f)))
+            throw new DomainException($"{label} has an unknown column format.");
+        if (options.ReferenceLabel is { Length: > 100 })
+            throw new DomainException($"{label}: the reference line label is longer than 100 characters.");
+        if (options.SplitByColumn is { Length: > 128 })
+            throw new DomainException($"{label}: the split-by column name is longer than 128 characters.");
+    }
 
     [GeneratedRegex("^[A-Za-z][A-Za-z0-9_]{0,99}$")]
     private static partial Regex NameRegex();

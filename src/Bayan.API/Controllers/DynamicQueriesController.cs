@@ -1,4 +1,5 @@
 using Bayan.API.Authorization;
+using Bayan.API.Extensions;
 using System.Text.Json;
 using Bayan.Application.Common.Interfaces;
 using Bayan.Application.Features.DynamicQueries.Commands;
@@ -257,7 +258,7 @@ public class DynamicQueriesController : ControllerBase
     {
         var file = await _mediator.Send(new ExportQueriesQuery(id), cancellationToken);
         var name = file.Queries.FirstOrDefault()?.Name ?? "query";
-        return ExportFileResult(file, $"{Slug(name)}-{DateTime.Now:yyyyMMdd}.json");
+        return TransferFiles.ToFile(file, $"{TransferFiles.Slug(name, "query")}-{DateTime.Now:yyyyMMdd}.json");
     }
 
     /// <summary>
@@ -269,7 +270,7 @@ public class DynamicQueriesController : ControllerBase
     public async Task<IActionResult> ExportAllQueries(CancellationToken cancellationToken)
     {
         var file = await _mediator.Send(new ExportQueriesQuery(null), cancellationToken);
-        return ExportFileResult(file, $"queries-backup-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+        return TransferFiles.ToFile(file, $"queries-backup-{DateTime.Now:yyyyMMdd-HHmmss}.json");
     }
 
     /// <summary>
@@ -278,12 +279,12 @@ public class DynamicQueriesController : ControllerBase
     /// </summary>
     [HttpPost("import")]
     [RequirePermission(Permissions.QueriesTransfer)]
-    [RequestSizeLimit(MaxImportBytes + 1024)]
+    [RequestSizeLimit(TransferFiles.MaxImportBytes + 1024)]
     public async Task<IActionResult> ImportQueries(IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
             return BadRequest(new { message = "No file was uploaded." });
-        if (file.Length > MaxImportBytes)
+        if (file.Length > TransferFiles.MaxImportBytes)
             return BadRequest(new { message = "The backup file must be 50 MB or smaller." });
 
         QueryExportFile? parsed;
@@ -291,7 +292,7 @@ public class DynamicQueriesController : ControllerBase
         {
             await using var stream = file.OpenReadStream();
             parsed = await JsonSerializer.DeserializeAsync<QueryExportFile>(
-                stream, ExportJsonOptions, cancellationToken);
+                stream, TransferFiles.JsonOptions, cancellationToken);
         }
         catch (JsonException ex)
         {
@@ -304,34 +305,6 @@ public class DynamicQueriesController : ControllerBase
         var result = await _mediator.Send(new ImportQueriesCommand(parsed), cancellationToken);
         return Ok(result);
     }
-
-    private IActionResult ExportFileResult(QueryExportFile file, string fileName)
-    {
-        // Indented on purpose: an export is something an admin may read, diff or keep in
-        // source control, not just feed back into the import endpoint.
-        var json = JsonSerializer.Serialize(file, ExportJsonOptions);
-        return File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", fileName);
-    }
-
-    private static readonly JsonSerializerOptions ExportJsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-        WriteIndented = true,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
-
-    /// <summary>Makes a query name safe to use as a download file name.</summary>
-    private static string Slug(string name)
-    {
-        var cleaned = new string(name.Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-').ToArray());
-        while (cleaned.Contains("--"))
-            cleaned = cleaned.Replace("--", "-");
-        cleaned = cleaned.Trim('-');
-        return cleaned.Length == 0 ? "query" : cleaned;
-    }
-
-    private const int MaxImportBytes = 50 * 1024 * 1024;
 
     private const int MaxTemplateBytes = 5 * 1024 * 1024;
 

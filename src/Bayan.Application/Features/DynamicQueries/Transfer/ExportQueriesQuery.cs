@@ -68,7 +68,7 @@ public class ExportQueriesQueryHandler : IRequestHandler<ExportQueriesQuery, Que
         };
     }
 
-    private static ExportedQuery ToExported(DynamicQuery q, IReadOnlyDictionary<Guid, string> nameById) => new()
+    internal static ExportedQuery ToExported(DynamicQuery q, IReadOnlyDictionary<Guid, string> nameById) => new()
     {
         Name = q.Name,
         Description = q.Description,

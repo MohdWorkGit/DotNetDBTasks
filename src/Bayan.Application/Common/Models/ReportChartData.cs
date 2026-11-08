@@ -35,7 +35,8 @@ public sealed record ReportChartData(
     IReadOnlyList<ReportChartSeries> Series,
     int WidthEmu = 5486400,     // 6 inches
     int HeightEmu = 3200400,    // 3.5 inches
-    string? DatasetKey = null)  // which dataset it drew, for placing its marker
+    string? DatasetKey = null,  // which dataset it drew, for placing its marker
+    bool LastIsOther = false)   // the last category sums the rest; the viewer labels it in its language
 {
     /// <summary>True when there is nothing to draw, so the marker renders no chart at all.</summary>
     public bool IsEmpty => Categories.Count == 0 || Series.Count == 0;

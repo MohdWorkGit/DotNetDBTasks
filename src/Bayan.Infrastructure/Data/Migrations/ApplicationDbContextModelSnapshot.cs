@@ -172,6 +172,9 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.Property<Guid>("DashboardId")
                         .HasColumnType("RAW(16)");
 
+                    b.Property<string>("DisplayOptionsJson")
+                        .HasColumnType("CLOB");
+
                     b.Property<int>("DrillAction")
                         .HasColumnType("NUMBER(10)");
 

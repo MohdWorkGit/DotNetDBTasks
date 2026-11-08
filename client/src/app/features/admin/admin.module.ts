@@ -53,6 +53,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { HintIconComponent } from '@shared/components/hint-icon.component';
 import { SqlEditorComponent } from '@shared/components/sql-editor.component';
+import { TransferMenuComponent } from '@shared/components/transfer-menu.component';
 import { authGuard } from '@core/guards/auth.guard';
 import { PERM } from '@core/models/permissions';
 
@@ -113,6 +114,7 @@ import { PERM } from '@core/models/permissions';
     MatAutocompleteModule,
     HintIconComponent,
     SqlEditorComponent,
+    TransferMenuComponent,
     // Every route carries its own roles: the parent /admin guard only checks that the
     // user has *some* admin page, so without these an Auditor could type their way into
     // the query editor. These mirror the [Authorize] attributes on the API controllers —

@@ -75,6 +75,24 @@
   --sql-selection: rgba(79, 70, 229, 0.18);
   --sql-problem-line: rgba(220, 38, 38, 0.08);
   --sql-problem-mark: rgba(220, 38, 38, 0.16);
+
+  // Heatmap ramp (shared/components/heatmap-chart): one hue, light to dark, so magnitude reads
+  // as depth. Seven steps of the dataviz reference blue; each --heat-ink-N is the text colour
+  // that clears 4.5:1 on its step.
+  --heat-1: #cde2fb;
+  --heat-2: #9ec5f4;
+  --heat-3: #6da7ec;
+  --heat-4: #3987e5;
+  --heat-5: #256abf;
+  --heat-6: #184f95;
+  --heat-7: #0d366b;
+  --heat-ink-1: #0f172a;
+  --heat-ink-2: #0f172a;
+  --heat-ink-3: #0f172a;
+  --heat-ink-4: #0f172a;
+  --heat-ink-5: #ffffff;
+  --heat-ink-6: #ffffff;
+  --heat-ink-7: #ffffff;
 }
 
 // ── Dark Theme Overrides ──
@@ -138,6 +156,22 @@ body.dark-theme {
   --sql-selection: rgba(129, 140, 248, 0.28);
   --sql-problem-line: rgba(248, 113, 113, 0.12);
   --sql-problem-mark: rgba(248, 113, 113, 0.24);
+
+  // Heatmap ramp reversed for the dark surface: "near zero" still recedes toward the page.
+  --heat-1: #0d366b;
+  --heat-2: #104281;
+  --heat-3: #184f95;
+  --heat-4: #256abf;
+  --heat-5: #5598e7;
+  --heat-6: #86b6ef;
+  --heat-7: #b7d3f6;
+  --heat-ink-1: #f1f5f9;
+  --heat-ink-2: #f1f5f9;
+  --heat-ink-3: #ffffff;
+  --heat-ink-4: #ffffff;
+  --heat-ink-5: #0f172a;
+  --heat-ink-6: #0f172a;
+  --heat-ink-7: #0f172a;
 
   // ── Angular Material M3 system tokens ──
   // The azure-blue prebuilt theme defines --mat-sys-* on <html> with LIGHT values.
@@ -957,4 +991,39 @@ textarea:focus-visible,
 body.dashboard-kiosk app-root > nav,
 body.dashboard-kiosk .skip-link {
   display: none;
+}
+
+// ── Print (dashboard Export PDF, and Ctrl+P anywhere) ──
+// Light colours on paper come from DashboardViewComponent lifting the dark-theme class for the
+// print; these rules only take the app's chrome off the page.
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    height: auto;
+    // The theme fade would otherwise still be mid-way from dark when the page is captured.
+    transition: none !important;
+    background: var(--bg-primary) !important;
+    // Chart fills and status colours are information, not decoration — keep them.
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  app-root > nav,
+  .skip-link,
+  .cdk-overlay-container {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
 }

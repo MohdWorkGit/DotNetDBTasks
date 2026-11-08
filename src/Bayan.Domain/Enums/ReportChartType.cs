@@ -17,5 +17,23 @@ public enum ReportChartType
     Line = 2,
 
     /// <summary>Parts of a whole. Uses the first series only; more than one has no meaning here.</summary>
-    Pie = 3
+    Pie = 3,
+
+    /// <summary>A line with the area beneath it filled — volume over an ordered axis.</summary>
+    Area = 4,
+
+    /// <summary>Vertical bars with each category's series stacked into one bar.</summary>
+    StackedColumn = 5,
+
+    /// <summary>Horizontal bars, stacked.</summary>
+    StackedBar = 6,
+
+    /// <summary>A pie with a hole. Same single-series rule as <see cref="Pie"/>.</summary>
+    Doughnut = 7,
+
+    /// <summary>
+    /// Columns for every series but the last, which is drawn as a line on its own (secondary)
+    /// value axis — revenue against margin %, where the two scales differ.
+    /// </summary>
+    Combo = 8
 }

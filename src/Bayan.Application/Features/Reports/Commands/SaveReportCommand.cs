@@ -272,6 +272,13 @@ public partial class SaveReportCommandHandler : IRequestHandler<SaveReportComman
 
             if (chart.SeriesColumns.Count == 0)
                 throw new DomainException($"Chart '{chart.ChartKey}' needs at least one series column.");
+
+            if (!Enum.IsDefined(chart.ChartType))
+                throw new DomainException($"Chart '{chart.ChartKey}' has an unknown chart type.");
+
+            if (chart.ChartType == ReportChartType.Combo && chart.SeriesColumns.Count < 2)
+                throw new DomainException(
+                    $"Chart '{chart.ChartKey}' is a combo chart, so it needs at least two series: columns and a line (the last one).");
         }
 
         var parameterNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

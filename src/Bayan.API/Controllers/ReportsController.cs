@@ -1,4 +1,6 @@
 using Bayan.API.Authorization;
+using Bayan.API.Extensions;
+using Bayan.Application.Features.Transfer;
 using Bayan.Application.Features.Reports.Commands;
 using Bayan.Application.Features.Reports.Dtos;
 using Bayan.Application.Features.Reports.Queries;
@@ -159,5 +161,31 @@ public class ReportsController : ControllerBase
         }, cancellationToken);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Exports one report as a portable JSON file. With <paramref name="includeDependencies"/>
+    /// the file also carries what it needs elsewhere (see <see cref="ExportTransferQuery"/>).
+    /// </summary>
+    [HttpGet("{id:guid}/export")]
+    [RequirePermission(Permissions.ReportsTransfer)]
+    public async Task<IActionResult> Export(
+        Guid id, [FromQuery] bool includeDependencies = true, CancellationToken cancellationToken = default)
+    {
+        var file = await _mediator.Send(
+            new ExportTransferQuery(TransferKind.Report, id, includeDependencies), cancellationToken);
+        var name = file.Reports.FirstOrDefault()?.Name ?? "report";
+        return TransferFiles.ToFile(file, $"{TransferFiles.Slug(name, "report")}-{DateTime.Now:yyyyMMdd}.json");
+    }
+
+    /// <summary>Exports every report as one JSON file. Import it at <c>api/admin/transfer/import</c>.</summary>
+    [HttpGet("export")]
+    [RequirePermission(Permissions.ReportsTransfer)]
+    public async Task<IActionResult> ExportAll(
+        [FromQuery] bool includeDependencies = true, CancellationToken cancellationToken = default)
+    {
+        var file = await _mediator.Send(
+            new ExportTransferQuery(TransferKind.Report, null, includeDependencies), cancellationToken);
+        return TransferFiles.ToFile(file, $"reports-backup-{DateTime.Now:yyyyMMdd-HHmmss}.json");
     }
 }

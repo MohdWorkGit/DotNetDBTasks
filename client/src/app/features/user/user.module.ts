@@ -37,6 +37,9 @@ import { queriesPageGuard } from '@core/guards/queries-page.guard';
 import { reportAccessGuard } from '@core/guards/report-access.guard';
 import { ReportChartComponent } from '@shared/components/report-chart.component';
 import { KpiTileComponent } from '@shared/components/kpi-tile.component';
+import { GaugeChartComponent } from '@shared/components/gauge-chart.component';
+import { FunnelChartComponent } from '@shared/components/funnel-chart.component';
+import { HeatmapChartComponent } from '@shared/components/heatmap-chart.component';
 import { dashboardAccessGuard } from '@core/guards/dashboard-access.guard';
 import { DashboardsListComponent } from './components/dashboards/dashboards-list.component';
 import { DashboardViewComponent } from './components/dashboards/dashboard-view.component';
@@ -85,6 +88,9 @@ import { DashboardRowsDialogComponent } from './components/dashboards/dashboard-
     MatTabsModule,
     ReportChartComponent,
     KpiTileComponent,
+    GaugeChartComponent,
+    FunnelChartComponent,
+    HeatmapChartComponent,
     // Schedules is deliberately ungated: being named a viewer on a scheduled task is a
     // per-task grant, not a query-running one, so an Access Manager can hold it. The other
     // three need a role that confers query access — see queryAccessGuard.

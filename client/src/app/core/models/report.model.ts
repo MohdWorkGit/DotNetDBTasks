@@ -19,7 +19,13 @@ export enum ReportChartType {
   Column = 0,
   Bar = 1,
   Line = 2,
-  Pie = 3
+  Pie = 3,
+  Area = 4,
+  StackedColumn = 5,
+  StackedBar = 6,
+  Doughnut = 7,
+  /** Columns for every series but the last, which is a line. */
+  Combo = 8
 }
 
 /** Mirrors ReportJoinType. */
@@ -252,6 +258,8 @@ export interface ReportRunChart {
   type: ReportChartType;
   categories: string[];
   series: ReportRunChartSeries[];
+  /** The last category sums those past the tile's limit; the viewer labels it "Other". */
+  lastIsOther?: boolean;
 }
 
 /**

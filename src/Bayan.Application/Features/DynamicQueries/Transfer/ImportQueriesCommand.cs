@@ -4,6 +4,7 @@ using Bayan.Domain.Services;
 using Bayan.Domain.Enums;
 using Bayan.Domain.Exceptions;
 using Bayan.Domain.Interfaces;
+using Bayan.Application.Features.Transfer;
 using MediatR;
 
 namespace Bayan.Application.Features.DynamicQueries.Transfer;
@@ -19,11 +20,14 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
+    private readonly IAppLocalizer _localizer;
 
-    public ImportQueriesCommandHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUser)
+    public ImportQueriesCommandHandler(
+        IUnitOfWork unitOfWork, ICurrentUserService currentUser, IAppLocalizer localizer)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
+        _localizer = localizer;
     }
 
     public async Task<QueryImportResult> Handle(
@@ -32,11 +36,12 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
     {
         var file = request.File;
         if (file is null || file.Queries.Count == 0)
-            throw new DomainException("The file contains no queries to import.");
-        if (file.FormatVersion > QueryExportFile.CurrentFormatVersion)
-            throw new DomainException(
-                $"This file was written by a newer version (format {file.FormatVersion}); " +
-                $"this system reads up to format {QueryExportFile.CurrentFormatVersion}.");
+            throw new DomainException(_localizer[MessageKeys.TransferNoContent]);
+        // A transfer file (format 2) hands its queries over with this command, so up to the
+        // transfer format is readable here.
+        if (file.FormatVersion > TransferFile.CurrentFormatVersion)
+            throw new DomainException(_localizer[MessageKeys.TransferNewerFormat,
+                file.FormatVersion, TransferFile.CurrentFormatVersion]);
 
         var result = new QueryImportResult();
 
@@ -65,11 +70,11 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
         {
             if (string.IsNullOrWhiteSpace(exported.Name) || string.IsNullOrWhiteSpace(exported.SqlQuery))
             {
-                result.Warnings.Add($"Skipped an entry with no name or SQL.");
+                result.Warnings.Add(_localizer[MessageKeys.TransferNoNameOrSql]);
                 continue;
             }
 
-            var name = UniqueName(exported.Name, takenNames, out var wasRenamed);
+            var name = ImportNaming.UniqueName(exported.Name, takenNames, out var wasRenamed);
             takenNames.Add(name);
 
             var entity = new DynamicQuery
@@ -89,11 +94,11 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
                 CreatedByUserId = _currentUser.UserId,
                 CreatedAt = now,
                 WordTemplateFileName = exported.WordTemplateFileName,
-                WordTemplate = DecodeTemplate(exported, result)
+                WordTemplate = DecodeTemplate(exported, result, _localizer)
             };
 
             entity.QueryGroupId = await ResolveGroupAsync(exported.QueryGroupName, groups, now, cancellationToken);
-            entity.DatabaseUserId = ResolveDatabaseUser(exported, databaseUsers, name, result);
+            entity.DatabaseUserId = ResolveDatabaseUser(exported, databaseUsers, name, result, _localizer);
 
             foreach (var p in exported.Parameters)
             {
@@ -117,7 +122,7 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
                 });
             }
 
-            AddAssignments(entity, exported, roles, users, userGroups, name, result);
+            AddAssignments(entity, exported, roles, users, userGroups, name, result, _localizer);
 
             await _unitOfWork.DynamicQueries.AddAsync(entity, cancellationToken);
             importedByOriginalName[exported.Name] = entity;
@@ -181,10 +186,8 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
 
                 if (sourceId is null)
                 {
-                    result.Warnings.Add(
-                        $"'{entity.Name}': parameter '{p.Name}' gets its options from query " +
-                        $"'{p.DropdownQueryName}', which does not exist here — the dropdown will be empty " +
-                        $"until you point it at a query.");
+                    result.Warnings.Add(_localizer[MessageKeys.TransferQueryDropdownMissing,
+                        entity.Name, p.Name, p.DropdownQueryName!]);
                     continue;
                 }
 
@@ -198,7 +201,7 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
             await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    private static byte[]? DecodeTemplate(ExportedQuery exported, QueryImportResult result)
+    private static byte[]? DecodeTemplate(ExportedQuery exported, QueryImportResult result, IAppLocalizer localizer)
     {
         if (string.IsNullOrWhiteSpace(exported.WordTemplateBase64))
             return null;
@@ -209,7 +212,7 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
         catch (FormatException)
         {
             // A corrupt template must not cost you the query itself.
-            result.Warnings.Add($"'{exported.Name}': the Word template could not be read and was skipped.");
+            result.Warnings.Add(localizer[MessageKeys.TransferTemplateUnreadable, exported.Name]);
             return null;
         }
     }
@@ -249,16 +252,15 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
         ExportedQuery exported,
         IReadOnlyDictionary<string, Guid> databaseUsers,
         string importedName,
-        QueryImportResult result)
+        QueryImportResult result,
+        IAppLocalizer localizer)
     {
         if (string.IsNullOrWhiteSpace(exported.DatabaseUserName))
             return null;
         if (databaseUsers.TryGetValue(exported.DatabaseUserName, out var id))
             return id;
 
-        result.Warnings.Add(
-            $"'{importedName}': database connection '{exported.DatabaseUserName}' is not configured here — " +
-            $"the query was left on the default connection. Set it before running the query.");
+        result.Warnings.Add(localizer[MessageKeys.TransferConnectionMissing, importedName, exported.DatabaseUserName]);
         return null;
     }
 
@@ -269,14 +271,15 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
         IReadOnlyDictionary<string, Guid> users,
         IReadOnlyDictionary<string, Guid> userGroups,
         string importedName,
-        QueryImportResult result)
+        QueryImportResult result,
+        IAppLocalizer localizer)
     {
         foreach (var roleName in exported.AssignedRoles)
         {
             if (roles.TryGetValue(roleName, out var roleId))
                 entity.DynamicQueryRoles.Add(new DynamicQueryRole { DynamicQueryId = entity.Id, RoleId = roleId });
             else
-                result.Warnings.Add($"'{importedName}': role '{roleName}' does not exist here and was not assigned.");
+                result.Warnings.Add(localizer[MessageKeys.TransferRoleMissing, importedName, roleName]);
         }
 
         // Groups are matched by name, like roles and users: an export carries no membership,
@@ -287,8 +290,7 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
                 entity.DynamicQueryUserGroups.Add(
                     new DynamicQueryUserGroup { DynamicQueryId = entity.Id, UserGroupId = userGroupId });
             else
-                result.Warnings.Add(
-                    $"'{importedName}': user group '{groupName}' does not exist here and was not assigned.");
+                result.Warnings.Add(localizer[MessageKeys.TransferUserGroupMissing, importedName, groupName]);
         }
 
         foreach (var username in exported.AssignedUsers)
@@ -296,34 +298,7 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
             if (users.TryGetValue(username, out var userId))
                 entity.DynamicQueryUsers.Add(new DynamicQueryUser { DynamicQueryId = entity.Id, UserId = userId });
             else
-                result.Warnings.Add($"'{importedName}': user '{username}' does not exist here and was not assigned.");
-        }
-    }
-
-    /// <summary>Name is capped at 200 chars in the schema, so the suffix has to fit inside it.</summary>
-    private const int MaxNameLength = 200;
-
-    private static string UniqueName(string desired, ISet<string> taken, out bool wasRenamed)
-    {
-        wasRenamed = false;
-        if (desired.Length > MaxNameLength)
-            desired = desired[..MaxNameLength];
-        if (!taken.Contains(desired))
-            return desired;
-
-        wasRenamed = true;
-        var suffix = 1;
-        while (true)
-        {
-            var marker = suffix == 1 ? " (imported)" : $" (imported {suffix})";
-            // Trim the base rather than the marker, so the copy is still recognisable.
-            var stem = desired.Length + marker.Length > MaxNameLength
-                ? desired[..(MaxNameLength - marker.Length)]
-                : desired;
-            var candidate = stem + marker;
-            if (!taken.Contains(candidate))
-                return candidate;
-            suffix++;
+                result.Warnings.Add(localizer[MessageKeys.TransferUserMissing, importedName, username]);
         }
     }
 }

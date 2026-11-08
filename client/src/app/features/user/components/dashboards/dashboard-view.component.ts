@@ -1,4 +1,6 @@
-import { Component, OnDestroy, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component, OnDestroy, OnInit, ChangeDetectorRef, QueryList, ViewChildren, inject
+} from '@angular/core';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -7,6 +9,7 @@ import { catchError } from 'rxjs/operators';
 import { TranslocoService } from '@jsverse/transloco';
 import { DashboardService } from '@core/services/dashboard.service';
 import { ToastService, extractApiError } from '@core/services/toast.service';
+import { AuthService } from '@core/services/auth.service';
 import { DropdownOption, ParameterType } from '@core/models/dynamic-query.model';
 import {
   DATE_PRESETS, datePresetLabelKey, isDatePreset, resolveDatePreset
@@ -18,9 +21,13 @@ import {
 import {
   DashboardRowsDialogComponent, DashboardRowsDialogData
 } from './dashboard-rows-dialog.component';
+import { DashboardTileComponent } from './dashboard-tile.component';
 
 /** Query parameters that drive the page itself rather than naming a filter. */
 const RESERVED_PARAMS = new Set(['tv', 'rotate', 'every']);
+
+/** How long Export PDF waits for tiles still loading before printing what it has. */
+const PRINT_WAIT_MS = 15000;
 
 /**
  * A dashboard: the filter bar, then a 12-column grid of tiles that each keep themselves current.
@@ -43,6 +50,12 @@ const RESERVED_PARAMS = new Set(['tv', 'rotate', 'every']);
                   [matTooltip]="'user.dashboards.refreshAllHint' | transloco">
             <mat-icon>refresh</mat-icon> {{ 'user.dashboards.refreshAll' | transloco }}
           </button>
+          <button mat-stroked-button type="button" (click)="exportPdf()" *ngIf="!tvMode"
+                  [disabled]="preparingPrint"
+                  [matTooltip]="'user.dashboards.exportPdfHint' | transloco">
+            <mat-icon>{{ preparingPrint ? 'hourglass_top' : 'picture_as_pdf' }}</mat-icon>
+            {{ (preparingPrint ? 'user.dashboards.preparingPrint' : 'user.dashboards.exportPdf') | transloco }}
+          </button>
           <button mat-icon-button type="button" (click)="toggleTvMode()"
                   [matTooltip]="(tvMode ? 'user.dashboards.exitTv' : 'user.dashboards.tvMode') | transloco"
                   [attr.aria-label]="(tvMode ? 'user.dashboards.exitTv' : 'user.dashboards.tvMode') | transloco">
@@ -64,7 +77,19 @@ const RESERVED_PARAMS = new Set(['tv', 'rotate', 'every']);
         <span class="error-text">{{ error }}</span>
       </div>
 
-      <p class="muted" dir="auto" *ngIf="dashboard?.description && !tvMode">{{ dashboard?.description }}</p>
+      <p class="muted description" dir="auto" *ngIf="dashboard?.description && !tvMode">{{ dashboard?.description }}</p>
+
+      <!-- Printed (and so in the PDF) instead of the filter form: what the page shows, for whom, when.
+           Always in the DOM so Ctrl+P gets it too, not just the Export PDF button. -->
+      <div class="print-only print-meta" *ngIf="dashboard">
+        <p *ngIf="appliedChips.length > 0" dir="auto">
+          <strong>{{ 'user.dashboards.appliedFilters' | transloco }}:</strong>
+          {{ appliedChips.join(' · ') }}
+        </p>
+        <p class="muted">
+          {{ 'user.dashboards.printedBy' | transloco: { time: (printedAt | date: 'medium'), user: username } }}
+        </p>
+      </div>
 
       <!-- Filter bar. Hidden on a wall screen, where nobody is at a keyboard; the applied values
            still show as chips so the screen says what it is showing. -->
@@ -213,6 +238,24 @@ const RESERVED_PARAMS = new Set(['tv', 'rotate', 'every']);
     .dashboard.tv { padding: 20px 28px; }
     .dashboard.tv h1 { font-size: 30px; }
     .dashboard.tv .grid { grid-auto-rows: minmax(200px, 22vh); gap: 18px; }
+
+    /* Print / Save as PDF. An A4 landscape page is about 1050 CSS px wide, which would trip the
+       narrow-screen rules above, so the desktop spans are restated here, after them. */
+    .print-meta p { margin: 0 0 4px; font-size: 12px; }
+    @media print {
+      .dashboard { padding: 0; }
+      .header-actions, .filters, .applied { display: none !important; }
+      .page-header h1 { margin: 0 0 4px; }
+      .description { margin: 0 0 4px; }
+      .print-meta { margin-block-end: 10px; }
+      .grid { gap: 10px; grid-auto-rows: 150px; }
+      .grid > [data-w="3"] { grid-column: span 3; }
+      .grid > [data-w="4"] { grid-column: span 4; }
+      .grid > [data-w="6"] { grid-column: span 6; }
+      .grid > [data-w="8"] { grid-column: span 8; }
+      .grid > [data-w="12"] { grid-column: span 12; }
+      app-dashboard-tile { break-inside: avoid; }
+    }
   `]
 })
 export class DashboardViewComponent implements OnInit, OnDestroy {
@@ -227,6 +270,9 @@ export class DashboardViewComponent implements OnInit, OnDestroy {
   private toast = inject(ToastService);
   private transloco = inject(TranslocoService);
   private cdr = inject(ChangeDetectorRef);
+  private auth = inject(AuthService);
+
+  @ViewChildren(DashboardTileComponent) private tiles?: QueryList<DashboardTileComponent>;
 
   dashboard: Dashboard | null = null;
   form: FormGroup = this.fb.group({});
@@ -242,16 +288,59 @@ export class DashboardViewComponent implements OnInit, OnDestroy {
   isFullscreen = false;
   readonly fullscreenSupported = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
 
+  /** Export PDF is waiting for tiles to finish loading. */
+  preparingPrint = false;
+  /** Stamped on the printed page; set as printing starts, by the button or by Ctrl+P. */
+  printedAt = new Date();
+  readonly username = this.auth.getUsername();
+
   private dashboardId = '';
   private subscriptions = new Subscription();
   private rotateTimer?: ReturnType<typeof setTimeout>;
+  private screenTitle: string | null = null;
+  private darkBeforePrint = false;
+  private inPrint = false;
   private readonly onFullscreenChange = () => {
     this.isFullscreen = !!document.fullscreenElement;
     this.cdr.detectChanges();
   };
 
+  /**
+   * Paper is light: the dark theme's tokens and its Material overrides all hang off the
+   * <c>dark-theme</c> class, so lifting the class for the print is the one switch that covers them
+   * all. Listening here rather than only in {@link exportPdf} means Ctrl+P prints the same page.
+   */
+  private readonly onBeforePrint = () => {
+    // A second beforeprint inside one print (Chromium fires another while rendering the PDF)
+    // must not overwrite what was remembered: by then the class is already gone.
+    if (this.inPrint) return;
+    this.inPrint = true;
+    this.printedAt = new Date();
+    this.darkBeforePrint = document.body.classList.contains('dark-theme');
+    if (this.darkBeforePrint) {
+      document.body.classList.remove('dark-theme');
+      document.documentElement.classList.remove('dark-theme');
+    }
+    this.cdr.detectChanges();
+  };
+  private readonly onAfterPrint = () => {
+    if (!this.inPrint) return;
+    this.inPrint = false;
+    if (this.darkBeforePrint) {
+      document.body.classList.add('dark-theme');
+      document.documentElement.classList.add('dark-theme');
+      this.darkBeforePrint = false;
+    }
+    if (this.screenTitle !== null) {
+      document.title = this.screenTitle;
+      this.screenTitle = null;
+    }
+  };
+
   ngOnInit(): void {
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
+    window.addEventListener('beforeprint', this.onBeforePrint);
+    window.addEventListener('afterprint', this.onAfterPrint);
 
     // Subscribed rather than read once: rotation navigates between dashboards on this same
     // route, which reuses the component.
@@ -275,6 +364,8 @@ export class DashboardViewComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     clearTimeout(this.rotateTimer);
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+    window.removeEventListener('beforeprint', this.onBeforePrint);
+    window.removeEventListener('afterprint', this.onAfterPrint);
     this.setTvMode(false);
     this.subscriptions.unsubscribe();
   }
@@ -368,6 +459,37 @@ export class DashboardViewComponent implements OnInit, OnDestroy {
 
   refreshAll(): void {
     this.refreshNonce++;
+  }
+
+  /**
+   * Prints the dashboard; the browser's print dialog offers "Save as PDF". The browser renders
+   * the page, so Arabic shaping, RTL and the vector charts come out as they are on screen — the
+   * offline bundle has no PDF library that could do that server-side.
+   *
+   * <p>Waits for tiles still loading, so the PDF has no spinners in it, but not forever: a tile
+   * whose query hangs prints as it stands after {@link PRINT_WAIT_MS}.</p>
+   */
+  exportPdf(): void {
+    if (!this.dashboard || this.preparingPrint) return;
+    this.preparingPrint = true;
+    this.cdr.detectChanges();
+
+    const started = Date.now();
+    const attempt = () => {
+      const pending = this.tiles?.some(t => !t.settled) ?? false;
+      if (pending && Date.now() - started < PRINT_WAIT_MS) {
+        setTimeout(attempt, 200);
+        return;
+      }
+      this.preparingPrint = false;
+      // The document title becomes the PDF's suggested file name.
+      this.screenTitle = document.title;
+      document.title = `${this.dashboard?.name ?? 'dashboard'} - ${toIsoDate(new Date())}`;
+      this.cdr.detectChanges();
+      // One frame so the button's state is painted before print freezes the page.
+      requestAnimationFrame(() => window.print());
+    };
+    attempt();
   }
 
   onDrill(tile: DashboardTile, category: string | null): void {

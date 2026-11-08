@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoModule } from '@jsverse/transloco';
 import {
-  DashboardConditionalRule, DashboardKpiData, DashboardValueFormat, matchRule
+  DashboardConditionalRule, DashboardKpiData, DashboardValueFormat, formatDashboardValue, matchRule
 } from '@core/models/dashboard.model';
 
 /**
@@ -129,16 +129,7 @@ export class KpiTileComponent implements OnChanges {
   }
 
   private formatValue(value: number): string {
-    switch (this.format) {
-      case DashboardValueFormat.Percent:
-        return value.toLocaleString(undefined, { style: 'percent', maximumFractionDigits: 1 });
-      case DashboardValueFormat.Currency:
-        // No currency is configured anywhere in the system, so "currency" means money-shaped:
-        // always two decimals, grouped.
-        return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      default:
-        return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-    }
+    return formatDashboardValue(value, this.format);
   }
 
   /** Scaled to its own range, not from zero: a sparkline is about shape, not magnitude. */

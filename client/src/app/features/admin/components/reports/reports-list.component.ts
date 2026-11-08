@@ -19,6 +19,7 @@ import { PERM } from '@core/models/permissions';
       <div class="page-header">
         <h1>{{ 'admin.reports.title' | transloco }}</h1>
         <span class="spacer"></span>
+        <app-transfer-menu #transfer kind="report" (imported)="reload()"></app-transfer-menu>
         <button mat-flat-button color="primary" *ngIf="canManage" (click)="create()">
           <mat-icon>add</mat-icon> {{ 'admin.reports.create' | transloco }}
         </button>
@@ -107,6 +108,9 @@ import { PERM } from '@core/models/permissions';
                     <button mat-menu-item *ngIf="canManageAccess" (click)="access(r)">
                       <mat-icon>group</mat-icon> {{ 'admin.reports.access' | transloco }}
                     </button>
+                    <button mat-menu-item *ngIf="transfer.canTransfer" (click)="transfer.exportOne(r.id, r.name)">
+                      <mat-icon>file_download</mat-icon> {{ 'admin.transfer.exportOne' | transloco }}
+                    </button>
                     <button mat-menu-item *ngIf="canManage" (click)="remove(r)">
                       <mat-icon>delete</mat-icon> {{ 'common.delete' | transloco }}
                     </button>
@@ -162,6 +166,11 @@ export class ReportsListComponent implements OnInit {
     this.dataSource.filterPredicate = (report, filter) =>
       (report.name + ' ' + (report.description ?? '')).toLowerCase().includes(filter);
 
+    this.load();
+  }
+
+  /** After an import: whatever came in belongs in the list. */
+  reload(): void {
     this.load();
   }
 

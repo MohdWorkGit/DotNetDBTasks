@@ -99,4 +99,24 @@ public static class MessageKeys
     public const string ImportSummarySkipped = nameof(ImportSummarySkipped);
     public const string ImportSummaryMore = nameof(ImportSummaryMore);
     public const string ImportNoDepartmentMatches = nameof(ImportNoDepartmentMatches);
+
+    // Export / import of queries, reports and dashboards.
+    public const string TransferNoContent = nameof(TransferNoContent);
+    public const string TransferNewerFormat = nameof(TransferNewerFormat);
+    public const string TransferInvalidFile = nameof(TransferInvalidFile);
+    public const string TransferNoFile = nameof(TransferNoFile);
+    public const string TransferTooLarge = nameof(TransferTooLarge);
+    public const string TransferNeedsPermission = nameof(TransferNeedsPermission);
+    public const string TransferItemSkipped = nameof(TransferItemSkipped);
+    public const string TransferNoNameOrSql = nameof(TransferNoNameOrSql);
+    public const string TransferRoleMissing = nameof(TransferRoleMissing);
+    public const string TransferUserGroupMissing = nameof(TransferUserGroupMissing);
+    public const string TransferUserMissing = nameof(TransferUserMissing);
+    public const string TransferConnectionMissing = nameof(TransferConnectionMissing);
+    public const string TransferTemplateUnreadable = nameof(TransferTemplateUnreadable);
+    public const string TransferQueryDropdownMissing = nameof(TransferQueryDropdownMissing);
+    public const string TransferDropdownToText = nameof(TransferDropdownToText);
+    public const string TransferReportQueryMissing = nameof(TransferReportQueryMissing);
+    public const string TransferTileQueryMissing = nameof(TransferTileQueryMissing);
+    public const string TransferDrillReportMissing = nameof(TransferDrillReportMissing);
 }

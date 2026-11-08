@@ -13,8 +13,13 @@ import { EXPORT_FORMATS, ExportFormatOption } from '@core/models/export-formats'
 import { PERM } from '@core/models/permissions';
 import { toIsoDate } from '@core/models/local-date';
 import {
-  DashboardDrillAction, DashboardTile, DashboardTileData, matchRule
+  DashboardDisplayOptions, DashboardDrillAction, DashboardTile, DashboardTileData, DashboardValueFormat,
+  DashboardVisualType, defaultDisplayOptions, formatDashboardValue, matchRule
 } from '@core/models/dashboard.model';
+import { ReportRunChart } from '@core/models/report.model';
+
+/** Shared so a tile without options does not hand its chart a new object on every pass. */
+const NO_OPTIONS: DashboardDisplayOptions = defaultDisplayOptions();
 
 /**
  * One tile: fetches its own data and keeps it current.
@@ -73,11 +78,23 @@ import {
         </div>
 
         <ng-container *ngIf="data && !data.error && !data.isEmpty">
-          <app-kpi-tile *ngIf="data.kpi" [kpi]="data.kpi" [rules]="tile.conditionalRules"
-                        [format]="tile.valueFormat" [higherIsBetter]="tile.higherIsBetter"></app-kpi-tile>
+          <ng-container *ngIf="data.kpi">
+            <app-gauge-chart *ngIf="tile.visualType === VisualType.Gauge; else kpiTpl" [kpi]="data.kpi"
+                             [format]="tile.valueFormat" [max]="options.gaugeMax ?? null"></app-gauge-chart>
+            <ng-template #kpiTpl>
+              <app-kpi-tile [kpi]="data.kpi" [rules]="tile.conditionalRules"
+                            [format]="tile.valueFormat" [higherIsBetter]="tile.higherIsBetter"></app-kpi-tile>
+            </ng-template>
+          </ng-container>
 
-          <app-report-chart *ngIf="data.chart" [chart]="data.chart" [compact]="true"
-                            [interactive]="drillable" (categoryClick)="drill.emit($event)"></app-report-chart>
+          <ng-container *ngIf="chart" [ngSwitch]="tile.visualType">
+            <app-funnel-chart *ngSwitchCase="VisualType.Funnel" [chart]="chart" [interactive]="drillable"
+                              [colourIndex]="funnelColour" (categoryClick)="onCategory($event)"></app-funnel-chart>
+            <app-heatmap-chart *ngSwitchCase="VisualType.Heatmap" [chart]="chart" [interactive]="drillable"
+                               (categoryClick)="onCategory($event)"></app-heatmap-chart>
+            <app-report-chart *ngSwitchDefault [chart]="chart" [options]="options" [compact]="true"
+                              [interactive]="drillable" (categoryClick)="onCategory($event)"></app-report-chart>
+          </ng-container>
 
           <div class="tile-table" *ngIf="data.table">
             <table>
@@ -86,9 +103,18 @@ import {
               </thead>
               <tbody>
                 <tr *ngFor="let row of data.table.rows">
-                  <td *ngFor="let c of data.table.columns" dir="auto" [ngClass]="toneClass(c, row[c])">{{ row[c] }}</td>
+                  <td *ngFor="let c of data.table.columns" [attr.dir]="formatOf(c) !== null ? 'ltr' : 'auto'"
+                      [class.numeric-cell]="formatOf(c) !== null" [ngClass]="toneClass(c, row[c])">{{ cellText(c, row[c]) }}</td>
                 </tr>
               </tbody>
+              <tfoot *ngIf="totals">
+                <tr>
+                  <th *ngFor="let c of data.table.columns; let first = first" scope="row" class="total"
+                      [class.numeric-cell]="totals[c] !== undefined" dir="auto">
+                    {{ totals[c] !== undefined ? cellText(c, totals[c]) : (first ? ('user.dashboards.total' | transloco) : '') }}
+                  </th>
+                </tr>
+              </tfoot>
             </table>
             <p class="muted more" *ngIf="data.table.totalRows > data.table.rows.length">
               {{ 'user.dashboards.tableMore' | transloco: { shown: data.table.rows.length, total: data.table.totalRows } }}
@@ -125,6 +151,7 @@ import {
       white-space: nowrap;
     }
     .tile-table th { position: sticky; inset-block-start: 0; background: var(--bg-card); color: var(--text-secondary); font-weight: 600; }
+    .tile-table tfoot th { position: sticky; inset-block-end: 0; color: var(--text-primary); border-block-start: 2px solid var(--divider-color); }
     .more { font-size: 12px; margin: 6px 0 0; }
     .tile-menu { margin-inline-end: -8px; inline-size: 32px; block-size: 32px; padding: 4px; }
     .tile-menu mat-icon { font-size: 20px; inline-size: 20px; block-size: 20px; }
@@ -132,6 +159,12 @@ import {
     .tone-good { color: var(--status-success); font-weight: 600; }
     .tone-warn { color: var(--status-warning); font-weight: 600; }
     .tone-bad { color: var(--status-error); font-weight: 600; }
+    @media print {
+      .tile-menu, .stale-icon { display: none; }
+      /* Sticky headers repeat oddly on paper; the tile is printed whole anyway. */
+      .tile-table th { position: static; }
+      .tile-table { overflow: hidden; }
+    }
   `]
 })
 export class DashboardTileComponent implements OnInit, OnChanges, OnDestroy {
@@ -160,7 +193,13 @@ export class DashboardTileComponent implements OnInit, OnChanges, OnDestroy {
   downloadFormats: ExportFormatOption[] = [];
   downloading = false;
 
+  readonly VisualType = DashboardVisualType;
+
   data: DashboardTileData | null = null;
+  /** The data's chart as drawn: the "Other" bucket labelled in the viewer's language. */
+  chart: ReportRunChart | null = null;
+  /** Table tiles: the sum of each numeric column, when the totals row is on. */
+  totals: Record<string, number> | null = null;
   loading = false;
   /** The last fetch failed at the HTTP level; the previous data is still on screen. */
   stale = false;
@@ -177,10 +216,79 @@ export class DashboardTileComponent implements OnInit, OnChanges, OnDestroy {
     }
   };
 
+  /** Has an answer — data or an error — and is not fetching. What Export PDF waits for. */
+  get settled(): boolean {
+    return !this.loading && this.data !== null;
+  }
+
   get drillable(): boolean {
     return this.tile.drillAction === DashboardDrillAction.FilterDashboard
       || this.tile.drillAction === DashboardDrillAction.OpenReport
       || this.tile.drillAction === DashboardDrillAction.ShowRows;
+  }
+
+  get options(): DashboardDisplayOptions {
+    return this.tile.displayOptions ?? NO_OPTIONS;
+  }
+
+  /**
+   * A drill from the chart. The "Other" bucket is many categories summed, not a value any filter
+   * or report parameter could take, so clicking it does nothing.
+   */
+  onCategory(category: string): void {
+    const chart = this.chart;
+    if (chart?.lastIsOther && category === chart.categories[chart.categories.length - 1]) return;
+    this.drill.emit(category);
+  }
+
+  /** A funnel is one series: it takes the colour chosen for that series, or the first. */
+  get funnelColour(): number {
+    const name = this.chart?.series[0]?.name;
+    return (name && this.options.seriesColors?.[name]) || 0;
+  }
+
+  /** The number format chosen for a table column, or null to show the value as it came. */
+  formatOf(column: string): DashboardValueFormat | null {
+    return this.options.columnFormats?.[column] ?? null;
+  }
+
+  cellText(column: string, value: unknown): string {
+    const format = this.formatOf(column);
+    if (value === null || value === undefined) return '';
+    if (format === null) return String(value);
+    const n = typeof value === 'number' ? value : Number(value);
+    return isNaN(n) || String(value).trim() === '' ? String(value) : formatDashboardValue(n, format);
+  }
+
+  /** Derives what the template draws from what the server sent. */
+  private present(data: DashboardTileData): void {
+    const chart = data.chart ?? null;
+    this.chart = chart && chart.lastIsOther && chart.categories.length > 0
+      ? {
+          ...chart,
+          categories: [...chart.categories.slice(0, -1), this.transloco.translate('user.dashboards.other')]
+        }
+      : chart;
+
+    this.totals = null;
+    if (data.table && this.options.totalsRow) {
+      const totals: Record<string, number> = {};
+      for (const column of data.table.columns) {
+        let sum = 0;
+        let numeric = false;
+        for (const row of data.table.rows) {
+          const v = row[column];
+          if (v === null || v === undefined || v === '') continue;
+          const n = typeof v === 'number' ? v : Number(v);
+          // One non-number makes it a text column, which has no total.
+          if (isNaN(n) || typeof v === 'boolean') { numeric = false; sum = NaN; break; }
+          sum += n;
+          numeric = true;
+        }
+        if (numeric && !isNaN(sum)) totals[column] = sum;
+      }
+      this.totals = totals;
+    }
   }
 
   toneClass(column: string, value: unknown): string | null {
@@ -250,6 +358,7 @@ export class DashboardTileComponent implements OnInit, OnChanges, OnDestroy {
       this.loading = false;
       if (data) {
         this.data = data;
+        this.present(data);
         this.stale = false;
       } else {
         // Keep showing the last good result and say it is out of date, rather than blanking a

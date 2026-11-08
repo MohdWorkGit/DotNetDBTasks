@@ -124,6 +124,10 @@ Class: `[Authorize]`. A report composes several saved queries into one templated
 | `DELETE /{id}/template` | `reports.manage` | Removes the template. Exports then fall back to a generated starter. |
 | `GET /{id}/access` | `access.manageReport` | `{ roleIds, userGroupIds, userIds }`. |
 | `PUT /{id}/access` | `access.manageReport` | Replaces all three at once — send the whole object. |
+| `GET /{id}/export` | `reports.transfer` | Exports one report as JSON (transfer format 2). Query: `includeDependencies` (default `true`) also writes the queries its datasets and dropdowns read — which needs `queries.transfer` too, since the file then carries their SQL (**403** otherwise). References travel by name; the Word template travels as base64; no database credentials. Import at `POST /api/admin/transfer/import`. |
+| `GET /export` | `reports.transfer` | Every report in one file. Same `includeDependencies`. |
+
+Chart types (`chartType`): 0 Column, 1 Bar, 2 Line, 3 Pie, 4 Area, 5 StackedColumn, 6 StackedBar, 7 Doughnut, 8 Combo. All are native Word charts. A Combo draws every series but the last as columns and the last as a line on its own value axis, so it needs at least two series (400 otherwise); Pie and Doughnut draw the first series only.
 
 ## Dashboards — `/api/admin/dashboards`
 
@@ -140,6 +144,20 @@ own refresh interval and draws the result as a KPI, a chart or a small table.
 | `DELETE /{id}` | `dashboards.manage` | Deletes the dashboard, its tiles, filters and grants. The queries are untouched. A query that a tile uses cannot be deleted until the tile is removed. **400** while a scheduled task snapshots the dashboard, naming the task. |
 | `GET /{id}/access` | `access.manageDashboard` | `{ roleIds, userGroupIds, userIds }`. |
 | `PUT /{id}/access` | `access.manageDashboard` | Replaces all three at once. A role only grants when it holds `dashboards.run`. |
+| `GET /{id}/export` | `dashboards.transfer` | Exports one dashboard as JSON (transfer format 2). Query: `includeDependencies` (default `true`) also writes the queries its tiles and filter dropdowns read and the reports its tiles open on click — which needs `queries.transfer` and `reports.transfer` too (**403** otherwise). |
+| `GET /export` | `dashboards.transfer` | Every dashboard in one file. Same `includeDependencies`. |
+
+Tile `visualType`: 0 Kpi, 1 Column, 2 Bar, 3 Line, 4 Pie, 5 Table, 6 Area, 7 StackedColumn, 8 StackedBar, 9 Doughnut, 10 Combo, 11 Gauge, 12 Funnel, 13 Heatmap. Gauge is a KPI drawn as a dial (same `valueColumn`, `kpiAggregate`, `targetValue`). Funnel ranks its categories largest first. Heatmap needs `displayOptions.splitByColumn` for its columns. In a scheduled snapshot, a funnel is written as a bar chart and a heatmap as its pivoted table only — Word has no native chart for either.
+
+`displayOptions` (all optional, defaults = how tiles drew before): `legend` (`auto`\|`top`\|`bottom`\|`hidden`), `dataLabels`, `sort` (`none`\|`valueDesc`\|`valueAsc`\|`category`), `groupOthers` (sum what falls past `maxCategories` into a last category; the tile data then has `chart.lastIsOther: true` and the viewer labels it), `splitByColumn` (pivot long rows into one series per value; first series column is the value; ≤12 series, ≤40 heatmap columns), `stackPercent`, `lineSeries[]` and `secondaryAxis` (combo), `axisMin`/`axisMax` (min < max), `referenceLine`/`referenceLabel` (≤100 chars), `seriesColors` (series → palette index 0–9), `gaugeMax` (> 0), `totalsRow` and `columnFormats` (column → value format) for tables. 400 on an unknown legend or sort value, or any bound above.
+
+## Transfer — `/api/admin/transfer`
+
+Class: `[Authorize]`.
+
+| Verb + path | Roles | Notes |
+|---|---|---|
+| `POST /import` | per content | Imports a file written by any export endpoint, including a format-1 query backup. multipart `file`, ≤50 MB. Needs `queries.transfer`, `reports.transfer` and/or `dashboards.transfer` for each kind the file holds — all checked before anything is written (**403** naming the missing one). Order: queries, then reports, then dashboards, so each resolves names against what came in before it, then against what already exists. Never overwrites: a name clash comes in as `Name (imported)`. Unresolvable references are warnings, not failures — a tile whose query is missing is left out, a drill to a missing report is switched off, a dropdown whose lookup query is missing becomes a text field, a missing role/group/user is not granted; a report whose dataset query is missing is skipped with the reason. Each report and dashboard is saved through the normal save validation; one that fails is skipped with the reason. Returns `{ queries[], reports[], dashboards[], warnings[], importedCount, renamedCount }`, each item `{ originalName, importedName, wasRenamed }`. Messages follow `Accept-Language`. |
 
 ## Query groups — `/api/admin/querygroups`
 

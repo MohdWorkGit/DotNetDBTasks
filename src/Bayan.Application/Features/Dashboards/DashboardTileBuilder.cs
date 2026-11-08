@@ -23,7 +23,8 @@ public static class DashboardTileBuilder
     public static void Fill(DashboardTileDataDto data, DashboardTile tile, QueryExecutionResult result)
     {
         // No rows is "no data" — except for a row count, where it is the answer: zero.
-        var countsRows = tile.VisualType == DashboardVisualType.Kpi && tile.KpiAggregate == DashboardKpiAggregate.Count;
+        var countsRows = (tile.VisualType is DashboardVisualType.Kpi or DashboardVisualType.Gauge)
+                         && tile.KpiAggregate == DashboardKpiAggregate.Count;
         if (result.Rows.Count == 0 && !countsRows)
         {
             data.IsEmpty = true;
@@ -33,6 +34,7 @@ public static class DashboardTileBuilder
         switch (tile.VisualType)
         {
             case DashboardVisualType.Kpi:
+            case DashboardVisualType.Gauge:
                 data.Kpi = BuildKpi(tile, result);
                 if (data.Kpi is null)
                     data.Error = $"The query returned no column named '{tile.ValueColumn}'.";
@@ -53,37 +55,82 @@ public static class DashboardTileBuilder
         }
     }
 
+    /// <summary>Most series a split-by tile draws; a heatmap's columns may go further.</summary>
+    public const int MaxSplitSeries = 12;
+    public const int MaxHeatmapColumns = 40;
+
+    /// <summary>
+    /// The chart type the data carries, which is what the Word writer draws in a scheduled
+    /// snapshot. Funnel and heatmap have no native Word chart: a funnel is already-sorted
+    /// horizontal bars, and a heatmap is left out of the document's charts (its table stays) —
+    /// the screen picks its renderer from the tile's visual type, not from this.
+    /// </summary>
+    public static ReportChartType ChartTypeFor(DashboardVisualType visual) => visual switch
+    {
+        DashboardVisualType.Bar => ReportChartType.Bar,
+        DashboardVisualType.Line => ReportChartType.Line,
+        DashboardVisualType.Pie => ReportChartType.Pie,
+        DashboardVisualType.Area => ReportChartType.Area,
+        DashboardVisualType.StackedColumn => ReportChartType.StackedColumn,
+        DashboardVisualType.StackedBar => ReportChartType.StackedBar,
+        DashboardVisualType.Doughnut => ReportChartType.Doughnut,
+        DashboardVisualType.Combo => ReportChartType.Combo,
+        DashboardVisualType.Funnel => ReportChartType.Bar,
+        _ => ReportChartType.Column
+    };
+
     private static ReportChartData? BuildChart(DashboardTile tile, QueryExecutionResult result)
     {
-        // A transient chart definition: the builder only reads these fields.
-        var chart = new ReportChart
+        var options = DashboardMapper.ParseOptions(tile.DisplayOptionsJson);
+        var type = ChartTypeFor(tile.VisualType);
+        var key = tile.Id.ToString("N");
+        var categoryColumn = ResolveColumn(result, tile.CategoryColumn) ?? tile.CategoryColumn ?? string.Empty;
+        var seriesColumns = DashboardMapper.ParseSeriesColumns(tile.SeriesColumnsJson)
+            .Select(c => ResolveColumn(result, c) ?? c)
+            .ToList();
+
+        // A funnel's stages are ranked by size whatever the query's order; that is what makes it one.
+        var sort = tile.VisualType == DashboardVisualType.Funnel ? "valueDesc" : options.Sort;
+        var reshapes = sort != "none" || options.GroupOthers;
+
+        ReportChartData? chart;
+        if (!string.IsNullOrWhiteSpace(options.SplitByColumn) && seriesColumns.Count > 0
+            && !ReportChartBuilder.IsSingleSeries(type) && tile.VisualType != DashboardVisualType.Funnel)
         {
-            ChartKey = tile.Id.ToString("N"),
+            var splitColumn = ResolveColumn(result, options.SplitByColumn) ?? options.SplitByColumn!;
+            chart = ReportChartBuilder.Pivot(
+                key, type, result.Columns, result.Rows, categoryColumn, splitColumn, seriesColumns[0],
+                tile.VisualType == DashboardVisualType.Heatmap ? MaxHeatmapColumns : MaxSplitSeries);
+            if (chart is null || chart.IsEmpty)
+                return null;
+            return ReportChartBuilder.Shape(chart, sort, tile.MaxCategories, options.GroupOthers);
+        }
+
+        // A transient chart definition: the builder only reads these fields.
+        var definition = new ReportChart
+        {
+            ChartKey = key,
             Title = string.Empty,   // the tile header already shows the title
-            ChartType = tile.VisualType switch
-            {
-                DashboardVisualType.Bar => ReportChartType.Bar,
-                DashboardVisualType.Line => ReportChartType.Line,
-                DashboardVisualType.Pie => ReportChartType.Pie,
-                _ => ReportChartType.Column
-            },
-            CategoryColumn = ResolveColumn(result, tile.CategoryColumn) ?? tile.CategoryColumn ?? string.Empty,
-            SeriesColumnsJson = JsonSerializer.Serialize(
-                DashboardMapper.ParseSeriesColumns(tile.SeriesColumnsJson)
-                    .Select(c => ResolveColumn(result, c) ?? c)),
-            MaxCategories = tile.MaxCategories
+            ChartType = type,
+            CategoryColumn = categoryColumn,
+            SeriesColumnsJson = JsonSerializer.Serialize(seriesColumns),
+            // Sorting or grouping needs every row: the top ten by value are not the first ten rows.
+            MaxCategories = reshapes ? int.MaxValue : tile.MaxCategories
         };
 
         var section = new ReportSectionResult
         {
-            Key = chart.ChartKey,
+            Key = key,
             Title = tile.Title,
             Columns = result.Columns,
             Rows = result.Rows,
             TotalRows = result.TotalRows
         };
 
-        return ReportChartBuilder.Build(chart, section);
+        chart = ReportChartBuilder.Build(definition, section);
+        if (chart is null || !reshapes)
+            return chart;
+        return ReportChartBuilder.Shape(chart, sort, tile.MaxCategories, options.GroupOthers);
     }
 
     /// <summary>

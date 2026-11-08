@@ -57,6 +57,10 @@ internal static class ChartPartWriter
     private static (int Category, int Value) AxisIds(int chartNumber) =>
         (100_000_000 + chartNumber * 2, 100_000_001 + chartNumber * 2);
 
+    /// <summary>A combo's second pair, in a range that cannot meet <see cref="AxisIds"/>.</summary>
+    private static (int Category, int Value) SecondaryAxisIds(int chartNumber) =>
+        (200_000_000 + chartNumber * 2, 200_000_001 + chartNumber * 2);
+
     /// <summary>The chart part itself: <c>/word/charts/chartN.xml</c>.</summary>
     public static string BuildChartXml(ReportChartData chart, int chartNumber)
     {
@@ -85,18 +89,45 @@ internal static class ChartPartWriter
         switch (chart.Type)
         {
             case ReportChartType.Pie:
-                AppendPie(sb, chart);
+                AppendPie(sb, chart, doughnut: false);
+                break;
+            case ReportChartType.Doughnut:
+                AppendPie(sb, chart, doughnut: true);
                 break;
             case ReportChartType.Line:
-                AppendLine(sb, chart, catAxId, valAxId);
+                AppendLine(sb, chart, Enumerable.Range(0, chart.Series.Count), catAxId, valAxId);
+                AppendAxes(sb, catAxId, valAxId, horizontalValues: false);
+                break;
+            case ReportChartType.Area:
+                AppendArea(sb, chart, catAxId, valAxId);
                 AppendAxes(sb, catAxId, valAxId, horizontalValues: false);
                 break;
             case ReportChartType.Bar:
-                AppendBar(sb, chart, catAxId, valAxId, direction: "bar");
+                AppendBar(sb, chart, Enumerable.Range(0, chart.Series.Count), catAxId, valAxId, "bar", stacked: false);
                 AppendAxes(sb, catAxId, valAxId, horizontalValues: true);
                 break;
+            case ReportChartType.StackedBar:
+                AppendBar(sb, chart, Enumerable.Range(0, chart.Series.Count), catAxId, valAxId, "bar", stacked: true);
+                AppendAxes(sb, catAxId, valAxId, horizontalValues: true);
+                break;
+            case ReportChartType.StackedColumn:
+                AppendBar(sb, chart, Enumerable.Range(0, chart.Series.Count), catAxId, valAxId, "col", stacked: true);
+                AppendAxes(sb, catAxId, valAxId, horizontalValues: false);
+                break;
+            case ReportChartType.Combo when chart.Series.Count > 1:
+            {
+                // Columns for all but the last series; the last is a line on its own scale at the
+                // far side, so a percentage can sit over amounts without flattening to the floor.
+                var (catAx2, valAx2) = SecondaryAxisIds(chartNumber);
+                var last = chart.Series.Count - 1;
+                AppendBar(sb, chart, Enumerable.Range(0, last), catAxId, valAxId, "col", stacked: false);
+                AppendLine(sb, chart, new[] { last }, catAx2, valAx2);
+                AppendAxes(sb, catAxId, valAxId, horizontalValues: false);
+                AppendSecondaryAxes(sb, catAx2, valAx2);
+                break;
+            }
             default:
-                AppendBar(sb, chart, catAxId, valAxId, direction: "col");
+                AppendBar(sb, chart, Enumerable.Range(0, chart.Series.Count), catAxId, valAxId, "col", stacked: false);
                 AppendAxes(sb, catAxId, valAxId, horizontalValues: false);
                 break;
         }
@@ -104,7 +135,7 @@ internal static class ChartPartWriter
         sb.Append("</c:plotArea>");
 
         // One series needs no legend: the title already says what is plotted.
-        if (chart.Series.Count > 1 || chart.Type == ReportChartType.Pie)
+        if (chart.Series.Count > 1 || IsPieLike(chart.Type))
             sb.Append("<c:legend><c:legendPos val=\"b\"/><c:overlay val=\"0\"/></c:legend>");
 
         sb.Append("<c:plotVisOnly val=\"1\"/><c:dispBlanksAs val=\"gap\"/>")
@@ -114,42 +145,70 @@ internal static class ChartPartWriter
     }
 
     private static void AppendBar(
-        StringBuilder sb, ReportChartData chart, int catAxId, int valAxId, string direction)
+        StringBuilder sb, ReportChartData chart, IEnumerable<int> series, int catAxId, int valAxId,
+        string direction, bool stacked)
     {
         sb.Append("<c:barChart>")
           .Append($"<c:barDir val=\"{direction}\"/>")
-          .Append("<c:grouping val=\"clustered\"/>")
+          .Append($"<c:grouping val=\"{(stacked ? "stacked" : "clustered")}\"/>")
           .Append("<c:varyColors val=\"0\"/>");
 
-        for (var i = 0; i < chart.Series.Count; i++)
-            AppendSeries(sb, chart, i);
+        foreach (var i in series)
+            AppendSeries(sb, chart, i, SeriesKind.Bar);
 
-        sb.Append("<c:gapWidth val=\"75\"/>")
-          .Append($"<c:axId val=\"{catAxId}\"/><c:axId val=\"{valAxId}\"/>")
+        sb.Append("<c:gapWidth val=\"75\"/>");
+        // Stacked segments must sit exactly on top of each other, not side by side.
+        if (stacked)
+            sb.Append("<c:overlap val=\"100\"/>");
+        sb.Append($"<c:axId val=\"{catAxId}\"/><c:axId val=\"{valAxId}\"/>")
           .Append("</c:barChart>");
     }
 
-    private static void AppendLine(StringBuilder sb, ReportChartData chart, int catAxId, int valAxId)
+    private static void AppendLine(
+        StringBuilder sb, ReportChartData chart, IEnumerable<int> series, int catAxId, int valAxId)
     {
         sb.Append("<c:lineChart>")
           .Append("<c:grouping val=\"standard\"/>")
           .Append("<c:varyColors val=\"0\"/>");
 
-        for (var i = 0; i < chart.Series.Count; i++)
-            AppendSeries(sb, chart, i);
+        foreach (var i in series)
+            AppendSeries(sb, chart, i, SeriesKind.Line);
 
         sb.Append("<c:marker val=\"1\"/>")
           .Append($"<c:axId val=\"{catAxId}\"/><c:axId val=\"{valAxId}\"/>")
           .Append("</c:lineChart>");
     }
 
-    private static void AppendPie(StringBuilder sb, ReportChartData chart)
+    private static void AppendArea(StringBuilder sb, ReportChartData chart, int catAxId, int valAxId)
+    {
+        sb.Append("<c:areaChart>")
+          .Append("<c:grouping val=\"standard\"/>")
+          .Append("<c:varyColors val=\"0\"/>");
+
+        for (var i = 0; i < chart.Series.Count; i++)
+            AppendSeries(sb, chart, i, SeriesKind.Area);
+
+        sb.Append($"<c:axId val=\"{catAxId}\"/><c:axId val=\"{valAxId}\"/>")
+          .Append("</c:areaChart>");
+    }
+
+    private static void AppendPie(StringBuilder sb, ReportChartData chart, bool doughnut)
     {
         // A pie shows parts of one whole, so only the first series is meaningful.
-        sb.Append("<c:pieChart><c:varyColors val=\"1\"/>");
-        AppendSeries(sb, chart, 0);
-        sb.Append("<c:firstSliceAng val=\"0\"/></c:pieChart>");
+        sb.Append(doughnut ? "<c:doughnutChart>" : "<c:pieChart>").Append("<c:varyColors val=\"1\"/>");
+        AppendSeries(sb, chart, 0, SeriesKind.Pie);
+        sb.Append("<c:firstSliceAng val=\"0\"/>");
+        sb.Append(doughnut ? "<c:holeSize val=\"50\"/></c:doughnutChart>" : "</c:pieChart>");
     }
+
+    private static bool IsPieLike(ReportChartType type) =>
+        type is ReportChartType.Pie or ReportChartType.Doughnut;
+
+    /// <summary>
+    /// How one series is drawn. Not always the chart's type: a combo puts bar series and a line
+    /// series in the same chart.
+    /// </summary>
+    private enum SeriesKind { Bar, Line, Area, Pie }
 
     /// <summary>
     /// An explicit fill for a series or a pie slice.
@@ -178,11 +237,11 @@ internal static class ChartPartWriter
           .Append("<a:round/></a:ln></c:spPr>");
     }
 
-    private static void AppendSeries(StringBuilder sb, ReportChartData chart, int index)
+    private static void AppendSeries(StringBuilder sb, ReportChartData chart, int index, SeriesKind kind)
     {
         var series = chart.Series[index];
-        var isPie = chart.Type == ReportChartType.Pie;
-        var isLine = chart.Type == ReportChartType.Line;
+        var isPie = kind == SeriesKind.Pie;
+        var isLine = kind == SeriesKind.Line;
 
         sb.Append("<c:ser>")
           .Append($"<c:idx val=\"{index}\"/><c:order val=\"{index}\"/>")
@@ -268,6 +327,31 @@ internal static class ChartPartWriter
           .Append("<c:majorGridlines/>")
           .Append("<c:numFmt formatCode=\"General\" sourceLinked=\"1\"/>")
           .Append($"<c:crossAx val=\"{catAxId}\"/>")
+          .Append("</c:valAx>");
+    }
+
+    /// <summary>
+    /// A combo's line axes: a hidden category axis matching the primary one, and a value axis on
+    /// the far side with its own scale.
+    /// </summary>
+    private static void AppendSecondaryAxes(StringBuilder sb, int catAxId, int valAxId)
+    {
+        sb.Append("<c:catAx>")
+          .Append($"<c:axId val=\"{catAxId}\"/>")
+          .Append("<c:scaling><c:orientation val=\"minMax\"/></c:scaling>")
+          .Append("<c:delete val=\"1\"/>")
+          .Append("<c:axPos val=\"b\"/>")
+          .Append($"<c:crossAx val=\"{valAxId}\"/>")
+          .Append("</c:catAx>");
+
+        sb.Append("<c:valAx>")
+          .Append($"<c:axId val=\"{valAxId}\"/>")
+          .Append("<c:scaling><c:orientation val=\"minMax\"/></c:scaling>")
+          .Append("<c:delete val=\"0\"/>")
+          .Append("<c:axPos val=\"r\"/>")
+          .Append("<c:numFmt formatCode=\"General\" sourceLinked=\"1\"/>")
+          .Append($"<c:crossAx val=\"{catAxId}\"/>")
+          .Append("<c:crosses val=\"max\"/>")
           .Append("</c:valAx>");
     }
 

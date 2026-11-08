@@ -830,7 +830,9 @@
         "dashboards.view": "See the dashboard list",
         "dashboards.manage": "Create and edit dashboards",
         "dashboards.run": "View dashboards",
-        "access.manageDashboard": "Grant a dashboard"
+        "access.manageDashboard": "Grant a dashboard",
+        "reports.transfer": "Export and import report definitions",
+        "dashboards.transfer": "Export and import dashboard definitions"
       },
       "hints": {
         "queries.view": "Opens Manage Queries and a query definition — without the SQL unless the next one is also held.",
@@ -873,7 +875,9 @@
         "dashboards.view": "Opens the admin dashboard list and a dashboard's definition.",
         "dashboards.manage": "Create, edit and delete dashboards, their tiles and filters.",
         "dashboards.run": "Open a dashboard that has been granted to you. Each tile's query is still checked separately.",
-        "access.manageDashboard": "Decide who may open a dashboard."
+        "access.manageDashboard": "Decide who may open a dashboard.",
+        "reports.transfer": "Export reports to JSON and import them back. Including their queries also needs the query export permission.",
+        "dashboards.transfer": "Export dashboards to JSON and import them back. Including their queries and reports also needs those export permissions."
       },
       "title": "Roles & Permissions"
     },
@@ -996,7 +1000,13 @@
       "accessFailed": "Could not save the report's access",
       "maxDetailRows": "Maximum detail rows",
       "maxDetailRowsHint": "Parent rows a detail dataset expands. 0 for no limit.",
-      "detailCostHintUnlimited": "This runs its query once per parent row, with no limit on how many."
+      "detailCostHintUnlimited": "This runs its query once per parent row, with no limit on how many.",
+      "typeArea": "Area",
+      "typeStackedColumn": "Stacked columns",
+      "typeStackedBar": "Stacked bars",
+      "typeDoughnut": "Doughnut",
+      "typeCombo": "Columns + line",
+      "typeComboHint": "The last series is drawn as a line on its own scale; the others are columns."
     },
     "dashboards": {
       "title": "Dashboards",
@@ -1155,7 +1165,76 @@
         "bad": "Bad (red)"
       },
       "addRule": "Add rule",
-      "removeRule": "Remove rule"
+      "removeRule": "Remove rule",
+      "visualGauge": "Gauge",
+      "visualStackedColumn": "Stacked columns",
+      "visualStackedBar": "Stacked bars",
+      "visualArea": "Area",
+      "visualCombo": "Columns + line",
+      "visualDoughnut": "Doughnut",
+      "visualFunnel": "Funnel",
+      "visualHeatmap": "Heatmap",
+      "options": {
+        "title": "Display options",
+        "legend": "Legend",
+        "legend_auto": "Automatic",
+        "legend_top": "Above the chart",
+        "legend_bottom": "Below the chart",
+        "legend_hidden": "Hidden",
+        "sort": "Order",
+        "sort_none": "As the query returns them",
+        "sort_valueDesc": "Largest first",
+        "sort_valueAsc": "Smallest first",
+        "sort_category": "By category name",
+        "dataLabels": "Show values on the chart",
+        "groupOthers": "Group the rest as \"Other\"",
+        "groupOthersHint": "Past the category limit, add the remaining categories together instead of leaving them out — so a pie still adds up to the whole.",
+        "splitBy": "Split into series by",
+        "splitByHint": "Optional. For rows like month, region, total: one series per region, using the first series column as the value.",
+        "splitByHeatmapHint": "Required. The heatmap's columns; the category column gives its rows and the first series column the cell values.",
+        "stackPercent": "Show as 100% (shares)",
+        "lineSeries": "Drawn as a line",
+        "lineSeriesHint": "The other series are columns. None chosen: the last series is the line.",
+        "secondaryAxis": "Give the line its own scale",
+        "secondaryAxisHint": "Only when the line is in different units, such as a percentage over amounts. Two scales on one chart make the marks look comparable when they are not.",
+        "axisMin": "Axis from",
+        "axisMax": "Axis to",
+        "referenceLine": "Reference line at",
+        "referenceLineHint": "Optional. A dashed line across the chart — a target or a limit.",
+        "referenceLabel": "Reference line label",
+        "seriesColour": "Colour of {{series}}",
+        "colourN": "Colour {{n}}",
+        "gaugeMax": "Dial maximum",
+        "gaugeMaxHint": "Optional. Empty: a round number above the target or the value.",
+        "totalsRow": "Totals row",
+        "columnFormatsHint": "Load the columns to choose how each one's numbers are shown.",
+        "formatAsIs": "As returned"
+      }
+    },
+    "transfer": {
+      "backup": "Backup",
+      "backupTip_report": "Export reports to a file, or import reports from one",
+      "backupTip_dashboard": "Export dashboards to a file, or import dashboards from one",
+      "exportAll_report": "Export all reports",
+      "exportAll_dashboard": "Export all dashboards",
+      "exportOne": "Export",
+      "import": "Import from file",
+      "include_report": "Include the queries they use",
+      "include_dashboard": "Include the queries and reports they use",
+      "includeHint_report": "So the file works on another system. On import, any of these whose name is already taken comes in as a copy.",
+      "includeHint_dashboard": "So the file works on another system — tile queries, filter lookups and drill-through reports. On import, any whose name is already taken comes in as a copy.",
+      "includeNotAllowed": "Needs permission to export queries (and reports, for dashboards). Without it, an import links to items of the same name that already exist there.",
+      "downloaded": "Export downloaded",
+      "exportFailed": "Could not export",
+      "importTitle": "Import from file?",
+      "importMessage": "Import from \"{{fileName}}\"?\n\nNothing existing is modified or deleted. Anything whose name is already taken is added as a copy for you to reconcile.",
+      "importConfirm": "Import",
+      "importFailed": "Could not import the file",
+      "importedOne": "Imported {{count}} item",
+      "importedMany": "Imported {{count}} items",
+      "sectionQueries": "Queries ({{count}})",
+      "sectionReports": "Reports ({{count}})",
+      "sectionDashboards": "Dashboards ({{count}})"
     }
   },
   "user": {
@@ -1265,6 +1344,10 @@
       "appliedFilters": "Applied filters",
       "refreshAll": "Refresh",
       "refreshAllHint": "Fetch every tile now. Results are shared between viewers, so a tile refreshed moments ago may show the same data.",
+      "exportPdf": "Export PDF",
+      "exportPdfHint": "Opens the print dialog with the dashboard as it is now, filters included. Choose \"Save as PDF\" as the printer.",
+      "preparingPrint": "Waiting for tiles…",
+      "printedBy": "Generated {{time}} by {{user}}",
       "tvMode": "Wall-screen mode",
       "exitTv": "Leave wall-screen mode",
       "fullscreen": "Full screen",
@@ -1304,7 +1387,9 @@
         "yearStart": "Start of this year",
         "daysAgo": "{{days}} days ago",
         "daysAhead": "In {{days}} days"
-      }
+      },
+      "other": "Other",
+      "total": "Total"
     }
   },
   "paginator": {
