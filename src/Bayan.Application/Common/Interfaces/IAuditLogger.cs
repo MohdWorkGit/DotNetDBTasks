@@ -75,6 +75,7 @@ public static class AuditActions
     public const string BrandingFaviconRemoved = "branding.faviconRemoved";
     public const string QueriesImport = "queries.import";
     public const string SettingsUpdated = "settings.updated";
+    public const string LogsRotated = "settings.logsRotated";
     public const string RolesCreate = "roles.create";
     public const string RolesUpdate = "roles.update";
     public const string RolesDelete = "roles.delete";
@@ -186,7 +187,7 @@ public static class AuditActions
             {
                 DirectoryImportUsers, DirectoryImportDepartment, DirectoryRevoke,
                 DirectoryRestore, DirectorySync, BrandingLogoSet, BrandingLogoRemoved,
-                SettingsUpdated, RolesCreate, RolesUpdate, RolesDelete, RolesSetPermissions
+                SettingsUpdated, LogsRotated, RolesCreate, RolesUpdate, RolesDelete, RolesSetPermissions
             })
             .Distinct()
             .ToList();

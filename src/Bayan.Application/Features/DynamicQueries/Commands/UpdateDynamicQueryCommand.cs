@@ -24,7 +24,8 @@ public class UpdateDynamicQueryCommand : IRequest<DynamicQueryDto>, IDynamicQuer
     public bool AllowRunWithoutConfirmation { get; set; }
     public bool SaveOldValues { get; set; }
     public Guid? DatabaseUserId { get; set; }
-    public Guid? QueryGroupId { get; set; }
+    /// <summary>The groups to file the query in; empty leaves it ungrouped.</summary>
+    public List<Guid> QueryGroupIds { get; set; } = new();
     /// <summary><c>ExportFileFormat</c> names; empty turns export off for this query.</summary>
     public List<string> AllowedExportFormats { get; set; } = new();
     public List<QueryParameterDto> Parameters { get; set; } = new();
@@ -61,7 +62,7 @@ public class UpdateDynamicQueryCommandHandler
         entity.AllowRunWithoutConfirmation = request.AllowRunWithoutConfirmation;
         entity.SaveOldValues = request.SaveOldValues;
         entity.DatabaseUserId = request.DatabaseUserId;
-        entity.QueryGroupId = request.QueryGroupId;
+        await QueryGroupFiling.ApplyAsync(entity, request.QueryGroupIds, _unitOfWork, cancellationToken);
         // Round-tripped through the domain parser so an unknown or duplicated name cannot be
         // written straight into the column from a hand-rolled request.
         entity.AllowedExportFormats = ExportPermissions.Serialize(

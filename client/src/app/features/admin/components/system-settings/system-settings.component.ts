@@ -1,8 +1,19 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { TranslocoService } from '@jsverse/transloco';
 import { ToastService } from '@core/services/toast.service';
+import { ConfirmService } from '@core/services/confirm.service';
 import { QueryService } from '@core/services/query.service';
-import { SETTING_LIMITS, SystemSettings } from '@core/models/dynamic-query.model';
+import { LogRotationResult, SETTING_LIMITS, SystemSettings } from '@core/models/dynamic-query.model';
+
+/** 0 (keep forever) or a whole number of days inside the bounds the server enforces. */
+function retentionDays(control: AbstractControl): ValidationErrors | null {
+  const value = control.value;
+  if (value === null || value === '' || value === undefined) return { required: true };
+  const n = Number(value);
+  const { min, max } = SETTING_LIMITS.logRetentionDays;
+  return Number.isInteger(n) && (n === 0 || (n >= min && n <= max)) ? null : { retention: true };
+}
 
 /**
  * Admin-only runtime settings.
@@ -119,6 +130,63 @@ import { SETTING_LIMITS, SystemSettings } from '@core/models/dynamic-query.model
             </form>
           </mat-card-content>
         </mat-card>
+
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>{{ 'admin.settings.retentionTitle' | transloco }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="card-intro">{{ 'admin.settings.retentionIntro' | transloco }}</p>
+            <form [formGroup]="retentionForm" (ngSubmit)="saveRetention()">
+              <div class="setting">
+                <mat-form-field appearance="outline" class="number-field">
+                  <mat-label>{{ 'admin.settings.executionLogRetention' | transloco }}</mat-label>
+                  <input matInput type="number" formControlName="executionLogRetentionDays"
+                         min="0" [max]="limits.logRetentionDays.max">
+                  <span matTextSuffix>{{ 'admin.settings.days' | transloco }}</span>
+                  <mat-error>
+                    {{ 'admin.settings.retentionOutOfRange' | transloco:
+                       { min: limits.logRetentionDays.min, max: limits.logRetentionDays.max } }}
+                  </mat-error>
+                </mat-form-field>
+                <p class="hint">{{ retentionHint(settings.executionLogRetentionDays, 'admin.settings.executionLogRetentionHint') }}</p>
+              </div>
+
+              <div class="setting">
+                <mat-form-field appearance="outline" class="number-field">
+                  <mat-label>{{ 'admin.settings.systemLogRetention' | transloco }}</mat-label>
+                  <input matInput type="number" formControlName="systemLogRetentionDays"
+                         min="0" [max]="limits.logRetentionDays.max">
+                  <span matTextSuffix>{{ 'admin.settings.days' | transloco }}</span>
+                  <mat-error>
+                    {{ 'admin.settings.retentionOutOfRange' | transloco:
+                       { min: limits.logRetentionDays.min, max: limits.logRetentionDays.max } }}
+                  </mat-error>
+                </mat-form-field>
+                <p class="hint">{{ retentionHint(settings.systemLogRetentionDays, 'admin.settings.systemLogRetentionHint') }}</p>
+              </div>
+
+              <div class="actions">
+                <button mat-stroked-button type="button" class="rotate-button" (click)="rotateNow()"
+                        [disabled]="saving || rotating || !retentionForm.pristine || !hasRetention()"
+                        [matTooltip]="(retentionForm.pristine ? 'admin.settings.rotateNowHint'
+                                       : 'admin.settings.rotateSaveFirst') | transloco">
+                  <mat-icon>autorenew</mat-icon>
+                  {{ rotating ? ('admin.settings.rotating' | transloco) : ('admin.settings.rotateNow' | transloco) }}
+                </button>
+                <span class="spacer"></span>
+                <button mat-button type="button" (click)="resetRetention()"
+                        [disabled]="saving || retentionForm.pristine">
+                  {{ 'common.cancel' | transloco }}
+                </button>
+                <button mat-raised-button color="primary" type="submit"
+                        [disabled]="saving || retentionForm.invalid || retentionForm.pristine">
+                  {{ saving ? ('common.saving' | transloco) : ('common.save' | transloco) }}
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
       </ng-container>
 
       <div *ngIf="!loading && errorMessage" class="error-block">
@@ -135,7 +203,9 @@ import { SETTING_LIMITS, SystemSettings } from '@core/models/dynamic-query.model
     /* Wide enough for the longest label — a clipped "Row limit for previews and looku…"
        reads as a bug, and these fields hold at most seven digits. */
     .number-field { width: 340px; }
-    .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+    .actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 8px; }
+    .actions .spacer { flex: 1; }
+    .card-intro { color: var(--text-secondary); font-size: 13px; margin: 0 0 12px; max-width: 70ch; }
     .hint {
       color: var(--text-secondary);
       font-size: 13px;
@@ -151,17 +221,25 @@ import { SETTING_LIMITS, SystemSettings } from '@core/models/dynamic-query.model
 export class SystemSettingsComponent implements OnInit {
   settings: SystemSettings | null = null;
   numbersForm!: FormGroup;
+  retentionForm!: FormGroup;
   limits = SETTING_LIMITS;
   loading = true;
   saving = false;
+  rotating = false;
   errorMessage = '';
 
   constructor(
     private fb: FormBuilder,
     private queryService: QueryService,
     private toast: ToastService,
+    private confirm: ConfirmService,
+    private transloco: TranslocoService,
     private cdr: ChangeDetectorRef
   ) {
+    this.retentionForm = this.fb.group({
+      executionLogRetentionDays: [0, [retentionDays]],
+      systemLogRetentionDays: [0, [retentionDays]]
+    });
     this.numbersForm = this.fb.group({
       sessionAccessTokenMinutes: [SETTING_LIMITS.accessTokenMinutes.min, [
         Validators.required,
@@ -199,6 +277,7 @@ export class SystemSettingsComponent implements OnInit {
       next: (settings) => {
         this.settings = settings;
         this.resetNumbers();
+        this.resetRetention();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -220,6 +299,98 @@ export class SystemSettingsComponent implements OnInit {
       queryMaxRows: this.settings.queryMaxRows,
       querySqlMaxLength: this.settings.querySqlMaxLength
     });
+  }
+
+  /** Puts the retention fields back to what the server last confirmed. */
+  resetRetention(): void {
+    if (!this.settings) return;
+    this.retentionForm.reset({
+      executionLogRetentionDays: this.settings.executionLogRetentionDays ?? 0,
+      systemLogRetentionDays: this.settings.systemLogRetentionDays ?? 0
+    });
+  }
+
+  /** The hint under a retention field, saying in words what the saved value does. */
+  retentionHint(days: number, key: string): string {
+    const current = days > 0
+      ? this.transloco.translate('admin.settings.retentionCurrentDays', { days })
+      : this.transloco.translate('admin.settings.retentionCurrentForever');
+    return `${this.transloco.translate(key)} ${current}`;
+  }
+
+  /** Rotation only has something to do once at least one log has a retention period. */
+  hasRetention(): boolean {
+    return !!this.settings &&
+      (this.settings.executionLogRetentionDays > 0 || this.settings.systemLogRetentionDays > 0);
+  }
+
+  saveRetention(): void {
+    if (!this.settings || this.retentionForm.invalid) return;
+
+    const value = this.retentionForm.value;
+    const next: SystemSettings = {
+      ...this.settings,
+      executionLogRetentionDays: Number(value.executionLogRetentionDays),
+      systemLogRetentionDays: Number(value.systemLogRetentionDays)
+    };
+
+    this.saving = true;
+    this.queryService.updateSystemSettings(next).subscribe({
+      next: () => {
+        this.settings = next;
+        this.resetRetention();
+        this.saving = false;
+        this.toast.success('admin.settings.retentionSaved');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.saving = false;
+        this.toast.error(err, 'admin.settings.saveFailed');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /**
+   * Deletes what the saved retention says is due, now. Confirmed first: unlike saving the
+   * setting, this removes rows, and they do not come back.
+   */
+  rotateNow(): void {
+    if (!this.settings || !this.hasRetention()) return;
+    this.confirm.askThen({
+      titleKey: 'admin.settings.rotateConfirmTitle',
+      messageKey: 'admin.settings.rotateConfirmMessage',
+      params: {
+        execution: this.describeRetention(this.settings.executionLogRetentionDays),
+        system: this.describeRetention(this.settings.systemLogRetentionDays)
+      },
+      confirmText: this.transloco.translate('admin.settings.rotateNow'),
+      destructive: true
+    }, () => {
+      this.rotating = true;
+      this.cdr.detectChanges();
+      this.queryService.rotateLogs().subscribe({
+        next: (result: LogRotationResult) => {
+          this.rotating = false;
+          this.toast.success('admin.settings.rotated', {
+            execution: result.executionLogsDeleted,
+            system: result.systemLogsDeleted
+          }, 6000);
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.rotating = false;
+          this.toast.error(err, 'admin.settings.rotateFailed');
+          this.cdr.detectChanges();
+        }
+      });
+    });
+  }
+
+  private describeRetention(days: number): string {
+    return days > 0
+      ? this.transloco.translate('admin.settings.retentionOlderThan', { days })
+      : this.transloco.translate('admin.settings.retentionKeptForever');
   }
 
   /**

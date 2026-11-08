@@ -23,6 +23,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<QueryGroupRole> QueryGroupRoles { get; }
     IRepository<QueryGroupUserGroup> QueryGroupUserGroups { get; }
     IRepository<QueryGroupUser> QueryGroupUsers { get; }
+    IRepository<QueryGroupQuery> QueryGroupQueries { get; }
     IRepository<DatabaseUser> DatabaseUsers { get; }
     IRepository<DatabaseUserRoleAccess> DatabaseUserRoleAccess { get; }
     IRepository<ScheduledTask> ScheduledTasks { get; }

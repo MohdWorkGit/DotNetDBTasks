@@ -97,7 +97,19 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
                 WordTemplate = DecodeTemplate(exported, result, _localizer)
             };
 
-            entity.QueryGroupId = await ResolveGroupAsync(exported.QueryGroupName, groups, now, cancellationToken);
+            var groupNames = exported.QueryGroupNames
+                .Append(exported.QueryGroupName)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            foreach (var groupName in groupNames)
+            {
+                entity.QueryGroupQueries.Add(new QueryGroupQuery
+                {
+                    QueryGroupId = await ResolveGroupAsync(groupName, groups, now, cancellationToken),
+                    DynamicQueryId = entity.Id
+                });
+            }
             entity.DatabaseUserId = ResolveDatabaseUser(exported, databaseUsers, name, result, _localizer);
 
             foreach (var p in exported.Parameters)
@@ -217,14 +229,12 @@ public class ImportQueriesCommandHandler : IRequestHandler<ImportQueriesCommand,
         }
     }
 
-    private async Task<Guid?> ResolveGroupAsync(
-        string? groupName,
+    private async Task<Guid> ResolveGroupAsync(
+        string groupName,
         Dictionary<string, Guid> groups,
         DateTime now,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(groupName))
-            return null;
         if (groups.TryGetValue(groupName, out var existing))
             return existing;
 

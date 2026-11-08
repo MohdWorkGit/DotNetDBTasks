@@ -192,10 +192,10 @@ interface QueryListState {
               <td mat-cell *matCellDef="let q">{{ q.databaseUserName || 'Default' }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="queryGroupName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.queries.group' | transloco }}</th>
+            <ng-container matColumnDef="queryGroups">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'admin.queries.groups' | transloco }}</th>
               <td mat-cell *matCellDef="let q">
-                <span *ngIf="q.queryGroupName; else ungrouped">{{ q.queryGroupName }}</span>
+                <span *ngIf="q.queryGroupNames?.length; else ungrouped">{{ q.queryGroupNames.join(', ') }}</span>
                 <ng-template #ungrouped><span class="ungrouped">—</span></ng-template>
               </td>
             </ng-container>
@@ -284,7 +284,7 @@ export class QueryListComponent implements OnInit {
    */
   canManageQueryAccess = false;
 
-  displayedColumns = ['name', 'description', 'queryType', 'isEnabled', 'queryGroupName', 'databaseUserName', 'parameters', 'actions'];
+  displayedColumns = ['name', 'description', 'queryType', 'isEnabled', 'queryGroups', 'databaseUserName', 'parameters', 'actions'];
   dataSource = new MatTableDataSource<DynamicQuery>();
   loading = true;
   /** Blocks the backup menu while an import is in flight. */
@@ -501,7 +501,7 @@ export class QueryListComponent implements OnInit {
     ).subscribe({
       next: (queries) => {
         this.dataSource.data = queries;
-        this.groupOptions = [...new Set(queries.map(q => q.queryGroupName).filter((g): g is string => !!g))]
+        this.groupOptions = [...new Set(queries.flatMap(q => q.queryGroupNames ?? []))]
           .sort((a, b) => a.localeCompare(b));
         this.dbUserOptions = [...new Set(queries.map(q => q.databaseUserName || 'Default'))]
           .sort((a, b) => a.localeCompare(b));
@@ -509,7 +509,7 @@ export class QueryListComponent implements OnInit {
           switch (property) {
             case 'queryType': return item.queryType ?? 0;
             case 'isEnabled': return item.isEnabled ? 1 : 0;
-            case 'queryGroupName': return (item.queryGroupName || '').toLowerCase();
+            case 'queryGroups': return (item.queryGroupNames ?? []).join(', ').toLowerCase();
             case 'databaseUserName': return (item.databaseUserName || 'Default').toLowerCase();
             case 'parameters': return item.parameters?.length || 0;
             case 'description': return (item.description || '').toLowerCase();
@@ -526,9 +526,10 @@ export class QueryListComponent implements OnInit {
           if (f.status === 'disabled' && data.isEnabled) return false;
           if (f.type !== 'all' && data.queryType !== f.type) return false;
           if (f.group !== 'all') {
+            const groups = data.queryGroupNames ?? [];
             if (f.group === this.UNGROUPED) {
-              if (data.queryGroupName) return false;
-            } else if (data.queryGroupName !== f.group) {
+              if (groups.length > 0) return false;
+            } else if (!groups.includes(f.group)) {
               return false;
             }
           }
@@ -537,7 +538,7 @@ export class QueryListComponent implements OnInit {
           const haystack = [
             data.name,
             data.description,
-            data.queryGroupName,
+            ...(data.queryGroupNames ?? []),
             data.databaseUserName
           ].filter(Boolean).join(' ').toLowerCase();
           return haystack.includes(f.text.toLowerCase());

@@ -80,10 +80,10 @@ public class GetQueriesForUserQueryHandler
         var queries = await _unitOfWork.DynamicQueries.FindAsync(
             q => q.IsEnabled && (
                 queryIds.Contains(q.Id) ||
-                (q.QueryGroupId.HasValue && groupIds.Contains(q.QueryGroupId.Value))),
+                q.QueryGroupQueries.Any(m => groupIds.Contains(m.QueryGroupId))),
             cancellationToken,
             "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
-            "Parameters", "DatabaseUser", "QueryGroup");
+            "Parameters", "DatabaseUser", "QueryGroupQueries.QueryGroup");
 
         return _mapper.Map<IReadOnlyList<DynamicQueryDto>>(queries);
     }

@@ -50,7 +50,8 @@ import {
   SystemAuditLog,
   SystemAuditLogListRequest,
   AuditActionCatalog,
-  SystemSettings
+  SystemSettings,
+  LogRotationResult
 } from '../models/dynamic-query.model';
 
 /** Download format accepted by the export-file endpoint. */
@@ -155,6 +156,11 @@ export class QueryService {
 
   updateSystemSettings(settings: SystemSettings): Observable<void> {
     return this.http.put<void>(this.settingsUrl, settings);
+  }
+
+  /** Applies the saved log retention now, rather than at the next scheduled sweep. */
+  rotateLogs(): Observable<LogRotationResult> {
+    return this.http.post<LogRotationResult>(`${this.settingsUrl}/rotate-logs`, {});
   }
 
   // ---- System audit trail (Admin, Auditor) ----

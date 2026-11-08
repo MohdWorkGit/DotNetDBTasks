@@ -16,7 +16,7 @@ namespace Bayan.Application.Features.QueryGroups.Queries;
 ///   - every query inside a group they have direct/role/user-group access to,
 ///   - and, in those same groups, every <b>report</b> reachable the same ways.
 /// Items with no group are bucketed into a synthetic "Ungrouped" entry (Id=null).
-/// Empty groups are omitted.
+/// Empty groups are omitted. A query filed in several groups is listed under each of them.
 ///
 /// <para>Reports are listed here rather than on a page of their own because the distinction is
 /// an authoring one. To the person running it, a report is just another thing on their list,
@@ -100,10 +100,10 @@ public class GetMyQueryGroupsQueryHandler
         var queries = await _unitOfWork.DynamicQueries.FindAsync(
             q => q.IsEnabled && (
                 accessibleQueryIds.Contains(q.Id) ||
-                (q.QueryGroupId.HasValue && accessibleGroupIds.Contains(q.QueryGroupId.Value))),
+                q.QueryGroupQueries.Any(m => accessibleGroupIds.Contains(m.QueryGroupId))),
             cancellationToken,
             "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
-            "Parameters", "DatabaseUser", "QueryGroup");
+            "Parameters", "DatabaseUser", "QueryGroupQueries.QueryGroup");
 
         // 4. The reports this caller may run, resolved through their own permission and their
         //    own grants — plus the group grants already computed above, since a grant on a
@@ -116,8 +116,16 @@ public class GetMyQueryGroupsQueryHandler
         var visibleReports = reports.Where(r => ReportAccess.Reaches(reportReach, r)).ToList();
 
         // 5. Bucket both kinds by group, ordering groups by name and "Ungrouped" last. A group
-        //    appears when it holds anything the caller can reach, of either kind.
-        var groupIds = queries.Select(q => q.QueryGroupId)
+        //    appears when it holds anything the caller can reach, of either kind. A query sits
+        //    in every group it is filed in — once reachable, it is listed wherever it lives, the
+        //    same as a directly granted query always appeared under its group.
+        var queryFilings = queries
+            .SelectMany(q => q.QueryGroupQueries.Count == 0
+                ? new[] { (GroupId: (Guid?)null, Group: (QueryGroup?)null, Query: q) }
+                : q.QueryGroupQueries.Select(m => (GroupId: (Guid?)m.QueryGroupId, Group: (QueryGroup?)m.QueryGroup, Query: q)))
+            .ToList();
+
+        var groupIds = queryFilings.Select(f => f.GroupId)
             .Concat(visibleReports.Select(r => r.QueryGroupId))
             .Distinct()
             .ToList();
@@ -125,10 +133,11 @@ public class GetMyQueryGroupsQueryHandler
         var groupedByGroup = groupIds
             .Select(groupId =>
             {
-                var groupQueries = queries.Where(q => q.QueryGroupId == groupId).OrderBy(q => q.Name).ToList();
+                var inGroup = queryFilings.Where(f => f.GroupId == groupId).ToList();
+                var groupQueries = inGroup.Select(f => f.Query).OrderBy(q => q.Name).ToList();
                 var groupReports = visibleReports.Where(r => r.QueryGroupId == groupId).OrderBy(r => r.Name).ToList();
 
-                var group = groupQueries.FirstOrDefault()?.QueryGroup
+                var group = inGroup.FirstOrDefault().Group
                             ?? groupReports.FirstOrDefault()?.QueryGroup;
 
                 return new MyQueryGroupDto

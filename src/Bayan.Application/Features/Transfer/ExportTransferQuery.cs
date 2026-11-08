@@ -32,7 +32,7 @@ public class ExportTransferQueryHandler : IRequestHandler<ExportTransferQuery, T
     private static readonly string[] QueryIncludes =
     {
         "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
-        "Parameters", "DatabaseUser", "QueryGroup"
+        "Parameters", "DatabaseUser", "QueryGroupQueries.QueryGroup"
     };
 
     private readonly IUnitOfWork _unitOfWork;

@@ -13,6 +13,7 @@ import {
   QueryType
 } from '@core/models/dynamic-query.model';
 import { OldRowsDialogComponent } from '@shared/components/old-rows-dialog.component';
+import { ExecutionLogDetailDialogComponent } from '@shared/components/execution-log-detail-dialog.component';
 
 /** Order the API applies when no sortBy is sent; also where a cleared header lands. */
 const DEFAULT_SORT_BY = 'executedAt';
@@ -94,28 +95,15 @@ const DEFAULT_SORT_BY = 'executedAt';
             <ng-container matColumnDef="parameters">
               <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.parameters' | transloco }}</th>
               <td mat-cell *matCellDef="let log">
-                <ng-container *ngIf="log.hasOldValues; else plainParams">
-                  <div class="update-params">
-                    <span class="update-label old-label">{{ 'admin.logs.before' | transloco }}</span>
-                    <button type="button" class="old-rows-trigger"
-                            (click)="openOldRowsDialog(log)"
-                            [matTooltip]="'admin.logs.viewAffectedRows' | transloco">
-                      <span class="old-values">{{ 'common.viewAffectedRows' | transloco }}</span>
-                      <mat-icon class="open-icon">open_in_new</mat-icon>
-                    </button>
-                    <ng-container *ngIf="log.isUpdateQuery">
-                      <span class="update-label new-label">{{ 'admin.logs.after' | transloco }}</span>
-                      <span class="parameters-cell new-values" [matTooltip]="formatParametersTooltip(log.parameters)">
-                        {{ formatParameters(log.parameters) }}
-                      </span>
-                    </ng-container>
-                  </div>
-                </ng-container>
-                <ng-template #plainParams>
-                  <span class="parameters-cell" [matTooltip]="formatParametersTooltip(log.parameters)">
-                    {{ formatParameters(log.parameters) }}
-                  </span>
-                </ng-template>
+                <div class="params-col">
+                  <app-log-params-cell [params]="log.parameters"></app-log-params-cell>
+                  <button *ngIf="log.hasOldValues" type="button" class="old-rows-trigger"
+                          (click)="openOldRowsDialog(log)"
+                          [matTooltip]="'admin.logs.viewAffectedRows' | transloco">
+                    <mat-icon class="open-icon" aria-hidden="true">history</mat-icon>
+                    <span>{{ 'admin.logs.beforeRows' | transloco }}</span>
+                  </button>
+                </div>
               </td>
             </ng-container>
 
@@ -150,6 +138,19 @@ const DEFAULT_SORT_BY = 'executedAt';
               </td>
             </ng-container>
 
+            <ng-container matColumnDef="details">
+              <th mat-header-cell *matHeaderCellDef>
+                <span class="cdk-visually-hidden">{{ 'admin.logs.details' | transloco }}</span>
+              </th>
+              <td mat-cell *matCellDef="let log">
+                <button mat-icon-button type="button" (click)="openDetails(log)"
+                        [matTooltip]="'admin.logs.viewDetails' | transloco"
+                        [attr.aria-label]="'admin.logs.viewDetails' | transloco">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 
@@ -179,57 +180,24 @@ const DEFAULT_SORT_BY = 'executedAt';
     .filter-field { flex: 1; min-width: 240px; }
     .status-filter { width: 160px; }
     table { width: 100%; }
-    .parameters-cell {
-      max-width: 250px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      display: block;
-      font-size: 12px;
-      color: var(--param-cell-color);
-      cursor: default;
-    }
-    .update-params {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .update-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .old-label { color: var(--old-label-color); }
-    .new-label { color: var(--new-label-color); }
-    .old-values { color: var(--old-values-color); }
-    .new-values { color: var(--new-values-color); }
+    .params-col { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 4px 0; }
     .old-rows-trigger {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      max-width: 250px;
-      padding: 2px 6px;
+      padding: 1px 8px;
       margin: 0;
       background: transparent;
       border: 1px dashed var(--border-color);
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
       font: inherit;
-      text-align: start;
-      color: inherit;
+      font-size: 12px;
+      color: var(--old-values-color);
     }
     .old-rows-trigger:hover {
       background: var(--bg-secondary);
       border-color: var(--accent-primary);
-    }
-    .old-rows-trigger .old-values {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 12px;
     }
     .old-rows-trigger .open-icon {
       font-size: 14px;
@@ -241,7 +209,7 @@ const DEFAULT_SORT_BY = 'executedAt';
   `]
 })
 export class ExecutionLogsComponent implements OnInit, OnDestroy {
-  displayedColumns = ['queryName', 'queryType', 'username', 'parameters', 'executedAt', 'executionDurationMs', 'rowsReturned', 'isSuccess'];
+  displayedColumns = ['queryName', 'queryType', 'username', 'parameters', 'executedAt', 'executionDurationMs', 'rowsReturned', 'isSuccess', 'details'];
   logs: ExecutionLog[] = [];
   loading = true;
   errorMessage = '';
@@ -355,14 +323,21 @@ export class ExecutionLogsComponent implements OnInit, OnDestroy {
     this.loadLogs();
   }
 
-  formatParameters(params: Record<string, string>): string {
-    if (!params || Object.keys(params).length === 0) return '-';
-    return Object.entries(params).map(([k, v]) => `${k}: ${v}`).join(', ');
-  }
-
-  formatParametersTooltip(params: Record<string, string>): string {
-    if (!params || Object.keys(params).length === 0) return 'No parameters';
-    return Object.entries(params).map(([k, v]) => `${k}: ${v}`).join('\n');
+  openDetails(log: ExecutionLog): void {
+    this.dialog.open(ExecutionLogDetailDialogComponent, {
+      data: {
+        log,
+        showUser: true,
+        fetchOldRows: log.hasOldValues
+          ? (pageNumber: number, pageSize: number) =>
+              this.queryService.getExecutionLogOldValues(log.id, pageNumber, pageSize)
+          : undefined
+      },
+      width: '760px',
+      maxWidth: '95vw',
+      autoFocus: 'dialog',
+      ariaModal: true
+    });
   }
 
   openOldRowsDialog(log: ExecutionLog): void {

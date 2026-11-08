@@ -26,7 +26,7 @@ public class GetAllQueryGroupsQueryHandler
         CancellationToken cancellationToken)
     {
         var groups = await _unitOfWork.QueryGroups.GetAllAsync(cancellationToken,
-            "QueryGroupRoles.Role", "QueryGroupUserGroups.UserGroup", "QueryGroupUsers.User", "DynamicQueries");
+            "QueryGroupRoles.Role", "QueryGroupUserGroups.UserGroup", "QueryGroupUsers.User", "QueryGroupQueries");
         return _mapper.Map<IReadOnlyList<QueryGroupDto>>(groups);
     }
 }

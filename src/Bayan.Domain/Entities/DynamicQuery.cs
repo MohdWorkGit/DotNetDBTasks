@@ -76,10 +76,9 @@ public class DynamicQuery : BaseEntity
     public DatabaseUser? DatabaseUser { get; set; }
 
     /// <summary>
-    /// Optional group/folder this query belongs to. Null means the query is "ungrouped".
+    /// The groups (folders) this query is filed in — any number, none meaning "ungrouped".
     /// </summary>
-    public Guid? QueryGroupId { get; set; }
-    public QueryGroup? QueryGroup { get; set; }
+    public ICollection<QueryGroupQuery> QueryGroupQueries { get; set; } = new List<QueryGroupQuery>();
 
     /// <summary>
     /// Optional Word (.docx) template used by the Word export of this query's results.

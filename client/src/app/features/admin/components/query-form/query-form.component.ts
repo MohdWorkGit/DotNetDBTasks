@@ -137,9 +137,9 @@ interface SaveProblem { text: string; sqlIndex?: number; }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'admin.queries.group' | transloco }}</mat-label>
-              <mat-select formControlName="queryGroupId">
-                <mat-option [value]="null">{{ 'admin.queryForm.ungrouped' | transloco }}</mat-option>
+              <mat-label>{{ 'admin.queries.groups' | transloco }}</mat-label>
+              <mat-select formControlName="queryGroupIds" multiple
+                          [placeholder]="'admin.queryForm.ungrouped' | transloco">
                 <mat-option *ngFor="let g of availableGroups" [value]="g.id">
                   {{ g.name }}
                 </mat-option>
@@ -618,7 +618,7 @@ export class QueryFormComponent implements OnInit {
       allowRunWithoutConfirmation: [true],
       saveOldValues: [true],
       databaseUserId: [null],
-      queryGroupId: [null],
+      queryGroupIds: [[] as string[]],
       isEnabled: [true],
       parameters: this.fb.array([])
     });
@@ -832,7 +832,7 @@ export class QueryFormComponent implements OnInit {
           allowRunWithoutConfirmation: query.allowRunWithoutConfirmation !== false,
           saveOldValues: query.saveOldValues !== false,
           databaseUserId: query.databaseUserId || null,
-          queryGroupId: query.queryGroupId || null,
+          queryGroupIds: query.queryGroupIds ?? [],
           isEnabled: this.isCopy ? true : query.isEnabled
         });
 

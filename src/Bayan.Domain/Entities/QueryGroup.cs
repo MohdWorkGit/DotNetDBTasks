@@ -13,7 +13,8 @@ public class QueryGroup : BaseEntity
 
     public Guid CreatedByUserId { get; set; }
 
-    public ICollection<DynamicQuery> DynamicQueries { get; set; } = new List<DynamicQuery>();
+    /// <summary>The queries filed here. A query may be filed in several groups at once.</summary>
+    public ICollection<QueryGroupQuery> QueryGroupQueries { get; set; } = new List<QueryGroupQuery>();
     public ICollection<QueryGroupRole> QueryGroupRoles { get; set; } = new List<QueryGroupRole>();
     public ICollection<QueryGroupUserGroup> QueryGroupUserGroups { get; set; } = new List<QueryGroupUserGroup>();
     public ICollection<QueryGroupUser> QueryGroupUsers { get; set; } = new List<QueryGroupUser>();

@@ -1,5 +1,6 @@
 using Bayan.API.Authorization;
 using Bayan.Application.Common.Interfaces;
+using Bayan.Application.Features.SystemAudit.Rotation;
 using Bayan.Domain.Constants;
 using Bayan.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -25,13 +26,16 @@ public class SystemSettingsController : ControllerBase
     private readonly ISystemSettingsService _settings;
     private readonly IAuditLogger _audit;
     private readonly IAppLocalizer _messages;
+    private readonly AuditLogRotation _rotation;
 
     public SystemSettingsController(
-        ISystemSettingsService settings, IAuditLogger audit, IAppLocalizer messages)
+        ISystemSettingsService settings, IAuditLogger audit, IAppLocalizer messages,
+        AuditLogRotation rotation)
     {
         _settings = settings;
         _audit = audit;
         _messages = messages;
+        _rotation = rotation;
     }
 
     [HttpGet]
@@ -58,6 +62,14 @@ public class SystemSettingsController : ControllerBase
             DirectoryEnabled = await _settings.GetBoolAsync(
                 SystemSettingKeys.DirectoryEnabled,
                 SystemSettingKeys.DirectoryEnabledDefault,
+                cancellationToken),
+            ExecutionLogRetentionDays = await _settings.GetIntAsync(
+                SystemSettingKeys.AuditExecutionLogRetentionDays,
+                SystemSettingKeys.LogRetentionDaysDefault,
+                cancellationToken),
+            SystemLogRetentionDays = await _settings.GetIntAsync(
+                SystemSettingKeys.AuditSystemLogRetentionDays,
+                SystemSettingKeys.LogRetentionDaysDefault,
                 cancellationToken)
         });
     }
@@ -98,6 +110,14 @@ public class SystemSettingsController : ControllerBase
             SystemSettingKeys.DirectoryEnabled,
             request.DirectoryEnabled,
             cancellationToken);
+        await _settings.SetIntAsync(
+            SystemSettingKeys.AuditExecutionLogRetentionDays,
+            request.ExecutionLogRetentionDays,
+            cancellationToken);
+        await _settings.SetIntAsync(
+            SystemSettingKeys.AuditSystemLogRetentionDays,
+            request.SystemLogRetentionDays,
+            cancellationToken);
 
         // Recorded explicitly: this controller does not go through MediatR, so the audit
         // pipeline behavior never sees it — and a permission-widening toggle is precisely
@@ -113,11 +133,24 @@ public class SystemSettingsController : ControllerBase
                 sessionRefreshTokenDays = request.SessionRefreshTokenDays,
                 queryMaxRows = request.QueryMaxRows,
                 querySqlMaxLength = request.QuerySqlMaxLength,
-                directoryEnabled = request.DirectoryEnabled
+                directoryEnabled = request.DirectoryEnabled,
+                executionLogRetentionDays = request.ExecutionLogRetentionDays,
+                systemLogRetentionDays = request.SystemLogRetentionDays
             })
         }, cancellationToken);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Applies the saved retention settings now rather than at the next scheduled sweep, and
+    /// says how many entries went. A retention of 0 leaves that log untouched.
+    /// </summary>
+    [HttpPost("rotate-logs")]
+    [RequirePermission(Permissions.SettingsManage)]
+    public async Task<ActionResult<AuditRotationResult>> RotateLogs(CancellationToken cancellationToken)
+    {
+        return Ok(await _rotation.RotateAsync(cancellationToken));
     }
 
     /// <summary>The first thing wrong with the request, or null when it is acceptable.</summary>
@@ -151,6 +184,18 @@ public class SystemSettingsController : ControllerBase
                 SystemSettingKeys.QuerySqlMaxLengthMin,
                 SystemSettingKeys.QuerySqlMaxLengthMax];
 
+        if (!SystemSettingKeys.IsValidRetention(request.ExecutionLogRetentionDays))
+            return _messages[MessageKeys.RetentionOutOfRange,
+                SystemSettingKeys.AuditExecutionLogRetentionDays,
+                SystemSettingKeys.LogRetentionDaysMin,
+                SystemSettingKeys.LogRetentionDaysMax];
+
+        if (!SystemSettingKeys.IsValidRetention(request.SystemLogRetentionDays))
+            return _messages[MessageKeys.RetentionOutOfRange,
+                SystemSettingKeys.AuditSystemLogRetentionDays,
+                SystemSettingKeys.LogRetentionDaysMin,
+                SystemSettingKeys.LogRetentionDaysMax];
+
         // A refresh token that expires before the access token it renews could never be used.
         // The ranges above already rule this out — the shortest refresh (1 day) equals the
         // longest access token (1440 minutes) — so this cannot fire today. It is kept because
@@ -183,4 +228,10 @@ public class SystemSettingsDto
 
     /// <summary>When false, the Active Directory pages are switched off.</summary>
     public bool DirectoryEnabled { get; set; }
+
+    /// <summary>Days of query execution logs to keep; 0 keeps them forever.</summary>
+    public int ExecutionLogRetentionDays { get; set; }
+
+    /// <summary>Days of the system audit trail to keep; 0 keeps it forever.</summary>
+    public int SystemLogRetentionDays { get; set; }
 }

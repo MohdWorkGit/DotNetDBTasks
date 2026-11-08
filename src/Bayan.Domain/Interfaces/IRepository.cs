@@ -28,6 +28,12 @@ public interface IRepository<T> where T : class
     Task<T> AddAsync(T entity, CancellationToken cancellationToken = default);
     void Update(T entity);
     void Delete(T entity);
+    /// <summary>
+    /// Deletes every matching row in one statement, without loading them and without waiting for
+    /// <c>SaveChangesAsync</c>. For bulk housekeeping such as log retention — never for rows the
+    /// current unit of work is tracking, which would not see the delete.
+    /// </summary>
+    Task<int> DeleteWhereAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
     Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken cancellationToken = default);
 }

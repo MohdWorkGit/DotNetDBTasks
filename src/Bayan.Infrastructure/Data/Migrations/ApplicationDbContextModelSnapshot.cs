@@ -453,9 +453,6 @@ namespace Bayan.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("NVARCHAR2(200)");
 
-                    b.Property<Guid?>("QueryGroupId")
-                        .HasColumnType("RAW(16)");
-
                     b.Property<int>("QueryType")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(10)")
@@ -488,8 +485,6 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DatabaseUserId");
-
-                    b.HasIndex("QueryGroupId");
 
                     b.ToTable("DynamicQueries");
                 });
@@ -622,6 +617,21 @@ namespace Bayan.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("QueryGroups");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.QueryGroupQuery", b =>
+                {
+                    b.Property<Guid>("QueryGroupId")
+                        .HasColumnType("RAW(16)");
+
+                    b.Property<Guid>("DynamicQueryId")
+                        .HasColumnType("RAW(16)");
+
+                    b.HasKey("QueryGroupId", "DynamicQueryId");
+
+                    b.HasIndex("DynamicQueryId");
+
+                    b.ToTable("QueryGroupQueries");
                 });
 
             modelBuilder.Entity("Bayan.Domain.Entities.QueryGroupRole", b =>
@@ -1858,14 +1868,7 @@ namespace Bayan.Infrastructure.Data.Migrations
                         .HasForeignKey("DatabaseUserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Bayan.Domain.Entities.QueryGroup", "QueryGroup")
-                        .WithMany("DynamicQueries")
-                        .HasForeignKey("QueryGroupId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("DatabaseUser");
-
-                    b.Navigation("QueryGroup");
                 });
 
             modelBuilder.Entity("Bayan.Domain.Entities.DynamicQueryRole", b =>
@@ -1942,6 +1945,25 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.Navigation("DynamicQuery");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Bayan.Domain.Entities.QueryGroupQuery", b =>
+                {
+                    b.HasOne("Bayan.Domain.Entities.DynamicQuery", "DynamicQuery")
+                        .WithMany("QueryGroupQueries")
+                        .HasForeignKey("DynamicQueryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bayan.Domain.Entities.QueryGroup", "QueryGroup")
+                        .WithMany("QueryGroupQueries")
+                        .HasForeignKey("QueryGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DynamicQuery");
+
+                    b.Navigation("QueryGroup");
                 });
 
             modelBuilder.Entity("Bayan.Domain.Entities.QueryGroupRole", b =>
@@ -2344,11 +2366,13 @@ namespace Bayan.Infrastructure.Data.Migrations
                     b.Navigation("ExecutionLogs");
 
                     b.Navigation("Parameters");
+
+                    b.Navigation("QueryGroupQueries");
                 });
 
             modelBuilder.Entity("Bayan.Domain.Entities.QueryGroup", b =>
                 {
-                    b.Navigation("DynamicQueries");
+                    b.Navigation("QueryGroupQueries");
 
                     b.Navigation("QueryGroupRoles");
 

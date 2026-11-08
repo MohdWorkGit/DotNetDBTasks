@@ -52,32 +52,48 @@ public static class QueryAccess
                 cancellationToken);
         }
 
-        // Group-level access — any assignment on the parent group grants access to this query.
-        if (!hasAccess && query.QueryGroupId.HasValue)
+        if (!hasAccess)
         {
-            var groupId = query.QueryGroupId.Value;
-
-            hasAccess = userRoleIds.Count > 0 && await unitOfWork.QueryGroupRoles.ExistsAsync(
-                gr => gr.QueryGroupId == groupId && userRoleIds.Contains(gr.RoleId),
-                cancellationToken);
-
-            if (!hasAccess && userGroupIds.Count > 0)
-            {
-                hasAccess = await unitOfWork.QueryGroupUserGroups.ExistsAsync(
-                    gg => gg.QueryGroupId == groupId && userGroupIds.Contains(gg.UserGroupId),
-                    cancellationToken);
-            }
-
-            if (!hasAccess)
-            {
-                hasAccess = await unitOfWork.QueryGroupUsers.ExistsAsync(
-                    gu => gu.QueryGroupId == groupId && gu.UserId == currentUser.UserId,
-                    cancellationToken);
-            }
+            hasAccess = await HasGroupGrantAsync(
+                query.Id, userRoleIds, userGroupIds, unitOfWork, currentUser.UserId, cancellationToken);
         }
 
         if (!hasAccess)
             throw new ForbiddenAccessException("You do not have access to this query.");
+    }
+
+    /// <summary>
+    /// True when the caller holds a grant — by role, user group or name — on any of the groups
+    /// the query is filed in. A query can sit in several groups, and each one's grants reach it.
+    /// </summary>
+    public static async Task<bool> HasGroupGrantAsync(
+        Guid queryId,
+        IReadOnlyCollection<Guid> userRoleIds,
+        IReadOnlyCollection<Guid> userGroupIds,
+        IUnitOfWork unitOfWork,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var groupIds = (await unitOfWork.QueryGroupQueries.FindAsync(
+                m => m.DynamicQueryId == queryId, cancellationToken))
+            .Select(m => m.QueryGroupId)
+            .ToList();
+        if (groupIds.Count == 0)
+            return false;
+
+        if (userRoleIds.Count > 0 && await unitOfWork.QueryGroupRoles.ExistsAsync(
+                gr => groupIds.Contains(gr.QueryGroupId) && userRoleIds.Contains(gr.RoleId),
+                cancellationToken))
+            return true;
+
+        if (userGroupIds.Count > 0 && await unitOfWork.QueryGroupUserGroups.ExistsAsync(
+                gg => groupIds.Contains(gg.QueryGroupId) && userGroupIds.Contains(gg.UserGroupId),
+                cancellationToken))
+            return true;
+
+        return await unitOfWork.QueryGroupUsers.ExistsAsync(
+            gu => groupIds.Contains(gu.QueryGroupId) && gu.UserId == userId,
+            cancellationToken);
     }
 
     /// <summary>

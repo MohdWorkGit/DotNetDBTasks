@@ -5,8 +5,8 @@ using MediatR;
 namespace Bayan.Application.Features.QueryGroups.Commands;
 
 /// <summary>
-/// Deletes a query group. Queries inside the group are NOT deleted — their QueryGroupId
-/// is cleared by the SetNull cascade so they become "ungrouped".
+/// Deletes a query group. Queries inside the group are NOT deleted — only their filing in this
+/// group is removed (by cascade), so they stay in any other groups, or become "ungrouped".
 /// </summary>
 public record DeleteQueryGroupCommand(Guid Id) : IRequest<Unit>;
 

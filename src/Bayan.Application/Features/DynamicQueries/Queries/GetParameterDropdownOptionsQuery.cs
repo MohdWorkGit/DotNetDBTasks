@@ -82,28 +82,11 @@ public class GetParameterDropdownOptionsQueryHandler
                 cancellationToken);
         }
 
-        // Group-level access — any assignment on the parent group grants access to this query.
-        if (!hasAccess && query.QueryGroupId.HasValue)
+        // Group-level access — a grant on any group the query is filed in reaches it.
+        if (!hasAccess)
         {
-            var groupId = query.QueryGroupId.Value;
-
-            hasAccess = userRoleIds.Count > 0 && await _unitOfWork.QueryGroupRoles.ExistsAsync(
-                gr => gr.QueryGroupId == groupId && userRoleIds.Contains(gr.RoleId),
-                cancellationToken);
-
-            if (!hasAccess && userGroupIds.Count > 0)
-            {
-                hasAccess = await _unitOfWork.QueryGroupUserGroups.ExistsAsync(
-                    gg => gg.QueryGroupId == groupId && userGroupIds.Contains(gg.UserGroupId),
-                    cancellationToken);
-            }
-
-            if (!hasAccess)
-            {
-                hasAccess = await _unitOfWork.QueryGroupUsers.ExistsAsync(
-                    gu => gu.QueryGroupId == groupId && gu.UserId == _currentUser.UserId,
-                    cancellationToken);
-            }
+            hasAccess = await QueryAccess.HasGroupGrantAsync(
+                request.QueryId, userRoleIds, userGroupIds, _unitOfWork, _currentUser.UserId, cancellationToken);
         }
 
         if (!hasAccess && !_currentUser.Roles.Contains(RoleNames.Admin))

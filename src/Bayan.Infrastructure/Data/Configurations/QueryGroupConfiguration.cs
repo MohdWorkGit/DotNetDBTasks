@@ -13,10 +13,5 @@ public class QueryGroupConfiguration : IEntityTypeConfiguration<QueryGroup>
         builder.Property(e => e.Description).HasMaxLength(1000).IsRequired();
 
         builder.HasIndex(e => e.Name).IsUnique();
-
-        builder.HasMany(e => e.DynamicQueries)
-            .WithOne(q => q.QueryGroup)
-            .HasForeignKey(q => q.QueryGroupId)
-            .OnDelete(DeleteBehavior.SetNull);
     }
 }

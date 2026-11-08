@@ -11,8 +11,10 @@ namespace Bayan.Domain.Entities;
 ///
 /// <para>
 /// Entries are written by the MediatR audit behavior, so every command is covered without each
-/// handler having to remember. Deliberately append-only: nothing in the application updates or
-/// deletes a row here, which is the whole point of an audit trail.
+/// handler having to remember. Deliberately append-only: nothing in the application updates a
+/// row here, and the only deletion is retention — entries older than the period an
+/// administrator sets in System Settings (off by default). Each rotation that removes anything
+/// writes its own entry, saying how much went, so the trail records its own trimming.
 /// </para>
 /// </summary>
 public class SystemAuditLog : BaseEntity

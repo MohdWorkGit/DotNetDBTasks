@@ -264,6 +264,9 @@
   <data name="SqlTooLong" xml:space="preserve">
     <value>يجب ألا يتجاوز نص استعلام SQL ⁨{0}⁩ حرفًا (وطوله الحالي ⁨{1}⁩). ويمكن للمسؤول رفع الحد من إعدادات النظام.</value>
   </data>
+  <data name="RetentionOutOfRange" xml:space="preserve">
+    <value>يجب أن تكون ⁨{0}⁩ صفرًا (الاحتفاظ دائمًا) أو بين ⁨{1}⁩ و⁨{2}⁩ يومًا.</value>
+  </data>
   <data name="RefreshShorterThanAccess" xml:space="preserve">
     <value>يجب أن تدوم صلاحية رمز التجديد مدة لا تقل عن مدة رمز الوصول، وإلا تعذّر تجديد الجلسة أبدًا.</value>
   </data>

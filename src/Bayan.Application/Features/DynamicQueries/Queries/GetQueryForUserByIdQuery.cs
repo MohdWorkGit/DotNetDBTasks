@@ -37,7 +37,9 @@ public class GetQueryForUserByIdQueryHandler
         var query = await _unitOfWork.DynamicQueries.GetByIdAsync(request.Id, cancellationToken,
             "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
             "Parameters", "DatabaseUser",
-            "QueryGroup.QueryGroupRoles", "QueryGroup.QueryGroupUserGroups", "QueryGroup.QueryGroupUsers");
+            "QueryGroupQueries.QueryGroup.QueryGroupRoles",
+            "QueryGroupQueries.QueryGroup.QueryGroupUserGroups",
+            "QueryGroupQueries.QueryGroup.QueryGroupUsers");
 
         if (query is null || !query.IsEnabled)
             throw new NotFoundException(nameof(Domain.Entities.DynamicQuery), request.Id);
@@ -51,11 +53,11 @@ public class GetQueryForUserByIdQueryHandler
         var hasUserGroupAccess = query.DynamicQueryUserGroups.Any(qg => userGroupIds.Contains(qg.UserGroupId));
         var hasDirectAccess = query.DynamicQueryUsers.Any(qu => qu.UserId == _currentUser.UserId);
 
-        // Group-level access: any assignment on the parent group grants access to this query.
-        var hasGroupAccess = query.QueryGroup is not null && (
-            query.QueryGroup.QueryGroupRoles.Any(gr => roleIds.Contains(gr.RoleId)) ||
-            query.QueryGroup.QueryGroupUserGroups.Any(gg => userGroupIds.Contains(gg.UserGroupId)) ||
-            query.QueryGroup.QueryGroupUsers.Any(gu => gu.UserId == _currentUser.UserId));
+        // Group-level access: an assignment on any group the query is filed in reaches it.
+        var hasGroupAccess = query.QueryGroupQueries.Select(m => m.QueryGroup).Any(g =>
+            g.QueryGroupRoles.Any(gr => roleIds.Contains(gr.RoleId)) ||
+            g.QueryGroupUserGroups.Any(gg => userGroupIds.Contains(gg.UserGroupId)) ||
+            g.QueryGroupUsers.Any(gu => gu.UserId == _currentUser.UserId));
 
         if (!hasRoleAccess && !hasUserGroupAccess && !hasDirectAccess && !hasGroupAccess)
             throw new ForbiddenAccessException("You do not have access to this query.");

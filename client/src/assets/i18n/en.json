@@ -310,7 +310,7 @@
       "problemUnknown": "Some fields are not valid. Check the fields marked in red.",
       "displayNameRequired": "Display name is required",
       "enabled": "Enabled",
-      "groupHint": "Pick a folder to organise this query on the My Queries page",
+      "groupHint": "Pick one or more folders to file this query under on the My Queries page. Leave empty for Ungrouped.",
       "groupsLoadFailed": "Could not load query groups — reload the page to try again.",
       "longRunning": "Long-running query",
       "longRunningHint": "Enable for slow queries. They run as a background job the page polls for, so they are not cut off by proxy/gateway timeouts. Normal queries run instantly and should leave this off.",
@@ -409,7 +409,8 @@
       "renamedOne": "{{count}} already existed by name and was imported as a copy — nothing existing was changed.",
       "renamedMany": "{{count}} already existed by name and were imported as copies — nothing existing was changed.",
       "renamedFrom": "was \"{{name}}\"",
-      "importWarnings": "Needs your attention ({{count}})"
+      "importWarnings": "Needs your attention ({{count}})",
+      "groups": "Groups"
     },
     "tasks": {
       "deleteTitle": "Delete scheduled task?",
@@ -644,12 +645,27 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "typeOther": "Other",
-      "before": "Before:",
-      "after": "After:",
       "noMatch": "No logs match the current filters.",
       "affectedRowsTitle": "Affected rows — {{query}}",
       "oldRowsOne": "{{count}} row as it existed before the change.",
-      "oldRowsMany": "{{count}} rows as they existed before the change."
+      "oldRowsMany": "{{count}} rows as they existed before the change.",
+      "noParameters": "No parameters",
+      "emptyValue": "(empty)",
+      "moreParameters": "+{{count}} more",
+      "beforeRows": "Rows before",
+      "details": "Details",
+      "viewDetails": "View details",
+      "duration": "Duration",
+      "durationValue": "{{ms}} ms",
+      "rowsReturned": "Rows returned",
+      "rowsAffected": "Rows affected",
+      "errorTitle": "Error",
+      "parametersUsed": "Parameters used",
+      "noParametersUsed": "This run used no parameters.",
+      "paramName": "Parameter",
+      "paramValue": "Value",
+      "rowsBefore": "Rows before the change",
+      "noSnapshot": "No before-change rows were recorded for this run — \"Save before-change values\" is off for this query, or no rows matched."
     },
     "audit": {
       "title": "System Audit",
@@ -720,7 +736,8 @@
         "roles.create": "Created a role",
         "roles.update": "Renamed a role",
         "roles.delete": "Deleted a role",
-        "roles.setPermissions": "Changed a role's permissions"
+        "roles.setPermissions": "Changed a role's permissions",
+        "settings.logsRotated": "Rotated the logs (deleted old entries)"
       },
       "categories": {
         "users": "Users",
@@ -755,7 +772,28 @@
       "outOfRange": "Enter a number between {{min}} and {{max}}.",
       "saved": "Settings saved",
       "saveFailed": "Failed to save settings",
-      "loadFailed": "Failed to load settings"
+      "loadFailed": "Failed to load settings",
+      "retentionTitle": "Log retention",
+      "retentionIntro": "Entries older than the period below are deleted automatically every six hours. Enter 0 to keep a log forever. Saving a shorter period does not delete anything by itself — the next rotation does, or Rotate now.",
+      "executionLogRetention": "Keep execution logs for",
+      "executionLogRetentionHint": "Every run of a query, with its parameters and before-change rows.",
+      "systemLogRetention": "Keep system audit for",
+      "systemLogRetentionHint": "Administrative actions — users, permissions, queries and settings changed.",
+      "days": "days",
+      "retentionOutOfRange": "Enter 0 (keep forever) or {{min}}–{{max}}.",
+      "retentionCurrentDays": "Currently: entries older than {{days}} days are deleted.",
+      "retentionCurrentForever": "Currently: kept forever.",
+      "retentionSaved": "Log retention saved",
+      "rotateNow": "Rotate now",
+      "rotating": "Rotating…",
+      "rotateNowHint": "Delete what the saved retention says is due now, instead of at the next scheduled rotation",
+      "rotateSaveFirst": "Save or cancel your changes first",
+      "rotateConfirmTitle": "Rotate the logs now?",
+      "rotateConfirmMessage": "Execution logs: {{execution}}.\nSystem audit: {{system}}.\n\nDeleted entries cannot be recovered. The rotation itself is recorded in the system audit.",
+      "retentionOlderThan": "entries older than {{days}} days will be deleted",
+      "retentionKeptForever": "kept forever",
+      "rotated": "Deleted {{execution}} execution log entries and {{system}} system audit entries.",
+      "rotateFailed": "Failed to rotate the logs"
     },
     "permissions": {
       "intro": "Every capability the system offers, and which roles hold it. Admin always holds everything and cannot be edited — that is what keeps this page reachable. Changes take effect on the next request; nobody has to sign in again.",
@@ -1256,9 +1294,7 @@
       "durationMs": "Duration (ms)",
       "rows": "Rows",
       "status": "Status",
-      "loadFailed": "Failed to load history. Please try again.",
-      "before": "Before:",
-      "after": "After:"
+      "loadFailed": "Failed to load history. Please try again."
     },
     "schedules": {
       "title": "Scheduled Tasks",

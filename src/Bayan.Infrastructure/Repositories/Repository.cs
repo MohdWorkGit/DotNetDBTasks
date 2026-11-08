@@ -109,6 +109,13 @@ public class Repository<T> : IRepository<T> where T : class
         _dbSet.Remove(entity);
     }
 
+    public Task<int> DeleteWhereAsync(
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbSet.Where(predicate).ExecuteDeleteAsync(cancellationToken);
+    }
+
     public async Task<bool> ExistsAsync(
         Expression<Func<T, bool>> predicate,
         CancellationToken cancellationToken = default)

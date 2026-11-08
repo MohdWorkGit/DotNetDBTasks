@@ -1,6 +1,7 @@
 using System.Reflection;
 using Bayan.Application.Common.Behaviors;
 using Bayan.Application.Common.Security;
+using Bayan.Application.Features.SystemAudit.Rotation;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,10 @@ public static class DependencyInjection
 
         // Scoped: it reads the current request's user and the per-request unit of work.
         services.AddScoped<AdminAccountGuard>();
+
+        // Scoped: it works through the per-request unit of work. The background sweep creates a
+        // scope of its own for each pass.
+        services.AddScoped<AuditLogRotation>();
 
         return services;
     }

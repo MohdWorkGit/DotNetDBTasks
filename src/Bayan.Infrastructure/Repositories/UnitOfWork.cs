@@ -28,6 +28,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<QueryGroupRole> QueryGroupRoles { get; }
     public IRepository<QueryGroupUserGroup> QueryGroupUserGroups { get; }
     public IRepository<QueryGroupUser> QueryGroupUsers { get; }
+    public IRepository<QueryGroupQuery> QueryGroupQueries { get; }
     public IRepository<DatabaseUser> DatabaseUsers { get; }
     public IRepository<DatabaseUserRoleAccess> DatabaseUserRoleAccess { get; }
     public IRepository<ScheduledTask> ScheduledTasks { get; }
@@ -76,6 +77,7 @@ public class UnitOfWork : IUnitOfWork
         QueryGroupRoles = new Repository<QueryGroupRole>(context);
         QueryGroupUserGroups = new Repository<QueryGroupUserGroup>(context);
         QueryGroupUsers = new Repository<QueryGroupUser>(context);
+        QueryGroupQueries = new Repository<QueryGroupQuery>(context);
         DatabaseUsers = new Repository<DatabaseUser>(context);
         DatabaseUserRoleAccess = new Repository<DatabaseUserRoleAccess>(context);
         ScheduledTasks = new Repository<ScheduledTask>(context);

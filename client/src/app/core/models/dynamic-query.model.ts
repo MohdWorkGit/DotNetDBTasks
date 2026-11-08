@@ -181,8 +181,10 @@ export interface DynamicQuery {
   saveOldValues: boolean;
   databaseUserId?: string;
   databaseUserName?: string;
-  queryGroupId?: string | null;
-  queryGroupName?: string | null;
+  /** Every group the query is filed in; empty means ungrouped. */
+  queryGroupIds: string[];
+  /** Names of those groups, alphabetical — for display. */
+  queryGroupNames: string[];
   /** File name of the uploaded Word export template; null/absent when none. */
   wordTemplateFileName?: string | null;
   /**
@@ -282,7 +284,8 @@ export interface CreateDynamicQueryRequest {
   allowRunWithoutConfirmation: boolean;
   saveOldValues: boolean;
   databaseUserId?: string | null;
-  queryGroupId?: string | null;
+  /** The groups to file the query in; empty leaves it ungrouped. */
+  queryGroupIds: string[];
   /** ExportFileFormat names; empty turns export off for this query. */
   allowedExportFormats: string[];
   parameters: QueryParameter[];
@@ -292,7 +295,6 @@ export interface UpdateDynamicQueryRequest extends CreateDynamicQueryRequest {
   id: string;
   isEnabled: boolean;
   databaseUserId?: string | null;
-  queryGroupId?: string | null;
 }
 
 /** One query's outcome from an import. */
@@ -591,6 +593,18 @@ export interface SystemSettings {
   querySqlMaxLength: number;
   /** When false, the Active Directory pages are switched off. */
   directoryEnabled: boolean;
+  /** Days of query execution logs to keep; 0 keeps them forever. */
+  executionLogRetentionDays: number;
+  /** Days of the system audit trail to keep; 0 keeps it forever. */
+  systemLogRetentionDays: number;
+}
+
+/** What one log rotation removed (POST api/admin/systemsettings/rotate-logs). */
+export interface LogRotationResult {
+  executionLogRetentionDays: number;
+  systemLogRetentionDays: number;
+  executionLogsDeleted: number;
+  systemLogsDeleted: number;
 }
 
 /**
@@ -601,5 +615,7 @@ export const SETTING_LIMITS = {
   accessTokenMinutes: { min: 5, max: 1440 },
   refreshTokenDays: { min: 1, max: 90 },
   maxRows: { min: 100, max: 1000000 },
-  sqlMaxLength: { min: 1000, max: 1000000 }
+  sqlMaxLength: { min: 1000, max: 1000000 },
+  /** 0 is also accepted, meaning "keep forever". */
+  logRetentionDays: { min: 7, max: 3650 }
 } as const;

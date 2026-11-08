@@ -25,6 +25,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<QueryGroupRole> QueryGroupRoles => Set<QueryGroupRole>();
     public DbSet<QueryGroupUserGroup> QueryGroupUserGroups => Set<QueryGroupUserGroup>();
     public DbSet<QueryGroupUser> QueryGroupUsers => Set<QueryGroupUser>();
+    public DbSet<QueryGroupQuery> QueryGroupQueries => Set<QueryGroupQuery>();
     public DbSet<QueryExecutionLog> QueryExecutionLogs => Set<QueryExecutionLog>();
     public DbSet<DatabaseUser> DatabaseUsers => Set<DatabaseUser>();
     public DbSet<DatabaseUserRoleAccess> DatabaseUserRoleAccess => Set<DatabaseUserRoleAccess>();

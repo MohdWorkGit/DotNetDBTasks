@@ -39,7 +39,7 @@ public class GetAllDynamicQueriesQueryHandler
     {
         var queries = await _unitOfWork.DynamicQueries.GetAllAsync(cancellationToken,
             "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
-            "Parameters", "DatabaseUser", "QueryGroup");
+            "Parameters", "DatabaseUser", "QueryGroupQueries.QueryGroup");
 
         var dtos = _mapper.Map<IReadOnlyList<DynamicQueryDto>>(queries);
         QueryAccessRoles.RedactQueryTextFor(

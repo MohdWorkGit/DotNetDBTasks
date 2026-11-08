@@ -46,7 +46,16 @@ public class ExportedQuery
     /// </summary>
     public string? DatabaseUserName { get; set; }
 
-    /// <summary>Group name; import creates the group when it does not already exist.</summary>
+    /// <summary>
+    /// Every group the query is filed in, by name; import creates any the target lacks.
+    /// </summary>
+    public List<string> QueryGroupNames { get; set; } = new();
+
+    /// <summary>
+    /// The single group of a file written before a query could sit in several. Still written
+    /// (the first of <see cref="QueryGroupNames"/>) so an older installation reading a new file
+    /// keeps at least one filing; import reads both and merges them.
+    /// </summary>
     public string? QueryGroupName { get; set; }
 
     public string? WordTemplateFileName { get; set; }

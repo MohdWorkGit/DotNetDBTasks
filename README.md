@@ -138,6 +138,8 @@ database behaves exactly like a fresh one until someone changes something.
 | `session.refreshTokenDays` | `7` | Refresh-token lifetime, 1–90. How long someone may stay away and still return without signing in again. |
 | `query.maxRows` | `10000` | Rows read in one go on the paths that hold a whole result in memory — write previews, before-change snapshots, dropdown lookups. **Not** a display limit: the grid caches the full result and pages it, and exports are never capped. Overrides `MaxQueryRows` in appsettings.json, which remains the fallback. |
 | `directory.enabled` | `true` | When off, the AD Users page is hidden and `/api/admin/ldap` returns 503. Signing in is deliberately unaffected, so flipping it cannot lock out imported accounts. |
+| `audit.executionLogRetentionDays` | `0` | Days of query execution logs to keep; `0` keeps them forever, otherwise 7–3650. Older entries are deleted by a sweep that runs two minutes after start-up and then every six hours, or at once with **Rotate now**. |
+| `audit.systemLogRetentionDays` | `0` | The same for the system audit trail. Each rotation that deletes anything records itself there as `settings.logsRotated`, with the counts. |
 
 The numbers are range-checked server-side; a value outside its bounds is refused with a message
 naming them. Every change is audited (`settings.updated`) with the full set of values.

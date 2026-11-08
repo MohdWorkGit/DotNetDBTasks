@@ -264,6 +264,9 @@
   <data name="SqlTooLong" xml:space="preserve">
     <value>The SQL query must not exceed {0} characters (it has {1}). An administrator can raise the limit in System Settings.</value>
   </data>
+  <data name="RetentionOutOfRange" xml:space="preserve">
+    <value>{0} must be 0 (keep forever) or between {1} and {2} days.</value>
+  </data>
   <data name="RefreshShorterThanAccess" xml:space="preserve">
     <value>The refresh token must last at least as long as the access token, otherwise a session could never be refreshed.</value>
   </data>

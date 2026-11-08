@@ -22,7 +22,7 @@ public class GetQueryGroupByIdQueryHandler
     public async Task<QueryGroupDto> Handle(GetQueryGroupByIdQuery request, CancellationToken cancellationToken)
     {
         var group = await _unitOfWork.QueryGroups.GetByIdAsync(request.Id, cancellationToken,
-            "QueryGroupRoles.Role", "QueryGroupUserGroups.UserGroup", "QueryGroupUsers.User", "DynamicQueries");
+            "QueryGroupRoles.Role", "QueryGroupUserGroups.UserGroup", "QueryGroupUsers.User", "QueryGroupQueries");
         if (group is null)
             throw new NotFoundException(nameof(Domain.Entities.QueryGroup), request.Id);
 

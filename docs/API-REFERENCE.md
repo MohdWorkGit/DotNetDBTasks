@@ -88,8 +88,8 @@ reachable by any signed-in caller, so add one.
 |---|---|---|
 | `GET /` | `queries.view` | All queries. **SQL is blanked** without `queries.readSql`. |
 | `GET /{id}` | `queries.view` | One query with its parameters. SQL blanked as above. |
-| `POST /` | `queries.manage` | Creates a query and its parameters. |
-| `PUT /{id}` | `queries.manage` | Updates a query. |
+| `POST /` | `queries.manage` | Creates a query and its parameters. `queryGroupIds` files it in any number of groups (empty = ungrouped); an unknown id is **404**. |
+| `PUT /{id}` | `queries.manage` | Updates a query, replacing its groups with `queryGroupIds`. |
 | `DELETE /{id}` | `queries.manage` | Deletes a query. |
 | `POST /{id}/roles` | `access.manageQuery` | Assigns to roles. No seeded role but Admin holds this, so it starts closed. |
 | `POST /{id}/user-groups` | `access.manageQuery` | Assigns to user groups.  |
@@ -294,7 +294,8 @@ Class: `[Authorize]`.
 | Verb + path | Roles | Notes |
 |---|---|---|
 | `GET /` | Any authenticated | All settings. Readable by anyone signed in: the client reads `directoryEnabled` to decide whether to offer a menu entry. |
-| `PUT /` | `settings.manage` | Replaces **all** settings — send the whole object. Out-of-range numbers are refused with 400 and a message naming the bounds. Audited as `settings.updated` with the full set. |
+| `PUT /` | `settings.manage` | Replaces **all** settings — send the whole object. Out-of-range numbers are refused with 400 and a message naming the bounds. Audited as `settings.updated` with the full set. `executionLogRetentionDays` and `systemLogRetentionDays` accept 0 (keep forever) or 7–3650. |
+| `POST /rotate-logs` | `settings.manage` | Deletes execution logs and system audit entries older than their saved retention now, instead of at the next six-hourly sweep. Returns `{ executionLogRetentionDays, systemLogRetentionDays, executionLogsDeleted, systemLogsDeleted }`. A rotation that deletes anything is audited as `settings.logsRotated`. |
 
 See [Runtime Settings in the README](../README.md#runtime-settings) for what each one does.
 

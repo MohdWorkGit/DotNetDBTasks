@@ -51,6 +51,7 @@ public static class MessageKeys
     public const string DirectoryDisabled = nameof(DirectoryDisabled);
     public const string SettingOutOfRange = nameof(SettingOutOfRange);
     public const string RefreshShorterThanAccess = nameof(RefreshShorterThanAccess);
+    public const string RetentionOutOfRange = nameof(RetentionOutOfRange);
     public const string SqlTooLong = nameof(SqlTooLong);
     public const string QueryTestUnsupported = nameof(QueryTestUnsupported);
     public const string QueryNameRequired = nameof(QueryNameRequired);

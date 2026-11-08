@@ -22,8 +22,13 @@ public class MappingProfile : Profile
                 ExportPermissions.Parse(s.AllowedExportFormats).Select(f => f.ToString()).ToList()))
             .ForMember(d => d.DatabaseUserName, opt => opt.MapFrom(s =>
                 s.DatabaseUser != null ? s.DatabaseUser.Name : null))
-            .ForMember(d => d.QueryGroupName, opt => opt.MapFrom(s =>
-                s.QueryGroup != null ? s.QueryGroup.Name : null))
+            .ForMember(d => d.QueryGroupIds, opt => opt.MapFrom(s =>
+                s.QueryGroupQueries == null ? new List<Guid>() :
+                s.QueryGroupQueries.Select(m => m.QueryGroupId).ToList()))
+            .ForMember(d => d.QueryGroupNames, opt => opt.MapFrom(s =>
+                s.QueryGroupQueries == null ? new List<string>() :
+                s.QueryGroupQueries.Where(m => m.QueryGroup != null)
+                    .Select(m => m.QueryGroup.Name).OrderBy(n => n).ToList()))
             .ForMember(d => d.AssignedRoles, opt => opt.MapFrom(s =>
                 s.DynamicQueryRoles == null ? new List<RoleAssignmentDto>() :
                 s.DynamicQueryRoles.Select(qr => new RoleAssignmentDto
@@ -72,11 +77,11 @@ public class MappingProfile : Profile
             .ForMember(d => d.DynamicQueryUserGroups, opt => opt.Ignore())
             .ForMember(d => d.DynamicQueryUsers, opt => opt.Ignore())
             .ForMember(d => d.DatabaseUser, opt => opt.Ignore())
-            .ForMember(d => d.QueryGroup, opt => opt.Ignore());
+            .ForMember(d => d.QueryGroupQueries, opt => opt.Ignore());
 
         CreateMap<QueryGroup, QueryGroupDto>()
             .ForMember(d => d.QueryCount, opt => opt.MapFrom(s =>
-                s.DynamicQueries == null ? 0 : s.DynamicQueries.Count))
+                s.QueryGroupQueries == null ? 0 : s.QueryGroupQueries.Count))
             .ForMember(d => d.AssignedRoles, opt => opt.MapFrom(s =>
                 s.QueryGroupRoles == null ? new List<RoleAssignmentDto>() :
                 s.QueryGroupRoles.Select(gr => new RoleAssignmentDto

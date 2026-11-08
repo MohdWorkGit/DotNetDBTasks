@@ -25,7 +25,7 @@ public class ExportQueriesQueryHandler : IRequestHandler<ExportQueriesQuery, Que
     private static readonly string[] Includes =
     {
         "DynamicQueryRoles.Role", "DynamicQueryUserGroups.UserGroup", "DynamicQueryUsers.User",
-        "Parameters", "DatabaseUser", "QueryGroup"
+        "Parameters", "DatabaseUser", "QueryGroupQueries.QueryGroup"
     };
 
     private readonly IUnitOfWork _unitOfWork;
@@ -81,7 +81,8 @@ public class ExportQueriesQueryHandler : IRequestHandler<ExportQueriesQuery, Que
         AllowedExportFormats = ExportPermissions.Parse(q.AllowedExportFormats)
             .Select(f => f.ToString()).ToList(),
         DatabaseUserName = q.DatabaseUser?.Name,
-        QueryGroupName = q.QueryGroup?.Name,
+        QueryGroupNames = q.QueryGroupQueries.Select(m => m.QueryGroup.Name).OrderBy(n => n).ToList(),
+        QueryGroupName = q.QueryGroupQueries.Select(m => m.QueryGroup.Name).OrderBy(n => n).FirstOrDefault(),
         WordTemplateFileName = q.WordTemplateFileName,
         WordTemplateBase64 = q.WordTemplate is null ? null : Convert.ToBase64String(q.WordTemplate),
         Parameters = q.Parameters

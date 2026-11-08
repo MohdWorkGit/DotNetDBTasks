@@ -110,6 +110,35 @@ public static class SystemSettingKeys
     public const bool DirectoryEnabledDefault = true;
 
     /// <summary>
+    /// How many days of query execution logs to keep. Older entries are deleted by the rotation
+    /// sweep, which runs every few hours and on demand from System Settings.
+    ///
+    /// <para>0 — the default — keeps them forever, which is how the log behaved before it could
+    /// be rotated. Otherwise bounded at <see cref="LogRetentionDaysMin"/>–<see
+    /// cref="LogRetentionDaysMax"/>: a week is the shortest window that still leaves time to
+    /// notice a problem and look it up, and ten years is longer than any retention policy asks
+    /// for.</para>
+    /// </summary>
+    public const string AuditExecutionLogRetentionDays = "audit.executionLogRetentionDays";
+
+    /// <summary>
+    /// How many days of the system audit trail (administrative actions) to keep. Same rules as
+    /// <see cref="AuditExecutionLogRetentionDays"/>, set separately because the two answer
+    /// different questions — and an audit policy commonly keeps configuration changes far
+    /// longer than query runs.
+    /// </summary>
+    public const string AuditSystemLogRetentionDays = "audit.systemLogRetentionDays";
+
+    /// <summary>Keep forever.</summary>
+    public const int LogRetentionDaysDefault = 0;
+    public const int LogRetentionDaysMin = 7;
+    public const int LogRetentionDaysMax = 3650;
+
+    /// <summary>True for 0 (keep forever) or a day count inside the bounds.</summary>
+    public static bool IsValidRetention(int days) =>
+        days == 0 || (days >= LogRetentionDaysMin && days <= LogRetentionDaysMax);
+
+    /// <summary>
     /// The site name shown in the top banner, per language.
     ///
     /// <para>Two rows rather than one, because the banner has to read correctly in both

@@ -69,6 +69,7 @@ builder.Services.AddHostedService<ResultCacheMaintenanceService>();
 
 // Background worker that triggers scheduled export tasks and manual "run now" requests
 builder.Services.AddHostedService<ScheduledTaskWorker>();
+builder.Services.AddHostedService<AuditLogRotationService>();
 
 // Controllers
 builder.Services.AddControllers();

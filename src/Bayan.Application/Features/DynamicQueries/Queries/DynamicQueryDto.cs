@@ -17,8 +17,10 @@ public class DynamicQueryDto
     public bool SaveOldValues { get; set; }
     public Guid? DatabaseUserId { get; set; }
     public string? DatabaseUserName { get; set; }
-    public Guid? QueryGroupId { get; set; }
-    public string? QueryGroupName { get; set; }
+    /// <summary>Every group the query is filed in; empty means ungrouped.</summary>
+    public List<Guid> QueryGroupIds { get; set; } = new();
+    /// <summary>Names of <see cref="QueryGroupIds"/>, alphabetical — for display only.</summary>
+    public List<string> QueryGroupNames { get; set; } = new();
     /// <summary>File name of the uploaded Word export template; null when none (default layout is used).</summary>
     public string? WordTemplateFileName { get; set; }
     /// <summary>
