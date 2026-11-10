@@ -4,7 +4,7 @@ import { ParameterType, DropdownSourceType } from './dynamic-query.model';
 
 /**
  * A report composes several saved queries into one document, laid out by a Word template the
- * author uploads. Mirrors the DTOs in Bayan.Application/Features/Reports/Dtos.
+ * author uploads. Mirrors the DTOs in Jadwal.Application/Features/Reports/Dtos.
  */
 
 /** Mirrors ReportDatasetSourceType. */

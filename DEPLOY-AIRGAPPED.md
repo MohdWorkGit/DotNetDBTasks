@@ -33,7 +33,7 @@ Run from the repo root. Self-contained bundles the .NET runtime — no SDK or ru
 
 **Windows target:**
 ```powershell
-dotnet publish src/Bayan.API/Bayan.API.csproj `
+dotnet publish src/Jadwal.API/Jadwal.API.csproj `
   -c Release `
   -r win-x64 `
   --self-contained `
@@ -42,7 +42,7 @@ dotnet publish src/Bayan.API/Bayan.API.csproj `
 
 **Linux target:**
 ```bash
-dotnet publish src/Bayan.API/Bayan.API.csproj \
+dotnet publish src/Jadwal.API/Jadwal.API.csproj \
   -c Release \
   -r linux-x64 \
   --self-contained \
@@ -54,20 +54,20 @@ dotnet publish src/Bayan.API/Bayan.API.csproj \
 
 ### QueryRunner console tool (optional)
 
-`tools/Bayan.QueryRunner` is a standalone console app that runs SELECT queries from a JSON
+`tools/Jadwal.QueryRunner` is a standalone console app that runs SELECT queries from a JSON
 config and exports the results (Excel/CSV/JSON, with incremental checkpoints) — made to be driven by
 Windows Task Scheduler with no API, app database, or login. Publish it self-contained too if the
 target has no .NET runtime:
 
 ```powershell
-dotnet publish tools/Bayan.QueryRunner `
+dotnet publish tools/Jadwal.QueryRunner `
   -c Release `
   -r win-x64 `
   --self-contained `
   -o ./queryrunner-publish
 ```
 
-See [tools/Bayan.QueryRunner/README.md](tools/Bayan.QueryRunner/README.md) for
+See [tools/Jadwal.QueryRunner/README.md](tools/Jadwal.QueryRunner/README.md) for
 configuration (`appsettings.json` next to the exe, or a config path per scheduled job) and the
 Task Scheduler setup.
 
@@ -80,7 +80,7 @@ npm ci
 npm run build:prod
 ```
 
-Output: `client/dist/bayan-client/browser/`
+Output: `client/dist/jadwal-client/browser/`
 
 ---
 
@@ -89,11 +89,11 @@ Output: `client/dist/bayan-client/browser/`
 | Item | Source | Notes |
 |---|---|---|
 | `api-publish/` | Built in Step 1 | Entire folder |
-| `dist/bayan-client/browser/` | Built in Step 1 | Entire folder |
+| `dist/jadwal-client/browser/` | Built in Step 1 | Entire folder |
 | Oracle XE 21c installer | [oracle.com](https://www.oracle.com/database/technologies/xe-downloads.html) | ~1.5 GB, download before leaving |
 | nginx portable zip | [nginx.org/en/download.html](https://nginx.org/en/download.html) | Windows: `nginx/Windows-x.x.x`, no install needed |
 | `nginx.conf` | See Step 4 | Custom config for this app |
-| `appsettings.json` | `src/Bayan.API/` | Edit before going — see Step 3 |
+| `appsettings.json` | `src/Jadwal.API/` | Edit before going — see Step 3 |
 | `queryrunner-publish/` (optional) | Built in Step 1 | Only if using the standalone QueryRunner with Task Scheduler |
 | LibreOffice installer (optional) | [libreoffice.org](https://www.libreoffice.org/download/download-libreoffice/) | ~350 MB. Only for full-fidelity Word-template PDF export — see below |
 | `docker/ldap/bootstrap.ldif` | Repo | Only needed if setting up a fresh OpenLDAP server |
@@ -214,13 +214,13 @@ C:\deploy\
 
 **Run directly (for testing):**
 ```powershell
-C:\deploy\api\Bayan.API.exe
+C:\deploy\api\Jadwal.API.exe
 ```
 
 **Register as a Windows Service (for production):**
 ```powershell
-sc.exe create Bayan binPath="C:\deploy\api\Bayan.API.exe"
-sc.exe start Bayan
+sc.exe create Jadwal binPath="C:\deploy\api\Jadwal.API.exe"
+sc.exe start Jadwal
 ```
 
 > Scheduled export tasks run inside this process, so it must stay running for schedules to fire —
@@ -261,7 +261,7 @@ To stop:
 ## Startup Order
 
 1. Oracle XE (database must be up first)
-2. `Bayan.API.exe` (waits for DB connection)
+2. `Jadwal.API.exe` (waits for DB connection)
 3. nginx (serves frontend and proxies API)
 
 ---
@@ -291,15 +291,25 @@ The steps:
 ```powershell
 # 1. Back up the schema (Data Pump, RMAN, or however your DBA prefers).
 # 2. Stop the API — the Windows service, or the IIS app pool (Part C).
-sc.exe stop Bayan
+sc.exe stop Jadwal
 # 3. Replace the API files, but keep your configuration and history.
 robocopy <bundle>\api-publish C:\deploy\api /E /XF appsettings.json /XD logs cache
 # 4. Replace the client files.
 robocopy <bundle>\client-dist C:\deploy\client /MIR
 # 5. Start the API and watch the log for the migrations being applied.
-sc.exe start Bayan
+sc.exe start Jadwal
 Get-Content C:\deploy\api\logs\log-*.txt -Tail 50 -Wait
 ```
+
+**A server installed under the app's earlier name, Bayan, keeps that name.** The executable is
+now `Jadwal.API.exe`, and step 3 copies it in beside the old `Bayan.API.exe` without removing it,
+so the `Bayan` service would go on starting the previous build. Point the service at the new file
+once — `sc.exe config Bayan binPath="C:\deploy\api\Jadwal.API.exe"` — and use `Bayan` wherever
+the steps above say `Jadwal`, or delete it and create the `Jadwal` service as in Step 5. The old
+`Bayan.*` files can go once the service is running. Under IIS, upgrade in place with
+`scripts/deploy-iis.ps1 -SiteName Bayan -PhysicalPath <the site's folder>`: the script refuses to
+deploy as `Jadwal` while a `Bayan` site exists, because a second site is a second copy of every
+background worker, and every scheduled export would run twice.
 
 **New features arrive switched off for everyone but Admin.** A release that adds permissions —
 dashboards, reports — grants them only to the Admin role, so an upgrade changes nothing for
@@ -347,12 +357,12 @@ Restore will fail offline unless these are present locally.
 
 ```powershell
 # Populate the global cache with this solution's full dependency closure
-dotnet restore Bayan.sln
+dotnet restore Jadwal.sln
 
 # The QueryRunner tool is NOT in the solution — restore it separately or its
 # packages will be missing from the cache (scripts/prepare-offline-bundle.ps1
 # already does both restores for you):
-dotnet restore tools/Bayan.QueryRunner
+dotnet restore tools/Jadwal.QueryRunner
 
 # The cache lives here:
 #   %USERPROFILE%\.nuget\packages
@@ -362,7 +372,7 @@ Copy `%USERPROFILE%\.nuget\packages` to the **same path** on the air-gapped mach
 everything locally and never hits the network.
 
 **Alternative — a self-contained folder feed** (keeps the repo portable). Create a flat folder of `.nupkg`
-files and point a `nuget.config` (next to `Bayan.sln`) at it:
+files and point a `nuget.config` (next to `Jadwal.sln`) at it:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -435,10 +445,10 @@ Prove the caches are complete by simulating offline on the prep machine (disable
 
 ```powershell
 # API — clean restore + build with no network
-dotnet build Bayan.sln -c Release
+dotnet build Jadwal.sln -c Release
 
 # QueryRunner tool (not in the solution)
-dotnet build tools/Bayan.QueryRunner -c Release
+dotnet build tools/Jadwal.QueryRunner -c Release
 
 # Frontend — clean install from cache only
 cd client
@@ -452,12 +462,12 @@ If both succeed with the network off, the air-gapped machine has everything it n
 
 ```powershell
 # After editing API code:
-dotnet build Bayan.sln -c Release
+dotnet build Jadwal.sln -c Release
 # or produce a fresh self-contained deploy:
-dotnet publish src/Bayan.API/Bayan.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
+dotnet publish src/Jadwal.API/Jadwal.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
 
 # After editing the QueryRunner tool:
-dotnet publish tools/Bayan.QueryRunner -c Release -r win-x64 --self-contained -o ./queryrunner-publish
+dotnet publish tools/Jadwal.QueryRunner -c Release -r win-x64 --self-contained -o ./queryrunner-publish
 
 # After editing frontend code:
 cd client
@@ -480,7 +490,7 @@ no CORS (same origin), and Windows SSO works through IIS.
 > updates the app pool and site with all of the settings below. Run it elevated, on the server:
 >
 > ```powershell
-> ./scripts/deploy-iis.ps1 -Hostname bayan.corp.local -EnableSso
+> ./scripts/deploy-iis.ps1 -Hostname jadwal.corp.local -EnableSso
 > ```
 >
 > Re-running it is an upgrade, not a reinstall — existing bindings, `appsettings.json`, `logs\`
@@ -489,10 +499,10 @@ no CORS (same origin), and Windows SSO works through IIS.
 
 ## C0 — Why This App Needs More Than the Default App Pool
 
-Bayan runs three background workers **inside the IIS worker process**: the scheduled-export
+Jadwal runs three background workers **inside the IIS worker process**: the scheduled-export
 scheduler, the async query-job worker, and result-cache maintenance. Their state — the job
 store, both work queues, the cancel registry — lives in that process's memory
-(`src/Bayan.Infrastructure/DependencyInjection.cs`). Three consequences drive everything in C3
+(`src/Jadwal.Infrastructure/DependencyInjection.cs`). Three consequences drive everything in C3
 and C3.5, and none of them are optional:
 
 - **The pool must run exactly one worker process.** A web garden (`maxProcesses > 1`) starts a
@@ -532,17 +542,17 @@ net stop was /y & net start w3svc
 
 ```powershell
 # Angular
-cd client; npm run build:prod        # -> client/dist/bayan-client/browser/
+cd client; npm run build:prod        # -> client/dist/jadwal-client/browser/
 
 # API (self-contained)
-dotnet publish src/Bayan.API/Bayan.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
+dotnet publish src/Jadwal.API/Jadwal.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
 
 # Merge the SPA into the API's wwwroot
 New-Item -ItemType Directory -Force .\api-publish\wwwroot | Out-Null
-Copy-Item .\client\dist\bayan-client\browser\* .\api-publish\wwwroot\ -Recurse -Force
+Copy-Item .\client\dist\jadwal-client\browser\* .\api-publish\wwwroot\ -Recurse -Force
 ```
 
-`dotnet publish` emits a `web.config` based on the one in `src/Bayan.API/`, so the published
+`dotnet publish` emits a `web.config` based on the one in `src/Jadwal.API/`, so the published
 site already carries the Windows/Anonymous authentication block. Edit `api-publish\appsettings.json`
 as in Part A, Step 3 (the `Cors:AllowedOrigins` value is unused here — same origin).
 
@@ -550,18 +560,18 @@ as in Part A, Step 3 (the `Cors:AllowedOrigins` value is unused here — same or
 
 ```powershell
 Import-Module WebAdministration
-New-WebAppPool -Name "Bayan"
+New-WebAppPool -Name "Jadwal"
 # No Managed Code: ANCM runs the .NET process, not the IIS CLR.
-Set-ItemProperty IIS:\AppPools\Bayan -Name managedRuntimeVersion -Value ""
+Set-ItemProperty IIS:\AppPools\Jadwal -Name managedRuntimeVersion -Value ""
 # Reach the site by hostname, not IP — silent SSO depends on it (see C4).
-New-Website -Name "Bayan" -Port 80 -HostHeader "bayan.corp.local" `
-            -PhysicalPath "C:\inetpub\Bayan" -ApplicationPool "Bayan"
+New-Website -Name "Jadwal" -Port 80 -HostHeader "jadwal.corp.local" `
+            -PhysicalPath "C:\inetpub\Jadwal" -ApplicationPool "Jadwal"
 # The app writes logs\ and spills large query results to cache\ — grant the pool identity
 # write access.
-icacls "C:\inetpub\Bayan" /grant "IIS AppPool\Bayan:(OI)(CI)M" /T
+icacls "C:\inetpub\Jadwal" /grant "IIS AppPool\Jadwal:(OI)(CI)M" /T
 ```
 
-(Copy `api-publish\` to `C:\inetpub\Bayan` first.)
+(Copy `api-publish\` to `C:\inetpub\Jadwal` first.)
 
 **Then apply the app pool settings in C3.5 — they are not optional for this app.**
 
@@ -569,7 +579,7 @@ icacls "C:\inetpub\Bayan" /grant "IIS AppPool\Bayan:(OI)(CI)M" /T
 
 | | `ApplicationPoolIdentity` (default) | Domain service account |
 |---|---|---|
-| SSO setup | Nothing to do — the machine account already covers this host's own name | Requires `setspn -S HTTP/<hostname> DOMAIN\svc-bayan` |
+| SSO setup | Nothing to do — the machine account already covers this host's own name | Requires `setspn -S HTTP/<hostname> DOMAIN\svc-jadwal` |
 | Scheduled exports to a **network share** | **Not possible** — output folders must be local paths | Works |
 | Windows auth to Oracle | Not available | Available |
 | Credential management | None | Password must be rotated in IIS when it changes in AD |
@@ -578,9 +588,9 @@ Start with `ApplicationPoolIdentity` unless a scheduled task needs to write to a
 To switch later:
 
 ```powershell
-Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.identityType -Value SpecificUser
-Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.userName -Value "CORP\svc-bayan"
-Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.password -Value "..."
+Set-ItemProperty IIS:\AppPools\Jadwal -Name processModel.identityType -Value SpecificUser
+Set-ItemProperty IIS:\AppPools\Jadwal -Name processModel.userName -Value "CORP\svc-jadwal"
+Set-ItemProperty IIS:\AppPools\Jadwal -Name processModel.password -Value "..."
 ```
 
 ## C3.5 — Keep the Background Workers Alive
@@ -596,30 +606,30 @@ Then apply all of the following. See C0 for why each one matters:
 Import-Module WebAdministration
 
 # Never stop when idle; start with Windows instead of on first request.
-Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.idleTimeout -Value "00:00:00"
-Set-ItemProperty IIS:\AppPools\Bayan -Name startMode -Value AlwaysRunning
+Set-ItemProperty IIS:\AppPools\Jadwal -Name processModel.idleTimeout -Value "00:00:00"
+Set-ItemProperty IIS:\AppPools\Jadwal -Name startMode -Value AlwaysRunning
 
 # Exactly one worker process. A web garden duplicates every scheduled export and
 # splits the in-memory job store across processes.
-Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.maxProcesses -Value 1
+Set-ItemProperty IIS:\AppPools\Jadwal -Name processModel.maxProcesses -Value 1
 
 # No overlapped recycle: the incoming process wipes the result spill directory on
 # startup, which would pull files out from under the outgoing process's readers.
-Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.disallowOverlappingRotation -Value $true
+Set-ItemProperty IIS:\AppPools\Jadwal -Name recycling.disallowOverlappingRotation -Value $true
 
 # Turn off every automatic recycle trigger. Each is an unannounced restart that drops
 # in-flight query jobs and every cached result.
-Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.time -Value "00:00:00"
-Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.requests -Value 0
-Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.memory -Value 0
-Set-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.privateMemory -Value 0
-Clear-ItemProperty IIS:\AppPools\Bayan -Name recycling.periodicRestart.schedule
+Set-ItemProperty IIS:\AppPools\Jadwal -Name recycling.periodicRestart.time -Value "00:00:00"
+Set-ItemProperty IIS:\AppPools\Jadwal -Name recycling.periodicRestart.requests -Value 0
+Set-ItemProperty IIS:\AppPools\Jadwal -Name recycling.periodicRestart.memory -Value 0
+Set-ItemProperty IIS:\AppPools\Jadwal -Name recycling.periodicRestart.privateMemory -Value 0
+Clear-ItemProperty IIS:\AppPools\Jadwal -Name recycling.periodicRestart.schedule
 
 # Outermost rung of the shutdown ladder (see below).
-Set-ItemProperty IIS:\AppPools\Bayan -Name processModel.shutdownTimeLimit -Value "00:02:00"
+Set-ItemProperty IIS:\AppPools\Jadwal -Name processModel.shutdownTimeLimit -Value "00:02:00"
 
 # Warm the app immediately after any restart, without waiting for a visitor.
-Set-ItemProperty "IIS:\Sites\Bayan" -Name applicationDefaults.preloadEnabled -Value $true
+Set-ItemProperty "IIS:\Sites\Jadwal" -Name applicationDefaults.preloadEnabled -Value $true
 ```
 
 ### The shutdown ladder
@@ -683,10 +693,10 @@ worth knowing:
    Windows (lets `/api/auth/sso` challenge on demand). Or skip the unlock and enable both in IIS
    Manager → the site → *Authentication*.
 2. **Silent login prerequisites:**
-   - Users reach the site by **hostname** (e.g. `http://bayan.corp.local`), and that host is in the
+   - Users reach the site by **hostname** (e.g. `http://jadwal.corp.local`), and that host is in the
      browser's **Local Intranet** zone — otherwise the browser prompts instead of logging in silently.
    - If the app pool runs under a **custom domain account**, register an SPN:
-     `setspn -S HTTP/bayan.corp.local DOMAIN\svc-account`. Under `ApplicationPoolIdentity`/`NetworkService`
+     `setspn -S HTTP/jadwal.corp.local DOMAIN\svc-account`. Under `ApplicationPoolIdentity`/`NetworkService`
      the machine account already covers the host's own name.
    - Keep `Ldap:*` valid — SSO supplies the username; the profile lookup still goes through AD.
    - Prefer HTTPS in production.
@@ -714,7 +724,7 @@ deployment finished:
 2. **A long query completes.** Run one that takes longer than two minutes. It should finish and
    page normally: long work goes through `execute-async`, so the browser polls with short
    requests and no HTTP timeout applies to the query itself.
-3. **A recycle behaves.** With a task set to run every 5 minutes, `Restart-WebAppPool Bayan`
+3. **A recycle behaves.** With a task set to run every 5 minutes, `Restart-WebAppPool Jadwal`
    mid-run, then check that the interrupted run shows `Canceled` or `Failed` rather than sitting
    at `Running`, that the next occurrence fires within ~30s of the restart, that no duplicate
    output file appeared, and that the output file that did land is complete rather than

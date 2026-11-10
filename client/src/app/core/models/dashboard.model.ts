@@ -3,7 +3,7 @@ import { ReportRunChart } from './report.model';
 
 /**
  * A dashboard is a page of tiles, each fed by one saved query and refreshed on its own
- * interval. Mirrors the DTOs in Bayan.Application/Features/Dashboards/Dtos.
+ * interval. Mirrors the DTOs in Jadwal.Application/Features/Dashboards/Dtos.
  */
 
 /** Mirrors DashboardVisualType. */

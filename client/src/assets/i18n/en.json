@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Bayan",
+    "name": "Jadwal",
     "skipToContent": "Skip to main content",
     "mainNav": "Main"
   },
@@ -101,8 +101,8 @@
     "nameHint": "Shown in the banner when no logo is set. Each language has its own name, so the banner reads correctly in both.",
     "nameEn": "Name (English)",
     "nameAr": "Name (Arabic)",
-    "namePlaceholderEn": "Bayan",
-    "namePlaceholderAr": "بيان",
+    "namePlaceholderEn": "Jadwal",
+    "namePlaceholderAr": "جدول",
     "nameClearHint": "Leave a field empty to use the default application name for that language.",
     "nameSaved": "Site name saved",
     "nameSaveFailed": "Failed to save the site name"

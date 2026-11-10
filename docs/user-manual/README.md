@@ -1,6 +1,6 @@
 # User manual (generated)
 
-`Bayan-User-Manual-EN.docx` and `-AR.docx` are **generated**, not hand-edited. After a
+`Jadwal-User-Manual-EN.docx` and `-AR.docx` are **generated**, not hand-edited. After a
 change to the application, regenerate them so the screenshots and the text match what shipped.
 
 ## Regenerate
@@ -12,7 +12,7 @@ change to the application, regenerate them so the screenshots and the text match
 sqlplus test/test@host/service @database/demo-data.sql
 
 # 2. Start the app (two terminals, from the repo root)
-dotnet run --no-launch-profile --urls http://localhost:60187   # in src/Bayan.API
+dotnet run --no-launch-profile --urls http://localhost:60187   # in src/Jadwal.API
 npx ng serve --port 4200                                        # in client/
 
 # 3. Build the manual (from this folder)
@@ -81,7 +81,7 @@ Environment variables, all optional:
 | `MANUAL_LOCALES` | `en,ar` | Languages to capture (or `--locales ar` on the command line) |
 | `MANUAL_SEED_LANG` | `en` | Language of the seeded demo content (or `--lang ar`) |
 | `MANUAL_DEMO_PASS` | `Demo@123` | Password given to the seeded demo accounts |
-| `MANUAL_TASK_FOLDER` | `C:\Bayan\exports\sales` | Output folder of the seeded scheduled task |
+| `MANUAL_TASK_FOLDER` | `C:\Jadwal\exports\sales` | Output folder of the seeded scheduled task |
 | `MANUAL_THEME` | `dark` | `dark` or `light` — the theme the screenshots use |
 | `MANUAL_OUT_DIR` | this folder | Where the `.docx` files are written. Use it when Word has one open — Word locks the file and the build cannot overwrite it |
 | `MANUAL_ADMIN_USER` / `MANUAL_ADMIN_PASS` | `admin` / `Admin@123` | Account used for most screens |
@@ -110,7 +110,7 @@ preview runs `SELECT *`, which otherwise prints real password hashes into the ma
   built around that: "Orders by Period and Status" is the query with the most parameters and
   every one of them is fillable by the capture's heuristic, "Sales by Region" is the only
   multi-value one, and "Adjust Product Stock Level" is the write query with the most.
-- **Seeding is destructive on the Bayan side.** `seed-demo-data.js` deletes every dashboard,
+- **Seeding is destructive on the Jadwal side.** `seed-demo-data.js` deletes every dashboard,
   scheduled task, report, query and group before creating its own, and deleting a query
   cascades to its execution logs. Dashboards, reports and tasks go first: each holds a query
   down through a tile, a dataset or an item, and none of them cascades. It never deletes user accounts — the demo accounts it needs are

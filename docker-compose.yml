@@ -1,7 +1,7 @@
 services:
   oracle:
     image: gvenzl/oracle-xe:21-slim
-    container_name: bayan-oracle
+    container_name: jadwal-oracle
     environment:
       ORACLE_PASSWORD: "${DB_PASSWORD:-YourStrong@Passw0rd}"
     volumes:
@@ -13,25 +13,25 @@ services:
       retries: 10
       start_period: 90s
     networks:
-      - bayan-network
+      - jadwal-network
     restart: unless-stopped
 
   api:
     build:
       context: .
       dockerfile: docker/api.Dockerfile
-    container_name: bayan-api
+    container_name: jadwal-api
     environment:
       ConnectionStrings__DefaultConnection: "User Id=system;Password=${DB_PASSWORD:-YourStrong@Passw0rd};Data Source=oracle:1521/XEPDB1"
       Jwt__Secret: "${JWT_SECRET:-CHANGE_THIS_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS_LONG_12345}"
-      Jwt__Issuer: "${JWT_ISSUER:-Bayan}"
-      Jwt__Audience: "${JWT_AUDIENCE:-Bayan}"
+      Jwt__Issuer: "${JWT_ISSUER:-Jadwal}"
+      Jwt__Audience: "${JWT_AUDIENCE:-Jadwal}"
       Encryption__Key: "${ENCRYPTION_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}"
       Ldap__Host: "ldap"
       Ldap__Port: "389"
-      Ldap__BaseDn: "dc=bayan,dc=local"
-      Ldap__UsersDn: "ou=users,dc=bayan,dc=local"
-      Ldap__AdminDn: "cn=admin,dc=bayan,dc=local"
+      Ldap__BaseDn: "dc=jadwal,dc=local"
+      Ldap__UsersDn: "ou=users,dc=jadwal,dc=local"
+      Ldap__AdminDn: "cn=admin,dc=jadwal,dc=local"
       Ldap__AdminPassword: "${LDAP_ADMIN_PASSWORD:-LdapAdmin@123}"
       Ldap__UsernameAttribute: "uid"
       Ldap__DepartmentAttribute: "departmentNumber"
@@ -45,15 +45,15 @@ services:
       ldap:
         condition: service_started
     networks:
-      - bayan-network
+      - jadwal-network
     restart: unless-stopped
 
   ldap:
     image: osixia/openldap:1.5.0
-    container_name: bayan-ldap
+    container_name: jadwal-ldap
     environment:
-      LDAP_ORGANISATION: "Bayan"
-      LDAP_DOMAIN: "bayan.local"
+      LDAP_ORGANISATION: "Jadwal"
+      LDAP_DOMAIN: "jadwal.local"
       LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-LdapAdmin@123}"
     volumes:
       - ldap_data:/var/lib/ldap
@@ -61,24 +61,24 @@ services:
       - ./docker/ldap/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/50-bootstrap.ldif
     command: --copy-service
     networks:
-      - bayan-network
+      - jadwal-network
     restart: unless-stopped
 
   client:
     build:
       context: .
       dockerfile: docker/client.Dockerfile
-    container_name: bayan-client
+    container_name: jadwal-client
     ports:
       - "${CLIENT_PORT:-80}:80"
     depends_on:
       - api
     networks:
-      - bayan-network
+      - jadwal-network
     restart: unless-stopped
     labels:
       - homepage.group=Manage
-      - homepage.name=Bayan
+      - homepage.name=Jadwal
       - homepage.icon=oracle.png
       - homepage.href=https://dbtasks.alharthy.uk/
       - homepage.description=Manage DB queries
@@ -92,5 +92,5 @@ volumes:
     driver: local
 
 networks:
-  bayan-network:
+  jadwal-network:
     driver: bridge

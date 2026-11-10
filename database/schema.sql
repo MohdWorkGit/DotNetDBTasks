@@ -1,4 +1,4 @@
--- Bayan Database Schema (Oracle)
+-- Jadwal Database Schema (Oracle)
 -- This schema is applied automatically via EF Core migrations on startup.
 -- This file is provided for reference and manual setup scenarios.
 

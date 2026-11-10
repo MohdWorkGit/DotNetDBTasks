@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "بيان",
+    "name": "جدول",
     "skipToContent": "تخطَّ إلى المحتوى الرئيسي",
     "mainNav": "التنقل الرئيسي"
   },
@@ -101,8 +101,8 @@
     "nameHint": "يظهر في الشريط العلوي عند عدم وجود شعار. لكل لغة اسمها الخاص، حتى يُقرأ الشريط بشكل صحيح في اللغتين.",
     "nameEn": "الاسم (بالإنجليزية)",
     "nameAr": "الاسم (بالعربية)",
-    "namePlaceholderEn": "Bayan",
-    "namePlaceholderAr": "بيان",
+    "namePlaceholderEn": "Jadwal",
+    "namePlaceholderAr": "جدول",
     "nameClearHint": "اترك الحقل فارغًا لاستخدام اسم التطبيق الافتراضي لتلك اللغة.",
     "nameSaved": "تم حفظ اسم الموقع",
     "nameSaveFailed": "تعذّر حفظ اسم الموقع"

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Builds the Bayan user manual as a Word document, in English and Arabic.
+Builds the Jadwal user manual as a Word document, in English and Arabic.
 
     python build-docx.py            # both languages
     python build-docx.py en         # one language
 
 Reads screenshots/<lang>/*.png (produced by capture-screenshots.js) and writes
-Bayan-User-Manual-EN.docx / -AR.docx. A screenshot that is missing is replaced by a
+Jadwal-User-Manual-EN.docx / -AR.docx. A screenshot that is missing is replaced by a
 visible placeholder rather than failing the build, so a manual is always produced.
 
 The text lives in `build_manual()` near the bottom. Every string is written once as
@@ -279,8 +279,8 @@ def add_page_footer(doc):
     footer = doc.sections[0].footer
     p = footer.paragraphs[0]
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.add_run(T("Bayan User Manual  ·  page ",
-                "دليل مستخدم بيان  ·  صفحة "))
+    p.add_run(T("Jadwal User Manual  ·  page ",
+                "دليل مستخدم «جدول»  ·  صفحة "))
     _field(p, "PAGE")
     for r in p.runs:
         r.font.size = Pt(8.5)
@@ -465,7 +465,7 @@ def cover(doc):
         run.bold = bold
         run.italic = italic
 
-    centered(T("Bayan", "بيان"), 40, ACCENT, bold=True)
+    centered(T("Jadwal", "جدول"), 40, ACCENT, bold=True)
     centered(T("User Manual", "دليل المستخدم"), 24, RGBColor(0x1F, 0x25, 0x37))
     centered(T("Features, screens and permissions",
                "الميزات والشاشات والصلاحيات"), 13, MUTED, italic=True)
@@ -502,10 +502,10 @@ def build_manual(doc):
 
     # ===================================================================== 1
     h1(doc, T("1. About this manual", "١. عن هذا الدليل"))
-    para(doc, T("This manual explains every screen in Bayan, what each button does, and who "
+    para(doc, T("This manual explains every screen in Jadwal, what each button does, and who "
                 "is allowed to use it. It is written for four groups of people, and each "
                 "chapter says at the top who it is for:",
-                "يشرح هذا الدليل كل شاشة في نظام بيان، وما يفعله كل زر فيها، ومن يُسمح له "
+                "يشرح هذا الدليل كل شاشة في نظام «جدول»، وما يفعله كل زر فيها، ومن يُسمح له "
                 "باستخدامها. وهو مكتوب لأربع فئات من الناس، وفي بداية كل فصل تجد الفئة التي "
                 "يخصّها:"))
     bullets(doc, [
@@ -545,12 +545,12 @@ def build_manual(doc):
     # ===================================================================== 2
     h1(doc, T("2. What the system does",
               "٢. ماذا يفعل النظام"))
-    para(doc, T("Bayan lets a few people write SQL queries once, and lets many more people "
+    para(doc, T("Jadwal lets a few people write SQL queries once, and lets many more people "
                 "run them safely — without direct access to the database and without being "
                 "able to change the SQL. On top of that it controls who can use what, keeps a "
                 "full record of what happened, and can run the same queries at set times and "
                 "save the results to files.",
-                "يسمح نظام بيان لعدد قليل من الأشخاص بكتابة استعلامات SQL مرة واحدة، ثم يسمح "
+                "يسمح نظام «جدول» لعدد قليل من الأشخاص بكتابة استعلامات SQL مرة واحدة، ثم يسمح "
                 "لعدد أكبر بكثير بتشغيلها بأمان — دون دخول مباشر إلى قاعدة البيانات ودون "
                 "إمكانية تغيير نص SQL. ويضاف إلى ذلك تحديد من يستخدم ماذا، وسجل كامل لكل ما "
                 "حدث، وتشغيل الاستعلامات نفسها في أوقات محددة وحفظ النتائج في ملفات."))
@@ -3734,7 +3734,7 @@ def build(lang):
     # to refresh its table of contents — and Word holds the file open, so the next build cannot
     # overwrite it. Building elsewhere lets the run finish and the file be moved into place after.
     out_dir = os.environ.get("MANUAL_OUT_DIR") or HERE
-    out = os.path.join(out_dir, f"Bayan-User-Manual-{lang.upper()}.docx")
+    out = os.path.join(out_dir, f"Jadwal-User-Manual-{lang.upper()}.docx")
     doc.save(out)
 
     shots = os.path.join(HERE, "screenshots", lang)

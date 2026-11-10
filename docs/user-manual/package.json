@@ -1,8 +1,8 @@
 {
-  "name": "bayan-user-manual",
+  "name": "jadwal-user-manual",
   "version": "1.0.0",
   "private": true,
-  "description": "Regenerates the Bayan user manual (.docx) and its screenshots.",
+  "description": "Regenerates the Jadwal user manual (.docx) and its screenshots.",
   "scripts": {
     "capture": "node capture-screenshots.js",
     "build": "python build-docx.py",

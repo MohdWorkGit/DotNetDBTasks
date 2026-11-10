@@ -1,7 +1,7 @@
 -- ============================================================================
---  Bayan demo dataset - the business tables the user manual is illustrated with
+--  Jadwal demo dataset - the business tables the user manual is illustrated with
 -- ============================================================================
---  Bayan itself stores no business data: it publishes parameterised SQL that runs
+--  Jadwal itself stores no business data: it publishes parameterised SQL that runs
 --  against whatever schema an organisation already has. The manual therefore needs
 --  a plausible one to photograph. This script creates it: a small sales and HR
 --  schema (departments, employees, customers, products, orders, order items,

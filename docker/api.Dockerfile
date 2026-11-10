@@ -3,11 +3,11 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy solution and project files for layer caching
-COPY Bayan.sln ./
-COPY src/Bayan.Domain/Bayan.Domain.csproj src/Bayan.Domain/
-COPY src/Bayan.Application/Bayan.Application.csproj src/Bayan.Application/
-COPY src/Bayan.Infrastructure/Bayan.Infrastructure.csproj src/Bayan.Infrastructure/
-COPY src/Bayan.API/Bayan.API.csproj src/Bayan.API/
+COPY Jadwal.sln ./
+COPY src/Jadwal.Domain/Jadwal.Domain.csproj src/Jadwal.Domain/
+COPY src/Jadwal.Application/Jadwal.Application.csproj src/Jadwal.Application/
+COPY src/Jadwal.Infrastructure/Jadwal.Infrastructure.csproj src/Jadwal.Infrastructure/
+COPY src/Jadwal.API/Jadwal.API.csproj src/Jadwal.API/
 
 # Restore dependencies
 RUN dotnet restore
@@ -16,7 +16,7 @@ RUN dotnet restore
 COPY . .
 
 # Build and publish
-RUN dotnet publish src/Bayan.API/Bayan.API.csproj \
+RUN dotnet publish src/Jadwal.API/Jadwal.API.csproj \
     -c Release \
     -o /app/publish \
     --no-restore
@@ -43,4 +43,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget -qO- http://localhost:8080/swagger/index.html || exit 1
 
-ENTRYPOINT ["dotnet", "Bayan.API.dll"]
+ENTRYPOINT ["dotnet", "Jadwal.API.dll"]

@@ -4,7 +4,7 @@
  *
  * The manual's screenshots are only as convincing as the data behind them, and a
  * development database drifts: queries named "test2", tasks named "tst", accounts
- * left behind by e2e runs. This script puts the Bayan side of the demo back to a
+ * left behind by e2e runs. This script puts the Jadwal side of the demo back to a
  * known, plausible state — a small company running sales, customer service,
  * inventory, finance and HR reports over the schema created by
  * `database/demo-data.sql`.
@@ -42,7 +42,7 @@
  *   MANUAL_ADMIN_USER  default admin
  *   MANUAL_ADMIN_PASS  default Admin@123
  *   MANUAL_DEMO_PASS   default Demo@123   (password given to the demo accounts)
- *   MANUAL_TASK_FOLDER default C:\Bayan\exports\sales
+ *   MANUAL_TASK_FOLDER default C:\Jadwal\exports\sales
  */
 
 const argv = process.argv.slice(2);
@@ -61,7 +61,7 @@ const API = process.env.MANUAL_API_URL || 'http://localhost:60187/api';
 const ADMIN_USER = process.env.MANUAL_ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.MANUAL_ADMIN_PASS || 'Admin@123';
 const DEMO_PASS = process.env.MANUAL_DEMO_PASS || 'Demo@123';
-const TASK_FOLDER = process.env.MANUAL_TASK_FOLDER || 'C:\\Bayan\\exports\\sales';
+const TASK_FOLDER = process.env.MANUAL_TASK_FOLDER || 'C:\\Jadwal\\exports\\sales';
 
 const log = (...a) => console.log('[seed]', ...a);
 

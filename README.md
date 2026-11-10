@@ -1,4 +1,4 @@
-# Bayan
+# Jadwal
 
 A production-ready dynamic database query execution platform built with .NET 10, Angular 21, Oracle, and Docker.
 
@@ -8,10 +8,10 @@ A production-ready dynamic database query execution platform built with .NET 10,
 
 ```
 src/
-├── Bayan.Domain          # Entities, interfaces, enums, exceptions (zero dependencies)
-├── Bayan.Application     # CQRS commands/queries, DTOs, validators, mappings
-├── Bayan.Infrastructure  # EF Core, repositories, JWT, encryption, query executor
-└── Bayan.API             # Controllers, middleware, DI configuration
+├── Jadwal.Domain          # Entities, interfaces, enums, exceptions (zero dependencies)
+├── Jadwal.Application     # CQRS commands/queries, DTOs, validators, mappings
+├── Jadwal.Infrastructure  # EF Core, repositories, JWT, encryption, query executor
+└── Jadwal.API             # Controllers, middleware, DI configuration
 client/                           # Angular 21 SPA with Angular Material
 docker/                           # Dockerfiles and nginx config
 ```
@@ -236,7 +236,7 @@ PDF/Word/Excel files (export rendering goes through LibreOffice/Word templates).
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
-cd Bayan
+cd Jadwal
 
 # 2. Create environment file
 cp .env.example .env
@@ -254,6 +254,13 @@ docker compose up -d
 The Compose stack starts four services: **oracle** (Oracle XE 21c), **ldap** (OpenLDAP),
 **api** (.NET 10), and **client** (Angular served by nginx).
 
+> **A stack first started as Bayan** keeps that directory. OpenLDAP reads
+> `docker/ldap/bootstrap.ldif` only into empty volumes, so the `ldap_data` and `ldap_config`
+> volumes still hold `dc=bayan,dc=local` while the API now looks for `dc=jadwal,dc=local`, and
+> LDAP sign-in fails. Remove just those two volumes (`docker volume ls` shows their prefixed
+> names) and start the stack again. Never `docker compose down -v`: it deletes the Oracle
+> volume too.
+
 ## Local Development (without Docker)
 
 ### Prerequisites
@@ -266,8 +273,8 @@ The Compose stack starts four services: **oracle** (Oracle XE 21c), **ldap** (Op
 ### Run the API
 
 ```bash
-dotnet restore Bayan.sln
-dotnet run --project src/Bayan.API
+dotnet restore Jadwal.sln
+dotnet run --project src/Jadwal.API
 # Listens on http://localhost:5000 (Swagger at /swagger)
 ```
 
@@ -285,8 +292,8 @@ npm start          # ng serve on http://localhost:4200, proxies /api to the .NET
 |----------|-------------|---------|
 | `DB_PASSWORD` | Oracle database password | `YourStrong@Passw0rd` |
 | `JWT_SECRET` | JWT signing key (min 32 chars) | Must be changed |
-| `JWT_ISSUER` | JWT token issuer | `Bayan` |
-| `JWT_AUDIENCE` | JWT token audience | `Bayan` |
+| `JWT_ISSUER` | JWT token issuer | `Jadwal` |
+| `JWT_AUDIENCE` | JWT token audience | `Jadwal` |
 | `ENCRYPTION_KEY` | Base64-encoded 32-byte AES-256 key for credential encryption | Must be changed |
 | `LDAP_ADMIN_PASSWORD` | LDAP admin bind password | `LdapAdmin@123` |
 | `APP_DOMAIN` | Public domain / allowed CORS origin | `https://tasks.example.com` |
@@ -296,7 +303,7 @@ Generate a key with `openssl rand -base64 32`.
 
 ## Deployment
 
-- **IIS on Windows Server (single site, with Windows SSO):** `./scripts/deploy-iis.ps1 -Hostname bayan.corp.local -EnableSso`,
+- **IIS on Windows Server (single site, with Windows SSO):** `./scripts/deploy-iis.ps1 -Hostname jadwal.corp.local -EnableSso`,
   run elevated on the server. One site serves both the SPA and the API, so there is no reverse
   proxy and no CORS, and domain users are signed in automatically. Full walkthrough in
   [DEPLOY-AIRGAPPED.md](DEPLOY-AIRGAPPED.md) Part C.

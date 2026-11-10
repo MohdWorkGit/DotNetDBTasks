@@ -1,0 +1,411 @@
+using System.Text.Json;
+using Jadwal.Application.Common.Interfaces;
+using Jadwal.Domain.Entities;
+using Jadwal.Domain.Enums;
+using Jadwal.Domain.Exceptions;
+using Jadwal.Domain.Interfaces;
+using Jadwal.Domain.Services;
+using MediatR;
+
+namespace Jadwal.Application.Features.ScheduledTasks.Commands;
+
+/// <summary>
+/// One query inside a scheduled task, as sent by the admin form.
+/// </summary>
+public class ScheduledTaskItemInput
+{
+    /// <summary>The query to run. Leave null and set <see cref="ReportId"/> to run a report.</summary>
+    public Guid? DynamicQueryId { get; set; }
+
+    /// <summary>The report to run, as an alternative to a single query.</summary>
+    public Guid? ReportId { get; set; }
+
+    /// <summary>
+    /// The dashboard to snapshot, as a third alternative. <see cref="Parameters"/> then holds its
+    /// filter values by filter name.
+    /// </summary>
+    public Guid? DashboardId { get; set; }
+
+    public Dictionary<string, string> Parameters { get; set; } = new();
+    public ExportFileFormat ExportFormat { get; set; }
+
+    /// <summary>CSV only: field separator text (null/empty = comma), e.g. ";" or ";;". Also accepts "tab", "semicolon", "pipe".</summary>
+    public string? CsvSeparator { get; set; }
+
+    public string? FileNamePrefix { get; set; }
+    public bool AppendTimestamp { get; set; } = true;
+    public int SortOrder { get; set; }
+
+    /// <summary>Optional incremental checkpoint (read queries only): result column to track.</summary>
+    public string? KeyColumn { get; set; }
+
+    /// <summary>The query parameter that receives the saved key.</summary>
+    public string? KeyParameter { get; set; }
+
+    /// <summary>Key value used before any checkpoint exists.</summary>
+    public string? InitialKey { get; set; }
+
+    /// <summary>When true (edit only), the saved checkpoint is cleared so the next run starts from InitialKey.</summary>
+    public bool ResetKey { get; set; }
+}
+
+/// <summary>
+/// One recurrence rule of a scheduled task, as sent by the admin form. A task can
+/// have several (e.g. daily at 03:00 + monthly on day 14 + daily at 14:00).
+/// </summary>
+public class ScheduledTaskTriggerInput
+{
+    public ScheduleFrequency Frequency { get; set; }
+    public int? IntervalMinutes { get; set; }
+    public string? TimeOfDay { get; set; }
+    public int? DayOfWeek { get; set; }
+    public int? DayOfMonth { get; set; }
+    public int SortOrder { get; set; }
+}
+
+/// <summary>
+/// Creates a scheduled export task (Admin only — enforced at the controller).
+/// </summary>
+public class CreateScheduledTaskCommand : IRequest<ScheduledTaskDto>
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public bool IsEnabled { get; set; } = true;
+    public string OutputFolder { get; set; } = string.Empty;
+
+    /// <summary>Optional second absolute folder that receives a copy of every export file.</summary>
+    public string? ArchiveFolder { get; set; }
+
+    /// <summary>When true, all read-query results are appended into one output file in item order.</summary>
+    public bool CombineOutput { get; set; }
+
+    /// <summary>When false, CSV/Excel exports contain data rows only (no header row).</summary>
+    public bool IncludeHeaders { get; set; } = true;
+
+    /// <summary>Combined mode: base file name without extension (null/empty = task name).</summary>
+    public string? CombinedFileName { get; set; }
+
+    /// <summary>Combined mode: format of the single output file.</summary>
+    public ExportFileFormat CombinedFormat { get; set; } = ExportFileFormat.Csv;
+
+    /// <summary>Combined mode, CSV only: field separator text (null/empty = comma).</summary>
+    public string? CombinedCsvSeparator { get; set; }
+
+    /// <summary>Combined mode: append a run timestamp to the file name (default true).</summary>
+    public bool CombinedAppendTimestamp { get; set; } = true;
+
+    /// <summary>.NET date format for the file-name timestamp suffix (null/empty = "_yyyyMMdd-HHmmss").</summary>
+    public string? TimestampFormat { get; set; }
+
+    public List<ScheduledTaskTriggerInput> Triggers { get; set; } = new();
+    public List<ScheduledTaskItemInput> Items { get; set; } = new();
+}
+
+public class CreateScheduledTaskCommandHandler : IRequestHandler<CreateScheduledTaskCommand, ScheduledTaskDto>
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUser;
+
+    public CreateScheduledTaskCommandHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUser)
+    {
+        _unitOfWork = unitOfWork;
+        _currentUser = currentUser;
+    }
+
+    public async Task<ScheduledTaskDto> Handle(CreateScheduledTaskCommand request, CancellationToken cancellationToken)
+    {
+        await ScheduledTaskInputValidator.ValidateAsync(
+            _unitOfWork,
+            request.Name,
+            request.OutputFolder,
+            request.ArchiveFolder,
+            request.CombineOutput,
+            request.CombinedCsvSeparator,
+            request.TimestampFormat,
+            request.Triggers,
+            request.Items,
+            excludeTaskId: null,
+            cancellationToken);
+
+        var task = new ScheduledTask
+        {
+            Id = Guid.NewGuid(),
+            Name = request.Name.Trim(),
+            // Oracle stores '' as NULL, so blank descriptions are persisted as null.
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description,
+            IsEnabled = request.IsEnabled,
+            OutputFolder = request.OutputFolder.Trim(),
+            ArchiveFolder = string.IsNullOrWhiteSpace(request.ArchiveFolder) ? null : request.ArchiveFolder.Trim(),
+            CombineOutput = request.CombineOutput,
+            IncludeHeaders = request.IncludeHeaders,
+            CombinedFileName = string.IsNullOrWhiteSpace(request.CombinedFileName) ? null : request.CombinedFileName.Trim(),
+            CombinedFormat = request.CombinedFormat,
+            CombinedCsvSeparator = ScheduledTaskInputValidator.NormalizeSeparator(request.CombinedCsvSeparator, request.CombinedFormat),
+            CombinedAppendTimestamp = request.CombinedAppendTimestamp,
+            TimestampFormat = string.IsNullOrWhiteSpace(request.TimestampFormat) ? null : request.TimestampFormat.Trim(),
+            CreatedByUserId = _currentUser.UserId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        foreach (var trigger in ScheduledTaskInputValidator.BuildTriggers(task.Id, request.Triggers))
+            task.Triggers.Add(trigger);
+        task.NextRunAt = ScheduleCalculator.ComputeNextRunUtc(task.IsEnabled, task.Triggers, DateTime.Now);
+
+        foreach (var item in ScheduledTaskInputValidator.BuildItems(task.Id, request.Items))
+            task.Items.Add(item);
+
+        // Viewer grants are not set here: a new task starts private to the admins, and access
+        // is given afterwards on its own page (PUT {id}/access/*).
+        await _unitOfWork.ScheduledTasks.AddAsync(task, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var created = (await _unitOfWork.ScheduledTasks.FindAsync(
+            t => t.Id == task.Id, cancellationToken,
+            "Triggers", "Items", "Items.DynamicQuery", "Items.Report", "Items.Dashboard", "Viewers", "Viewers.User")).First();
+        return ScheduledTaskMapper.ToDto(created);
+    }
+}
+
+/// <summary>
+/// Shared validation and item construction for create/update of scheduled tasks.
+/// Throws <see cref="DomainException"/> with a user-facing message on any violation.
+/// </summary>
+public static class ScheduledTaskInputValidator
+{
+    public static async Task ValidateAsync(
+        IUnitOfWork unitOfWork,
+        string name,
+        string outputFolder,
+        string? archiveFolder,
+        bool combineOutput,
+        string? combinedCsvSeparator,
+        string? timestampFormat,
+        List<ScheduledTaskTriggerInput> triggers,
+        List<ScheduledTaskItemInput> items,
+        Guid? excludeTaskId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("Task name is required.");
+
+        var trimmedName = name.Trim();
+        var nameTaken = await unitOfWork.ScheduledTasks.ExistsAsync(
+            t => t.Name == trimmedName && (excludeTaskId == null || t.Id != excludeTaskId),
+            cancellationToken);
+        if (nameTaken)
+            throw new DomainException($"A scheduled task named '{trimmedName}' already exists.");
+
+        if (string.IsNullOrWhiteSpace(outputFolder) || !Path.IsPathRooted(outputFolder.Trim()))
+            throw new DomainException("Output folder must be an absolute path on the server (e.g. D:\\Exports\\Sales).");
+
+        if (!string.IsNullOrWhiteSpace(archiveFolder) && !Path.IsPathRooted(archiveFolder.Trim()))
+            throw new DomainException("Archive folder must be an absolute path on the server (e.g. D:\\Exports\\Archive).");
+
+        if (combineOutput && !Common.Models.CsvSeparator.TryParse(combinedCsvSeparator, out _))
+            throw new DomainException(
+                $"The combined file's CSV separator must be 1–{Common.Models.CsvSeparator.MaxLength} characters and cannot contain quotes or line breaks.");
+
+        if (!string.IsNullOrWhiteSpace(timestampFormat))
+        {
+            var format = timestampFormat.Trim();
+            if (format.Length > 50)
+                throw new DomainException("The timestamp format cannot exceed 50 characters.");
+            string sample;
+            try
+            {
+                sample = DateTime.Now.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
+            }
+            catch (FormatException)
+            {
+                throw new DomainException($"'{format}' is not a valid .NET date format for the file-name timestamp.");
+            }
+            if (sample.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                throw new DomainException(
+                    $"The timestamp format produces '{sample}', which contains characters not allowed in file names.");
+        }
+
+        if (triggers.Count == 0)
+            throw new DomainException("A scheduled task must have at least one trigger.");
+
+        foreach (var trigger in triggers)
+        {
+            switch (trigger.Frequency)
+            {
+                case ScheduleFrequency.EveryNMinutes when trigger.IntervalMinutes is null or < 1:
+                    throw new DomainException("Interval (minutes) must be at least 1.");
+                case ScheduleFrequency.Daily or ScheduleFrequency.Weekly or ScheduleFrequency.Monthly
+                    when !TimeSpan.TryParse(trigger.TimeOfDay, out _):
+                    throw new DomainException("Time of day must be in HH:mm format.");
+                case ScheduleFrequency.Weekly when trigger.DayOfWeek is null or < 0 or > 6:
+                    throw new DomainException("Day of week must be between 0 (Sunday) and 6 (Saturday).");
+                case ScheduleFrequency.Monthly when trigger.DayOfMonth is null or < 1 or > 31:
+                    throw new DomainException("Day of month must be between 1 and 31.");
+            }
+        }
+
+        if (items.Count == 0)
+            throw new DomainException("A scheduled task must contain at least one query.");
+
+        foreach (var item in items)
+        {
+            var kinds = (item.DynamicQueryId is null ? 0 : 1) + (item.ReportId is null ? 0 : 1)
+                + (item.DashboardId is null ? 0 : 1);
+            if (kinds > 1)
+                throw new DomainException("An item runs one query, one report or one dashboard — not several.");
+
+            // A dashboard item is a document of every tile: no single query, no write semantics,
+            // no incremental checkpoint, and only the document formats make sense for it.
+            if (item.DashboardId is not null)
+            {
+                var dashboardExists = await unitOfWork.Dashboards.ExistsAsync(
+                    d => d.Id == item.DashboardId.Value, cancellationToken);
+                if (!dashboardExists)
+                    throw new NotFoundException("Dashboard", item.DashboardId.Value);
+
+                if (item.ExportFormat is not (ExportFileFormat.Pdf or ExportFileFormat.Word or ExportFileFormat.Excel))
+                    throw new DomainException("A dashboard snapshot is written as PDF, Word or Excel.");
+
+                if (!string.IsNullOrWhiteSpace(item.KeyColumn) || !string.IsNullOrWhiteSpace(item.KeyParameter))
+                {
+                    throw new DomainException(
+                        "A dashboard item cannot be incremental: it is a snapshot of the whole page.");
+                }
+
+                continue;
+            }
+
+            // A report item is validated on its own terms: it has no single query, no write
+            // semantics and no incremental checkpoint to resolve.
+            if (item.ReportId is not null)
+            {
+                if (item.DynamicQueryId is not null)
+                {
+                    throw new DomainException(
+                        "An item runs either a query or a report, not both.");
+                }
+
+                var reportExists = await unitOfWork.Reports.ExistsAsync(
+                    r => r.Id == item.ReportId.Value, cancellationToken);
+                if (!reportExists)
+                    throw new NotFoundException("Report", item.ReportId.Value);
+
+                if (!string.IsNullOrWhiteSpace(item.KeyColumn) || !string.IsNullOrWhiteSpace(item.KeyParameter))
+                {
+                    throw new DomainException(
+                        "A report item cannot be incremental: a report is a composed document, " +
+                        "not a stream of rows to resume from.");
+                }
+
+                continue;
+            }
+
+            if (item.DynamicQueryId is null)
+                throw new DomainException("Each scheduled item needs a query, a report or a dashboard.");
+
+            var query = await unitOfWork.DynamicQueries.GetByIdAsync(item.DynamicQueryId.Value, cancellationToken)
+                ?? throw new DomainException("One of the selected queries no longer exists.");
+
+            if (!Common.Models.CsvSeparator.TryParse(item.CsvSeparator, out _))
+                throw new DomainException(
+                    $"Query '{query.Name}': the CSV separator must be 1–{Common.Models.CsvSeparator.MaxLength} characters and cannot contain quotes or line breaks.");
+
+            // Write queries are allowed (they commit and record affected rows, no file),
+            // but an incremental checkpoint only makes sense for a query that returns rows.
+            if (string.IsNullOrWhiteSpace(item.KeyColumn))
+                continue;
+
+            if (query.QueryType.IsWrite())
+                throw new DomainException(
+                    $"Query '{query.Name}' modifies data; a key column checkpoint is only supported for read queries.");
+
+            if (string.IsNullOrWhiteSpace(item.KeyParameter))
+                throw new DomainException(
+                    $"Query '{query.Name}': choose which query parameter receives the saved key value.");
+
+            var parameterExists = await unitOfWork.QueryParameters.ExistsAsync(
+                p => p.DynamicQueryId == item.DynamicQueryId.Value && p.Name == item.KeyParameter,
+                cancellationToken);
+            if (!parameterExists)
+                throw new DomainException(
+                    $"Query '{query.Name}' has no parameter named '{item.KeyParameter}' to receive the saved key.");
+
+            if (string.IsNullOrWhiteSpace(item.InitialKey))
+                throw new DomainException(
+                    $"Query '{query.Name}': an initial key value is required for the first incremental run.");
+        }
+    }
+
+    /// <summary>
+    /// Builds trigger entities from the form input. Fields that don't apply to a
+    /// trigger's frequency are stored as null regardless of what the form sent.
+    /// </summary>
+    public static IEnumerable<ScheduledTaskTrigger> BuildTriggers(
+        Guid taskId, List<ScheduledTaskTriggerInput> triggers) =>
+        triggers.Select(input => new ScheduledTaskTrigger
+        {
+            Id = Guid.NewGuid(),
+            ScheduledTaskId = taskId,
+            Frequency = input.Frequency,
+            IntervalMinutes = input.Frequency == ScheduleFrequency.EveryNMinutes ? input.IntervalMinutes : null,
+            TimeOfDay = input.Frequency == ScheduleFrequency.EveryNMinutes ? null : input.TimeOfDay,
+            DayOfWeek = input.Frequency == ScheduleFrequency.Weekly ? input.DayOfWeek : null,
+            DayOfMonth = input.Frequency == ScheduleFrequency.Monthly ? input.DayOfMonth : null,
+            SortOrder = input.SortOrder,
+            CreatedAt = DateTime.UtcNow
+        });
+
+    /// <summary>
+    /// Builds item entities from the form input. <paramref name="previousKeys"/> carries the
+    /// saved checkpoints of the task's existing items (update replaces items wholesale, so
+    /// without this every edit would silently restart incremental queries from InitialKey).
+    /// </summary>
+    public static IEnumerable<ScheduledTaskItem> BuildItems(
+        Guid taskId,
+        List<ScheduledTaskItemInput> items,
+        IReadOnlyDictionary<string, string>? previousKeys = null) =>
+        items.Select(input => new ScheduledTaskItem
+        {
+            Id = Guid.NewGuid(),
+            ScheduledTaskId = taskId,
+            DynamicQueryId = input.DynamicQueryId,
+            ReportId = input.ReportId,
+            DashboardId = input.DashboardId,
+            ParametersJson = JsonSerializer.Serialize(input.Parameters ?? new Dictionary<string, string>()),
+            ExportFormat = input.ExportFormat,
+            CsvSeparator = NormalizeSeparator(input.CsvSeparator, input.ExportFormat),
+            FileNamePrefix = string.IsNullOrWhiteSpace(input.FileNamePrefix) ? null : input.FileNamePrefix.Trim(),
+            AppendTimestamp = input.AppendTimestamp,
+            SortOrder = input.SortOrder,
+            KeyColumn = Clean(input.KeyColumn),
+            KeyParameter = string.IsNullOrWhiteSpace(input.KeyColumn) ? null : Clean(input.KeyParameter),
+            InitialKey = string.IsNullOrWhiteSpace(input.KeyColumn) ? null : Clean(input.InitialKey),
+            LastKeyValue = !input.ResetKey
+                && previousKeys is not null
+                && previousKeys.TryGetValue(CheckpointIdentity(input.DynamicQueryId, input.KeyColumn, input.KeyParameter), out var saved)
+                    ? saved
+                    : null,
+            CreatedAt = DateTime.UtcNow
+        });
+
+    /// <summary>
+    /// A checkpoint survives an edit only while it still means the same thing: same
+    /// query, same key column, same receiving parameter.
+    /// </summary>
+    public static string CheckpointIdentity(Guid? dynamicQueryId, string? keyColumn, string? keyParameter) =>
+        $"{dynamicQueryId:N}|{keyColumn?.Trim().ToLowerInvariant()}|{keyParameter?.Trim().ToLowerInvariant()}";
+
+    private static string? Clean(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>
+    /// A separator is stored only for CSV output and only when it differs from the
+    /// default comma. Compared without trimming — a tab separator is itself whitespace.
+    /// </summary>
+    public static string? NormalizeSeparator(string? separator, ExportFileFormat format) =>
+        format == ExportFileFormat.Csv
+            && !string.IsNullOrEmpty(separator)
+            && Common.Models.CsvSeparator.Parse(separator) != Common.Models.CsvSeparator.Default
+                ? separator
+                : null;
+
+}

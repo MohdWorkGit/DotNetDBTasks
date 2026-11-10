@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "bayan-client": {
+    "jadwal-client": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -18,7 +18,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/bayan-client",
+            "outputPath": "dist/jadwal-client",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -64,10 +64,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "bayan-client:build:production"
+              "buildTarget": "jadwal-client:build:production"
             },
             "development": {
-              "buildTarget": "bayan-client:build:development"
+              "buildTarget": "jadwal-client:build:development"
             }
           },
           "defaultConfiguration": "development"

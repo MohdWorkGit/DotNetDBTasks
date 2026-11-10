@@ -1,7 +1,7 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-    Builds Bayan and deploys it as a single IIS site (ASP.NET Core in-process),
+    Builds Jadwal and deploys it as a single IIS site (ASP.NET Core in-process),
     configured so the in-process background workers keep running.
 
 .DESCRIPTION
@@ -27,16 +27,17 @@
     logs\ and cache\ are all left alone.
 
 .PARAMETER SiteName
-    IIS site and app pool name. Default: Bayan.
+    IIS site and app pool name. Default: Jadwal. A server installed before the rename runs
+    as 'Bayan'; pass -SiteName Bayan (and its -PhysicalPath) to upgrade it in place.
 
 .PARAMETER PhysicalPath
-    Where the published app lives on disk. Default: C:\inetpub\Bayan.
+    Where the published app lives on disk. Default: C:\inetpub\Jadwal.
 
 .PARAMETER Port
     Binding port. Default: 80. Ignored if the binding already exists.
 
 .PARAMETER Hostname
-    Host header for the binding, e.g. bayan.corp.local. Strongly recommended: silent SSO
+    Host header for the binding, e.g. jadwal.corp.local. Strongly recommended: silent SSO
     needs users to reach the site by hostname, not by IP.
 
 .PARAMETER AppPoolIdentity
@@ -57,16 +58,16 @@
     Deploy whatever is already in api-publish\ instead of rebuilding.
 
 .EXAMPLE
-    ./scripts/deploy-iis.ps1 -Hostname bayan.corp.local -EnableSso
+    ./scripts/deploy-iis.ps1 -Hostname jadwal.corp.local -EnableSso
 
 .EXAMPLE
-    ./scripts/deploy-iis.ps1 -Hostname bayan.corp.local -EnableSso `
-        -AppPoolIdentity DomainAccount -ServiceAccount 'CORP\svc-bayan' -ServicePassword '...'
+    ./scripts/deploy-iis.ps1 -Hostname jadwal.corp.local -EnableSso `
+        -AppPoolIdentity DomainAccount -ServiceAccount 'CORP\svc-jadwal' -ServicePassword '...'
 #>
 [CmdletBinding()]
 param(
-    [string]$SiteName = 'Bayan',
-    [string]$PhysicalPath = 'C:\inetpub\Bayan',
+    [string]$SiteName = 'Jadwal',
+    [string]$PhysicalPath = 'C:\inetpub\Jadwal',
     [int]$Port = 80,
     [string]$Hostname = '',
     [ValidateSet('ApplicationPoolIdentity', 'DomainAccount')]
@@ -81,13 +82,13 @@ $ErrorActionPreference = 'Stop'
 
 # --- Resolve paths relative to the repo root (parent of this script's folder) ---
 $RepoRoot   = Split-Path -Parent $PSScriptRoot
-$Solution   = Join-Path $RepoRoot 'Bayan.sln'
-$ApiCsproj  = Join-Path $RepoRoot 'src/Bayan.API/Bayan.API.csproj'
+$Solution   = Join-Path $RepoRoot 'Jadwal.sln'
+$ApiCsproj  = Join-Path $RepoRoot 'src/Jadwal.API/Jadwal.API.csproj'
 $ClientDir  = Join-Path $RepoRoot 'client'
 $PublishDir = Join-Path $RepoRoot 'api-publish'
 
 if (-not (Test-Path $Solution)) {
-    throw "Could not find Bayan.sln at '$Solution'. Run this from the repo (scripts/ folder)."
+    throw "Could not find Jadwal.sln at '$Solution'. Run this from the repo (scripts/ folder)."
 }
 
 function Write-Step($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
@@ -114,6 +115,16 @@ if ($AppPoolIdentity -eq 'DomainAccount') {
 
 Import-Module WebAdministration -ErrorAction Stop
 Write-Ok "WebAdministration module loaded"
+
+# The app was called Bayan before. A server installed under that name keeps its site, pool,
+# folder and edited appsettings.json under it, so deploying with the new defaults would
+# create a second site beside the first: a second copy of every background worker, firing
+# each scheduled export twice, started from a fresh, unconfigured appsettings.json.
+$legacySite = 'Bayan'
+if ($SiteName -ne $legacySite -and -not (Test-Path "IIS:\Sites\$SiteName") -and (Test-Path "IIS:\Sites\$legacySite")) {
+    $legacyPath = (Get-Item "IIS:\Sites\$legacySite").physicalPath
+    throw "This server already runs the app as '$legacySite', its earlier name. Upgrade it in place with -SiteName $legacySite -PhysicalPath '$legacyPath', or remove that site and its app pool before deploying as '$SiteName'."
+}
 
 # ANCM is what runs a .NET process under IIS. It ships in the ASP.NET Core Hosting Bundle
 # and is required even for a self-contained publish, which surprises people every time.
@@ -147,7 +158,7 @@ if (-not $SkipBuild) {
 # ---------------------------------------------------------------------------
 if ($SkipBuild) {
     Write-Step "Skipping build (-SkipBuild)"
-    if (-not (Test-Path (Join-Path $PublishDir 'Bayan.API.dll'))) {
+    if (-not (Test-Path (Join-Path $PublishDir 'Jadwal.API.dll'))) {
         throw "-SkipBuild was passed but '$PublishDir' does not contain a published app."
     }
 } else {
@@ -170,7 +181,7 @@ if ($SkipBuild) {
     Write-Step "Merging the SPA into wwwroot"
     # The API serves the SPA itself (UseStaticFiles + MapFallbackToFile in Program.cs),
     # which is what puts the UI and the API on one origin.
-    $browserDir = Join-Path $ClientDir 'dist/bayan-client/browser'
+    $browserDir = Join-Path $ClientDir 'dist/jadwal-client/browser'
     if (-not (Test-Path $browserDir)) {
         throw "Angular build output not found at '$browserDir'."
     }

@@ -1,7 +1,7 @@
 import { ImportedQueryResult, QueryImportResult } from './dynamic-query.model';
 
 /**
- * Export and import of reports and dashboards. Mirrors Bayan.Application/Features/Transfer.
+ * Export and import of reports and dashboards. Mirrors Jadwal.Application/Features/Transfer.
  * One file can carry queries, reports and dashboards; one import endpoint takes all of them.
  */
 
