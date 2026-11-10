@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Negotiate" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Negotiate" Version="10.0.14" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -18,10 +18,15 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
     <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
-    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
     <PackageReference Include="Npgsql" Version="9.0.3" />
     <PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.26000" />
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.0" />
+    <!-- Not used directly. The database drivers (Oracle, SqlClient) and the EF tooling pull these
+         in at 9.0.x, which carry known high-severity advisories; referencing the patched version
+         here lifts every transitive use. Remove once those packages depend on a fixed version. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>

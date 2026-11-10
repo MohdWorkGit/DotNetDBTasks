@@ -336,6 +336,13 @@ restores from. Prepare everything below on an internet-connected machine, then c
 >
 > Copy that folder across and follow its generated `MANIFEST.txt`. Read on if you'd rather
 > assemble the pieces by hand or need to understand what the script produces.
+>
+> **Build it with the SDK it ships** — `$SdkVersion` at the top of the script — first on `PATH`.
+> That SDK decides the .NET runtime inside the self-contained API, which is what the server runs
+> until the next bundle, and the runtime packs in `nuget-packages/`; with any other SDK the
+> offline machine cannot produce a self-contained build, and the script warns. An isolated server
+> gets security fixes only this way, so at each .NET or Node.js security release bump the three
+> versions at the top of the script and rebuild the bundle.
 
 ## B1 — Toolchains to Install
 

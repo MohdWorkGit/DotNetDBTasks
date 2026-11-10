@@ -64,6 +64,20 @@ if (-not [System.IO.Path]::IsPathRooted($OutDir)) {
     $OutDir = Join-Path $RepoRoot $OutDir
 }
 
+# --- Versions shipped in installers/ ---
+# Point-in-time: bump them together at each .NET / Node.js security release, since an air-gapped
+# server only ever gets the fixes carried in on this bundle. The SDK must also be the one that
+# builds the bundle - see Preflight.
+$SdkVersion           = '10.0.403'
+$AspNetRuntimeVersion = '10.0.14'
+$NodeInstallerVersion = '24.22.2'
+$dotnetSdkUrl = "https://builds.dotnet.microsoft.com/dotnet/Sdk/$SdkVersion/dotnet-sdk-$SdkVersion-win-x64.exe"
+$nodeMsiUrl   = "https://nodejs.org/dist/v$NodeInstallerVersion/node-v$NodeInstallerVersion-x64.msi"
+# Required on the target server for IIS hosting (Part C): it supplies the ASP.NET Core Module,
+# without which IIS cannot run the app at all - and it is needed even though we publish
+# self-contained, which is the part people get caught by.
+$hostingBundleUrl = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/$AspNetRuntimeVersion/dotnet-hosting-$AspNetRuntimeVersion-win.exe"
+
 function Write-Step($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
 function Write-Ok($msg)   { Write-Host "  [ok] $msg" -ForegroundColor Green }
 function Write-Warn2($msg){ Write-Host "  [!!] $msg" -ForegroundColor Yellow }
@@ -74,6 +88,12 @@ $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
 if (-not $dotnet) { throw "'dotnet' not found on PATH. Install the .NET 10 SDK first." }
 $dotnetVersion = (& dotnet --version)
 Write-Ok ".NET SDK $dotnetVersion"
+# The building SDK decides the runtime inside the self-contained publishes and which runtime
+# packs land in nuget-packages/. Built with any SDK other than the one installers/ ships, the
+# offline machine cannot produce a self-contained build: its SDK asks for packs not in the bundle.
+if ($dotnetVersion -ne $SdkVersion) {
+    Write-Warn2 "Building with .NET SDK $dotnetVersion, but the bundle ships SDK $SdkVersion. Put SDK $SdkVersion first on PATH, or offline self-contained rebuilds from this bundle will fail."
+}
 
 $npm = Get-Command npm -ErrorAction SilentlyContinue
 if (-not $npm) { throw "'npm' not found on PATH. Install Node.js 24.x first." }
@@ -161,6 +181,13 @@ if ($IncludeBuild) {
     & dotnet publish $ApiCsproj -c Release -r $Runtime --self-contained `
         --packages $NugetDir -o $ApiOut
     Write-Ok "API published ($Runtime, self-contained)"
+    # Recorded in the manifest: the server runs exactly this runtime until the next bundle.
+    $runtimeConfig = Join-Path $ApiOut 'Jadwal.API.runtimeconfig.json'
+    if (Test-Path $runtimeConfig) {
+        $bundledRuntime = ((Get-Content $runtimeConfig -Raw | ConvertFrom-Json).runtimeOptions.includedFrameworks |
+            ForEach-Object { "$($_.name) $($_.version)" }) -join ', '
+        Write-Ok "Runtime inside the publish: $bundledRuntime"
+    }
 
     Write-Step "Building self-contained QueryRunner -> queryrunner-publish/"
     $QueryRunnerOut = Join-Path $OutDir 'queryrunner-publish'
@@ -187,13 +214,7 @@ if ($IncludeBuild) {
 }
 
 # --- 4. Optional: offline installers (best effort) ---
-# These URLs are point-in-time; verify them if a download fails.
-$dotnetSdkUrl = 'https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.103/dotnet-sdk-10.0.103-win-x64.exe'
-$nodeMsiUrl   = 'https://nodejs.org/dist/v24.14.0/node-v24.14.0-x64.msi'
-# Required on the target server for IIS hosting (Part C): it supplies the ASP.NET Core Module,
-# without which IIS cannot run the app at all - and it is needed even though we publish
-# self-contained, which is the part people get caught by.
-$hostingBundleUrl = 'https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.3/dotnet-hosting-10.0.3-win.exe'
+# Versions are set at the top; verify the URLs there if a download fails.
 if ($IncludeInstallers) {
     Write-Step "Downloading offline installers -> installers/"
     $null = New-Item -ItemType Directory -Force -Path $InstallerDir
@@ -232,6 +253,7 @@ Jadwal - Offline Build Bundle
 Generated: $now
 Built with: .NET SDK $dotnetVersion, Node $nodeVersion, npm $npmVersion
 Target runtime: $Runtime
+Runtime in api-publish: $(if ($bundledRuntime) { $bundledRuntime } else { '(not built - rerun with -IncludeBuild)' })
 
 CONTENTS
 --------

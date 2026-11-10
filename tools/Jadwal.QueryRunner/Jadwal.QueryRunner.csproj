@@ -10,9 +10,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
-    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
     <PackageReference Include="Npgsql" Version="9.0.3" />
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.0" />
+    <!-- Not used directly: lifts the 9.0.x the Oracle and SqlClient drivers pull in, which has a
+         known high-severity advisory. Remove once they depend on a fixed version. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>
