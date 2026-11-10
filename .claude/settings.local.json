@@ -37,7 +37,8 @@
       "Bash(npm i *)",
       "Bash(npx playwright *)",
       "Bash(node darkshots.js)",
-      "PowerShell(Get-NetTCPConnection -LocalPort 4200,60187 -State Listen -ErrorAction SilentlyContinue)"
+      "PowerShell(Get-NetTCPConnection -LocalPort 4200,60187 -State Listen -ErrorAction SilentlyContinue)",
+      "Bash(npm run manual)"
     ]
   },
   "gitAttribution": false
