@@ -127,7 +127,7 @@ public partial class SaveDashboardCommandHandler : IRequestHandler<SaveDashboard
         return await DashboardMapper.LoadDtoAsync(_unitOfWork, dashboard.Id, cancellationToken);
     }
 
-    private static void Validate(DashboardInput input)
+    internal static void Validate(DashboardInput input)
     {
         if (string.IsNullOrWhiteSpace(input.Name))
             throw new DomainException("The dashboard needs a name.");

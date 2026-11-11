@@ -65,6 +65,19 @@ All four features are for admins and authors only, and all four produce a **draf
   - a width and height.
 - **Then:** the tiles load into the form unsaved, and the admin adjusts them and saves. **No SQL is
   written** for this feature, so it is the safest after "Explain".
+- **As built (2026-11-11):**
+  - **What the model sees:** each picked query (up to 6) runs once, as the column probe does. The
+    model is sent only the query's name and description, and for each column its name, kind
+    (number, date, text or yes/no) and how many different values it has. **No values are sent.**
+  - **What the code fixes or decides:** the model's answer is checked against the real columns.
+    Wrong columns are fixed, or the tile is dropped with a note. Sizes are set by code. The
+    dashboard filters and parameter mappings are built from the queries' own parameters, never by
+    the model.
+  - **Required parameters with no default:** a required date parameter starts at `today-365` (the
+    first) or `today` (any later one), and a fixed-list dropdown at its first option, so the query
+    can run. The draft says so in its notes.
+  - **Not offered to the model:** Combo, Heatmap and Gauge tiles, which need settings a draft
+    cannot sensibly guess.
 
 ### 2.3 Draft a report
 - **Where:** the report form
@@ -359,7 +372,7 @@ and the model being used by people who shouldn't use it.
 |---|---|---|
 | **0** | Ollama install + `Ai` config + health check + **Explain / fix SQL**. **Built 2026-11-10**, except the AI bundle script, which waits for the GPU details. | Proves the runtime, the bundle and the speed on the real server, without schema or data access |
 | **1** | Schema reader + table picker + **Write SQL from a description** + SELECT-only check + CTE fix | The most useful feature; needs the safety work |
-| **2** | **Draft a dashboard** | Reuses `probe-columns`; writes no SQL |
+| **2** | **Draft a dashboard**. **Built 2026-11-11**, ahead of Phase 1, which it does not need. | Reuses `probe-columns`; writes no SQL |
 | **3** | **Draft a report** | The most complex form; builds on 1 and 2 |
 | later | Business descriptions for tables and columns; keyword or embedding ranking | Only if quality or speed asks for it |
 

@@ -115,6 +115,9 @@ public static class AuditActions
         // the connection or any rows, only the SQL text and the database type.
         ["ExplainSqlCommand"] = ("ai.explainSql", CategoryAi),
         ["SuggestSqlFixCommand"] = ("ai.suggestFix", CategoryAi),
+        // Records the picked query ids and the goal; the model is sent each query's result
+        // shape (column names, kinds, counts), never its values.
+        ["DraftDashboardCommand"] = ("ai.draftDashboard", CategoryAi),
 
         ["CreateUserGroupCommand"] = ("userGroups.create", CategoryUserGroups),
         ["UpdateUserGroupCommand"] = ("userGroups.update", CategoryUserGroups),

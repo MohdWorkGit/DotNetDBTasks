@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { tap, timeout } from 'rxjs/operators';
 import { environment } from '@env/environment';
 import {
-  AiSqlExplanation, AiSqlFix, AiStatus, ExplainSqlRequest, SuggestSqlFixRequest
+  AiDashboardDraft, AiSqlExplanation, AiSqlFix, AiStatus, DraftDashboardRequest, ExplainSqlRequest,
+  SuggestSqlFixRequest
 } from '@core/models/ai.model';
 
 /**
@@ -31,6 +32,11 @@ export class AiService {
 
   suggestFix(request: SuggestSqlFixRequest): Observable<AiSqlFix> {
     return this.http.post<AiSqlFix>(`${this.url}/suggest-fix`, request).pipe(timeout(this.waitMs()));
+  }
+
+  /** Runs each picked query once to learn its columns, then asks the model: the slowest call here. */
+  draftDashboard(request: DraftDashboardRequest): Observable<AiDashboardDraft> {
+    return this.http.post<AiDashboardDraft>(`${this.url}/draft-dashboard`, request).pipe(timeout(this.waitMs()));
   }
 
   private waitMs(): number {

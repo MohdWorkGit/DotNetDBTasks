@@ -1,3 +1,5 @@
+import { DashboardInput } from '@core/models/dashboard.model';
+
 /** Mirrors Jadwal.Application.Features.Ai.AiDtos. */
 
 export type AiState = 'disabled' | 'ready' | 'unreachable' | 'modelMissing';
@@ -35,4 +37,18 @@ export interface AiSqlFix {
   fixedSql: string;
   /** False when the model could not fix it from the SQL alone; the explanation says what to check. */
   changed: boolean;
+}
+
+export interface DraftDashboardRequest {
+  queryIds: string[];
+  goal: string | null;
+}
+
+/** A proposed dashboard, in the shape a save takes. Nothing has been saved. */
+export interface AiDashboardDraft {
+  draft: DashboardInput;
+  /** The model's reason for each tile, in tile order. */
+  reasons: string[];
+  /** What was left out and why. */
+  notes: string[];
 }

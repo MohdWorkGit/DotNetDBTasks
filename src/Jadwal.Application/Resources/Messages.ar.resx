@@ -353,4 +353,46 @@
   <data name="AiErrorRequired" xml:space="preserve">
     <value>رسالة الخطأ مطلوبة.</value>
   </data>
+  <data name="AiQueriesRequired" xml:space="preserve">
+    <value>اختر استعلامًا واحدًا على الأقل.</value>
+  </data>
+  <data name="AiDraftTooManyQueries" xml:space="preserve">
+    <value>اختر ⁨{0}⁩ استعلامات على الأكثر.</value>
+  </data>
+  <data name="AiGoalTooLong" xml:space="preserve">
+    <value>الهدف لا يتجاوز ⁨{0}⁩ حرفًا.</value>
+  </data>
+  <data name="AiDraftEmpty" xml:space="preserve">
+    <value>لم يقترح الذكاء الاصطناعي أي عنصر يمكن لنظام «جدول» استخدامه. حاول مرة أخرى، أو اختر استعلامات أخرى.</value>
+  </data>
+  <data name="AiDraftQuerySkipped" xml:space="preserve">
+    <value>تُرك الاستعلام «⁨{0}⁩»: ⁨{1}⁩</value>
+  </data>
+  <data name="AiDraftWriteQuery" xml:space="preserve">
+    <value>إنه يغيّر البيانات، فلا يصلح لعرضه في عنصر.</value>
+  </data>
+  <data name="AiDraftTileDropped" xml:space="preserve">
+    <value>تُرك العنصر «⁨{0}⁩»: ⁨{1}⁩</value>
+  </data>
+  <data name="AiDraftUnknownQuery" xml:space="preserve">
+    <value>أشار إلى استعلام لم يُختر.</value>
+  </data>
+  <data name="AiDraftNoCategory" xml:space="preserve">
+    <value>يحتاج المخطط إلى عمود نصي أو عمود تاريخ لمحوره، ولم يختر الذكاء الاصطناعي عمودًا مناسبًا.</value>
+  </data>
+  <data name="AiDraftNoNumbers" xml:space="preserve">
+    <value>استعلامه لا يحتوي على عمود أرقام يمكن رسمه.</value>
+  </data>
+  <data name="AiDraftNoValue" xml:space="preserve">
+    <value>يحتاج الرقم إلى عمود أرقام، ولم يختر الذكاء الاصطناعي عمودًا مناسبًا.</value>
+  </data>
+  <data name="AiDraftDuplicate" xml:space="preserve">
+    <value>إنه يكرر عنصرًا آخر.</value>
+  </data>
+  <data name="AiDraftTooManyTiles" xml:space="preserve">
+    <value>احتُفظ بأول ⁨{0}⁩ عناصر فقط.</value>
+  </data>
+  <data name="AiDraftAssumedDefault" xml:space="preserve">
+    <value>«⁨{0}⁩» ليس له قيمة افتراضية، فبدأته المسودة بالقيمة ⁨{1}⁩. راجعها قبل الحفظ.</value>
+  </data>
 </root>

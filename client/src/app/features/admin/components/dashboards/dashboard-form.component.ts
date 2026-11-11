@@ -17,12 +17,19 @@ import {
 import { ReportSummary } from '@core/models/report.model';
 import {
   Dashboard, DashboardConditionalRule, DashboardDrillAction, DashboardFilter, DashboardInput,
-  DashboardKpiAggregate, DashboardTile, DashboardTileParameterSource, DashboardValueFormat,
+  DashboardKpiAggregate, DashboardTile, DashboardTileInput, DashboardTileParameterSource, DashboardValueFormat,
   DashboardVisualType, DASHBOARD_MAX_REFRESH_SECONDS, DASHBOARD_MIN_REFRESH_SECONDS,
   DASHBOARD_TILE_WIDTHS, DASHBOARD_CHART_TYPES, DashboardDisplayOptions, defaultDisplayOptions
 } from '@core/models/dashboard.model';
 import { CHART_PALETTE } from '@shared/components/chart-geometry';
 import { DATE_PRESETS } from '@core/models/date-presets';
+import { MatDialog } from '@angular/material/dialog';
+import { AuthService } from '@core/services/auth.service';
+import { AiService } from '@core/services/ai.service';
+import { PERM } from '@core/models/permissions';
+import {
+  AiDashboardDraftDialogComponent, AiDashboardDraftDialogData, AiDashboardDraftDialogResult
+} from './ai-dashboard-draft-dialog.component';
 
 /** A map row's source in the form: '' means "not mapped — the query's own default applies". */
 type MapSource = '' | DashboardTileParameterSource;
@@ -43,6 +50,9 @@ type MapSource = '' | DashboardTileParameterSource;
       <div class="page-header">
         <h1>{{ (isEdit ? 'admin.dashboards.editTitle' : 'admin.dashboards.createTitle') | transloco }}</h1>
         <span class="spacer"></span>
+        <button mat-stroked-button type="button" *ngIf="aiEnabled && !loading" (click)="draftWithAi()">
+          <mat-icon>auto_awesome</mat-icon> {{ 'admin.ai.draftDashboard' | transloco }}
+        </button>
         <button mat-stroked-button type="button" *ngIf="isEdit" (click)="openViewer()">
           <mat-icon>open_in_new</mat-icon> {{ 'admin.dashboards.open' | transloco }}
         </button>
@@ -53,7 +63,7 @@ type MapSource = '' | DashboardTileParameterSource;
       </div>
 
       <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()">
-        <mat-tab-group>
+        <mat-tab-group [(selectedIndex)]="tabIndex">
           <!-- ------------------------------------------------------------ details -->
           <mat-tab [label]="'admin.dashboards.tabDetails' | transloco">
             <div class="tab-body">
@@ -711,6 +721,9 @@ export class DashboardFormComponent implements OnInit {
   private toast = inject(ToastService);
   private transloco = inject(TranslocoService);
   private cdr = inject(ChangeDetectorRef);
+  private dialog = inject(MatDialog);
+  private authService = inject(AuthService);
+  private ai = inject(AiService);
 
   form: FormGroup = this.newForm();
   /** Only read queries: a write query on a refresh timer would repeat the write every interval. */
@@ -720,6 +733,10 @@ export class DashboardFormComponent implements OnInit {
   loading = true;
   saving = false;
   expandedTile = -1;
+  /** Details, Filters, Tiles: a loaded AI draft opens on Tiles. */
+  tabIndex = 0;
+  /** Offer "Draft with AI": AI is switched on, and this admin may use it here. */
+  aiEnabled = false;
 
   private dashboardId: string | null = null;
 
@@ -823,6 +840,76 @@ export class DashboardFormComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+
+    // The AI button appears only once the server says AI is on; a failed check just leaves it
+    // hidden, since the builder works fully without it.
+    if (this.authService.has(PERM.aiUse) && this.authService.has(PERM.dashboardsManage)) {
+      this.ai.getStatus().subscribe({
+        next: status => { this.aiEnabled = status.enabled; this.cdr.detectChanges(); },
+        error: () => this.cdr.detectChanges()
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------- AI draft
+
+  draftWithAi(): void {
+    const data: AiDashboardDraftDialogData = {
+      queries: this.readQueries,
+      hasTiles: this.tiles.length > 0,
+      visualTypes: this.visualTypes
+    };
+    this.dialog.open(AiDashboardDraftDialogComponent, {
+      data, width: '760px', maxWidth: '95vw', ariaModal: true, autoFocus: 'dialog'
+    }).afterClosed().subscribe((result?: AiDashboardDraftDialogResult) => {
+      if (result) this.applyDraft(result);
+      this.cdr.detectChanges();
+    });
+  }
+
+  /**
+   * Loads an AI draft into the form, unsaved like any edit. The name and description are only
+   * filled when empty; a filter is added unless one of that name exists, which the draft's tiles
+   * then use; and each new tile's columns are probed so its pickers are ready to review.
+   */
+  private applyDraft({ draft, mode }: AiDashboardDraftDialogResult): void {
+    const d = draft.draft;
+    if (mode === 'replace') this.tiles.clear();
+    if (!String(this.form.get('name')?.value ?? '').trim()) this.form.patchValue({ name: d.name });
+    if (!String(this.form.get('description')?.value ?? '').trim() && d.description) {
+      this.form.patchValue({ description: d.description });
+    }
+
+    const existing = new Set(this.filterNames.map(n => n.toLowerCase()));
+    for (const f of d.filters) {
+      if (!existing.has(f.name.toLowerCase())) this.filters.push(this.filterGroup(f));
+    }
+
+    const first = this.tiles.length;
+    for (const t of d.tiles) this.pushTile(t);
+
+    // Replacing the tiles also drops the filters only the old tiles used, so the filter bar does
+    // not offer controls that no longer change anything.
+    if (mode === 'replace') {
+      const used = new Set<string>();
+      for (const tile of this.tiles.controls) {
+        const drill = tile.get('drillFilterName')?.value;
+        if (drill) used.add(String(drill).toLowerCase());
+        for (const m of (tile.get('parameterMaps') as FormArray).controls) {
+          const name = m.get('filterName')?.value;
+          if (name && m.get('sourceKind')?.value === DashboardTileParameterSource.Filter) used.add(String(name).toLowerCase());
+        }
+      }
+      for (let i = this.filters.length - 1; i >= 0; i--) {
+        if (!used.has(String(this.filters.at(i).get('name')?.value ?? '').toLowerCase())) this.filters.removeAt(i);
+      }
+    }
+
+    for (let i = first; i < this.tiles.length; i++) this.loadColumns(i);
+    this.expandedTile = -1;
+    this.tabIndex = 2;
+    this.form.markAsDirty();
+    this.toast.info('admin.ai.draftLoaded');
   }
 
   // ---------------------------------------------------------------- filters
@@ -1205,22 +1292,27 @@ export class DashboardFormComponent implements OnInit {
     }
 
     for (const t of [...d.tiles].sort((a, b) => a.sortOrder - b.sortOrder)) {
-      const group = this.tileGroup(t);
-      this.tiles.push(group);
-      const maps = group.get('parameterMaps') as FormArray;
-      const saved = new Map(t.parameterMaps.map(m => [m.targetParameterName.toLowerCase(), m]));
-      const query = this.readQueries.find(q => q.id === t.dynamicQueryId);
+      this.pushTile(t);
+    }
+  }
 
-      // One row per declared parameter, filled from what was saved. A saved map for a parameter
-      // the query no longer declares is kept too, so nothing is dropped silently.
-      const names = [...(query?.parameters ?? [])].sort((a, b) => a.sortOrder - b.sortOrder).map(p => p.name);
-      for (const m of t.parameterMaps) {
-        if (!names.some(n => n.toLowerCase() === m.targetParameterName.toLowerCase())) names.push(m.targetParameterName);
-      }
-      for (const name of names) {
-        const m = saved.get(name.toLowerCase());
-        maps.push(this.mapGroup(name, m ? m.sourceKind : '', m?.filterName ?? null, m?.constantValue ?? null));
-      }
+  /** Adds a tile as saved (or drafted), with one map row per parameter its query declares. */
+  private pushTile(t: DashboardTileInput): void {
+    const group = this.tileGroup(t);
+    this.tiles.push(group);
+    const maps = group.get('parameterMaps') as FormArray;
+    const saved = new Map(t.parameterMaps.map(m => [m.targetParameterName.toLowerCase(), m]));
+    const query = this.readQueries.find(q => q.id === t.dynamicQueryId);
+
+    // One row per declared parameter, filled from what was saved. A saved map for a parameter
+    // the query no longer declares is kept too, so nothing is dropped silently.
+    const names = [...(query?.parameters ?? [])].sort((a, b) => a.sortOrder - b.sortOrder).map(p => p.name);
+    for (const m of t.parameterMaps) {
+      if (!names.some(n => n.toLowerCase() === m.targetParameterName.toLowerCase())) names.push(m.targetParameterName);
+    }
+    for (const name of names) {
+      const m = saved.get(name.toLowerCase());
+      maps.push(this.mapGroup(name, m ? m.sourceKind : '', m?.filterName ?? null, m?.constantValue ?? null));
     }
   }
 }

@@ -44,4 +44,12 @@ public class AiController : ControllerBase
     public async Task<ActionResult<AiSqlFixDto>> SuggestFix(
         [FromBody] SuggestSqlFixCommand command, CancellationToken cancellationToken) =>
         Ok(await _mediator.Send(command, cancellationToken));
+
+    /// <summary>Proposes dashboard tiles from saved queries. Returns a draft; saves nothing.</summary>
+    [HttpPost("draft-dashboard")]
+    [RequirePermission(Permissions.AiUse)]
+    [RequirePermission(Permissions.DashboardsManage)]
+    public async Task<ActionResult<AiDashboardDraftDto>> DraftDashboard(
+        [FromBody] DraftDashboardCommand command, CancellationToken cancellationToken) =>
+        Ok(await _mediator.Send(command, cancellationToken));
 }

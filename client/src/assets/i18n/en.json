@@ -247,7 +247,26 @@
       "fixUnchanged": "The AI could not fix this from the SQL alone",
       "changesMarked": "Changed words are marked. Check each one before using it.",
       "useSql": "Use this SQL",
-      "sqlReplaced": "The SQL was replaced. Test it again before saving."
+      "sqlReplaced": "The SQL was replaced. Test it again before saving.",
+      "draftDashboard": "Draft with AI",
+      "draftTitle": "Draft a dashboard with AI",
+      "draftIntro": "Pick the saved queries the dashboard should show, and say what it is for. Each query runs once so the AI can see its columns. Only column names and kinds are sent to the AI model, never the data.",
+      "draftSearch": "Search queries",
+      "draftQueries": "Queries",
+      "draftPicked": "{{count}} of at most {{max}} queries picked",
+      "draftNoQueries": "No queries match.",
+      "draftGoal": "What is the dashboard for? (optional)",
+      "draftGoalHint": "For example: a weekly sales overview for branch managers.",
+      "draftModeAdd": "Add to the current tiles",
+      "draftModeReplace": "Replace the current tiles",
+      "draftRun": "Draft",
+      "draftWorking": "The AI model is designing the dashboard. This can take a few minutes.",
+      "draftProposed": "Proposed dashboard:",
+      "draftWidth": "{{width}} of 12 columns wide",
+      "draftNotes": "Worth checking",
+      "draftBack": "Change the choice",
+      "draftUse": "Use this draft",
+      "draftLoaded": "Draft loaded. Review the tiles, then save."
     },
     "queryForm": {
       "removeTemplateTitle": "Remove Word template?",
@@ -757,7 +776,8 @@
         "roles.setPermissions": "Changed a role's permissions",
         "settings.logsRotated": "Rotated the logs (deleted old entries)",
         "ai.explainSql": "Asked the AI to explain SQL",
-        "ai.suggestFix": "Asked the AI to fix SQL"
+        "ai.suggestFix": "Asked the AI to fix SQL",
+        "ai.draftDashboard": "Asked the AI to draft a dashboard"
       },
       "categories": {
         "users": "Users",

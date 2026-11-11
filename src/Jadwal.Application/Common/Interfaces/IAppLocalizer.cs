@@ -130,4 +130,18 @@ public static class MessageKeys
     public const string AiBadAnswer = nameof(AiBadAnswer);
     public const string AiUnsafeSql = nameof(AiUnsafeSql);
     public const string AiErrorRequired = nameof(AiErrorRequired);
+    public const string AiQueriesRequired = nameof(AiQueriesRequired);
+    public const string AiDraftTooManyQueries = nameof(AiDraftTooManyQueries);
+    public const string AiGoalTooLong = nameof(AiGoalTooLong);
+    public const string AiDraftEmpty = nameof(AiDraftEmpty);
+    public const string AiDraftQuerySkipped = nameof(AiDraftQuerySkipped);
+    public const string AiDraftWriteQuery = nameof(AiDraftWriteQuery);
+    public const string AiDraftTileDropped = nameof(AiDraftTileDropped);
+    public const string AiDraftUnknownQuery = nameof(AiDraftUnknownQuery);
+    public const string AiDraftNoCategory = nameof(AiDraftNoCategory);
+    public const string AiDraftNoNumbers = nameof(AiDraftNoNumbers);
+    public const string AiDraftNoValue = nameof(AiDraftNoValue);
+    public const string AiDraftDuplicate = nameof(AiDraftDuplicate);
+    public const string AiDraftTooManyTiles = nameof(AiDraftTooManyTiles);
+    public const string AiDraftAssumedDefault = nameof(AiDraftAssumedDefault);
 }

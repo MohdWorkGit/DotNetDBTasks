@@ -1,4 +1,21 @@
+using Jadwal.Application.Features.Dashboards.Dtos;
+
 namespace Jadwal.Application.Features.Ai;
+
+/// <summary>
+/// A dashboard the AI proposed, ready for the builder: the same shape a save takes, so it loads
+/// into the form as it is. Nothing has been saved.
+/// </summary>
+public class AiDashboardDraftDto
+{
+    public DashboardInput Draft { get; set; } = new();
+
+    /// <summary>The model's reason for each tile, in the same order as <c>Draft.Tiles</c>.</summary>
+    public List<string> Reasons { get; set; } = new();
+
+    /// <summary>What was left out and why — a query that would not run, a tile that did not fit.</summary>
+    public List<string> Notes { get; set; } = new();
+}
 
 public class AiStatusDto
 {

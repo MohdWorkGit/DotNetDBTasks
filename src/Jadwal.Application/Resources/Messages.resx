@@ -353,4 +353,46 @@
   <data name="AiErrorRequired" xml:space="preserve">
     <value>The error message is required.</value>
   </data>
+  <data name="AiQueriesRequired" xml:space="preserve">
+    <value>Pick at least one query.</value>
+  </data>
+  <data name="AiDraftTooManyQueries" xml:space="preserve">
+    <value>Pick at most {0} queries.</value>
+  </data>
+  <data name="AiGoalTooLong" xml:space="preserve">
+    <value>The goal can be at most {0} characters.</value>
+  </data>
+  <data name="AiDraftEmpty" xml:space="preserve">
+    <value>The AI's draft had no tile Jadwal could use. Try again, or pick other queries.</value>
+  </data>
+  <data name="AiDraftQuerySkipped" xml:space="preserve">
+    <value>'{0}' was left out: {1}</value>
+  </data>
+  <data name="AiDraftWriteQuery" xml:space="preserve">
+    <value>it changes data, so it cannot feed a tile.</value>
+  </data>
+  <data name="AiDraftTileDropped" xml:space="preserve">
+    <value>The tile '{0}' was left out: {1}</value>
+  </data>
+  <data name="AiDraftUnknownQuery" xml:space="preserve">
+    <value>it named a query that was not picked.</value>
+  </data>
+  <data name="AiDraftNoCategory" xml:space="preserve">
+    <value>a chart needs a text or date column for its axis, and the AI did not pick one that fits.</value>
+  </data>
+  <data name="AiDraftNoNumbers" xml:space="preserve">
+    <value>its query has no number column to plot.</value>
+  </data>
+  <data name="AiDraftNoValue" xml:space="preserve">
+    <value>a figure needs a number column, and the AI did not pick one that fits.</value>
+  </data>
+  <data name="AiDraftDuplicate" xml:space="preserve">
+    <value>it repeats another tile.</value>
+  </data>
+  <data name="AiDraftTooManyTiles" xml:space="preserve">
+    <value>Only the first {0} tiles were kept.</value>
+  </data>
+  <data name="AiDraftAssumedDefault" xml:space="preserve">
+    <value>'{0}' has no default value, so the draft starts it at {1}. Check it before saving.</value>
+  </data>
 </root>
