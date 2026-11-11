@@ -59,6 +59,9 @@ public static class AuditActions
     public const string CategoryDirectory = "directory";
     public const string CategoryBranding = "branding";
     public const string CategorySettings = "settings";
+
+    /// <summary>Requests to the local AI model.</summary>
+    public const string CategoryAi = "ai";
     public const string CategoryOther = "other";
 
     // Directory and branding are raised from controllers, which is why they are named here
@@ -107,6 +110,11 @@ public static class AuditActions
         ["SetDefaultWordTemplateCommand"] = ("queries.setDefaultTemplate", CategoryQueries),
         ["DeleteDefaultWordTemplateCommand"] = ("queries.removeDefaultTemplate", CategoryQueries),
         ["ImportQueriesCommand"] = (QueriesImport, CategoryQueries),
+
+        // The SQL sent to the AI model goes in the trail with the request. The model never sees
+        // the connection or any rows, only the SQL text and the database type.
+        ["ExplainSqlCommand"] = ("ai.explainSql", CategoryAi),
+        ["SuggestSqlFixCommand"] = ("ai.suggestFix", CategoryAi),
 
         ["CreateUserGroupCommand"] = ("userGroups.create", CategoryUserGroups),
         ["UpdateUserGroupCommand"] = ("userGroups.update", CategoryUserGroups),

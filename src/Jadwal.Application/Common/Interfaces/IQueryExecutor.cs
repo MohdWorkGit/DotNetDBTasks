@@ -9,6 +9,12 @@ namespace Jadwal.Application.Common.Interfaces;
 /// </summary>
 public interface IQueryExecutor
 {
+    /// <summary>
+    /// The kind of database a query with no connection of its own runs against
+    /// (<c>DefaultDatabaseServerType</c>, Oracle when unset).
+    /// </summary>
+    DatabaseServerType DefaultServerType { get; }
+
     Task<QueryExecutionResult> ExecuteAsync(
         string sqlQuery,
         Dictionary<string, object?> parameters,

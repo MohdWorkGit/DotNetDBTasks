@@ -593,6 +593,8 @@ export interface SystemSettings {
   querySqlMaxLength: number;
   /** When false, the Active Directory pages are switched off. */
   directoryEnabled: boolean;
+  /** When false, the AI assistant is off even if the server is set up for it. Absent from an older API. */
+  aiEnabled?: boolean;
   /** Days of query execution logs to keep; 0 keeps them forever. */
   executionLogRetentionDays: number;
   /** Days of the system audit trail to keep; 0 keeps it forever. */

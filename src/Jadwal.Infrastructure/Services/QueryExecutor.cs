@@ -23,6 +23,8 @@ public class QueryExecutor : IQueryExecutor
 {
     private readonly string _defaultConnectionString;
     private readonly DatabaseServerType _defaultServerType;
+
+    public DatabaseServerType DefaultServerType => _defaultServerType;
     private readonly ISystemSettingsService _settings;
 
     /// <summary>

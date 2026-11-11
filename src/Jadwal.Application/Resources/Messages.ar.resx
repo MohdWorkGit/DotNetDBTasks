@@ -327,4 +327,30 @@
   <data name="TransferDrillReportMissing" xml:space="preserve">
     <value>«⁨{0}⁩»: العنصر «⁨{1}⁩» كان يفتح التقرير «⁨{2}⁩» غير الموجود هنا، فأُوقف إجراء النقر.</value>
   </data>
+
+  <!-- Local AI model -->
+  <data name="AiDisabled" xml:space="preserve">
+    <value>المساعد الذكي متوقف.</value>
+  </data>
+  <data name="AiUnreachable" xml:space="preserve">
+    <value>نموذج الذكاء الاصطناعي على ⁨{0}⁩ لا يرد. تأكد أن خدمة الذكاء الاصطناعي تعمل على الخادم.</value>
+  </data>
+  <data name="AiTimedOut" xml:space="preserve">
+    <value>لم يرد نموذج الذكاء الاصطناعي خلال ⁨{0}⁩ ثانية. حاول مرة أخرى، أو اطلب شيئًا أقصر.</value>
+  </data>
+  <data name="AiModelMissing" xml:space="preserve">
+    <value>النموذج «⁨{0}⁩» غير مثبّت في خدمة الذكاء الاصطناعي.</value>
+  </data>
+  <data name="AiFailed" xml:space="preserve">
+    <value>لم يستطع نموذج الذكاء الاصطناعي الرد: ⁨{0}⁩</value>
+  </data>
+  <data name="AiBadAnswer" xml:space="preserve">
+    <value>تعذّرت قراءة رد نموذج الذكاء الاصطناعي. حاول مرة أخرى.</value>
+  </data>
+  <data name="AiUnsafeSql" xml:space="preserve">
+    <value>اقترح الذكاء الاصطناعي SQL لا يقبله نظام «جدول» (⁨{0}⁩)، لذلك لم يُعرض. حاول مرة أخرى، أو صحّح الاستعلام بنفسك.</value>
+  </data>
+  <data name="AiErrorRequired" xml:space="preserve">
+    <value>رسالة الخطأ مطلوبة.</value>
+  </data>
 </root>

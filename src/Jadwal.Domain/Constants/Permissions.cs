@@ -188,6 +188,14 @@ public static class Permissions
     /// <summary>Create and delete roles, and change what any role may do.</summary>
     public const string RolesManage = "roles.manage";
 
+    // ---- AI assistant
+    /// <summary>
+    /// Use the local AI model where it is offered — explaining a query's SQL and suggesting a
+    /// fix after a failed test. Only ever on top of the permission for the page it sits on
+    /// (<see cref="QueriesManage"/> for the query editor): it adds a helper, never a capability.
+    /// </summary>
+    public const string AiUse = "ai.use";
+
     /// <summary>Every permission, in the order the Permissions tab lists them.</summary>
     public static readonly IReadOnlyList<string> All = new[]
     {
@@ -203,7 +211,8 @@ public static class Permissions
         DatabaseUsersManage,
         ScheduledTasksViewAll, ScheduledTasksManage, ScheduledTasksDownload,
         LogsView, AuditView,
-        BrandingManage, SettingsManage, RolesManage
+        BrandingManage, SettingsManage, RolesManage,
+        AiUse
     };
 
     /// <summary>

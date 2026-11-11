@@ -327,4 +327,30 @@
   <data name="TransferDrillReportMissing" xml:space="preserve">
     <value>'{0}': tile '{1}' opened report '{2}', which does not exist here — its click action was turned off.</value>
   </data>
+
+  <!-- Local AI model -->
+  <data name="AiDisabled" xml:space="preserve">
+    <value>The AI assistant is turned off.</value>
+  </data>
+  <data name="AiUnreachable" xml:space="preserve">
+    <value>The AI model at {0} is not answering. Check that the AI service is running on the server.</value>
+  </data>
+  <data name="AiTimedOut" xml:space="preserve">
+    <value>The AI model did not answer within {0} seconds. Try again, or ask for something shorter.</value>
+  </data>
+  <data name="AiModelMissing" xml:space="preserve">
+    <value>The AI model '{0}' is not installed on the AI service.</value>
+  </data>
+  <data name="AiFailed" xml:space="preserve">
+    <value>The AI model could not answer: {0}</value>
+  </data>
+  <data name="AiBadAnswer" xml:space="preserve">
+    <value>The AI model's answer could not be read. Try again.</value>
+  </data>
+  <data name="AiUnsafeSql" xml:space="preserve">
+    <value>The AI suggested SQL that Jadwal does not accept ({0}), so it is not shown. Try again, or fix the query by hand.</value>
+  </data>
+  <data name="AiErrorRequired" xml:space="preserve">
+    <value>The error message is required.</value>
+  </data>
 </root>

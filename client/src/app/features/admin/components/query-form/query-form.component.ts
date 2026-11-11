@@ -4,7 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService, extractApiError, extractValidationErrors } from '@core/services/toast.service';
 import { SqlEditorComponent } from '@shared/components/sql-editor.component';
 import { MatDialog } from '@angular/material/dialog';
-import { QueryTestDialogComponent, QueryTestDialogData } from './query-test-dialog.component';
+import { QueryTestDialogComponent, QueryTestDialogData, QueryTestDialogResult } from './query-test-dialog.component';
+import { AiExplainDialogComponent } from './ai-explain-dialog.component';
+import { AiService } from '@core/services/ai.service';
+import { AuthService } from '@core/services/auth.service';
+import { ExplainSqlRequest } from '@core/models/ai.model';
+import { PERM } from '@core/models/permissions';
 import { SqlExpandDialogComponent, SqlExpandDialogData } from './sql-expand-dialog.component';
 import { ConfirmService } from '@core/services/confirm.service';
 import { timeout, catchError } from 'rxjs/operators';
@@ -71,6 +76,13 @@ interface SaveProblem { text: string; sqlIndex?: number; }
                 <label class="sql-label" id="sql-label">
                   {{ 'admin.queryForm.sqlParameterized' | transloco }} *
                 </label>
+                <span class="sql-label-spacer"></span>
+                <button *ngIf="aiEnabled" mat-icon-button type="button" class="expand-sql" (click)="explainSql()"
+                        [disabled]="!form.get('sqlQuery')?.value?.trim()"
+                        [attr.aria-label]="'admin.ai.explain' | transloco"
+                        [matTooltip]="'admin.ai.explain' | transloco">
+                  <mat-icon>auto_awesome</mat-icon>
+                </button>
                 <button mat-icon-button type="button" class="expand-sql" (click)="expandSql()"
                         [attr.aria-label]="'admin.queryForm.expandSql' | transloco"
                         [matTooltip]="'admin.queryForm.expandSql' | transloco">
@@ -434,6 +446,7 @@ interface SaveProblem { text: string; sqlIndex?: number; }
        hint line does not run into the floating label of the Timeout field. */
     .sql-field { margin-bottom: 20px; }
     .sql-label-row { display: flex; align-items: center; justify-content: space-between; }
+    .sql-label-spacer { flex: 1; }
     .sql-label { display: block; font-size: 13px; color: var(--text-secondary); margin: 0 0 6px; }
     .expand-sql { margin-block-end: 2px; }
     .sql-invalid .sql-label { color: var(--status-error); }
@@ -532,6 +545,11 @@ export class QueryFormComponent implements OnInit {
   problemsScope: 'save' | 'test' = 'save';
 
   private readonly dialog = inject(MatDialog);
+  private readonly authService = inject(AuthService);
+  private readonly ai = inject(AiService);
+
+  /** Offer the AI buttons: AI is switched on, and this admin may use it here. */
+  aiEnabled = false;
 
   @ViewChild('problemsPanel') problemsPanel?: ElementRef<HTMLElement>;
 
@@ -583,6 +601,15 @@ export class QueryFormComponent implements OnInit {
       control.setValue(control.value);
       control.markAsTouched();
       this.cdr.detectChanges();
+    });
+  }
+
+  /** Asks the AI model what the SQL as edited does. Read-only: the form is left as it is. */
+  explainSql(): void {
+    const value = this.form.value;
+    const data: ExplainSqlRequest = { sqlQuery: value.sqlQuery, databaseUserId: value.databaseUserId || null };
+    this.dialog.open(AiExplainDialogComponent, {
+      data, width: '720px', maxWidth: '95vw', ariaModal: true, autoFocus: 'dialog'
     });
   }
 
@@ -646,6 +673,15 @@ export class QueryFormComponent implements OnInit {
       // Keeping the default is safe: the server enforces the real limit and says so on save.
       error: () => this.cdr.detectChanges()
     });
+
+    // The AI buttons appear only once the server says AI is on; a failed check just leaves them
+    // hidden, since the form works fully without them.
+    if (this.authService.has(PERM.aiUse) && this.authService.has(PERM.queriesManage)) {
+      this.ai.getStatus().subscribe({
+        next: (status) => { this.aiEnabled = status.enabled; this.cdr.detectChanges(); },
+        error: () => this.cdr.detectChanges()
+      });
+    }
 
     // These three feed <mat-select> controls. Swallowing a failure leaves the
     // dropdown permanently empty with no way for the user to type a value in,
@@ -934,10 +970,22 @@ export class QueryFormComponent implements OnInit {
         timeoutSeconds: value.timeoutSeconds ?? 30,
         databaseUserId: value.databaseUserId || null,
         parameters: this.cleanedParameters()
-      }
+      },
+      aiEnabled: this.aiEnabled
     };
     this.dialog.open(QueryTestDialogComponent, {
       data, width: '1000px', maxWidth: '95vw', ariaModal: true, autoFocus: 'dialog'
+    }).afterClosed().subscribe((result?: QueryTestDialogResult) => {
+      // The admin chose the AI's fix. It replaces the SQL in the form; nothing is saved, and
+      // the toast says to test it again — the fix is a guess until it has run.
+      if (result?.useSql) {
+        const sql = this.form.get('sqlQuery')!;
+        sql.setValue(result.useSql);
+        sql.markAsDirty();
+        sql.markAsTouched();
+        this.toast.info('admin.ai.sqlReplaced');
+      }
+      this.cdr.detectChanges();
     });
   }
 

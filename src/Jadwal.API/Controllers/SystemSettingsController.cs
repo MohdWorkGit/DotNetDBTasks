@@ -63,6 +63,10 @@ public class SystemSettingsController : ControllerBase
                 SystemSettingKeys.DirectoryEnabled,
                 SystemSettingKeys.DirectoryEnabledDefault,
                 cancellationToken),
+            AiEnabled = await _settings.GetBoolAsync(
+                SystemSettingKeys.AiEnabled,
+                SystemSettingKeys.AiEnabledDefault,
+                cancellationToken),
             ExecutionLogRetentionDays = await _settings.GetIntAsync(
                 SystemSettingKeys.AuditExecutionLogRetentionDays,
                 SystemSettingKeys.LogRetentionDaysDefault,
@@ -110,6 +114,11 @@ public class SystemSettingsController : ControllerBase
             SystemSettingKeys.DirectoryEnabled,
             request.DirectoryEnabled,
             cancellationToken);
+        if (request.AiEnabled.HasValue)
+            await _settings.SetBoolAsync(
+                SystemSettingKeys.AiEnabled,
+                request.AiEnabled.Value,
+                cancellationToken);
         await _settings.SetIntAsync(
             SystemSettingKeys.AuditExecutionLogRetentionDays,
             request.ExecutionLogRetentionDays,
@@ -134,6 +143,7 @@ public class SystemSettingsController : ControllerBase
                 queryMaxRows = request.QueryMaxRows,
                 querySqlMaxLength = request.QuerySqlMaxLength,
                 directoryEnabled = request.DirectoryEnabled,
+                aiEnabled = request.AiEnabled,
                 executionLogRetentionDays = request.ExecutionLogRetentionDays,
                 systemLogRetentionDays = request.SystemLogRetentionDays
             })
@@ -228,6 +238,12 @@ public class SystemSettingsDto
 
     /// <summary>When false, the Active Directory pages are switched off.</summary>
     public bool DirectoryEnabled { get; set; }
+
+    /// <summary>
+    /// When false, the AI assistant is switched off even if the server is set up for it. Null
+    /// on a save leaves it as it is — a page loaded before this setting existed does not send it.
+    /// </summary>
+    public bool? AiEnabled { get; set; }
 
     /// <summary>Days of query execution logs to keep; 0 keeps them forever.</summary>
     public int ExecutionLogRetentionDays { get; set; }

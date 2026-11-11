@@ -1,6 +1,7 @@
 using System.Text;
 using Jadwal.Application.Common.Interfaces;
 using Jadwal.Domain.Interfaces;
+using Jadwal.Infrastructure.Ai;
 using Jadwal.Infrastructure.BackgroundJobs;
 using Jadwal.Infrastructure.Caching;
 using Jadwal.Infrastructure.Data;
@@ -47,6 +48,11 @@ public static class DependencyInjection
         services.AddSingleton<IExcelExporter, ExcelExporter>();
         services.AddSingleton<IDocxToPdfConverter, DocxToPdfConverter>();
         services.AddSingleton<IResultFileExporter, ResultFileExporter>();
+
+        // The local AI model (docs/LOCAL-AI-OPTIONS.md). Registered even when Ai:Enabled is
+        // false, so the status endpoint can say "not set up" rather than fail to resolve.
+        services.AddSingleton(AiOptions.FromConfiguration(configuration));
+        services.AddHttpClient<IAiChatClient, OpenAiCompatibleChatClient>();
 
         // Scheduled export tasks: manual/scheduled runs flow through a shared queue
         // drained by the ScheduledTaskWorker; each run executes on a scoped runner. The run

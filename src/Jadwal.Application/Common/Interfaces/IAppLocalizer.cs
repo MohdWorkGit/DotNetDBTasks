@@ -120,4 +120,14 @@ public static class MessageKeys
     public const string TransferReportQueryMissing = nameof(TransferReportQueryMissing);
     public const string TransferTileQueryMissing = nameof(TransferTileQueryMissing);
     public const string TransferDrillReportMissing = nameof(TransferDrillReportMissing);
+
+    // Local AI model (docs/LOCAL-AI-OPTIONS.md)
+    public const string AiDisabled = nameof(AiDisabled);
+    public const string AiUnreachable = nameof(AiUnreachable);
+    public const string AiTimedOut = nameof(AiTimedOut);
+    public const string AiModelMissing = nameof(AiModelMissing);
+    public const string AiFailed = nameof(AiFailed);
+    public const string AiBadAnswer = nameof(AiBadAnswer);
+    public const string AiUnsafeSql = nameof(AiUnsafeSql);
+    public const string AiErrorRequired = nameof(AiErrorRequired);
 }

@@ -4,6 +4,8 @@ import { TranslocoService } from '@jsverse/transloco';
 import { ToastService } from '@core/services/toast.service';
 import { ConfirmService } from '@core/services/confirm.service';
 import { QueryService } from '@core/services/query.service';
+import { AiService } from '@core/services/ai.service';
+import { AiStatus } from '@core/models/ai.model';
 import { LogRotationResult, SETTING_LIMITS, SystemSettings } from '@core/models/dynamic-query.model';
 
 /** 0 (keep forever) or a whole number of days inside the bounds the server enforces. */
@@ -55,6 +57,27 @@ function retentionDays(control: AbstractControl): ValidationErrors | null {
                 {{ 'admin.settings.directoryEnabled' | transloco }}
               </mat-slide-toggle>
               <p class="hint">{{ 'admin.settings.directoryEnabledHint' | transloco }}</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>{{ 'admin.settings.aiTitle' | transloco }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="setting">
+              <mat-slide-toggle
+                [checked]="settings.aiEnabled !== false"
+                [disabled]="saving"
+                (change)="setToggle('aiEnabled', $event.checked)">
+                {{ 'admin.settings.aiEnabled' | transloco }}
+              </mat-slide-toggle>
+              <p class="hint">{{ 'admin.settings.aiEnabledHint' | transloco }}</p>
+              <p class="hint ai-status" role="status" [attr.data-state]="aiStatusState">
+                <mat-icon>{{ aiStatusIcon }}</mat-icon>
+                <span>{{ aiStatusText }}</span>
+              </p>
             </div>
           </mat-card-content>
         </mat-card>
@@ -216,6 +239,12 @@ function retentionDays(control: AbstractControl): ValidationErrors | null {
     }
     /* A number field has no track to clear, so its hint sits flush. */
     .number-field + .hint { padding-inline-start: 0; }
+    .ai-status { display: flex; align-items: center; gap: 6px; }
+    .ai-status mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+    .ai-status[data-state='ready'] mat-icon { color: var(--status-success); }
+    .ai-status[data-state='unreachable'] mat-icon,
+    .ai-status[data-state='modelMissing'] mat-icon,
+    .ai-status[data-state='failed'] mat-icon { color: var(--status-error); }
   `]
 })
 export class SystemSettingsComponent implements OnInit {
@@ -228,9 +257,13 @@ export class SystemSettingsComponent implements OnInit {
   rotating = false;
   errorMessage = '';
 
+  /** The AI service as last checked: null while checking, 'failed' when the check itself failed. */
+  aiStatus: AiStatus | 'failed' | null = null;
+
   constructor(
     private fb: FormBuilder,
     private queryService: QueryService,
+    private ai: AiService,
     private toast: ToastService,
     private confirm: ConfirmService,
     private transloco: TranslocoService,
@@ -280,6 +313,7 @@ export class SystemSettingsComponent implements OnInit {
         this.resetRetention();
         this.loading = false;
         this.cdr.detectChanges();
+        this.checkAi();
       },
       error: (err) => {
         this.loading = false;
@@ -387,6 +421,46 @@ export class SystemSettingsComponent implements OnInit {
     });
   }
 
+  /** Asks the server whether the AI service answers, for the line under the AI toggle. */
+  checkAi(): void {
+    this.aiStatus = null;
+    this.cdr.detectChanges();
+    this.ai.getStatus().subscribe({
+      next: (status) => { this.aiStatus = status; this.cdr.detectChanges(); },
+      error: () => { this.aiStatus = 'failed'; this.cdr.detectChanges(); }
+    });
+  }
+
+  /** 'checking', 'failed', 'notConfigured', or the server's state. Drives the icon colour. */
+  get aiStatusState(): string {
+    if (this.aiStatus === null) return 'checking';
+    if (this.aiStatus === 'failed') return 'failed';
+    return this.aiStatus.configuredOnServer ? this.aiStatus.state : 'notConfigured';
+  }
+
+  get aiStatusIcon(): string {
+    switch (this.aiStatusState) {
+      case 'ready': return 'check_circle';
+      case 'unreachable': case 'modelMissing': case 'failed': return 'error_outline';
+      case 'checking': return 'hourglass_empty';
+      default: return 'info';
+    }
+  }
+
+  get aiStatusText(): string {
+    const model = this.aiStatus && this.aiStatus !== 'failed' ? this.aiStatus.model : '';
+    const key = ({
+      checking: 'admin.settings.aiStatusChecking',
+      failed: 'admin.settings.aiStatusFailed',
+      notConfigured: 'admin.settings.aiStatusNotConfigured',
+      disabled: 'admin.settings.aiStatusOff',
+      ready: 'admin.settings.aiStatusReady',
+      unreachable: 'admin.settings.aiStatusUnreachable',
+      modelMissing: 'admin.settings.aiStatusModelMissing'
+    } as Record<string, string>)[this.aiStatusState] ?? 'admin.settings.aiStatusFailed';
+    return this.transloco.translate(key, { model });
+  }
+
   private describeRetention(days: number): string {
     return days > 0
       ? this.transloco.translate('admin.settings.retentionOlderThan', { days })
@@ -397,7 +471,7 @@ export class SystemSettingsComponent implements OnInit {
    * Writes one toggle optimistically and rolls it back on failure: leaving it showing the
    * value the server rejected would misreport what a role is actually allowed to do.
    */
-  setToggle(key: 'directoryEnabled', enabled: boolean): void {
+  setToggle(key: 'directoryEnabled' | 'aiEnabled', enabled: boolean): void {
     if (!this.settings) return;
 
     const previous = this.settings[key];
@@ -410,6 +484,7 @@ export class SystemSettingsComponent implements OnInit {
         this.saving = false;
         this.toast.success('admin.settings.saved');
         this.cdr.detectChanges();
+        if (key === 'aiEnabled') this.checkAi();
       },
       error: (err) => {
         this.settings = { ...next, [key]: previous };

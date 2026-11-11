@@ -110,6 +110,18 @@ public static class SystemSettingKeys
     public const bool DirectoryEnabledDefault = true;
 
     /// <summary>
+    /// Whether the AI assistant's buttons are offered.
+    ///
+    /// <para>On by default, because it is the second of two switches: AI only works once the
+    /// server's configuration points at a model (<c>Ai:Enabled</c>), which is the operator's
+    /// decision. This one lets an administrator take it away again from System Settings, without
+    /// a restart — while a model misbehaves, say.</para>
+    /// </summary>
+    public const string AiEnabled = "ai.enabled";
+
+    public const bool AiEnabledDefault = true;
+
+    /// <summary>
     /// How many days of query execution logs to keep. Older entries are deleted by the rotation
     /// sweep, which runs every few hours and on demand from System Settings.
     ///

@@ -231,6 +231,24 @@
       "affectedRowsCaption": "The rows it would change, as they are now:",
       "affectedRowsLimited": "The first {{limit}} rows it would change, as they are now:"
     },
+    "ai": {
+      "explain": "Explain with AI",
+      "explainTitle": "What this query does",
+      "working": "The AI model is reading the query. This can take a minute or two.",
+      "steps": "Step by step",
+      "cautions": "Worth checking",
+      "disclaimer": "Written by an AI model running on this server. Check it before relying on it.",
+      "timedOut": "The AI model took too long to answer. Try again.",
+      "failed": "The AI model could not answer.",
+      "tryAgain": "Try again",
+      "suggestFix": "Suggest a fix",
+      "fixing": "The AI model is looking at the error…",
+      "fixTitle": "Suggested fix",
+      "fixUnchanged": "The AI could not fix this from the SQL alone",
+      "changesMarked": "Changed words are marked. Check each one before using it.",
+      "useSql": "Use this SQL",
+      "sqlReplaced": "The SQL was replaced. Test it again before saving."
+    },
     "queryForm": {
       "removeTemplateTitle": "Remove Word template?",
       "removeTemplateMessage": "\"{{fileName}}\" will be deleted from the server and this query's Word exports will fall back to the default layout. This cannot be undone.",
@@ -737,7 +755,9 @@
         "roles.update": "Renamed a role",
         "roles.delete": "Deleted a role",
         "roles.setPermissions": "Changed a role's permissions",
-        "settings.logsRotated": "Rotated the logs (deleted old entries)"
+        "settings.logsRotated": "Rotated the logs (deleted old entries)",
+        "ai.explainSql": "Asked the AI to explain SQL",
+        "ai.suggestFix": "Asked the AI to fix SQL"
       },
       "categories": {
         "users": "Users",
@@ -751,7 +771,8 @@
         "directory": "Active Directory",
         "branding": "Branding",
         "other": "Other",
-        "settings": "Settings"
+        "settings": "Settings",
+        "ai": "AI assistant"
       },
       "ipAddress": "IP:"
     },
@@ -760,6 +781,16 @@
       "directoryTitle": "Active Directory",
       "directoryEnabled": "Active Directory features are available",
       "directoryEnabledHint": "Turn this off on an installation with no directory: it hides the AD Users page, which could otherwise only ever report a connection failure. Signing in is not affected — accounts already imported keep authenticating against the directory.",
+      "aiTitle": "AI assistant",
+      "aiEnabled": "Offer the AI assistant",
+      "aiEnabledHint": "Shows the “Explain with AI” and “Suggest a fix” buttons in the query editor to people with the “Use the AI assistant” permission. The AI model runs on this server; queries are not sent anywhere else.",
+      "aiStatusChecking": "Checking the AI service…",
+      "aiStatusFailed": "Could not check the AI service.",
+      "aiStatusNotConfigured": "Not set up on this server. To use it, install the AI service and set Ai:Enabled to true in the API’s appsettings.json.",
+      "aiStatusOff": "Switched off.",
+      "aiStatusReady": "Ready. Model: {{model}}.",
+      "aiStatusUnreachable": "The AI service is not answering. Check that it is running on the server.",
+      "aiStatusModelMissing": "The AI service is running, but the model {{model}} is not installed.",
       "limitsTitle": "Sessions and limits",
       "accessTokenMinutes": "Access token (minutes)",
       "accessTokenMinutesHint": "How long a sign-in lasts before the application quietly renews it. Shorter means a revoked account, or someone removed from a group, loses what their token still carries sooner.",
@@ -825,7 +856,8 @@
         "export": "Exporting results",
         "reports": "Reports",
         "reportExport": "Downloading reports",
-        "dashboards": "Dashboards"
+        "dashboards": "Dashboards",
+        "ai": "AI assistant"
       },
       "names": {
         "queries.view": "See the query list",
@@ -870,7 +902,8 @@
         "dashboards.run": "View dashboards",
         "access.manageDashboard": "Grant a dashboard",
         "reports.transfer": "Export and import report definitions",
-        "dashboards.transfer": "Export and import dashboard definitions"
+        "dashboards.transfer": "Export and import dashboard definitions",
+        "ai.use": "Use the AI assistant"
       },
       "hints": {
         "queries.view": "Opens Manage Queries and a query definition — without the SQL unless the next one is also held.",
@@ -915,7 +948,8 @@
         "dashboards.run": "Open a dashboard that has been granted to you. Each tile's query is still checked separately.",
         "access.manageDashboard": "Decide who may open a dashboard.",
         "reports.transfer": "Export reports to JSON and import them back. Including their queries also needs the query export permission.",
-        "dashboards.transfer": "Export dashboards to JSON and import them back. Including their queries and reports also needs those export permissions."
+        "dashboards.transfer": "Export dashboards to JSON and import them back. Including their queries and reports also needs those export permissions.",
+        "ai.use": "Explain a query’s SQL, and get a suggested fix when a test fails, from the AI model running on this server. Also needs “Create and edit queries”."
       },
       "title": "Roles & Permissions"
     },

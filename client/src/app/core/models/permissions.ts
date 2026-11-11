@@ -48,7 +48,8 @@ export const PERM = {
   auditView: 'audit.view',
   brandingManage: 'branding.manage',
   settingsManage: 'settings.manage',
-  rolesManage: 'roles.manage'
+  rolesManage: 'roles.manage',
+  aiUse: 'ai.use'
 } as const;
 
 export type PermissionName = typeof PERM[keyof typeof PERM];
@@ -103,6 +104,10 @@ export const PERMISSION_GROUPS: { titleKey: string; permissions: string[] }[] = 
   {
     titleKey: 'admin.permissions.groups.system',
     permissions: [PERM.brandingManage, PERM.settingsManage, PERM.rolesManage]
+  },
+  {
+    titleKey: 'admin.permissions.groups.ai',
+    permissions: [PERM.aiUse]
   }
 ];
 
