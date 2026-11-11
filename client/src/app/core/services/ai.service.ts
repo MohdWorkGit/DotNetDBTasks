@@ -4,8 +4,8 @@ import { Observable } from 'rxjs';
 import { tap, timeout } from 'rxjs/operators';
 import { environment } from '@env/environment';
 import {
-  AiConnection, AiDashboardDraft, AiSchema, AiSqlExplanation, AiSqlFix, AiStatus, AiWrittenSql,
-  DraftDashboardRequest, ExplainSqlRequest, SuggestSqlFixRequest, WriteSqlRequest
+  AiConnection, AiDashboardDraft, AiReportDraft, AiSchema, AiSqlExplanation, AiSqlFix, AiStatus, AiWrittenSql,
+  DraftDashboardRequest, DraftReportRequest, ExplainSqlRequest, SuggestSqlFixRequest, WriteSqlRequest
 } from '@core/models/ai.model';
 
 /**
@@ -37,6 +37,11 @@ export class AiService {
   /** Runs each picked query once to learn its columns, then asks the model: the slowest call here. */
   draftDashboard(request: DraftDashboardRequest): Observable<AiDashboardDraft> {
     return this.http.post<AiDashboardDraft>(`${this.url}/draft-dashboard`, request).pipe(timeout(this.waitMs()));
+  }
+
+  /** Like a dashboard draft: each picked query runs once, then the model proposes the report. */
+  draftReport(request: DraftReportRequest): Observable<AiReportDraft> {
+    return this.http.post<AiReportDraft>(`${this.url}/draft-report`, request).pipe(timeout(this.waitMs()));
   }
 
   /** Connections the AI may read for this admin: Allow AI switched on, and the default one if allowed. */

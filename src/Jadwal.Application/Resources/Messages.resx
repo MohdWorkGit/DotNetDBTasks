@@ -419,4 +419,22 @@
   <data name="AiTooManyTables" xml:space="preserve">
     <value>Pick at most {0} tables.</value>
   </data>
+  <data name="AiDraftChartDropped" xml:space="preserve">
+    <value>The chart '{0}' was left out: {1}</value>
+  </data>
+  <data name="AiDraftChartNeedsSummary" xml:space="preserve">
+    <value>a chart draws one row per category, and its query returns {0} rows. Chart a query that already adds them up.</value>
+  </data>
+  <data name="AiDraftTooManyCharts" xml:space="preserve">
+    <value>Only the first {0} charts were kept.</value>
+  </data>
+  <data name="AiDraftParameterAsText" xml:space="preserve">
+    <value>'{0}' is a list to pick from in its query; the report asks for it as text. Check the value it expects.</value>
+  </data>
+  <data name="AiDraftParameterSingle" xml:space="preserve">
+    <value>'{0}' takes several values in its query, but a report passes one, so that section may fail. Check it before saving.</value>
+  </data>
+  <data name="AiDraftFixedDate" xml:space="preserve">
+    <value>'{0}' starts at the fixed date {1}. A report does not move dates by itself; check it before saving.</value>
+  </data>
 </root>

@@ -291,7 +291,18 @@
       "sqlWritten": "The SQL was written into the editor. Test it before saving.",
       "replaceSqlTitle": "Replace the SQL?",
       "replaceSqlMessage": "The SQL in the editor will be replaced by the one the AI wrote. Nothing is saved until you press Save.",
-      "replaceSqlConfirm": "Replace"
+      "replaceSqlConfirm": "Replace",
+      "draftReportTitle": "Draft a report with AI",
+      "draftReportIntro": "Pick the saved queries the report should contain, and say what it is for. Each query becomes a section; each runs once so the AI can see its columns. Only column names and kinds are sent to the AI model, never the data.",
+      "draftReportGoal": "What is the report for? (optional)",
+      "draftReportGoalHint": "For example: a monthly staff summary for department heads.",
+      "draftReportModeAdd": "Add to the current sections",
+      "draftReportModeReplace": "Replace the current sections, charts and parameters",
+      "draftReportWorking": "The AI model is designing the report. This can take a few minutes.",
+      "draftReportProposed": "Proposed report:",
+      "draftReportSections": "Sections",
+      "draftReportCharts": "Charts",
+      "draftReportLoaded": "Draft loaded. Review the sections, parameters and charts, then save."
     },
     "queryForm": {
       "removeTemplateTitle": "Remove Word template?",
@@ -803,7 +814,8 @@
         "ai.explainSql": "Asked the AI to explain SQL",
         "ai.suggestFix": "Asked the AI to fix SQL",
         "ai.draftDashboard": "Asked the AI to draft a dashboard",
-        "ai.writeSql": "Asked the AI to write SQL"
+        "ai.writeSql": "Asked the AI to write SQL",
+        "ai.draftReport": "Asked the AI to draft a report"
       },
       "categories": {
         "users": "Users",

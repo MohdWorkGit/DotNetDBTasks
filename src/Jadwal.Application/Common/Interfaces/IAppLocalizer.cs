@@ -152,4 +152,10 @@ public static class MessageKeys
     public const string AiDescriptionTooLong = nameof(AiDescriptionTooLong);
     public const string AiTablesRequired = nameof(AiTablesRequired);
     public const string AiTooManyTables = nameof(AiTooManyTables);
+    public const string AiDraftChartDropped = nameof(AiDraftChartDropped);
+    public const string AiDraftChartNeedsSummary = nameof(AiDraftChartNeedsSummary);
+    public const string AiDraftTooManyCharts = nameof(AiDraftTooManyCharts);
+    public const string AiDraftParameterAsText = nameof(AiDraftParameterAsText);
+    public const string AiDraftParameterSingle = nameof(AiDraftParameterSingle);
+    public const string AiDraftFixedDate = nameof(AiDraftFixedDate);
 }

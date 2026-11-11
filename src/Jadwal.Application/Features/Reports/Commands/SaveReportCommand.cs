@@ -156,7 +156,7 @@ public partial class SaveReportCommandHandler : IRequestHandler<SaveReportComman
         return await ReportMapper.LoadDtoAsync(_unitOfWork, report.Id, cancellationToken);
     }
 
-    private static void Validate(ReportInput input)
+    internal static void Validate(ReportInput input)
     {
         // Only the sign is checked. How large these may be is the administrator's call — the
         // form states what each one costs — and 0 is the explicit way to say "no limit".

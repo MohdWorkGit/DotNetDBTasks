@@ -6,7 +6,14 @@ import { ReportService } from '@core/services/report.service';
 import { QueryService } from '@core/services/query.service';
 import { ToastService, extractApiError } from '@core/services/toast.service';
 import { ConfirmService } from '@core/services/confirm.service';
-import { DynamicQuery, ParameterType, QueryGroup } from '@core/models/dynamic-query.model';
+import { MatDialog } from '@angular/material/dialog';
+import { AuthService } from '@core/services/auth.service';
+import { AiService } from '@core/services/ai.service';
+import { PERM } from '@core/models/permissions';
+import {
+  AiReportDraftDialogComponent, AiReportDraftDialogData, AiReportDraftDialogResult
+} from './ai-report-draft-dialog.component';
+import { DynamicQuery, ParameterType, QueryGroup, QueryType } from '@core/models/dynamic-query.model';
 import {
   Report,
   ReportChartType,
@@ -33,6 +40,10 @@ import {
     <div class="container">
       <div class="page-header">
         <h1>{{ (isEdit ? 'admin.reports.editTitle' : 'admin.reports.createTitle') | transloco }}</h1>
+        <span class="spacer"></span>
+        <button mat-stroked-button type="button" *ngIf="aiEnabled && !loading" (click)="draftWithAi()">
+          <mat-icon>auto_awesome</mat-icon> {{ 'admin.ai.draftDashboard' | transloco }}
+        </button>
       </div>
 
       <div class="loading" *ngIf="loading">
@@ -40,7 +51,7 @@ import {
       </div>
 
       <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading">
-        <mat-tab-group>
+        <mat-tab-group [(selectedIndex)]="tabIndex">
           <!-- ---------------------------------------------------------- details -->
           <mat-tab [label]="'admin.reports.tabDetails' | transloco">
             <mat-card class="tab-card">
@@ -563,6 +574,9 @@ export class ReportFormComponent implements OnInit {
   private confirmService = inject(ConfirmService);
   private transloco = inject(TranslocoService);
   private cdr = inject(ChangeDetectorRef);
+  private dialog = inject(MatDialog);
+  private authService = inject(AuthService);
+  private ai = inject(AiService);
 
   readonly exportFormats = REPORT_EXPORT_FORMATS;
   readonly sourceKinds = ReportParameterSourceKind;
@@ -578,6 +592,10 @@ export class ReportFormComponent implements OnInit {
   isEdit = false;
   loading = true;
   saving = false;
+  /** Details, Datasets, Parameters, Charts, Template — a loaded AI draft opens on Datasets. */
+  tabIndex = 0;
+  /** Offer "Draft with AI": AI is switched on, and this admin may use it here. */
+  aiEnabled = false;
 
   private reportId: string | null = null;
   private selectedFormats = new Set<string>();
@@ -701,6 +719,117 @@ export class ReportFormComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+
+    // The AI button appears only once the server says AI is on; a failed check just leaves it
+    // hidden, since the builder works fully without it.
+    if (this.authService.has(PERM.aiUse) && this.authService.has(PERM.reportsManage)) {
+      this.ai.getStatus().subscribe({
+        next: status => { this.aiEnabled = status.enabled; this.cdr.detectChanges(); },
+        error: () => this.cdr.detectChanges()
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------- AI draft
+
+  draftWithAi(): void {
+    const data: AiReportDraftDialogData = {
+      // A section runs its query every time the report does, so only reads are offered.
+      queries: this.queries
+        .filter(q => q.queryType === QueryType.Select || q.queryType === QueryType.Other)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      hasContent: this.datasets.length > 0 || this.charts.length > 0 || this.parameters.length > 0
+    };
+    this.dialog.open(AiReportDraftDialogComponent, {
+      data, width: '760px', maxWidth: '95vw', ariaModal: true, autoFocus: 'dialog'
+    }).afterClosed().subscribe((result?: AiReportDraftDialogResult) => {
+      if (result) this.applyDraft(result);
+      this.cdr.detectChanges();
+    });
+  }
+
+  /**
+   * Loads an AI draft into the form, unsaved like any edit. The name and description are only
+   * filled when empty; a parameter is added unless one of that name exists, and the sections'
+   * mappings then use it; a section key already in use is renamed, its charts with it.
+   */
+  private applyDraft({ draft, mode }: AiReportDraftDialogResult): void {
+    const d = draft.draft;
+    if (mode === 'replace') {
+      this.datasets.clear();
+      this.charts.clear();
+      this.parameters.clear();
+    }
+    if (!String(this.form.get('name')?.value ?? '').trim()) this.form.patchValue({ name: d.name });
+    if (!String(this.form.get('description')?.value ?? '').trim() && d.description) {
+      this.form.patchValue({ description: d.description });
+    }
+
+    const existingParameters = new Set(this.parameters.controls.map(c => String(c.get('name')?.value ?? '').toLowerCase()));
+    for (const parameter of d.parameters) {
+      if (existingParameters.has(parameter.name.toLowerCase())) continue;
+      this.parameters.push(this.buildParameterGroup({
+        name: parameter.name,
+        displayName: parameter.displayName,
+        parameterType: parameter.parameterType,
+        isRequired: parameter.isRequired,
+        defaultValue: parameter.defaultValue ?? ''
+      }));
+    }
+
+    // Dataset and chart keys share one namespace on the server.
+    const usedKeys = new Set([
+      ...this.datasets.controls.map(c => String(c.get('datasetKey')?.value ?? '').toLowerCase()),
+      ...this.charts.controls.map(c => String(c.get('chartKey')?.value ?? '').toLowerCase())
+    ]);
+    const unique = (key: string): string => {
+      let candidate = key;
+      for (let n = 2; usedKeys.has(candidate.toLowerCase()); n++) candidate = `${key}_${n}`;
+      usedKeys.add(candidate.toLowerCase());
+      return candidate;
+    };
+    const renamed = new Map<string, string>();
+
+    for (const dataset of d.datasets) {
+      const key = unique(dataset.datasetKey);
+      renamed.set(dataset.datasetKey, key);
+      const group = this.buildDatasetGroup({
+        datasetKey: key,
+        displayName: dataset.displayName,
+        dynamicQueryId: dataset.dynamicQueryId ?? null,
+        isVisibleInViewer: dataset.isVisibleInViewer,
+        sourceType: dataset.sourceType,
+        parentDatasetKey: null,
+        leftDatasetKey: null,
+        rightDatasetKey: null,
+        joinType: null,
+        leftColumn: '',
+        rightColumn: ''
+      });
+      const maps = group.get('parameterMaps') as FormArray;
+      for (const map of dataset.parameterMaps) {
+        maps.push(this.buildMapGroup(
+          map.targetParameterName, map.sourceKind, map.reportParameterName ?? '',
+          map.constantValue ?? '', map.parentColumn ?? ''));
+      }
+      this.datasets.push(group);
+    }
+
+    for (const chart of d.charts) {
+      this.charts.push(this.buildChartGroup({
+        chartKey: unique(chart.chartKey),
+        title: chart.title ?? '',
+        chartType: chart.chartType,
+        datasetKey: renamed.get(chart.datasetKey) ?? chart.datasetKey,
+        categoryColumn: chart.categoryColumn,
+        seriesColumns: (chart.seriesColumns ?? []).join(', '),
+        maxCategories: chart.maxCategories
+      }));
+    }
+
+    this.tabIndex = 1;
+    this.form.markAsDirty();
+    this.toast.info('admin.ai.draftReportLoaded');
   }
 
   private loadReport(id: string): void {

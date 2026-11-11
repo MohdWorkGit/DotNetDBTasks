@@ -1,3 +1,4 @@
+import { ReportInput } from '@core/models/report.model';
 import { DashboardInput } from '@core/models/dashboard.model';
 
 /** Mirrors Jadwal.Application.Features.Ai.AiDtos. */
@@ -92,4 +93,16 @@ export interface AiWrittenSql {
   sql: string;
   explanation: string;
   parameters: AiSuggestedParameter[];
+}
+
+/** The same request as a dashboard draft: the picked queries and an optional goal. */
+export type DraftReportRequest = DraftDashboardRequest;
+
+/** A proposed report, in the shape a save takes. Nothing has been saved. */
+export interface AiReportDraft {
+  draft: ReportInput;
+  /** The model's reason for each chart, in chart order. */
+  chartReasons: string[];
+  /** What was left out or changed, and why. */
+  notes: string[];
 }

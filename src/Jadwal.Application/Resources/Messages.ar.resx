@@ -419,4 +419,22 @@
   <data name="AiTooManyTables" xml:space="preserve">
     <value>اختر ⁨{0}⁩ جداول على الأكثر.</value>
   </data>
+  <data name="AiDraftChartDropped" xml:space="preserve">
+    <value>تُرك المخطط «⁨{0}⁩»: ⁨{1}⁩</value>
+  </data>
+  <data name="AiDraftChartNeedsSummary" xml:space="preserve">
+    <value>المخطط يرسم صفًا لكل فئة، واستعلامه يُرجع ⁨{0}⁩ صفًا. ارسم مخططًا لاستعلام يجمع البيانات مسبقًا.</value>
+  </data>
+  <data name="AiDraftTooManyCharts" xml:space="preserve">
+    <value>احتُفظ بأول ⁨{0}⁩ مخططات فقط.</value>
+  </data>
+  <data name="AiDraftParameterAsText" xml:space="preserve">
+    <value>«⁨{0}⁩» قائمة اختيار في استعلامه، والتقرير يطلبه نصًا. تأكد من القيمة المتوقعة.</value>
+  </data>
+  <data name="AiDraftParameterSingle" xml:space="preserve">
+    <value>«⁨{0}⁩» يقبل عدة قيم في استعلامه، لكن التقرير يمرر قيمة واحدة، فقد يفشل ذلك القسم. راجعه قبل الحفظ.</value>
+  </data>
+  <data name="AiDraftFixedDate" xml:space="preserve">
+    <value>«⁨{0}⁩» يبدأ بالتاريخ الثابت ⁨{1}⁩. التقرير لا يغيّر التواريخ تلقائيًا؛ راجعه قبل الحفظ.</value>
+  </data>
 </root>

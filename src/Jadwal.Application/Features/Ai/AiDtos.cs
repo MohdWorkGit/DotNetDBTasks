@@ -3,6 +3,21 @@ using Jadwal.Domain.Enums;
 
 namespace Jadwal.Application.Features.Ai;
 
+/// <summary>
+/// A report the AI proposed, in the shape a save takes, so it loads into the builder as it is.
+/// Nothing has been saved.
+/// </summary>
+public class AiReportDraftDto
+{
+    public Features.Reports.Dtos.ReportInput Draft { get; set; } = new();
+
+    /// <summary>The model's reason for each chart, in the same order as <c>Draft.Charts</c>.</summary>
+    public List<string> ChartReasons { get; set; } = new();
+
+    /// <summary>What was left out or changed, and why.</summary>
+    public List<string> Notes { get; set; } = new();
+}
+
 /// <summary>A connection the AI may read. The default connection has no id; the page names it.</summary>
 public class AiConnectionDto
 {

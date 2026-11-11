@@ -180,6 +180,16 @@ internal static class AiPrompts
         text.AppendLine(string.IsNullOrWhiteSpace(goal)
             ? "Goal: none given. Choose what a manager would want to see first."
             : $"Goal: {goal.Trim()}");
+        AppendQueries(text, profiles);
+        text.AppendLine("query: the number of the query the tile shows. reason: one short sentence on why this tile helps.");
+        text.AppendLine("Unused fields: \"\" for a column, an empty list for seriesColumns, \"last\" for aggregate.");
+        text.Append(LanguageReminder());
+        return text.ToString();
+    }
+
+    /// <summary>The picked queries by number, each as the shape of its result: names, kinds, counts.</summary>
+    private static void AppendQueries(StringBuilder text, IReadOnlyList<QueryProfile> profiles)
+    {
         text.AppendLine();
         text.AppendLine("Queries:");
         for (var i = 0; i < profiles.Count; i++)
@@ -195,10 +205,86 @@ internal static class AiPrompts
                 text.AppendLine($"   - \"{c.Name}\": {c.Kind}, {c.Distinct} different values");
         }
         text.AppendLine();
-        text.AppendLine("query: the number of the query the tile shows. reason: one short sentence on why this tile helps.");
-        text.AppendLine("Unused fields: \"\" for a column, an empty list for seriesColumns, \"last\" for aggregate.");
+    }
+
+    /// <summary>
+    /// The rules for drafting a report: a document with one section per query, and charts drawn
+    /// from sections that are already summaries.
+    /// </summary>
+    public static string ReportSystem() => $"""
+        You design reports in Jadwal, a reporting tool. A report is a document with one section per saved query: the section shows the query's rows as a table, under a title. Charts are drawn from a section's rows.
+        A chart draws one row per category and does not add rows up, so only chart a query that already returns a summary: few rows, one per category. A query with many rows (a list of orders, say) gets a section but no chart.
+        Chart types: column or bar to compare categories (bar for long names or many categories), line or area for a measure over dates, pie or doughnut for shares of a whole (one measure, few categories), stackedColumn or stackedBar for measures that add up.
+        For a chart, categoryColumn is a text or date column and seriesColumns are number columns of the same query. Use only the columns listed for that query.
+        Give each section a short English key (letters, digits and underscores, starting with a letter, such as sales_by_branch) and a title. Make at most one or two charts per summary query.
+        Titles, the report name and the description are for a business user: short and plain.
+        Write every sentence in {AnswerLanguage()}. Keep column names exactly as listed.
+        Reply only with JSON that matches the schema.
+        """;
+
+    public static string ReportUser(string? goal, IReadOnlyList<QueryProfile> profiles)
+    {
+        var text = new StringBuilder();
+        text.AppendLine(string.IsNullOrWhiteSpace(goal)
+            ? "Goal: none given. Make the report a manager would read first."
+            : $"Goal: {goal.Trim()}");
+        AppendQueries(text, profiles);
+        text.AppendLine("sections: one per query, with query (its number), key and title.");
+        text.AppendLine("charts: query (its number), title, type, categoryColumn, seriesColumns, and reason: one short sentence on why the chart helps. An empty list if no query is a summary.");
         text.Append(LanguageReminder());
         return text.ToString();
+    }
+
+    /// <summary>The report answer's shape, column names held to the real ones as for dashboards.</summary>
+    public static string ReportSchema(IEnumerable<string> columnNames)
+    {
+        var columns = new JsonArray(
+            columnNames.Distinct().Append(string.Empty).Select(c => (JsonNode?)c).ToArray());
+        JsonObject OneOf(JsonArray values) => new() { ["type"] = "string", ["enum"] = values };
+        JsonArray Strings(IEnumerable<string> values) => new(values.Select(v => (JsonNode?)v).ToArray());
+        JsonObject Text() => new() { ["type"] = "string" };
+
+        var section = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject
+            {
+                ["query"] = new JsonObject { ["type"] = "integer" },
+                ["key"] = Text(),
+                ["title"] = Text()
+            },
+            ["required"] = Strings(new[] { "query", "key", "title" }),
+            ["additionalProperties"] = false
+        };
+        var chart = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject
+            {
+                ["query"] = new JsonObject { ["type"] = "integer" },
+                ["title"] = Text(),
+                ["type"] = OneOf(Strings(ReportDraftBuilder.ChartTypes.Keys)),
+                ["categoryColumn"] = OneOf(columns.DeepClone().AsArray()),
+                ["seriesColumns"] = new JsonObject { ["type"] = "array", ["items"] = OneOf(columns.DeepClone().AsArray()) },
+                ["reason"] = Text()
+            },
+            ["required"] = Strings(new[] { "query", "title", "type", "categoryColumn", "seriesColumns", "reason" }),
+            ["additionalProperties"] = false
+        };
+
+        return new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject
+            {
+                ["name"] = Text(),
+                ["description"] = Text(),
+                ["sections"] = new JsonObject { ["type"] = "array", ["items"] = section },
+                ["charts"] = new JsonObject { ["type"] = "array", ["items"] = chart }
+            },
+            ["required"] = Strings(new[] { "name", "description", "sections", "charts" }),
+            ["additionalProperties"] = false
+        }.ToJsonString();
     }
 
     /// <summary>

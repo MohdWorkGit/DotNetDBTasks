@@ -90,6 +90,22 @@ All four features are for admins and authors only, and all four produce a **draf
   admin's job. The AI can list which `{{RESULTS:key}}` / `{{CHART:key}}` markers to place.
 - This is the hardest of the four: reports have the most rules (`SaveReportCommand` validation runs
   from line 160 to 310). Do it last.
+- **As built (2026-11-11, Phase 3):**
+  - **Sections:** every picked query (up to 6) becomes a section, a Query dataset. The model gives
+    each one a title and an English key; the code cleans the key and makes it unique.
+  - **Parameters:** they and their mappings are built by code from the queries' own parameters, so
+    every required one is mapped.
+  - **Charts:** they are checked against the real columns. They are only kept on a query that
+    returns at most 50 rows: a report chart draws one row per category and does not add rows up.
+  - **What the report form can't hold:**
+    - a dropdown parameter becomes a text parameter;
+    - a multi-value parameter becomes a single value, and that section may fail;
+    - a date shortcut (`today-30`) becomes the fixed date it means today, because a report does not
+      move dates by itself.
+
+    Each of these changes is listed in the draft's notes.
+  - **Not drafted:** joins, master/detail sections and the Word template. The admin adds those.
+    Without a template, a report gets the built-in layout.
 
 ### 2.4 Explain / fix SQL
 - **Explain:** turns a saved query into plain words, in the UI language. This helps auditors and new
@@ -401,7 +417,7 @@ and the model being used by people who shouldn't use it.
 | **0** | Ollama install + `Ai` config + health check + **Explain / fix SQL**. **Built 2026-11-10**, except the AI bundle script, which waits for the GPU details. | Proves the runtime, the bundle and the speed on the real server, without schema or data access |
 | **1** | Schema reader + table picker + **Write SQL from a description** + SELECT-only check + CTE fix. **Built 2026-11-11**, with the "Allow AI" switch per connection and the two System Settings switches. | The most useful feature; needs the safety work |
 | **2** | **Draft a dashboard**. **Built 2026-11-11**, ahead of Phase 1, which it does not need. | Reuses `probe-columns`; writes no SQL |
-| **3** | **Draft a report** | The most complex form; builds on 1 and 2 |
+| **3** | **Draft a report**. **Built 2026-11-11**: sections, charts on summary queries, parameters and mappings. Joins, master/detail and templates stay manual. | The most complex form; builds on 1 and 2 |
 | later | Business descriptions for tables and columns; keyword or embedding ranking | Only if quality or speed asks for it |
 
 **A test set for every phase:** about 20 real requests per database type the user cares about

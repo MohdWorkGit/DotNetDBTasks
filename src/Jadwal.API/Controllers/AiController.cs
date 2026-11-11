@@ -68,6 +68,14 @@ public class AiController : ControllerBase
         [FromBody] WriteSqlCommand command, CancellationToken cancellationToken) =>
         Ok(await _mediator.Send(command, cancellationToken));
 
+    /// <summary>Proposes a report — sections, charts, parameters — from saved queries. Saves nothing.</summary>
+    [HttpPost("draft-report")]
+    [RequirePermission(Permissions.AiUse)]
+    [RequirePermission(Permissions.ReportsManage)]
+    public async Task<ActionResult<AiReportDraftDto>> DraftReport(
+        [FromBody] DraftReportCommand command, CancellationToken cancellationToken) =>
+        Ok(await _mediator.Send(command, cancellationToken));
+
     /// <summary>Proposes dashboard tiles from saved queries. Returns a draft; saves nothing.</summary>
     [HttpPost("draft-dashboard")]
     [RequirePermission(Permissions.AiUse)]

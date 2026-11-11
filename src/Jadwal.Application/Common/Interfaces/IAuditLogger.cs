@@ -121,6 +121,7 @@ public static class AuditActions
         // Records the connection, the description and the picked tables. The model is sent their
         // structure, and example values only when System Settings allows it.
         ["WriteSqlCommand"] = ("ai.writeSql", CategoryAi),
+        ["DraftReportCommand"] = ("ai.draftReport", CategoryAi),
 
         ["CreateUserGroupCommand"] = ("userGroups.create", CategoryUserGroups),
         ["UpdateUserGroupCommand"] = ("userGroups.update", CategoryUserGroups),
