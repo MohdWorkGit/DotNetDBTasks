@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap, timeout } from 'rxjs/operators';
 import { environment } from '@env/environment';
 import {
-  AiDashboardDraft, AiSqlExplanation, AiSqlFix, AiStatus, DraftDashboardRequest, ExplainSqlRequest,
-  SuggestSqlFixRequest
+  AiConnection, AiDashboardDraft, AiSchema, AiSqlExplanation, AiSqlFix, AiStatus, AiWrittenSql,
+  DraftDashboardRequest, ExplainSqlRequest, SuggestSqlFixRequest, WriteSqlRequest
 } from '@core/models/ai.model';
 
 /**
@@ -37,6 +37,22 @@ export class AiService {
   /** Runs each picked query once to learn its columns, then asks the model: the slowest call here. */
   draftDashboard(request: DraftDashboardRequest): Observable<AiDashboardDraft> {
     return this.http.post<AiDashboardDraft>(`${this.url}/draft-dashboard`, request).pipe(timeout(this.waitMs()));
+  }
+
+  /** Connections the AI may read for this admin: Allow AI switched on, and the default one if allowed. */
+  getConnections(): Observable<AiConnection[]> {
+    return this.http.get<AiConnection[]>(`${this.url}/connections`);
+  }
+
+  /** The tables and views a connection can read; refresh reads the catalog again. */
+  getSchema(databaseUserId: string | null, refresh = false): Observable<AiSchema> {
+    let params = new HttpParams().set('refresh', String(refresh));
+    if (databaseUserId) params = params.set('databaseUserId', databaseUserId);
+    return this.http.get<AiSchema>(`${this.url}/schema`, { params });
+  }
+
+  writeSql(request: WriteSqlRequest): Observable<AiWrittenSql> {
+    return this.http.post<AiWrittenSql>(`${this.url}/write-sql`, request).pipe(timeout(this.waitMs()));
   }
 
   private waitMs(): number {

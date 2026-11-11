@@ -19,10 +19,6 @@ namespace Jadwal.Application.Common.Security;
 /// </summary>
 public static class AiSqlGuard
 {
-    private static readonly Regex Literals = new(
-        @"'(?:[^']|'')*'|""(?:[^""]|"""")*""|\[[^\]]*\]|`[^`]*`|/\*.*?\*/",
-        RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
     private static readonly string[] AlwaysForbidden =
     {
         "MERGE", "DROP", "ALTER", "CREATE", "TRUNCATE", "RENAME", "GRANT", "REVOKE",
@@ -42,23 +38,29 @@ public static class AiSqlGuard
     /// <paramref name="originalSql"/> — a keyword, a pattern, or "SELECT → UPDATE" — or null when
     /// it may be offered. Language-neutral on purpose: it is shown inside a localized sentence.
     /// </summary>
-    public static string? FindProblem(string originalSql, string suggestedSql)
+    public static string? FindProblem(string originalSql, string suggestedSql) =>
+        FindProblem(QueryTypeClassifier.FromSql(originalSql), suggestedSql);
+
+    /// <summary>
+    /// What is wrong with <paramref name="suggestedSql"/> as a statement of kind
+    /// <paramref name="required"/> — for SQL written from scratch, with nothing to compare to.
+    /// </summary>
+    public static string? FindProblem(QueryType required, string suggestedSql)
     {
         var forbidden = SqlSafetyRules.FindForbiddenPattern(suggestedSql);
         if (forbidden is not null)
             return forbidden.ToUpperInvariant();
 
-        var originalKind = QueryTypeClassifier.FromSql(originalSql);
-        if (originalKind == QueryType.Other)
+        if (required == QueryType.Other)
             return QueryType.Other.ToString().ToUpperInvariant();
 
-        var stripped = Literals.Replace(suggestedSql, " ");
-        var suggestedKind = QueryTypeClassifier.FromSql(stripped);
-        if (suggestedKind != originalKind)
-            return $"{originalKind.ToString().ToUpperInvariant()} → {FirstWord(stripped)}";
+        var stripped = QueryTypeClassifier.StripLiteralsAndComments(suggestedSql);
+        var suggestedKind = QueryTypeClassifier.FromSql(suggestedSql);
+        if (suggestedKind != required)
+            return $"{required.ToString().ToUpperInvariant()} → {FirstWord(stripped)}";
 
         // For a SELECT this also catches SELECT … FOR UPDATE, a row lock no report query needs.
-        foreach (var word in AlwaysForbidden.Concat(OtherKinds[originalKind]))
+        foreach (var word in AlwaysForbidden.Concat(OtherKinds[required]))
         {
             if (Regex.IsMatch(stripped, $@"\b{word}\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
                 return word;

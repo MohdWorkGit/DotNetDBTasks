@@ -90,7 +90,8 @@ public class DraftDashboardCommandHandler : IRequestHandler<DraftDashboardComman
                 AiPrompts.DashboardSystem(),
                 AiPrompts.DashboardUser(request.Goal, profiles),
                 "dashboard_draft",
-                AiPrompts.DashboardSchema(profiles.SelectMany(p => p.Columns).Select(c => c.Name))),
+                AiPrompts.DashboardSchema(profiles.SelectMany(p => p.Columns).Select(c => c.Name)),
+                MaxTokens: 2500),
             cancellationToken);
 
         var builder = new DashboardDraftBuilder(profiles, _messages);

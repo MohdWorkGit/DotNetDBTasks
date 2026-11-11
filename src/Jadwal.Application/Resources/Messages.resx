@@ -395,4 +395,28 @@
   <data name="AiDraftAssumedDefault" xml:space="preserve">
     <value>'{0}' has no default value, so the draft starts it at {1}. Check it before saving.</value>
   </data>
+  <data name="AiSchemaFailed" xml:space="preserve">
+    <value>The connection's tables could not be read: {0}</value>
+  </data>
+  <data name="AiDefaultConnectionNotAllowed" xml:space="preserve">
+    <value>The default connection is not open to the AI assistant. An administrator can allow it in System Settings.</value>
+  </data>
+  <data name="AiConnectionNotAllowed" xml:space="preserve">
+    <value>The connection '{0}' is not open to the AI assistant. An administrator can switch on "Allow AI" for it under Database connections.</value>
+  </data>
+  <data name="AiUnknownTable" xml:space="preserve">
+    <value>'{0}' is not a table or view this connection can read.</value>
+  </data>
+  <data name="AiDescriptionRequired" xml:space="preserve">
+    <value>Describe what the query should return.</value>
+  </data>
+  <data name="AiDescriptionTooLong" xml:space="preserve">
+    <value>The description can be at most {0} characters.</value>
+  </data>
+  <data name="AiTablesRequired" xml:space="preserve">
+    <value>Pick at least one table.</value>
+  </data>
+  <data name="AiTooManyTables" xml:space="preserve">
+    <value>Pick at most {0} tables.</value>
+  </data>
 </root>

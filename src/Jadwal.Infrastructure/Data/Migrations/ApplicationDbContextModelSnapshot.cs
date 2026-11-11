@@ -336,6 +336,9 @@ namespace Jadwal.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("RAW(16)");
 
+                    b.Property<short>("AllowAi")
+                        .HasColumnType("NUMBER(1)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TIMESTAMP(7)");
 

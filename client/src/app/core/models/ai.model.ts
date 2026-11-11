@@ -52,3 +52,44 @@ export interface AiDashboardDraft {
   /** What was left out and why. */
   notes: string[];
 }
+
+/** A connection the AI may read. The default connection has no id and is named by the page. */
+export interface AiConnection {
+  id: string | null;
+  name: string;
+  isDefault: boolean;
+  serverType: number;
+}
+
+export interface AiSchemaObject {
+  /** How SQL names it, and how it is sent back when picked. */
+  qualifiedName: string;
+  schema: string;
+  name: string;
+  kind: 'table' | 'view';
+}
+
+export interface AiSchema {
+  objects: AiSchemaObject[];
+  /** Example values go to the model with the structure (System Settings). */
+  sampleValues: boolean;
+}
+
+export interface WriteSqlRequest {
+  databaseUserId: string | null;
+  description: string;
+  objects: string[];
+}
+
+export interface AiSuggestedParameter {
+  name: string;
+  displayName: string;
+  parameterType: number;
+}
+
+/** SQL written from a description. Only shown: it is tested and saved like any query. */
+export interface AiWrittenSql {
+  sql: string;
+  explanation: string;
+  parameters: AiSuggestedParameter[];
+}

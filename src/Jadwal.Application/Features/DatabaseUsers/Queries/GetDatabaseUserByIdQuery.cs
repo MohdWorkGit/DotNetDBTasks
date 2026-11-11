@@ -40,6 +40,7 @@ public class GetDatabaseUserByIdQueryHandler
             DatabaseName = du.DatabaseName ?? string.Empty,
             DbUsername = du.DbUsername,
             IsActive = du.IsActive,
+            AllowAi = du.AllowAi,
             CreatedAt = du.CreatedAt,
             AssignedRoles = new List<DatabaseUserRoleAccessDto>()
         };

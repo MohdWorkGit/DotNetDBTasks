@@ -49,6 +49,10 @@ public class DatabaseUserConfiguration : IEntityTypeConfiguration<DatabaseUser>
             .IsRequired()
             .HasMaxLength(1000);
 
+        // NUMBER(1) like QueryParameter.AllowMultiple: a model-level bool default breaks the Oracle
+        // migration with an Int16→Bool cast, so the column's DEFAULT 0 is set in the migration.
+        builder.Property(e => e.AllowAi).HasColumnType("NUMBER(1)");
+
         builder.HasIndex(e => e.Name).IsUnique();
     }
 }

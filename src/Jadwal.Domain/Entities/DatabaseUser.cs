@@ -40,6 +40,13 @@ public class DatabaseUser : BaseEntity
     /// </summary>
     public string EncryptedPassword { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Whether the AI assistant may read this connection's structure — its tables, columns and
+    /// keys — to write SQL. Off by default: switch it on only for an account that can read data
+    /// but not change it (docs/LOCAL-AI-OPTIONS.md §7). Explaining or fixing SQL does not need it.
+    /// </summary>
+    public bool AllowAi { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public ICollection<DatabaseUserRoleAccess> RoleAccess { get; set; } = new List<DatabaseUserRoleAccess>();

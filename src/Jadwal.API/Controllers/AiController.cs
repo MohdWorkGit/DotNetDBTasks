@@ -45,6 +45,29 @@ public class AiController : ControllerBase
         [FromBody] SuggestSqlFixCommand command, CancellationToken cancellationToken) =>
         Ok(await _mediator.Send(command, cancellationToken));
 
+    /// <summary>Connections the AI may read for the caller (Allow AI, plus the default one when allowed).</summary>
+    [HttpGet("connections")]
+    [RequirePermission(Permissions.AiUse)]
+    [RequirePermission(Permissions.QueriesManage)]
+    public async Task<ActionResult<List<AiConnectionDto>>> Connections(CancellationToken cancellationToken) =>
+        Ok(await _mediator.Send(new GetAiConnectionsQuery(), cancellationToken));
+
+    /// <summary>The tables and views a connection can read. No id means the default connection.</summary>
+    [HttpGet("schema")]
+    [RequirePermission(Permissions.AiUse)]
+    [RequirePermission(Permissions.QueriesManage)]
+    public async Task<ActionResult<AiSchemaDto>> Schema(
+        [FromQuery] Guid? databaseUserId, [FromQuery] bool refresh, CancellationToken cancellationToken) =>
+        Ok(await _mediator.Send(new GetAiSchemaQuery { DatabaseUserId = databaseUserId, Refresh = refresh }, cancellationToken));
+
+    /// <summary>Writes a SELECT from a description against the picked tables. Returns SQL; saves nothing.</summary>
+    [HttpPost("write-sql")]
+    [RequirePermission(Permissions.AiUse)]
+    [RequirePermission(Permissions.QueriesManage)]
+    public async Task<ActionResult<AiWrittenSqlDto>> WriteSql(
+        [FromBody] WriteSqlCommand command, CancellationToken cancellationToken) =>
+        Ok(await _mediator.Send(command, cancellationToken));
+
     /// <summary>Proposes dashboard tiles from saved queries. Returns a draft; saves nothing.</summary>
     [HttpPost("draft-dashboard")]
     [RequirePermission(Permissions.AiUse)]

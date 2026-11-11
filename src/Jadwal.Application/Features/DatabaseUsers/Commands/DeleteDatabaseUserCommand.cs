@@ -1,3 +1,4 @@
+using Jadwal.Application.Common.Interfaces;
 using Jadwal.Domain.Entities;
 using Jadwal.Domain.Exceptions;
 using Jadwal.Domain.Interfaces;
@@ -14,10 +15,12 @@ public class DeleteDatabaseUserCommand : IRequest
 public class DeleteDatabaseUserCommandHandler : IRequestHandler<DeleteDatabaseUserCommand>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ISchemaCache _schemaCache;
 
-    public DeleteDatabaseUserCommandHandler(IUnitOfWork unitOfWork)
+    public DeleteDatabaseUserCommandHandler(IUnitOfWork unitOfWork, ISchemaCache schemaCache)
     {
         _unitOfWork = unitOfWork;
+        _schemaCache = schemaCache;
     }
 
     public async Task Handle(DeleteDatabaseUserCommand request, CancellationToken cancellationToken)
@@ -28,5 +31,6 @@ public class DeleteDatabaseUserCommandHandler : IRequestHandler<DeleteDatabaseUs
 
         _unitOfWork.DatabaseUsers.Delete(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _schemaCache.Invalidate(entity.Id);
     }
 }

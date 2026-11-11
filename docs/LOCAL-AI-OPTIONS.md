@@ -265,6 +265,23 @@ this part is new work.
 - **Sample rows:** a few real values per column also improve the SQL (for example, showing that
   status is `'A'`/`'C'`, not `'Active'`). This is **off by default** and becomes a system setting if
   the user wants it.
+- **As built (2026-11-11, Phase 1):**
+  - **Reading the catalog:** each provider's own catalog is read through the connection's own
+    account. On Oracle that means `ALL_OBJECTS`, `ALL_TAB_COLUMNS` and `ALL_CONSTRAINTS`, covering
+    every schema the account can read (Oracle's own schemas excluded), so a read-only report account
+    that owns nothing still sees its tables. SQL Server, PostgreSQL and MySQL use `INFORMATION_SCHEMA`.
+  - **The table list** is cached per connection for 30 minutes. "Read the tables again" refreshes
+    it, and so does editing or deleting the connection.
+  - **What the model gets:** for the tables the admin picks (at most 10), their columns, types,
+    primary key and foreign keys. With **"Show the AI a few example values"** on (System Settings,
+    off by default), it also gets up to five values from each text column, taken from a five-row
+    read.
+  - **The default connection** is Jadwal's own database. It is offered only when **"Allow AI on the
+    default connection"** is on, and Jadwal's own tables are never listed.
+  - **Measured on the development PC with qwen3:4b:** writing took 60–115 s. With example values,
+    the model used the real `'Active'` instead of guessing `'ACTIVE'`. It still sometimes forgets a
+    `GROUP BY` or cuts a name short. The admin's test run catches that, and "Suggest a fix" repairs
+    it.
 
 ---
 
@@ -292,6 +309,15 @@ and the model being used by people who shouldn't use it.
    ([TestDynamicQueryCommand.cs:104](../src/Jadwal.Application/Features/DynamicQueries/Commands/TestDynamicQueryCommand.cs#L104)).
    Models write CTEs often, so this needs fixing first. It is a small fix that also helps hand-written
    queries.
+
+   **Done (Phase 1).**
+   - **How a query is now classified:** the classifier skips string literals and comments, steps
+     over the `WITH` list, and classifies by the main statement. `WITH … SELECT` is a read and can be
+     tested.
+   - **Writes behind a WITH:** `WITH … DELETE/UPDATE/INSERT` (legal on SQL Server, PostgreSQL and
+     MySQL) is now that write, so it goes through preview and confirm. Before, it ran without asking.
+     The executor uses the same classification.
+   - **Saved queries:** they were reclassified once at startup.
 3. **Read-only database accounts.** The strongest safety net does not depend on Jadwal at all. Advise
    that connections used with AI log in with accounts that can only `SELECT`.
 4. **Permission.** Add a new `ai.use` permission, on top of the existing
@@ -315,7 +341,9 @@ and the model being used by people who shouldn't use it.
    accounts (decision 5, §11). So each connection gets a switch, off by default. Features that read
    a connection's structure or sample rows only offer that connection when the switch is on. An
    admin turns it on only for connections whose account is read-only. Phase 0 doesn't need it: it
-   only uses the connection's database type, never its tables or data.
+   only uses the connection's database type, never its tables or data. **Built (Phase 1):** the
+   switch is on the connection form under Database connections, and every existing connection
+   starts with it off.
 
 ---
 
@@ -371,7 +399,7 @@ and the model being used by people who shouldn't use it.
 | Phase | What | Why this order |
 |---|---|---|
 | **0** | Ollama install + `Ai` config + health check + **Explain / fix SQL**. **Built 2026-11-10**, except the AI bundle script, which waits for the GPU details. | Proves the runtime, the bundle and the speed on the real server, without schema or data access |
-| **1** | Schema reader + table picker + **Write SQL from a description** + SELECT-only check + CTE fix | The most useful feature; needs the safety work |
+| **1** | Schema reader + table picker + **Write SQL from a description** + SELECT-only check + CTE fix. **Built 2026-11-11**, with the "Allow AI" switch per connection and the two System Settings switches. | The most useful feature; needs the safety work |
 | **2** | **Draft a dashboard**. **Built 2026-11-11**, ahead of Phase 1, which it does not need. | Reuses `probe-columns`; writes no SQL |
 | **3** | **Draft a report** | The most complex form; builds on 1 and 2 |
 | later | Business descriptions for tables and columns; keyword or embedding ranking | Only if quality or speed asks for it |

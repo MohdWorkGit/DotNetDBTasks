@@ -62,7 +62,8 @@ public class ExplainSqlCommandHandler : IRequestHandler<ExplainSqlCommand, AiSql
                 AiPrompts.System(serverType, AiPrompts.ExplainTask),
                 AiPrompts.ExplainUser(request.SqlQuery),
                 "sql_explanation",
-                AiPrompts.ExplainSchema),
+                AiPrompts.ExplainSchema,
+                MaxTokens: 800),
             cancellationToken);
 
         // Held to a schema, but a small model can still return blanks inside it.

@@ -1,6 +1,52 @@
 using Jadwal.Application.Features.Dashboards.Dtos;
+using Jadwal.Domain.Enums;
 
 namespace Jadwal.Application.Features.Ai;
+
+/// <summary>A connection the AI may read. The default connection has no id; the page names it.</summary>
+public class AiConnectionDto
+{
+    public Guid? Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsDefault { get; set; }
+    public DatabaseServerType ServerType { get; set; }
+}
+
+public class AiSchemaDto
+{
+    public List<AiSchemaObjectDto> Objects { get; set; } = new();
+
+    /// <summary>Whether example values go to the model with the structure (System Settings).</summary>
+    public bool SampleValues { get; set; }
+}
+
+public class AiSchemaObjectDto
+{
+    /// <summary>How SQL names it, and how the client sends it back to pick it.</summary>
+    public string QualifiedName { get; set; } = string.Empty;
+    public string Schema { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary><c>table</c> or <c>view</c>.</summary>
+    public string Kind { get; set; } = string.Empty;
+}
+
+/// <summary>SQL the AI wrote from a description. Only shown: the admin tests and saves it.</summary>
+public class AiWrittenSqlDto
+{
+    public string Sql { get; set; } = string.Empty;
+    public string Explanation { get; set; } = string.Empty;
+
+    /// <summary>The @parameters the SQL uses, to add to the query's parameter list.</summary>
+    public List<AiSuggestedParameterDto> Parameters { get; set; } = new();
+}
+
+public class AiSuggestedParameterDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public ParameterType ParameterType { get; set; }
+}
 
 /// <summary>
 /// A dashboard the AI proposed, ready for the builder: the same shape a save takes, so it loads

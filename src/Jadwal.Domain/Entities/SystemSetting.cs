@@ -122,6 +122,30 @@ public static class SystemSettingKeys
     public const bool AiEnabledDefault = true;
 
     /// <summary>
+    /// Whether the AI assistant may read the default connection's tables to write SQL.
+    ///
+    /// <para>Off by default. The default connection is Jadwal's own database: its own tables are
+    /// always hidden from the AI, but anything else in that schema would be shown. A named
+    /// connection has its own switch (<c>DatabaseUser.AllowAi</c>); this is that switch for the
+    /// connection that has no row.</para>
+    /// </summary>
+    public const string AiDefaultConnection = "ai.defaultConnection";
+
+    public const bool AiDefaultConnectionDefault = false;
+
+    /// <summary>
+    /// Whether the AI assistant is shown a few example values from each text column of the
+    /// tables it writes SQL for — it then knows a status is <c>'A'</c>, not <c>'Active'</c>.
+    ///
+    /// <para>Off by default (docs/LOCAL-AI-OPTIONS.md §11, decision 3): without it the model sees
+    /// table and column names, types and keys, never the data. The model runs on this server
+    /// either way.</para>
+    /// </summary>
+    public const string AiSampleValues = "ai.sampleValues";
+
+    public const bool AiSampleValuesDefault = false;
+
+    /// <summary>
     /// How many days of query execution logs to keep. Older entries are deleted by the rotation
     /// sweep, which runs every few hours and on demand from System Settings.
     ///

@@ -88,7 +88,8 @@ public class SuggestSqlFixCommandHandler : IRequestHandler<SuggestSqlFixCommand,
                 AiPrompts.System(serverType, AiPrompts.FixTask),
                 AiPrompts.FixUser(request.SqlQuery, error, kind),
                 "sql_fix",
-                AiPrompts.FixSchema),
+                AiPrompts.FixSchema,
+                MaxTokens: 1800),
             cancellationToken);
 
         // Told not to, a model still likes to end a statement with a semicolon; Jadwal refuses

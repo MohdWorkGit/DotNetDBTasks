@@ -36,7 +36,12 @@ public interface IAiChatClient
 /// <param name="UserPrompt">The task itself.</param>
 /// <param name="SchemaName">A short name for the answer's shape (letters, digits, underscores).</param>
 /// <param name="JsonSchema">The JSON Schema the answer must match, as JSON text.</param>
-public sealed record AiChatRequest(string SystemPrompt, string UserPrompt, string SchemaName, string JsonSchema);
+/// <param name="MaxTokens">
+/// The longest answer allowed. A small model can loop — asked to fix a vague error, qwen3:4b ran
+/// until the six-minute timeout — and a cut-off answer fails fast as unreadable instead.
+/// </param>
+public sealed record AiChatRequest(
+    string SystemPrompt, string UserPrompt, string SchemaName, string JsonSchema, int MaxTokens = 2000);
 
 public enum AiServerState
 {

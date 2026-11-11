@@ -67,6 +67,14 @@ public class SystemSettingsController : ControllerBase
                 SystemSettingKeys.AiEnabled,
                 SystemSettingKeys.AiEnabledDefault,
                 cancellationToken),
+            AiDefaultConnection = await _settings.GetBoolAsync(
+                SystemSettingKeys.AiDefaultConnection,
+                SystemSettingKeys.AiDefaultConnectionDefault,
+                cancellationToken),
+            AiSampleValues = await _settings.GetBoolAsync(
+                SystemSettingKeys.AiSampleValues,
+                SystemSettingKeys.AiSampleValuesDefault,
+                cancellationToken),
             ExecutionLogRetentionDays = await _settings.GetIntAsync(
                 SystemSettingKeys.AuditExecutionLogRetentionDays,
                 SystemSettingKeys.LogRetentionDaysDefault,
@@ -119,6 +127,16 @@ public class SystemSettingsController : ControllerBase
                 SystemSettingKeys.AiEnabled,
                 request.AiEnabled.Value,
                 cancellationToken);
+        if (request.AiDefaultConnection.HasValue)
+            await _settings.SetBoolAsync(
+                SystemSettingKeys.AiDefaultConnection,
+                request.AiDefaultConnection.Value,
+                cancellationToken);
+        if (request.AiSampleValues.HasValue)
+            await _settings.SetBoolAsync(
+                SystemSettingKeys.AiSampleValues,
+                request.AiSampleValues.Value,
+                cancellationToken);
         await _settings.SetIntAsync(
             SystemSettingKeys.AuditExecutionLogRetentionDays,
             request.ExecutionLogRetentionDays,
@@ -144,6 +162,8 @@ public class SystemSettingsController : ControllerBase
                 querySqlMaxLength = request.QuerySqlMaxLength,
                 directoryEnabled = request.DirectoryEnabled,
                 aiEnabled = request.AiEnabled,
+                aiDefaultConnection = request.AiDefaultConnection,
+                aiSampleValues = request.AiSampleValues,
                 executionLogRetentionDays = request.ExecutionLogRetentionDays,
                 systemLogRetentionDays = request.SystemLogRetentionDays
             })
@@ -244,6 +264,12 @@ public class SystemSettingsDto
     /// on a save leaves it as it is — a page loaded before this setting existed does not send it.
     /// </summary>
     public bool? AiEnabled { get; set; }
+
+    /// <summary>When true, the AI may read the default connection's tables (Jadwal's own stay hidden).</summary>
+    public bool? AiDefaultConnection { get; set; }
+
+    /// <summary>When true, the AI is shown a few example values per text column, not only names.</summary>
+    public bool? AiSampleValues { get; set; }
 
     /// <summary>Days of query execution logs to keep; 0 keeps them forever.</summary>
     public int ExecutionLogRetentionDays { get; set; }

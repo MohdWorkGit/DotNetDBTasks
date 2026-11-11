@@ -82,6 +82,11 @@ import { TranslocoService } from '@jsverse/transloco';
               </mat-form-field>
 
               <mat-slide-toggle *ngIf="editingId" formControlName="isActive">{{ 'common.active' | transloco }}</mat-slide-toggle>
+
+              <div class="allow-ai">
+                <mat-slide-toggle formControlName="allowAi">{{ 'admin.dbUsers.allowAi' | transloco }}</mat-slide-toggle>
+                <p class="allow-ai-hint">{{ 'admin.dbUsers.allowAiHint' | transloco }}</p>
+              </div>
             </div>
 
             <div class="actions">
@@ -107,6 +112,9 @@ import { TranslocoService } from '@jsverse/transloco';
                       role="img">
               {{ du.isActive ? 'check_circle' : 'cancel' }}
             </mat-icon>
+            <mat-icon *ngIf="du.allowAi" class="ai-on" role="img"
+                      [matTooltip]="'admin.dbUsers.allowAiOn' | transloco"
+                      [attr.aria-label]="'admin.dbUsers.allowAiOn' | transloco">auto_awesome</mat-icon>
           </mat-card-title>
           <mat-card-subtitle>
             <span class="db-type-badge">{{ getServerTypeLabel(du.serverType) }}</span>
@@ -184,6 +192,11 @@ import { TranslocoService } from '@jsverse/transloco';
     .access-section { margin-top: 8px; }
     .active { color: var(--status-success); }
     .inactive { color: var(--status-error); }
+    .ai-on { color: var(--accent-primary); }
+    /* Its own full row: in a grid cell the hint is squeezed into a narrow column. */
+    .allow-ai { margin-top: 8px; grid-column: 1 / -1; }
+    /* Under the toggle's label, not its track, as on the System Settings page. */
+    .allow-ai-hint { color: var(--text-secondary); font-size: 13px; margin: 6px 0 0; padding-inline-start: 52px; max-width: 70ch; }
     .none-chip { opacity: 0.5; }
     .empty { text-align: center; color: var(--text-secondary); padding: 40px 0; }
     .hint { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
@@ -262,7 +275,8 @@ export class DatabaseUsersComponent implements OnInit {
       databaseName: [''],
       dbUsername: ['', Validators.required],
       password: ['', Validators.required],
-      isActive: [true]
+      isActive: [true],
+      allowAi: [false]
     });
   }
 
@@ -305,6 +319,7 @@ export class DatabaseUsersComponent implements OnInit {
       databaseName: du.databaseName,
       dbUsername: du.dbUsername,
       isActive: du.isActive,
+      allowAi: du.allowAi,
       password: ''
     });
     // Password not required when editing
@@ -326,7 +341,9 @@ export class DatabaseUsersComponent implements OnInit {
       databaseName: du.databaseName,
       dbUsername: du.dbUsername,
       password: '',
-      isActive: true
+      isActive: true,
+      // A copy usually points at another account; whether that one is read-only is decided anew.
+      allowAi: false
     });
   }
 

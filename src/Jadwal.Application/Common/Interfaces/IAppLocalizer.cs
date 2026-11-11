@@ -144,4 +144,12 @@ public static class MessageKeys
     public const string AiDraftDuplicate = nameof(AiDraftDuplicate);
     public const string AiDraftTooManyTiles = nameof(AiDraftTooManyTiles);
     public const string AiDraftAssumedDefault = nameof(AiDraftAssumedDefault);
+    public const string AiSchemaFailed = nameof(AiSchemaFailed);
+    public const string AiDefaultConnectionNotAllowed = nameof(AiDefaultConnectionNotAllowed);
+    public const string AiConnectionNotAllowed = nameof(AiConnectionNotAllowed);
+    public const string AiUnknownTable = nameof(AiUnknownTable);
+    public const string AiDescriptionRequired = nameof(AiDescriptionRequired);
+    public const string AiDescriptionTooLong = nameof(AiDescriptionTooLong);
+    public const string AiTablesRequired = nameof(AiTablesRequired);
+    public const string AiTooManyTables = nameof(AiTooManyTables);
 }

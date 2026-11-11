@@ -53,6 +53,10 @@ public static class DependencyInjection
         // false, so the status endpoint can say "not set up" rather than fail to resolve.
         services.AddSingleton(AiOptions.FromConfiguration(configuration));
         services.AddHttpClient<IAiChatClient, OpenAiCompatibleChatClient>();
+        // What a connection's account can see, read from its catalog for the AI to write SQL against;
+        // the object list is kept per connection for half an hour.
+        services.AddScoped<ISchemaReader, SchemaReader>();
+        services.AddSingleton<ISchemaCache, InMemorySchemaCache>();
 
         // Scheduled export tasks: manual/scheduled runs flow through a shared queue
         // drained by the ScheduledTaskWorker; each run executes on a scoped runner. The run

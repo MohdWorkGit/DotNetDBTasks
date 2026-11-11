@@ -18,6 +18,7 @@ public class CreateDatabaseUserCommand : IRequest<DatabaseUserDto>
     public string DatabaseName { get; set; } = string.Empty;
     public string DbUsername { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    public bool AllowAi { get; set; }
 }
 
 public class CreateDatabaseUserCommandHandler
@@ -53,6 +54,7 @@ public class CreateDatabaseUserCommandHandler
             DbUsername = request.DbUsername,
             EncryptedPassword = _encryption.Encrypt(request.Password),
             IsActive = true,
+            AllowAi = request.AllowAi,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -71,6 +73,7 @@ public class CreateDatabaseUserCommandHandler
             DatabaseName = entity.DatabaseName ?? string.Empty,
             DbUsername = entity.DbUsername,
             IsActive = entity.IsActive,
+            AllowAi = entity.AllowAi,
             CreatedAt = entity.CreatedAt
         };
     }

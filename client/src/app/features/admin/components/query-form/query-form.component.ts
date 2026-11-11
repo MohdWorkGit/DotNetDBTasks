@@ -6,6 +6,7 @@ import { SqlEditorComponent } from '@shared/components/sql-editor.component';
 import { MatDialog } from '@angular/material/dialog';
 import { QueryTestDialogComponent, QueryTestDialogData, QueryTestDialogResult } from './query-test-dialog.component';
 import { AiExplainDialogComponent } from './ai-explain-dialog.component';
+import { AiWriteSqlDialogComponent, AiWriteSqlDialogData, AiWriteSqlDialogResult } from './ai-write-sql-dialog.component';
 import { AiService } from '@core/services/ai.service';
 import { AuthService } from '@core/services/auth.service';
 import { ExplainSqlRequest } from '@core/models/ai.model';
@@ -77,6 +78,11 @@ interface SaveProblem { text: string; sqlIndex?: number; }
                   {{ 'admin.queryForm.sqlParameterized' | transloco }} *
                 </label>
                 <span class="sql-label-spacer"></span>
+                <button *ngIf="aiEnabled" mat-icon-button type="button" class="expand-sql" (click)="writeSqlWithAi()"
+                        [attr.aria-label]="'admin.ai.write' | transloco"
+                        [matTooltip]="'admin.ai.write' | transloco">
+                  <mat-icon>edit_note</mat-icon>
+                </button>
                 <button *ngIf="aiEnabled" mat-icon-button type="button" class="expand-sql" (click)="explainSql()"
                         [disabled]="!form.get('sqlQuery')?.value?.trim()"
                         [attr.aria-label]="'admin.ai.explain' | transloco"
@@ -613,6 +619,47 @@ export class QueryFormComponent implements OnInit {
     });
   }
 
+  /**
+   * Asks the AI model to write the SQL from a description. The result replaces the editor's SQL
+   * (after asking, when there is some), switches the form to the connection it was written for,
+   * and adds the parameters it uses that the form does not have yet. Nothing is saved: the toast
+   * says to test it first.
+   */
+  writeSqlWithAi(): void {
+    const data: AiWriteSqlDialogData = { databaseUserId: this.form.value.databaseUserId || null };
+    this.dialog.open(AiWriteSqlDialogComponent, {
+      data, width: '760px', maxWidth: '95vw', ariaModal: true, autoFocus: 'dialog'
+    }).afterClosed().subscribe((result?: AiWriteSqlDialogResult) => {
+      if (!result) return;
+      if (String(this.form.get('sqlQuery')?.value ?? '').trim()) {
+        this.confirmService.askThen({
+          titleKey: 'admin.ai.replaceSqlTitle',
+          messageKey: 'admin.ai.replaceSqlMessage',
+          confirmText: this.transloco.translate('admin.ai.replaceSqlConfirm')
+        }, () => this.applyWrittenSql(result));
+      } else {
+        this.applyWrittenSql(result);
+      }
+    });
+  }
+
+  private applyWrittenSql({ written, databaseUserId }: AiWriteSqlDialogResult): void {
+    const sql = this.form.get('sqlQuery')!;
+    sql.setValue(written.sql);
+    sql.markAsDirty();
+    sql.markAsTouched();
+    this.form.patchValue({ databaseUserId });
+
+    const existing = new Set(this.parameters.controls.map(c => String(c.get('name')?.value ?? '').toLowerCase()));
+    for (const p of written.parameters) {
+      if (!existing.has(p.name.toLowerCase())) {
+        this.addParameter({ name: p.name, displayName: p.displayName, parameterType: p.parameterType as ParameterType });
+      }
+    }
+    this.toast.info('admin.ai.sqlWritten');
+    this.cdr.detectChanges();
+  }
+
   /** Scrolls the editor to that highlight and selects it. */
   revealSqlProblem(index = 0): void {
     this.sqlEditor?.revealProblem(index);
@@ -763,11 +810,11 @@ export class QueryFormComponent implements OnInit {
 
   // ---- Parameter management ----
 
-  addParameter(): void {
+  addParameter(start?: { name: string; displayName: string; parameterType: ParameterType }): void {
     this.parameters.push(this.fb.group({
-      name: ['', PARAM_NAME_VALIDATORS],
-      displayName: ['', PARAM_DISPLAY_NAME_VALIDATORS],
-      parameterType: [ParameterType.String],
+      name: [start?.name ?? '', PARAM_NAME_VALIDATORS],
+      displayName: [start?.displayName ?? '', PARAM_DISPLAY_NAME_VALIDATORS],
+      parameterType: [start?.parameterType ?? ParameterType.String],
       isRequired: [true],
       defaultValue: [''],
       sortOrder: [this.parameters.length],

@@ -56,6 +56,7 @@ public sealed class OpenAiCompatibleChatClient : IAiChatClient
         {
             ["model"] = _options.Model,
             ["stream"] = false,
+            ["max_tokens"] = request.MaxTokens,
             // Low, not zero: explanations read better with a little variety, and SQL stays put.
             ["temperature"] = 0.1,
             ["messages"] = new JsonArray

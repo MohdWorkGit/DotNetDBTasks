@@ -118,6 +118,9 @@ public static class AuditActions
         // Records the picked query ids and the goal; the model is sent each query's result
         // shape (column names, kinds, counts), never its values.
         ["DraftDashboardCommand"] = ("ai.draftDashboard", CategoryAi),
+        // Records the connection, the description and the picked tables. The model is sent their
+        // structure, and example values only when System Settings allows it.
+        ["WriteSqlCommand"] = ("ai.writeSql", CategoryAi),
 
         ["CreateUserGroupCommand"] = ("userGroups.create", CategoryUserGroups),
         ["UpdateUserGroupCommand"] = ("userGroups.update", CategoryUserGroups),

@@ -57,6 +57,7 @@ public static class DatabaseSeeder
             // without columns that EF Core expects (migration recorded as applied but
             // ALTER TABLE failed mid-way). See DATABASE_MIGRATION_NOTES.txt for details.
             await RepairDatabaseUsersSchemaAsync(context, logger);
+            await ReclassifyQueryTypesAsync(context, logger);
 
             if (await context.Roles.CountAsync() > 0)
             {
@@ -404,6 +405,7 @@ public static class DatabaseSeeder
             ("ServerType",   @"ALTER TABLE ""DatabaseUsers"" ADD ""ServerType"" NUMBER(10) DEFAULT 0 NOT NULL"),
             ("DatabaseName", @"ALTER TABLE ""DatabaseUsers"" ADD ""DatabaseName"" NVARCHAR2(200) NULL"),
             ("ServiceName nullable", @"ALTER TABLE ""DatabaseUsers"" MODIFY ""ServiceName"" NULL"),
+            ("AllowAi",      @"ALTER TABLE ""DatabaseUsers"" ADD ""AllowAi"" NUMBER(1) DEFAULT 0 NOT NULL"),
         };
 
         foreach (var (column, ddl) in repairs)
@@ -420,6 +422,44 @@ public static class DatabaseSeeder
                 // Any other error is unexpected but non-fatal for startup.
                 logger.LogWarning(ex, "Schema repair: could not apply '{Column}' — may already be correct.", column);
             }
+        }
+    }
+
+    /// <summary>
+    /// Brings stored query types up to date with <see cref="QueryTypeClassifier"/>. A query's type
+    /// is computed when it is saved, so ones saved before the classifier learned to read past a
+    /// WITH list or a leading comment still say Other: a <c>WITH … SELECT</c> could not be tested,
+    /// and a <c>WITH … DELETE</c> skipped the preview/confirm step. Only Other rows can change,
+    /// and once corrected they are not Other any more, so after the first run this reads nothing.
+    /// </summary>
+    private static async Task ReclassifyQueryTypesAsync(ApplicationDbContext context, ILogger logger)
+    {
+        try
+        {
+            var others = await context.DynamicQueries
+                .Where(q => q.QueryType == QueryType.Other)
+                .ToListAsync();
+
+            var changed = 0;
+            foreach (var query in others)
+            {
+                var kind = QueryTypeClassifier.FromSql(query.SqlQuery);
+                if (kind == QueryType.Other)
+                    continue;
+                query.QueryType = kind;
+                changed++;
+            }
+
+            if (changed > 0)
+            {
+                await context.SaveChangesAsync();
+                logger.LogInformation("Reclassified {Count} saved queries (WITH or a leading comment).", changed);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Never worth failing startup over: the type is recomputed on the next save anyway.
+            logger.LogWarning(ex, "Could not reclassify saved query types.");
         }
     }
 

@@ -116,6 +116,8 @@ export interface DatabaseUser {
   databaseName: string;
   dbUsername: string;
   isActive: boolean;
+  /** The AI assistant may read this connection's tables to write SQL. */
+  allowAi: boolean;
   createdAt: string;
   assignedRoles: DatabaseUserRoleAccess[];
 }
@@ -140,6 +142,7 @@ export interface CreateDatabaseUserRequest {
   databaseName: string;
   dbUsername: string;
   password: string;
+  allowAi: boolean;
 }
 
 export interface UpdateDatabaseUserRequest {
@@ -153,6 +156,7 @@ export interface UpdateDatabaseUserRequest {
   databaseName: string;
   dbUsername: string;
   isActive: boolean;
+  allowAi: boolean;
   password?: string;
 }
 
@@ -595,6 +599,10 @@ export interface SystemSettings {
   directoryEnabled: boolean;
   /** When false, the AI assistant is off even if the server is set up for it. Absent from an older API. */
   aiEnabled?: boolean;
+  /** The AI may read the default connection's tables (Jadwal's own stay hidden). Off by default. */
+  aiDefaultConnection?: boolean;
+  /** The AI is shown a few example values per text column. Off by default. */
+  aiSampleValues?: boolean;
   /** Days of query execution logs to keep; 0 keeps them forever. */
   executionLogRetentionDays: number;
   /** Days of the system audit trail to keep; 0 keeps it forever. */

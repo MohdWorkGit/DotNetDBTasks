@@ -211,7 +211,10 @@
       "hostRequired": "Host is required",
       "portRequired": "Port is required",
       "usernameRequired": "DB username is required",
-      "saveAccess": "Save Access"
+      "saveAccess": "Save Access",
+      "allowAi": "Allow AI",
+      "allowAiHint": "Lets the AI assistant read this connection's tables and columns to write SQL. Switch it on only for an account that can read data but not change it.",
+      "allowAiOn": "AI can read this connection"
     },
     "queryTest": {
       "title": "Test run",
@@ -266,7 +269,29 @@
       "draftNotes": "Worth checking",
       "draftBack": "Change the choice",
       "draftUse": "Use this draft",
-      "draftLoaded": "Draft loaded. Review the tiles, then save."
+      "draftLoaded": "Draft loaded. Review the tiles, then save.",
+      "write": "Write with AI",
+      "writeTitle": "Write the SQL with AI",
+      "writeNoConnections": "No connection is open to the AI assistant yet. An administrator can switch on \"Allow AI\" for a read-only connection under Database connections, or allow the default connection in System Settings.",
+      "writeConnection": "Connection",
+      "writeSearch": "Search tables",
+      "writeRefresh": "Read the tables again",
+      "writePicked": "{{count}} of at most {{max}} tables picked",
+      "writeTables": "Tables and views",
+      "writeView": "View",
+      "writeNoTables": "No tables match.",
+      "writeDescription": "What should the query return?",
+      "writeDescriptionHint": "For example: orders per customer last month, biggest first.",
+      "writeSentStructure": "Only table and column names, types and keys are sent to the AI model, never the data.",
+      "writeSentSamples": "Table and column names, types and keys are sent to the AI model, with a few example values from each text column.",
+      "writeWorking": "The AI model is writing the query. This can take a minute or two.",
+      "writeParameters": "Search criteria it uses",
+      "writeTestFirst": "Written by an AI model running on this server. Test it before saving.",
+      "writeRun": "Write",
+      "sqlWritten": "The SQL was written into the editor. Test it before saving.",
+      "replaceSqlTitle": "Replace the SQL?",
+      "replaceSqlMessage": "The SQL in the editor will be replaced by the one the AI wrote. Nothing is saved until you press Save.",
+      "replaceSqlConfirm": "Replace"
     },
     "queryForm": {
       "removeTemplateTitle": "Remove Word template?",
@@ -777,7 +802,8 @@
         "settings.logsRotated": "Rotated the logs (deleted old entries)",
         "ai.explainSql": "Asked the AI to explain SQL",
         "ai.suggestFix": "Asked the AI to fix SQL",
-        "ai.draftDashboard": "Asked the AI to draft a dashboard"
+        "ai.draftDashboard": "Asked the AI to draft a dashboard",
+        "ai.writeSql": "Asked the AI to write SQL"
       },
       "categories": {
         "users": "Users",
@@ -803,7 +829,7 @@
       "directoryEnabledHint": "Turn this off on an installation with no directory: it hides the AD Users page, which could otherwise only ever report a connection failure. Signing in is not affected — accounts already imported keep authenticating against the directory.",
       "aiTitle": "AI assistant",
       "aiEnabled": "Offer the AI assistant",
-      "aiEnabledHint": "Shows the “Explain with AI” and “Suggest a fix” buttons in the query editor to people with the “Use the AI assistant” permission. The AI model runs on this server; queries are not sent anywhere else.",
+      "aiEnabledHint": "Offers the AI assistant (explaining, fixing and writing SQL, and drafting dashboards) to people with the “Use the AI assistant” permission. The AI model runs on this server; nothing is sent anywhere else.",
       "aiStatusChecking": "Checking the AI service…",
       "aiStatusFailed": "Could not check the AI service.",
       "aiStatusNotConfigured": "Not set up on this server. To use it, install the AI service and set Ai:Enabled to true in the API’s appsettings.json.",
@@ -844,7 +870,11 @@
       "retentionOlderThan": "entries older than {{days}} days will be deleted",
       "retentionKeptForever": "kept forever",
       "rotated": "Deleted {{execution}} execution log entries and {{system}} system audit entries.",
-      "rotateFailed": "Failed to rotate the logs"
+      "rotateFailed": "Failed to rotate the logs",
+      "aiDefaultConnection": "Allow AI on the default connection",
+      "aiDefaultConnectionHint": "Lets the AI assistant read the default connection's tables to write SQL. This is Jadwal's own database: its own tables are always hidden, but any other tables in it are shown.",
+      "aiSampleValues": "Show the AI a few example values",
+      "aiSampleValuesHint": "When writing SQL, the AI also sees up to five example values from each text column of the tables picked, so it knows a status is written \"A\", not \"Active\". Off: only names, types and keys."
     },
     "permissions": {
       "intro": "Every capability the system offers, and which roles hold it. Admin always holds everything and cannot be edited — that is what keeps this page reachable. Changes take effect on the next request; nobody has to sign in again.",
@@ -969,7 +999,7 @@
         "access.manageDashboard": "Decide who may open a dashboard.",
         "reports.transfer": "Export reports to JSON and import them back. Including their queries also needs the query export permission.",
         "dashboards.transfer": "Export dashboards to JSON and import them back. Including their queries and reports also needs those export permissions.",
-        "ai.use": "Explain a query’s SQL, and get a suggested fix when a test fails, from the AI model running on this server. Also needs “Create and edit queries”."
+        "ai.use": "Use the AI model running on this server: explain a query, suggest a fix when a test fails, write SQL from a description, and draft dashboards. Also needs the permission for the page it is used on."
       },
       "title": "Roles & Permissions"
     },

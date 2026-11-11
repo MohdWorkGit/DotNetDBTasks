@@ -14,6 +14,9 @@ public class DatabaseUserDto
     public string DatabaseName { get; set; } = string.Empty;
     public string DbUsername { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+
+    /// <summary>Whether the AI assistant may read this connection's structure (tables and columns).</summary>
+    public bool AllowAi { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<DatabaseUserRoleAccessDto> AssignedRoles { get; set; } = new();
 }

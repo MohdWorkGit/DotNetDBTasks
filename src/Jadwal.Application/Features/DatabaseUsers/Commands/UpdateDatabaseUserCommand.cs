@@ -20,6 +20,7 @@ public class UpdateDatabaseUserCommand : IRequest<DatabaseUserDto>
     public string DatabaseName { get; set; } = string.Empty;
     public string DbUsername { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public bool AllowAi { get; set; }
 
     /// <summary>
     /// If provided, the password is re-encrypted and updated. If null/empty, the existing password is preserved.
@@ -32,13 +33,16 @@ public class UpdateDatabaseUserCommandHandler
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEncryptionService _encryption;
+    private readonly ISchemaCache _schemaCache;
 
     public UpdateDatabaseUserCommandHandler(
         IUnitOfWork unitOfWork,
-        IEncryptionService encryption)
+        IEncryptionService encryption,
+        ISchemaCache schemaCache)
     {
         _unitOfWork = unitOfWork;
         _encryption = encryption;
+        _schemaCache = schemaCache;
     }
 
     public async Task<DatabaseUserDto> Handle(
@@ -59,6 +63,7 @@ public class UpdateDatabaseUserCommandHandler
         entity.DatabaseName = string.IsNullOrEmpty(request.DatabaseName) ? null : request.DatabaseName;
         entity.DbUsername = request.DbUsername;
         entity.IsActive = request.IsActive;
+        entity.AllowAi = request.AllowAi;
         entity.UpdatedAt = DateTime.UtcNow;
 
         if (!string.IsNullOrWhiteSpace(request.Password))
@@ -68,6 +73,8 @@ public class UpdateDatabaseUserCommandHandler
 
         _unitOfWork.DatabaseUsers.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // A new account or server can see different tables; the AI must not use the old list.
+        _schemaCache.Invalidate(entity.Id);
 
         return new DatabaseUserDto
         {
@@ -81,6 +88,7 @@ public class UpdateDatabaseUserCommandHandler
             DatabaseName = entity.DatabaseName ?? string.Empty,
             DbUsername = entity.DbUsername,
             IsActive = entity.IsActive,
+            AllowAi = entity.AllowAi,
             CreatedAt = entity.CreatedAt
         };
     }

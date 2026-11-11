@@ -1,7 +1,9 @@
+using System.Text.RegularExpressions;
+
 namespace Jadwal.Domain.Enums;
 
 /// <summary>
-/// The kind of statement a dynamic query runs, derived from its leading SQL keyword.
+/// The kind of statement a dynamic query runs, derived from its main SQL keyword.
 /// Stored on the query so it can be filtered in the database rather than re-parsed per use.
 /// </summary>
 public enum QueryType
@@ -25,20 +27,41 @@ public enum QueryType
 /// </summary>
 public static class QueryTypeClassifier
 {
+    /// <summary>String literals, quoted names, bracket and backtick names, and comments.</summary>
+    private static readonly Regex LiteralsAndComments = new(
+        @"'(?:[^']|'')*'|""(?:[^""]|"""")*""|\[[^\]]*\]|`[^`]*`|/\*.*?\*/|--[^\r\n]*",
+        RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex DataChangingWord = new(
+        @"\b(INSERT|UPDATE|DELETE|MERGE)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     /// <summary>
-    /// Classifies a statement by its leading keyword. Matches the historic behaviour exactly:
-    /// leading whitespace is ignored and the comparison is case-insensitive.
+    /// The SQL with literals, quoted names and comments blanked out, so keywords can be looked
+    /// for without a filter on <c>'DELETED'</c> or a column called <c>[Update Date]</c> counting.
+    /// </summary>
+    public static string StripLiteralsAndComments(string sql) => LiteralsAndComments.Replace(sql, " ");
+
+    /// <summary>
+    /// Classifies a statement by its main keyword, case-insensitively. Literals and comments are
+    /// ignored, so a leading comment no longer hides a SELECT.
+    ///
+    /// <para>A <c>WITH</c> query is classified by the statement after its common table
+    /// expressions: <c>WITH … SELECT</c> is a Select and can be tested, while
+    /// <c>WITH … DELETE</c> — legal on SQL Server, PostgreSQL and MySQL — is a Delete and goes
+    /// through the preview/confirm handshake like any other write. A SELECT whose CTEs change
+    /// data (PostgreSQL's <c>WITH d AS (DELETE … RETURNING *) SELECT …</c>) stays Other: it is
+    /// neither a plain read nor a write the preview can show.</para>
     /// </summary>
     public static QueryType FromSql(string? sql)
     {
-        var trimmed = sql?.TrimStart() ?? string.Empty;
+        var text = StripLiteralsAndComments(sql ?? string.Empty);
+        var first = WordAt(text, 0, out var end);
+        if (first != "WITH")
+            return KindOf(first);
 
-        if (trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)) return QueryType.Select;
-        if (trimmed.StartsWith("INSERT", StringComparison.OrdinalIgnoreCase)) return QueryType.Insert;
-        if (trimmed.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)) return QueryType.Update;
-        if (trimmed.StartsWith("DELETE", StringComparison.OrdinalIgnoreCase)) return QueryType.Delete;
-
-        return QueryType.Other;
+        var kind = KindOf(MainKeywordAfterCtes(text, end));
+        return kind == QueryType.Select && DataChangingWord.IsMatch(text) ? QueryType.Other : kind;
     }
 
     /// <summary>
@@ -47,4 +70,86 @@ public static class QueryTypeClassifier
     /// </summary>
     public static bool IsWrite(this QueryType type) =>
         type is QueryType.Insert or QueryType.Update or QueryType.Delete;
+
+    private static QueryType KindOf(string keyword) => keyword switch
+    {
+        "SELECT" => QueryType.Select,
+        "INSERT" => QueryType.Insert,
+        "UPDATE" => QueryType.Update,
+        "DELETE" => QueryType.Delete,
+        _ => QueryType.Other
+    };
+
+    /// <summary>
+    /// Steps over <c>[RECURSIVE] name [(columns)] AS [NOT] [MATERIALIZED] ( … )</c>, once per
+    /// comma, and returns the keyword that follows. Quoted CTE names were blanked out already,
+    /// so a name may be missing. Anything unexpected returns an empty keyword (Other).
+    /// </summary>
+    private static string MainKeywordAfterCtes(string text, int position)
+    {
+        var at = position;
+        if (PeekWord(text, at) == "RECURSIVE")
+            WordAt(text, at, out at);
+
+        while (true)
+        {
+            var word = PeekWord(text, at);
+            if (word.Length > 0 && word != "AS")
+                WordAt(text, at, out at);                        // the CTE's name
+
+            at = SkipSpace(text, at);
+            if (at < text.Length && text[at] == '(')
+                at = SkipBrackets(text, at);                     // its column list
+
+            if (WordAt(text, at, out at) != "AS")
+                return string.Empty;
+            if (PeekWord(text, at) == "NOT")
+                WordAt(text, at, out at);
+            if (PeekWord(text, at) == "MATERIALIZED")
+                WordAt(text, at, out at);
+
+            at = SkipSpace(text, at);
+            if (at >= text.Length || text[at] != '(')
+                return string.Empty;
+            at = SkipSpace(text, SkipBrackets(text, at));      // its body
+
+            if (at < text.Length && text[at] == ',')
+            {
+                at++;
+                continue;
+            }
+            return WordAt(text, at, out _);
+        }
+    }
+
+    /// <summary>The upper-cased word starting at the first non-space from <paramref name="start"/>.</summary>
+    private static string WordAt(string text, int start, out int end)
+    {
+        var at = SkipSpace(text, start);
+        end = at;
+        while (end < text.Length && (char.IsAsciiLetter(text[end]) || text[end] == '_'))
+            end++;
+        return text[at..end].ToUpperInvariant();
+    }
+
+    private static string PeekWord(string text, int start) => WordAt(text, start, out _);
+
+    private static int SkipSpace(string text, int at)
+    {
+        while (at < text.Length && char.IsWhiteSpace(text[at]))
+            at++;
+        return at;
+    }
+
+    /// <summary>The position just past the bracket that closes the one at <paramref name="open"/>.</summary>
+    private static int SkipBrackets(string text, int open)
+    {
+        var depth = 0;
+        for (var at = open; at < text.Length; at++)
+        {
+            if (text[at] == '(') depth++;
+            else if (text[at] == ')' && --depth == 0) return at + 1;
+        }
+        return text.Length;
+    }
 }

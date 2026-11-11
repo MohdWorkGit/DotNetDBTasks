@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
+using Jadwal.Application.Common.Interfaces;
 using Jadwal.Domain.Enums;
 
 namespace Jadwal.Application.Features.Ai;
@@ -65,7 +66,7 @@ internal static class AiPrompts
         {error}
         ```
 
-        fixedSql: the corrected query. Change only what the error needs. It must still be a single {kind.ToString().ToUpperInvariant()} statement starting with {kind.ToString().ToUpperInvariant()} (no WITH), keep every @parameter, and keep the [bracket] style.
+        fixedSql: the corrected query. Change only what the error needs. It must still be a single {kind.ToString().ToUpperInvariant()} statement{(kind == QueryType.Select ? " (it may start with WITH)" : $" starting with {kind.ToString().ToUpperInvariant()}")}, keep every @parameter, and keep the [bracket] style.
         If the error cannot be fixed from the SQL alone (for example a table or column whose right name you cannot know), return the query unchanged.
         explanation: one or two sentences on what was wrong and what you changed; if you returned it unchanged, say what the author should check.
         {LanguageReminder()}
@@ -79,6 +80,74 @@ internal static class AiPrompts
             "fixedSql": { "type": "string" }
           },
           "required": ["explanation", "fixedSql"],
+          "additionalProperties": false
+        }
+        """;
+
+    public const string WriteTask = "Your task is to write one query from a description of what it should return.";
+
+    /// <summary>
+    /// The request and the tables picked for it: names exactly as SQL must write them, column
+    /// types, keys (so joins follow real relationships) and, when allowed, example values.
+    /// </summary>
+    public static string WriteUser(string description, IReadOnlyList<SchemaObjectDetail> objects)
+    {
+        var text = new StringBuilder();
+        text.AppendLine("Write a query for this request:");
+        text.AppendLine(description.Trim());
+        text.AppendLine();
+        text.AppendLine("Tables you may use. Write each name exactly as shown here, with any schema prefix:");
+        foreach (var o in objects)
+        {
+            text.AppendLine($"{(o.Object.Kind == "view" ? "VIEW" : "TABLE")} {o.Object.QualifiedName}");
+            foreach (var c in o.Columns)
+            {
+                text.Append($"  - {c.Name}: {c.DataType}");
+                if (o.PrimaryKey.Contains(c.Name, StringComparer.OrdinalIgnoreCase))
+                    text.Append(", primary key");
+                var fk = o.ForeignKeys.FirstOrDefault(k => k.Columns.Count == 1
+                    && string.Equals(k.Columns[0], c.Name, StringComparison.OrdinalIgnoreCase));
+                if (fk is not null)
+                    text.Append($", refers to {fk.ReferencedObject}.{fk.ReferencedColumns.FirstOrDefault()}");
+                if (o.Samples.TryGetValue(c.Name, out var samples))
+                    text.Append($", for example {string.Join(", ", samples.Select(s => $"'{s}'"))}");
+                text.AppendLine();
+            }
+        }
+        text.AppendLine();
+        text.AppendLine("Rules:");
+        text.AppendLine("- One SELECT statement; it may start with WITH. No semicolon and no -- comments.");
+        text.AppendLine("- Use only the tables and columns listed above, and join them on the keys shown. Apply every condition the request asks for (for example \"active\" becomes a filter on a status column).");
+        text.AppendLine("- Write table and column names exactly as listed, without brackets: give each table a short alias and write columns as alias.COLUMN, for example e.DEPT_ID. Never put brackets around alias.COLUMN.");
+        text.AppendLine("- A value the person running the query should choose (a date range, a status, a department) becomes an @parameter; do not write fixed dates or ids for those.");
+        text.AppendLine($"- Give every output column a short, readable alias in {AnswerLanguage()}; only these aliases go in [square brackets], for example COUNT(e.EMP_ID) AS [Employees].");
+        text.AppendLine();
+        text.AppendLine("sql: the query. explanation: one or two sentences on what it returns. parameters: each @parameter the SQL uses, without the @, with a short display name and its type.");
+        text.Append(LanguageReminder());
+        return text.ToString();
+    }
+
+    public const string WriteSchema = """
+        {
+          "type": "object",
+          "properties": {
+            "sql": { "type": "string" },
+            "explanation": { "type": "string" },
+            "parameters": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "displayName": { "type": "string" },
+                  "type": { "type": "string", "enum": ["string", "number", "date", "boolean"] }
+                },
+                "required": ["name", "displayName", "type"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["sql", "explanation", "parameters"],
           "additionalProperties": false
         }
         """;

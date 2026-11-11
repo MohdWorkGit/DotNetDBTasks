@@ -192,6 +192,12 @@ public class QueryExecutor : IQueryExecutor
             {
                 await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
+                // An Oracle NUMBER carries up to 38 digits and System.Decimal about 28, so an AVG
+                // or a division (1/3 = 0.333…) made GetValue throw an InvalidCastException — the
+                // whole query failed as "an unexpected error". Round such values to fit instead.
+                if (reader is OracleDataReader oracleReader)
+                    oracleReader.SuppressGetDecimalInvalidCastException = true;
+
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
                     result.Columns.Add(reader.GetName(i));
@@ -388,11 +394,18 @@ public class QueryExecutor : IQueryExecutor
     }
 
     /// <summary>
-    /// Determines if a SQL statement returns a result set.
-    /// SELECT and WITH (CTE) queries return rows; all others are non-query statements.
+    /// Determines if a SQL statement returns a result set, by the same classification the rest of
+    /// the app uses. A read returns rows and a write runs as a non-query, so a
+    /// <c>WITH … DELETE</c> reports the rows it affected. Statements classed as Other keep the
+    /// historic rule: text starting with SELECT or WITH reads rows, anything else (DDL, MERGE,
+    /// PL/SQL) runs as a non-query.
     /// </summary>
     private static bool IsSelectQuery(string sql)
     {
+        var kind = QueryTypeClassifier.FromSql(sql);
+        if (kind == QueryType.Select) return true;
+        if (kind.IsWrite()) return false;
+
         var trimmed = sql.TrimStart();
         return trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
             || trimmed.StartsWith("WITH", StringComparison.OrdinalIgnoreCase);

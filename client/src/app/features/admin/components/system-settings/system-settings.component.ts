@@ -79,6 +79,24 @@ function retentionDays(control: AbstractControl): ValidationErrors | null {
                 <span>{{ aiStatusText }}</span>
               </p>
             </div>
+            <div class="setting">
+              <mat-slide-toggle
+                [checked]="settings.aiDefaultConnection === true"
+                [disabled]="saving"
+                (change)="setToggle('aiDefaultConnection', $event.checked)">
+                {{ 'admin.settings.aiDefaultConnection' | transloco }}
+              </mat-slide-toggle>
+              <p class="hint">{{ 'admin.settings.aiDefaultConnectionHint' | transloco }}</p>
+            </div>
+            <div class="setting">
+              <mat-slide-toggle
+                [checked]="settings.aiSampleValues === true"
+                [disabled]="saving"
+                (change)="setToggle('aiSampleValues', $event.checked)">
+                {{ 'admin.settings.aiSampleValues' | transloco }}
+              </mat-slide-toggle>
+              <p class="hint">{{ 'admin.settings.aiSampleValuesHint' | transloco }}</p>
+            </div>
           </mat-card-content>
         </mat-card>
 
@@ -471,7 +489,7 @@ export class SystemSettingsComponent implements OnInit {
    * Writes one toggle optimistically and rolls it back on failure: leaving it showing the
    * value the server rejected would misreport what a role is actually allowed to do.
    */
-  setToggle(key: 'directoryEnabled' | 'aiEnabled', enabled: boolean): void {
+  setToggle(key: 'directoryEnabled' | 'aiEnabled' | 'aiDefaultConnection' | 'aiSampleValues', enabled: boolean): void {
     if (!this.settings) return;
 
     const previous = this.settings[key];

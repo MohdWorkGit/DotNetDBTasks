@@ -33,6 +33,9 @@ public static class DependencyInjection
         // scope of its own for each pass.
         services.AddScoped<AuditLogRotation>();
 
+        // Scoped: it checks the current request's user against the per-request unit of work.
+        services.AddScoped<Features.Ai.AiConnectionResolver>();
+
         return services;
     }
 }

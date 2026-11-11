@@ -395,4 +395,28 @@
   <data name="AiDraftAssumedDefault" xml:space="preserve">
     <value>«⁨{0}⁩» ليس له قيمة افتراضية، فبدأته المسودة بالقيمة ⁨{1}⁩. راجعها قبل الحفظ.</value>
   </data>
+  <data name="AiSchemaFailed" xml:space="preserve">
+    <value>تعذّرت قراءة جداول الاتصال: ⁨{0}⁩</value>
+  </data>
+  <data name="AiDefaultConnectionNotAllowed" xml:space="preserve">
+    <value>الاتصال الافتراضي غير متاح للمساعد الذكي. يمكن للمسؤول السماح به من إعدادات النظام.</value>
+  </data>
+  <data name="AiConnectionNotAllowed" xml:space="preserve">
+    <value>الاتصال «⁨{0}⁩» غير متاح للمساعد الذكي. يمكن للمسؤول تفعيل «السماح للذكاء الاصطناعي» له من صفحة اتصالات قواعد البيانات.</value>
+  </data>
+  <data name="AiUnknownTable" xml:space="preserve">
+    <value>«⁨{0}⁩» ليس جدولًا أو عرضًا يستطيع هذا الاتصال قراءته.</value>
+  </data>
+  <data name="AiDescriptionRequired" xml:space="preserve">
+    <value>اكتب ما الذي يجب أن يعرضه الاستعلام.</value>
+  </data>
+  <data name="AiDescriptionTooLong" xml:space="preserve">
+    <value>الوصف لا يتجاوز ⁨{0}⁩ حرف.</value>
+  </data>
+  <data name="AiTablesRequired" xml:space="preserve">
+    <value>اختر جدولًا واحدًا على الأقل.</value>
+  </data>
+  <data name="AiTooManyTables" xml:space="preserve">
+    <value>اختر ⁨{0}⁩ جداول على الأكثر.</value>
+  </data>
 </root>
