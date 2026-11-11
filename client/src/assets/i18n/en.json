@@ -302,7 +302,13 @@
       "draftReportProposed": "Proposed report:",
       "draftReportSections": "Sections",
       "draftReportCharts": "Charts",
-      "draftReportLoaded": "Draft loaded. Review the sections, parameters and charts, then save."
+      "draftReportLoaded": "Draft loaded. Review the sections, parameters and charts, then save.",
+      "writeParamRequired": "required",
+      "writeParamOptional": "may be left empty",
+      "writeParamMultiple": "several values",
+      "writeParamOptions": "{{count}} choices",
+      "writeParamDefault": "default",
+      "writeParamExisting": "already in the form"
     },
     "queryForm": {
       "removeTemplateTitle": "Remove Word template?",
@@ -886,7 +892,11 @@
       "aiDefaultConnection": "Allow AI on the default connection",
       "aiDefaultConnectionHint": "Lets the AI assistant read the default connection's tables to write SQL. This is Jadwal's own database: its own tables are always hidden, but any other tables in it are shown.",
       "aiSampleValues": "Show the AI a few example values",
-      "aiSampleValuesHint": "When writing SQL, the AI also sees up to five example values from each text column of the tables picked, so it knows a status is written \"A\", not \"Active\". Off: only names, types and keys."
+      "aiSampleValuesHint": "When writing SQL, the AI also sees up to five example values from each text column of the tables picked, so it knows a status is written \"A\", not \"Active\". Off: only names, types and keys.",
+      "aiInstructions": "Rules for the AI",
+      "aiInstructionsPlaceholder": "For example:\n- Deleted orders have STATUS = 'X'; always leave them out.\n- Amounts are in halalas; divide by 100 to show riyals.\n- Use DEPT_NAME_AR for department names.",
+      "aiInstructionsHint": "Your organisation's own rules, sent with every request to explain, fix or write SQL. Jadwal's own rules (how parameters work, what a query may contain) are always sent.",
+      "aiInstructionsTooLong": "At most {{max}} characters."
     },
     "permissions": {
       "intro": "Every capability the system offers, and which roles hold it. Admin always holds everything and cannot be edited — that is what keeps this page reachable. Changes take effect on the next request; nobody has to sign in again.",

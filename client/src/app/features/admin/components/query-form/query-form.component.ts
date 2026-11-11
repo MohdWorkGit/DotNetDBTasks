@@ -626,7 +626,16 @@ export class QueryFormComponent implements OnInit {
    * says to test it first.
    */
   writeSqlWithAi(): void {
-    const data: AiWriteSqlDialogData = { databaseUserId: this.form.value.databaseUserId || null };
+    const data: AiWriteSqlDialogData = {
+      databaseUserId: this.form.value.databaseUserId || null,
+      existingParameters: this.parameters.controls
+        .map(c => c.value)
+        .filter(p => p.name)
+        .map(p => ({
+          name: p.name, displayName: p.displayName || p.name, parameterType: p.parameterType,
+          isRequired: !!p.isRequired, allowMultiple: !!p.allowMultiple
+        }))
+    };
     this.dialog.open(AiWriteSqlDialogComponent, {
       data, width: '760px', maxWidth: '95vw', ariaModal: true, autoFocus: 'dialog'
     }).afterClosed().subscribe((result?: AiWriteSqlDialogResult) => {
@@ -653,7 +662,11 @@ export class QueryFormComponent implements OnInit {
     const existing = new Set(this.parameters.controls.map(c => String(c.get('name')?.value ?? '').toLowerCase()));
     for (const p of written.parameters) {
       if (!existing.has(p.name.toLowerCase())) {
-        this.addParameter({ name: p.name, displayName: p.displayName, parameterType: p.parameterType as ParameterType });
+        this.addParameter({
+          name: p.name, displayName: p.displayName, parameterType: p.parameterType as ParameterType,
+          isRequired: p.isRequired, allowMultiple: p.allowMultiple, defaultValue: p.defaultValue ?? '',
+          dropdownStaticValues: p.dropdownStaticValues ?? undefined
+        });
       }
     }
     this.toast.info('admin.ai.sqlWritten');
@@ -810,17 +823,20 @@ export class QueryFormComponent implements OnInit {
 
   // ---- Parameter management ----
 
-  addParameter(start?: { name: string; displayName: string; parameterType: ParameterType }): void {
+  addParameter(start?: {
+    name: string; displayName: string; parameterType: ParameterType; isRequired?: boolean;
+    allowMultiple?: boolean; defaultValue?: string; dropdownStaticValues?: string;
+  }): void {
     this.parameters.push(this.fb.group({
       name: [start?.name ?? '', PARAM_NAME_VALIDATORS],
       displayName: [start?.displayName ?? '', PARAM_DISPLAY_NAME_VALIDATORS],
       parameterType: [start?.parameterType ?? ParameterType.String],
-      isRequired: [true],
-      defaultValue: [''],
+      isRequired: [start?.isRequired ?? true],
+      defaultValue: [start?.defaultValue ?? ''],
       sortOrder: [this.parameters.length],
-      allowMultiple: [false],
+      allowMultiple: [start?.allowMultiple ?? false],
       dropdownSourceType: [DropdownSourceType.Static],
-      dropdownStaticValues: ['[]'],
+      dropdownStaticValues: [start?.dropdownStaticValues ?? '[]'],
       dropdownQueryId: [null],
       dropdownQueryValueColumn: [''],
       dropdownQueryLabelColumn: ['']

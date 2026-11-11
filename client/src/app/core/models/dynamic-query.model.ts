@@ -603,6 +603,8 @@ export interface SystemSettings {
   aiDefaultConnection?: boolean;
   /** The AI is shown a few example values per text column. Off by default. */
   aiSampleValues?: boolean;
+  /** The administrator's rules, added to every AI request about SQL. Absent from an older API. */
+  aiInstructions?: string;
   /** Days of query execution logs to keep; 0 keeps them forever. */
   executionLogRetentionDays: number;
   /** Days of the system audit trail to keep; 0 keeps it forever. */

@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { TranslocoService } from '@jsverse/transloco';
 import { ToastService } from '@core/services/toast.service';
 import { ConfirmService } from '@core/services/confirm.service';
@@ -96,6 +96,25 @@ function retentionDays(control: AbstractControl): ValidationErrors | null {
                 {{ 'admin.settings.aiSampleValues' | transloco }}
               </mat-slide-toggle>
               <p class="hint">{{ 'admin.settings.aiSampleValuesHint' | transloco }}</p>
+            </div>
+            <div class="setting ai-rules">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'admin.settings.aiInstructions' | transloco }}</mat-label>
+                <textarea matInput rows="5" [formControl]="aiRules" dir="auto"
+                          [placeholder]="'admin.settings.aiInstructionsPlaceholder' | transloco"></textarea>
+                <mat-hint>{{ 'admin.settings.aiInstructionsHint' | transloco }}</mat-hint>
+                <mat-hint align="end" dir="ltr">{{ aiRules.value.length }} / {{ aiRulesMax }}</mat-hint>
+                <mat-error>{{ 'admin.settings.aiInstructionsTooLong' | transloco: { max: aiRulesMax } }}</mat-error>
+              </mat-form-field>
+              <div class="actions">
+                <button mat-button type="button" (click)="resetAiRules()" [disabled]="saving || aiRules.pristine">
+                  {{ 'common.cancel' | transloco }}
+                </button>
+                <button mat-raised-button color="primary" type="button" (click)="saveAiRules()"
+                        [disabled]="saving || aiRules.invalid || aiRules.pristine">
+                  {{ saving ? ('common.saving' | transloco) : ('common.save' | transloco) }}
+                </button>
+              </div>
             </div>
           </mat-card-content>
         </mat-card>
@@ -258,6 +277,8 @@ function retentionDays(control: AbstractControl): ValidationErrors | null {
     /* A number field has no track to clear, so its hint sits flush. */
     .number-field + .hint { padding-inline-start: 0; }
     .ai-status { display: flex; align-items: center; gap: 6px; }
+    .ai-rules { margin-top: 12px; }
+    .full-width { width: 100%; }
     .ai-status mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
     .ai-status[data-state='ready'] mat-icon { color: var(--status-success); }
     .ai-status[data-state='unreachable'] mat-icon,
@@ -269,6 +290,9 @@ export class SystemSettingsComponent implements OnInit {
   settings: SystemSettings | null = null;
   numbersForm!: FormGroup;
   retentionForm!: FormGroup;
+  readonly aiRulesMax = 4000;
+  /** Written and saved with a button, like the numbers: a half-typed rule should not reach the AI. */
+  readonly aiRules = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(4000)] });
   limits = SETTING_LIMITS;
   loading = true;
   saving = false;
@@ -329,6 +353,7 @@ export class SystemSettingsComponent implements OnInit {
         this.settings = settings;
         this.resetNumbers();
         this.resetRetention();
+        this.resetAiRules();
         this.loading = false;
         this.cdr.detectChanges();
         this.checkAi();
@@ -343,6 +368,30 @@ export class SystemSettingsComponent implements OnInit {
   }
 
   /** Puts the form back to what the server last confirmed. */
+  resetAiRules(): void {
+    this.aiRules.reset(this.settings?.aiInstructions ?? '');
+  }
+
+  saveAiRules(): void {
+    if (!this.settings || this.aiRules.invalid) return;
+    const next: SystemSettings = { ...this.settings, aiInstructions: this.aiRules.value.trim() };
+    this.saving = true;
+    this.queryService.updateSystemSettings(next).subscribe({
+      next: () => {
+        this.settings = next;
+        this.resetAiRules();
+        this.saving = false;
+        this.toast.success('admin.settings.saved');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.saving = false;
+        this.toast.error(err, 'admin.settings.saveFailed');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   resetNumbers(): void {
     if (!this.settings) return;
     this.numbersForm.reset({

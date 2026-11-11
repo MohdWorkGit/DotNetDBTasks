@@ -80,12 +80,29 @@ export interface WriteSqlRequest {
   databaseUserId: string | null;
   description: string;
   objects: string[];
+  /** The parameters the form already has, so the SQL reuses them. */
+  existingParameters: AiExistingParameter[];
+}
+
+export interface AiExistingParameter {
+  name: string;
+  displayName: string;
+  parameterType: number;
+  isRequired: boolean;
+  allowMultiple: boolean;
 }
 
 export interface AiSuggestedParameter {
   name: string;
   displayName: string;
   parameterType: number;
+  isRequired: boolean;
+  allowMultiple: boolean;
+  defaultValue: string | null;
+  /** A list's fixed choices, as the form stores them: [{"label":…,"value":…}]. */
+  dropdownStaticValues: string | null;
+  /** The form has it already; the SQL reuses it. */
+  alreadyInForm: boolean;
 }
 
 /** SQL written from a description. Only shown: it is tested and saved like any query. */
@@ -93,6 +110,8 @@ export interface AiWrittenSql {
   sql: string;
   explanation: string;
   parameters: AiSuggestedParameter[];
+  /** Where Jadwal corrected what the model said about a parameter, and why. */
+  notes: string[];
 }
 
 /** The same request as a dashboard draft: the picked queries and an optional goal. */

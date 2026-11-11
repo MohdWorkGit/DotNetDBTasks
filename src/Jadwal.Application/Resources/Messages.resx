@@ -437,4 +437,13 @@
   <data name="AiDraftFixedDate" xml:space="preserve">
     <value>'{0}' starts at the fixed date {1}. A report does not move dates by itself; check it before saving.</value>
   </data>
+  <data name="AiInstructionsTooLong" xml:space="preserve">
+    <value>The rules for the AI can be at most {0} characters.</value>
+  </data>
+  <data name="AiParamMadeRequired" xml:space="preserve">
+    <value>@{0} was made required: the SQL does not say what an empty value (NULL) means.</value>
+  </data>
+  <data name="AiParamSingleValue" xml:space="preserve">
+    <value>@{0} takes one value: the SQL does not use it as IN (@{0}).</value>
+  </data>
 </root>

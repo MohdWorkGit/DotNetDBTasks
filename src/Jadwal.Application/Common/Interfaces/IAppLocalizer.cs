@@ -158,4 +158,7 @@ public static class MessageKeys
     public const string AiDraftParameterAsText = nameof(AiDraftParameterAsText);
     public const string AiDraftParameterSingle = nameof(AiDraftParameterSingle);
     public const string AiDraftFixedDate = nameof(AiDraftFixedDate);
+    public const string AiInstructionsTooLong = nameof(AiInstructionsTooLong);
+    public const string AiParamMadeRequired = nameof(AiParamMadeRequired);
+    public const string AiParamSingleValue = nameof(AiParamSingleValue);
 }

@@ -83,9 +83,11 @@ public class SuggestSqlFixCommandHandler : IRequestHandler<SuggestSqlFixCommand,
             ? request.ErrorMessage[..SuggestSqlFixCommand.ErrorMessageMaxLength]
             : request.ErrorMessage;
 
+        var houseRules = await _settings.GetStringAsync(SystemSettingKeys.AiInstructions, cancellationToken);
+
         var answer = await _ai.CompleteJsonAsync<AiSqlFixDto>(
             new AiChatRequest(
-                AiPrompts.System(serverType, AiPrompts.FixTask),
+                AiPrompts.System(serverType, AiPrompts.FixTask, houseRules),
                 AiPrompts.FixUser(request.SqlQuery, error, kind),
                 "sql_fix",
                 AiPrompts.FixSchema,
@@ -103,6 +105,10 @@ public class SuggestSqlFixCommandHandler : IRequestHandler<SuggestSqlFixCommand,
             answer.FixedSql = request.SqlQuery;
             return answer;
         }
+
+        // Its reasoning written into the SQL field is an unreadable answer, not SQL to offer.
+        if (AiSqlGuard.LooksLikeProse(suggested))
+            throw new ExternalServiceException(_messages[MessageKeys.AiBadAnswer]);
 
         var problem = AiSqlGuard.FindProblem(request.SqlQuery, suggested);
         if (problem is not null)

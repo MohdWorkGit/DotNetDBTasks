@@ -1,5 +1,6 @@
 using Jadwal.Application.Common.Interfaces;
 using Jadwal.Application.Features.DynamicQueries.Commands;
+using Jadwal.Domain.Entities;
 using Jadwal.Domain.Interfaces;
 using FluentValidation;
 using MediatR;
@@ -57,9 +58,11 @@ public class ExplainSqlCommandHandler : IRequestHandler<ExplainSqlCommand, AiSql
         var serverType = await AiSqlCommandSupport.ResolveServerTypeAsync(
             request.DatabaseUserId, _unitOfWork, _currentUser, _queryExecutor, cancellationToken);
 
+        var houseRules = await _settings.GetStringAsync(SystemSettingKeys.AiInstructions, cancellationToken);
+
         var answer = await _ai.CompleteJsonAsync<AiSqlExplanationDto>(
             new AiChatRequest(
-                AiPrompts.System(serverType, AiPrompts.ExplainTask),
+                AiPrompts.System(serverType, AiPrompts.ExplainTask, houseRules),
                 AiPrompts.ExplainUser(request.SqlQuery),
                 "sql_explanation",
                 AiPrompts.ExplainSchema,

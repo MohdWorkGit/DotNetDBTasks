@@ -437,4 +437,13 @@
   <data name="AiDraftFixedDate" xml:space="preserve">
     <value>«⁨{0}⁩» يبدأ بالتاريخ الثابت ⁨{1}⁩. التقرير لا يغيّر التواريخ تلقائيًا؛ راجعه قبل الحفظ.</value>
   </data>
+  <data name="AiInstructionsTooLong" xml:space="preserve">
+    <value>قواعد الذكاء الاصطناعي لا تتجاوز ⁨{0}⁩ حرف.</value>
+  </data>
+  <data name="AiParamMadeRequired" xml:space="preserve">
+    <value>جُعل ⁨@{0}⁩ مطلوبًا: نص SQL لا يحدد معنى القيمة الفارغة (NULL).</value>
+  </data>
+  <data name="AiParamSingleValue" xml:space="preserve">
+    <value>⁨@{0}⁩ يقبل قيمة واحدة: نص SQL لا يستخدمه بالشكل ⁨IN (@{0})⁩.</value>
+  </data>
 </root>

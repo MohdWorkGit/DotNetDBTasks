@@ -146,6 +146,16 @@ public static class SystemSettingKeys
     public const bool AiSampleValuesDefault = false;
 
     /// <summary>
+    /// The administrator's own rules for the AI, added to every request that writes, fixes or
+    /// explains SQL — "deleted rows have STATUS = 'X'; leave them out", "money is in halalas".
+    /// Jadwal's own rules (how parameters bind, what a query may contain) are always sent; these
+    /// are the installation's. Empty by default.
+    /// </summary>
+    public const string AiInstructions = "ai.instructions";
+
+    public const int AiInstructionsMaxLength = 4000;
+
+    /// <summary>
     /// How many days of query execution logs to keep. Older entries are deleted by the rotation
     /// sweep, which runs every few hours and on demand from System Settings.
     ///

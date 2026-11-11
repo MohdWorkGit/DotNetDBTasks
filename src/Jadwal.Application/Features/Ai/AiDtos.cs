@@ -54,6 +54,9 @@ public class AiWrittenSqlDto
 
     /// <summary>The @parameters the SQL uses, to add to the query's parameter list.</summary>
     public List<AiSuggestedParameterDto> Parameters { get; set; } = new();
+
+    /// <summary>Where Jadwal corrected what the model said about a parameter, and why.</summary>
+    public List<string> Notes { get; set; } = new();
 }
 
 public class AiSuggestedParameterDto
@@ -61,6 +64,15 @@ public class AiSuggestedParameterDto
     public string Name { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public ParameterType ParameterType { get; set; }
+    public bool IsRequired { get; set; } = true;
+    public bool AllowMultiple { get; set; }
+    public string? DefaultValue { get; set; }
+
+    /// <summary>A list's fixed choices, as the query form stores them: [{"label":…,"value":…}].</summary>
+    public string? DropdownStaticValues { get; set; }
+
+    /// <summary>The form has it already; the SQL reuses it.</summary>
+    public bool AlreadyInForm { get; set; }
 }
 
 /// <summary>

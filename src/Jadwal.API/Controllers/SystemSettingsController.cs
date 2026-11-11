@@ -75,6 +75,7 @@ public class SystemSettingsController : ControllerBase
                 SystemSettingKeys.AiSampleValues,
                 SystemSettingKeys.AiSampleValuesDefault,
                 cancellationToken),
+            AiInstructions = await _settings.GetStringAsync(SystemSettingKeys.AiInstructions, cancellationToken) ?? string.Empty,
             ExecutionLogRetentionDays = await _settings.GetIntAsync(
                 SystemSettingKeys.AuditExecutionLogRetentionDays,
                 SystemSettingKeys.LogRetentionDaysDefault,
@@ -137,6 +138,11 @@ public class SystemSettingsController : ControllerBase
                 SystemSettingKeys.AiSampleValues,
                 request.AiSampleValues.Value,
                 cancellationToken);
+        if (request.AiInstructions is not null)
+            await _settings.SetStringAsync(
+                SystemSettingKeys.AiInstructions,
+                string.IsNullOrWhiteSpace(request.AiInstructions) ? null : request.AiInstructions.Trim(),
+                cancellationToken);
         await _settings.SetIntAsync(
             SystemSettingKeys.AuditExecutionLogRetentionDays,
             request.ExecutionLogRetentionDays,
@@ -164,6 +170,7 @@ public class SystemSettingsController : ControllerBase
                 aiEnabled = request.AiEnabled,
                 aiDefaultConnection = request.AiDefaultConnection,
                 aiSampleValues = request.AiSampleValues,
+                aiInstructions = request.AiInstructions,
                 executionLogRetentionDays = request.ExecutionLogRetentionDays,
                 systemLogRetentionDays = request.SystemLogRetentionDays
             })
@@ -186,6 +193,9 @@ public class SystemSettingsController : ControllerBase
     /// <summary>The first thing wrong with the request, or null when it is acceptable.</summary>
     private string? Validate(SystemSettingsDto request)
     {
+        if (request.AiInstructions is { Length: > SystemSettingKeys.AiInstructionsMaxLength })
+            return _messages[MessageKeys.AiInstructionsTooLong, SystemSettingKeys.AiInstructionsMaxLength];
+
         if (OutOfRange(request.SessionAccessTokenMinutes,
                 SystemSettingKeys.AccessTokenMinutesMin, SystemSettingKeys.AccessTokenMinutesMax))
             return _messages[MessageKeys.SettingOutOfRange,
@@ -270,6 +280,9 @@ public class SystemSettingsDto
 
     /// <summary>When true, the AI is shown a few example values per text column, not only names.</summary>
     public bool? AiSampleValues { get; set; }
+
+    /// <summary>The administrator's rules for the AI. Null on a save leaves them as they are.</summary>
+    public string? AiInstructions { get; set; }
 
     /// <summary>Days of query execution logs to keep; 0 keeps them forever.</summary>
     public int ExecutionLogRetentionDays { get; set; }

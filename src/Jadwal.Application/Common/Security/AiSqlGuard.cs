@@ -69,6 +69,24 @@ public static class AiSqlGuard
         return null;
     }
 
+    private static readonly Regex ProseWord = new(
+        @"\b(the|because|should|means|which|this|error|fix|is|are|was)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    /// <summary>
+    /// True when the "SQL" carries sentences: a small model sometimes writes its reasoning into
+    /// the SQL field ("… AVG(e.SAL: 1. The error means …"). Outside literals, quoted aliases and
+    /// comments, SQL hardly ever holds these words — IS appears in IS NULL, so it takes several
+    /// of them together to count.
+    /// </summary>
+    public static bool LooksLikeProse(string sql)
+    {
+        var stripped = QueryTypeClassifier.StripLiteralsAndComments(sql);
+        var hits = ProseWord.Matches(stripped).Select(m => m.Value.ToLowerInvariant()).ToList();
+        // "IS NULL" / "IS NOT NULL" are SQL; any other prose word, three times, is not.
+        return hits.Count(w => w is not ("is" or "are" or "was")) >= 2 && hits.Count >= 3;
+    }
+
     private static string FirstWord(string sql)
     {
         var match = Regex.Match(sql, @"[A-Za-z_]+");

@@ -12,12 +12,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AiService } from '@core/services/ai.service';
 import { extractApiError } from '@core/services/toast.service';
-import { AiConnection, AiSchemaObject, AiWrittenSql } from '@core/models/ai.model';
+import { AiConnection, AiExistingParameter, AiSchemaObject, AiWrittenSql } from '@core/models/ai.model';
 import { BidiTextComponent, pageDirection, textDirection, TextDirection } from '@shared/components/bidi-text.component';
 
 export interface AiWriteSqlDialogData {
   /** The connection the form has chosen, offered first when the AI may read it. */
   databaseUserId: string | null;
+  /** The form's parameters, for the SQL to reuse. */
+  existingParameters: AiExistingParameter[];
 }
 
 export interface AiWriteSqlDialogResult {
@@ -31,7 +33,8 @@ const MAX_OBJECTS = 10;
 const DEFAULT_KEY = '__default__';
 
 const PARAMETER_TYPE_KEYS = [
-  'admin.queryForm.typeString', 'admin.queryForm.typeNumber', 'admin.queryForm.typeDate', 'admin.queryForm.typeBoolean'
+  'admin.queryForm.typeString', 'admin.queryForm.typeNumber', 'admin.queryForm.typeDate', 'admin.queryForm.typeBoolean',
+  'admin.queryForm.typeDropdown'
 ];
 
 /**
@@ -128,7 +131,23 @@ const PARAMETER_TYPE_KEYS = [
             <li *ngFor="let p of result.parameters">
               <code dir="ltr">&#64;{{ p.name }}</code>
               <span><app-bidi-text [text]="p.displayName"></app-bidi-text></span>
-              <span class="type">{{ typeKey(p.parameterType) | transloco }}</span>
+              <span class="type">
+                {{ typeKey(p.parameterType) | transloco }}
+                · {{ (p.isRequired ? 'admin.ai.writeParamRequired' : 'admin.ai.writeParamOptional') | transloco }}
+                <ng-container *ngIf="p.allowMultiple"> · {{ 'admin.ai.writeParamMultiple' | transloco }}</ng-container>
+                <ng-container *ngIf="optionCount(p) as n"> · {{ 'admin.ai.writeParamOptions' | transloco: { count: n } }}</ng-container>
+                <ng-container *ngIf="p.defaultValue"> · {{ 'admin.ai.writeParamDefault' | transloco }} <bdi>{{ p.defaultValue }}</bdi></ng-container>
+                <ng-container *ngIf="p.alreadyInForm"> · {{ 'admin.ai.writeParamExisting' | transloco }}</ng-container>
+              </span>
+            </li>
+          </ul>
+        </ng-container>
+
+        <ng-container *ngIf="result.notes.length">
+          <h3>{{ 'admin.ai.draftNotes' | transloco }}</h3>
+          <ul class="notes">
+            <li *ngFor="let note of result.notes" [attr.dir]="dirOf(note)">
+              <mat-icon>warning_amber</mat-icon><app-bidi-text [text]="note"></app-bidi-text>
             </li>
           </ul>
         </ng-container>
@@ -193,6 +212,9 @@ const PARAMETER_TYPE_KEYS = [
     .parameters li { display: flex; gap: 12px; align-items: baseline; padding: 4px 0; color: var(--text-primary); }
     .parameters code { font-family: 'Cascadia Mono', Consolas, 'Courier New', monospace; font-size: 13px; }
     .parameters .type { color: var(--text-secondary); font-size: 13px; }
+    .notes { list-style: none; margin: 0; padding: 0; }
+    .notes li { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; color: var(--text-primary); }
+    .notes mat-icon { color: var(--status-warning); flex-shrink: 0; font-size: 20px; width: 20px; height: 20px; }
     .disclaimer { display: flex; align-items: center; gap: 6px; margin: 16px 0 0; color: var(--text-secondary); font-size: 12px; }
     .disclaimer mat-icon { font-size: 16px; width: 16px; height: 16px; }
   `]
@@ -299,7 +321,10 @@ export class AiWriteSqlDialogComponent implements OnInit {
 
     // In listing order, so the model sees the tables as the admin did.
     const objects = this.objects.map(o => o.qualifiedName).filter(n => this.selected.has(n));
-    this.ai.writeSql({ databaseUserId: this.connectionId, description: this.description.trim(), objects }).subscribe({
+    this.ai.writeSql({
+      databaseUserId: this.connectionId, description: this.description.trim(), objects,
+      existingParameters: this.data.existingParameters
+    }).subscribe({
       next: (result) => {
         this.result = result;
         this.step = 'review';
@@ -317,6 +342,16 @@ export class AiWriteSqlDialogComponent implements OnInit {
 
   use(): void {
     if (this.result) this.dialogRef.close({ written: this.result, databaseUserId: this.connectionId });
+  }
+
+  /** How many fixed choices a list parameter has; 0 for any other kind. */
+  optionCount(p: { dropdownStaticValues: string | null }): number {
+    try {
+      const options = JSON.parse(p.dropdownStaticValues || '[]');
+      return Array.isArray(options) ? options.length : 0;
+    } catch {
+      return 0;
+    }
   }
 
   typeKey(type: number): string {

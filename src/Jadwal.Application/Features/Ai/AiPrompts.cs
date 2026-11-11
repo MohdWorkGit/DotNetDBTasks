@@ -13,15 +13,49 @@ namespace Jadwal.Application.Features.Ai;
 /// </summary>
 internal static class AiPrompts
 {
-    /// <summary>The rules every task shares: the database, Jadwal's SQL style, and the language.</summary>
-    public static string System(DatabaseServerType serverType, string task) => $"""
+    /// <summary>
+    /// The rules every SQL task shares: the database, how Jadwal runs a query and binds its
+    /// parameters, the administrator's own rules (System Settings, "ai.instructions"), and the
+    /// language.
+    /// </summary>
+    public static string System(DatabaseServerType serverType, string task, string? houseRules) => $"""
         You help report authors in Jadwal, a reporting tool, with SQL queries. {task}
         The database is {DatabaseName(serverType)}.
-        Jadwal SQL style: parameters are written @name (the user is asked for a value when the query runs) and names may be quoted with [square brackets]. Jadwal converts both for the database when the query runs, so keep that style even if the database writes them differently. Jadwal does not allow semicolons or -- comments in a query.
+        {JadwalRules(serverType)}
+        {HouseRules(houseRules)}
         Write for a business user who knows a little SQL: short, plain sentences, no jargon.
         Write every sentence in {AnswerLanguage()}. Keep table, column and parameter names exactly as they are written in the SQL.
         Reply only with JSON that matches the schema.
         """;
+
+    /// <summary>
+    /// How Jadwal runs a query, as <c>QueryParameterBinder</c> and the executor actually behave:
+    /// what a query may contain, how each kind of parameter arrives, and the two traps — an
+    /// optional parameter arrives as NULL, and a multi-value one only works inside IN (…).
+    /// </summary>
+    private static string JadwalRules(DatabaseServerType serverType) => $"""
+        How Jadwal runs a query:
+        - One statement only: no semicolons, no -- comments, and no names starting with XP_, SP_, DBMS_ or UTL_.
+        - Names may be quoted with [square brackets] and parameters are written @name (letters, digits and underscores, starting with a letter). Jadwal converts both for the database, so keep that style even if the database writes them differently.
+        - The person running the query gives each parameter's value. Types: text, number, date (a day, no time), yes/no (arrives as 1 or 0), or a list of fixed choices.
+        - A parameter left empty arrives as NULL. If it may be left empty, write the filter so that empty means all rows: (@status IS NULL OR o.STATUS = @status). Otherwise the parameter is required.
+        - A parameter that takes several values may only be used as column IN (@name). It cannot be compared with NULL, so it is always required.
+        - A date parameter has no time of day. To include the whole last day, compare with the next day: column < {NextDay(serverType, "@toDate")}.
+        """;
+
+    private static string HouseRules(string? rules) =>
+        string.IsNullOrWhiteSpace(rules)
+            ? string.Empty
+            : $"Rules of this organisation, from its administrator (follow them):\n{rules.Trim()}";
+
+    /// <summary>The day after a date parameter, in the database's own date arithmetic.</summary>
+    private static string NextDay(DatabaseServerType serverType, string parameter) => serverType switch
+    {
+        DatabaseServerType.SqlServer => $"DATEADD(day, 1, {parameter})",
+        DatabaseServerType.PostgreSql => $"{parameter} + INTERVAL '1 day'",
+        DatabaseServerType.MySql => $"{parameter} + INTERVAL 1 DAY",
+        _ => $"{parameter} + 1"
+    };
 
     public const string ExplainTask = "Your task is to explain what a query does.";
 
@@ -90,7 +124,8 @@ internal static class AiPrompts
     /// The request and the tables picked for it: names exactly as SQL must write them, column
     /// types, keys (so joins follow real relationships) and, when allowed, example values.
     /// </summary>
-    public static string WriteUser(string description, IReadOnlyList<SchemaObjectDetail> objects)
+    public static string WriteUser(
+        string description, IReadOnlyList<SchemaObjectDetail> objects, IReadOnlyList<Commands.AiExistingParameter> existing)
     {
         var text = new StringBuilder();
         text.AppendLine("Write a query for this request:");
@@ -114,6 +149,13 @@ internal static class AiPrompts
                 text.AppendLine();
             }
         }
+        if (existing.Count > 0)
+        {
+            text.AppendLine();
+            text.AppendLine("Parameters this query already has. Use them, with these exact names, wherever the request needs such a value:");
+            foreach (var p in existing)
+                text.AppendLine($"  - @{p.Name}: {ParameterTypeName(p.ParameterType)}{(p.AllowMultiple ? ", several values" : "")}{(p.IsRequired ? ", required" : ", may be left empty")} ({p.DisplayName})");
+        }
         text.AppendLine();
         text.AppendLine("Rules:");
         text.AppendLine("- One SELECT statement; it may start with WITH. No semicolon and no -- comments.");
@@ -122,7 +164,8 @@ internal static class AiPrompts
         text.AppendLine("- A value the person running the query should choose (a date range, a status, a department) becomes an @parameter; do not write fixed dates or ids for those.");
         text.AppendLine($"- Give every output column a short, readable alias in {AnswerLanguage()}; only these aliases go in [square brackets], for example COUNT(e.EMP_ID) AS [Employees].");
         text.AppendLine();
-        text.AppendLine("sql: the query. explanation: one or two sentences on what it returns. parameters: each @parameter the SQL uses, without the @, with a short display name and its type.");
+        text.AppendLine("sql: the query. explanation: one or two sentences on what it returns.");
+        text.AppendLine("parameters: each @parameter the SQL uses, without the @: a short display name; its type (string, number, date, boolean, or list for a fixed set of choices); required (false only if the SQL treats an empty value as all rows); multiple (true only if the SQL uses it as IN (@name)); defaultValue (\"\" if none; never a date); and for a list, its options as value and label.");
         text.Append(LanguageReminder());
         return text.ToString();
     }
@@ -140,9 +183,21 @@ internal static class AiPrompts
                 "properties": {
                   "name": { "type": "string" },
                   "displayName": { "type": "string" },
-                  "type": { "type": "string", "enum": ["string", "number", "date", "boolean"] }
+                  "type": { "type": "string", "enum": ["string", "number", "date", "boolean", "list"] },
+                  "required": { "type": "boolean" },
+                  "multiple": { "type": "boolean" },
+                  "defaultValue": { "type": "string" },
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": { "value": { "type": "string" }, "label": { "type": "string" } },
+                      "required": ["value", "label"],
+                      "additionalProperties": false
+                    }
+                  }
                 },
-                "required": ["name", "displayName", "type"],
+                "required": ["name", "displayName", "type", "required", "multiple", "defaultValue", "options"],
                 "additionalProperties": false
               }
             }
@@ -359,6 +414,15 @@ internal static class AiPrompts
     /// <summary>The page's language (Accept-Language → request culture), as the model should write.</summary>
     private static string AnswerLanguage() =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? "Arabic" : "English";
+
+    private static string ParameterTypeName(ParameterType type) => type switch
+    {
+        ParameterType.Number => "number",
+        ParameterType.Date => "date",
+        ParameterType.Boolean => "boolean (1 or 0)",
+        ParameterType.Dropdown => "list",
+        _ => "string"
+    };
 
     private static string DatabaseName(DatabaseServerType serverType) => serverType switch
     {

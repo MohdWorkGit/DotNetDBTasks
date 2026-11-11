@@ -739,10 +739,103 @@ deployment finished:
 
 ---
 
+# Part D — The AI Assistant (optional)
+
+Jadwal's AI assistant has four features:
+- explain a query, or suggest a fix after a failed test;
+- write SQL from a description;
+- draft a dashboard;
+- draft a report.
+
+It runs on a model **on the server itself**: nothing is sent anywhere else. It is optional. Without
+Part D the app works as before and simply shows no AI buttons. Background and choices are in
+[docs/LOCAL-AI-OPTIONS.md](docs/LOCAL-AI-OPTIONS.md).
+
+The AI comes in **its own bundle**, apart from `offline-bundle/`. The models are many gigabytes and
+rarely change, so they are not carried again with every application update.
+
+## D1 — Build the AI bundle (internet-connected machine)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\prepare-ai-bundle.ps1 -OutDir 'E:\Jadwal-AI-Bundle'
+```
+
+- **What it builds:** it downloads a pinned Ollama release and pulls **Gemma 4 12B** and **Qwen3.5 9B**,
+  about 18 GB in all.
+- **Your Ollama is left alone:** the models are pulled through a private copy of Ollama on its own
+  port, so an Ollama already running on that machine is not touched.
+- **Space:** it checks free space first. Point `-OutDir` at a drive with about 20 GB free.
+- **Options:**
+  - `-Models 'gemma4:12b'` carries one model only;
+  - `-IncludeRocm` adds the AMD GPU build;
+  - `-OllamaVersion` changes the release.
+- **What it writes:**
+  - `ollama/`: the runtime zip;
+  - `models/`;
+  - `install-ai-service.ps1`;
+  - `MANIFEST.txt`;
+  - `SHA256SUMS.txt`: a checksum for every file.
+
+Copy the whole folder to the server.
+
+## D2 — Install on the server
+
+In the copied folder, **as administrator**:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install-ai-service.ps1
+```
+
+The script:
+1. **Checks every file** against `SHA256SUMS.txt` and stops on any damaged copy.
+2. **Installs** Ollama to `C:\Ollama` and the models to `C:\OllamaModels`. Change these with
+   `-InstallDir` and `-ModelsDir`; use a local disk, not a share.
+3. **Writes `start-ollama.cmd`**, which serves on **127.0.0.1 only** (Ollama has no login of its
+   own), keeps the model loaded, and answers one request at a time.
+4. **Registers the scheduled task "Jadwal AI (Ollama)"**, which starts at boot as SYSTEM and restarts
+   if it stops. It then checks that the models answer.
+5. **Reads the GPU** (`nvidia-smi`) and **prints the `Ai` section** for `appsettings.json` with the
+   suggested model:
+   - 12 GB or more: `gemma4:12b`;
+   - less: `qwen3.5:9b`.
+
+Run the script again to upgrade: it replaces the runtime and keeps the models already there.
+
+## D3 — Switch it on in Jadwal
+
+1. In the API's `appsettings.json`, set the printed section:
+
+   ```json
+   "Ai": {
+     "Enabled": true,
+     "BaseUrl": "http://127.0.0.1:11434/v1",
+     "Model": "gemma4:12b",
+     "TimeoutSeconds": 360,
+     "DisableThinking": true
+   }
+   ```
+
+2. Restart the API (the IIS site or the service).
+3. Under **System Settings → AI assistant**, the status line should read **Ready**. Set up:
+   - **Allow AI on the default connection:** only if the AI may read tables in Jadwal's own
+     database. Jadwal's own tables are always hidden.
+   - **Show the AI a few example values:** off unless your policy allows it.
+   - **Rules for the AI:** your organisation's rules, for example how deleted rows are marked.
+4. Under **Database connections**, switch on **Allow AI** for each connection whose account can
+   **read but not change** data.
+5. Under **Roles and permissions**, grant **Use the AI assistant** to the roles that should have it.
+   Admin has it already.
+
+---
+
 ## Troubleshooting
 
 | Problem | Check |
 |---|---|
+| AI status says "not answering" | Is the "Jadwal AI (Ollama)" task running (Task Scheduler)? See `C:\Ollama\ollama.log`. `Ai:BaseUrl` must match the port given to the installer. |
+| AI status says "model not installed" | `Ai:Model` must match a name from `ollama list` exactly, e.g. `gemma4:12b`. |
+| AI answers take minutes | No GPU in use. Check `nvidia-smi`, and that `ollama ps` shows the model on the GPU. On CPU only, use `qwen3.5:9b`. |
+| No AI buttons appear | `Ai:Enabled` false, "Offer the AI assistant" off in System Settings, or the role lacks "Use the AI assistant". |
 | API fails to start | Database running? Connection string correct in `appsettings.json`? |
 | Login fails | LDAP/AD host reachable from the server? Credentials and attribute mapping correct? |
 | Stored DB credentials unreadable | `Encryption.Key` changed between builds — it must stay constant |
