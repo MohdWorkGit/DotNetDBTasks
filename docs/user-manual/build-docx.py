@@ -629,6 +629,12 @@ def build_manual(doc):
                  "than one role, and then it has all of their permissions together.",
                  "اسم لمجموعة صلاحيات تُعطى للحساب. ويمكن أن يكون للحساب أكثر من دور، فتكون "
                  "له صلاحياتها كلها معًا.")],
+              [T("AI assistant", "المساعد الذكي"),
+               T("An AI model running on the Jadwal server that explains, fixes and writes SQL "
+                 "and drafts reports and dashboards. It only prepares drafts; a person checks "
+                 "and saves them (17).",
+                 "نموذج ذكاء اصطناعي يعمل على خادم «جدول»، يشرح SQL ويصلحه ويكتبه، ويُعدّ مسودات "
+                 "التقارير واللوحات. وهو يُعدّ مسودات فقط، ويراجعها شخص ويحفظها (١٧).")],
           ],
           widths=[1.6, 5.0])
 
@@ -1014,6 +1020,9 @@ def build_manual(doc):
                yes, dash, dash, dash],
               [T("Manage roles and permissions",
                  "إدارة الأدوار والصلاحيات"),
+               yes, dash, dash, dash],
+              [T("Use the AI assistant",
+                 "استخدام المساعد الذكي"),
                yes, dash, dash, dash],
           ],
           widths=[2.9, 0.75, 0.8, 1.3, 1.0],
@@ -3191,6 +3200,13 @@ def build_manual(doc):
                  "same if you leave the box empty.",
                  "بيانات الدخول. كلمة المرور محفوظة مشفّرة، وعند التعديل تبقى كما هي إذا تركت "
                  "الخانة فارغة.")],
+              [T("Allow AI", "السماح للذكاء الاصطناعي"),
+               T("Lets the AI assistant read this connection's tables to write SQL (17.4). Off "
+                 "for a new connection. Switch it on only if this login can read but not change "
+                 "data.",
+                 "يسمح للمساعد الذكي بقراءة جداول هذا الاتصال لكتابة SQL (١٧.٤). ويكون متوقفًا في "
+                 "الاتصال الجديد. ولا تفعّله إلا إذا كان هذا الحساب يستطيع القراءة دون تعديل "
+                 "البيانات.")],
           ],
           widths=[2.1, 4.5])
     bullets(doc, [
@@ -3511,6 +3527,9 @@ def build_manual(doc):
                 "يعمل من دخولهم أو تجديدهم التالي."),
         kind="warning")
 
+    para(doc, T("The same page holds the AI assistant settings; they are described in 17.1.",
+                "وفي الصفحة نفسها إعدادات المساعد الذكي، وهي مشروحة في ١٧.١."))
+
     h3(doc, T("Log retention", "الاحتفاظ بالسجلات"))
     para(doc, T("The execution logs and the system audit get longer with every run and every "
                 "change. Log retention says how long each one is kept; older lines are "
@@ -3604,8 +3623,237 @@ def build_manual(doc):
     page_break(doc)
 
     # ===================================================================== 17
-    h1(doc, T("17. Appendix A — Frequently asked questions",
-              "١٧. الملحق أ — أسئلة شائعة"))
+    h1(doc, T("17. AI assistant", "١٧. المساعد الذكي"))
+    para(doc, T("For: people who create queries, reports and dashboards, and have “Use the AI "
+                "assistant”.",
+                "لمن: من ينشئ الاستعلامات والتقارير ولوحات المعلومات، ويملك «استخدام المساعد "
+                "الذكي»."), italic=True)
+    para(doc, T("The AI assistant is an AI model that runs on the Jadwal server itself. It helps "
+                "you understand a query, fix one that fails, write a new one from a description, "
+                "and prepare a first version of a report or a dashboard. Nothing is sent outside "
+                "your organisation.",
+                "المساعد الذكي نموذج ذكاء اصطناعي يعمل على خادم «جدول» نفسه. يساعدك على فهم "
+                "الاستعلام، وإصلاح الاستعلام الذي يفشل، وكتابة استعلام جديد من وصف، وإعداد نسخة "
+                "أولى من تقرير أو لوحة معلومات. ولا يُرسل شيء إلى خارج جهتك."))
+    note(doc, T("The assistant only prepares drafts. Nothing it writes runs or is saved by "
+                "itself: it goes into the normal form, and you check it, test it and save it "
+                "yourself — with the same checks as anything you type. Its answers can be wrong, "
+                "so always read them before relying on them.",
+                "المساعد يُعدّ مسودات فقط. ولا يعمل شيء مما يكتبه ولا يُحفظ من تلقاء نفسه: بل يوضع "
+                "في النموذج المعتاد، فتراجعه وتختبره وتحفظه بنفسك — بالفحوص نفسها التي يمر بها أي "
+                "شيء تكتبه. وقد تكون إجاباته خاطئة، فاقرأها دائمًا قبل أن تعتمد عليها."),
+         kind="warning")
+
+    h2(doc, T("17.1 Before you start", "١٧.١ قبل أن تبدأ"))
+    para(doc, T("The AI buttons appear only when all of these are in place. An administrator sets "
+                "them up once.",
+                "لا تظهر أزرار الذكاء الاصطناعي إلا إذا تحققت كل هذه الأمور. ويُعدّها المسؤول مرة "
+                "واحدة."))
+    numbered(doc, [
+        T("The AI service is installed on the server, and System Settings → AI assistant says "
+          "“Ready”. (Installing it is described in the system documentation, docs/deploy.html.)",
+          "خدمة الذكاء الاصطناعي مثبّتة على الخادم، وتظهر «جاهز» في إعدادات النظام ← المساعد "
+          "الذكي. (طريقة تثبيتها في توثيق النظام، docs/deploy.html.)"),
+        T("“Offer the AI assistant” is on in the same place.",
+          "مفتاح «إتاحة المساعد الذكي» مفعّل في المكان نفسه."),
+        T("Your role has “Use the AI assistant”, and also the permission of the page you work "
+          "on: “Create and edit queries”, “Create and edit reports” or “Create and edit "
+          "dashboards”. The AI adds a helper; it never opens a page you could not open before.",
+          "دورك يملك «استخدام المساعد الذكي»، ويملك أيضًا صلاحية الصفحة التي تعمل فيها: «إنشاء "
+          "الاستعلامات وتعديلها» أو «إنشاء التقارير وتعديلها» أو «إنشاء لوحات المعلومات "
+          "وتعديلها». فالذكاء الاصطناعي يضيف مساعدًا فقط، ولا يفتح صفحة لم تكن تستطيع فتحها."),
+        T("To write SQL from a description, the connection you use has “Allow AI” switched on "
+          "(13). Switch it on only for connections whose database login can read but not change "
+          "data.",
+          "لكتابة SQL من وصف، يجب أن يكون مفتاح «السماح للذكاء الاصطناعي» مفعّلًا في الاتصال "
+          "الذي تستخدمه (١٣). ولا تفعّله إلا للاتصالات التي يستطيع حسابها القراءة دون تعديل "
+          "البيانات."),
+    ])
+    figure(doc, "56-ai-settings",
+           T("The AI assistant settings, under System Settings.",
+             "إعدادات المساعد الذكي في صفحة إعدادات النظام."))
+    table(doc,
+          [T("Setting", "الإعداد"), T("Default", "الافتراضي"), T("What it does", "ماذا يفعل")],
+          [
+              [T("Offer the AI assistant", "إتاحة المساعد الذكي"), T("On", "مفعَّل"),
+               T("Shows the AI buttons to people who have “Use the AI assistant”. The line under "
+                 "it says whether the AI service answers.",
+                 "يُظهر أزرار الذكاء الاصطناعي لمن يملك «استخدام المساعد الذكي». والسطر تحته "
+                 "يبيّن هل ترد خدمة الذكاء الاصطناعي.")],
+              [T("Allow AI on the default connection", "السماح للذكاء الاصطناعي بالاتصال الافتراضي"),
+               T("Off", "متوقف"),
+               T("Lets the AI read the tables of Jadwal's own database. Jadwal's own tables are "
+                 "always hidden.",
+                 "يسمح للذكاء الاصطناعي بقراءة جداول قاعدة بيانات «جدول» نفسها. وجداول النظام "
+                 "مخفية دائمًا.")],
+              [T("Show the AI a few example values", "عرض بضع قيم أمثلة على الذكاء الاصطناعي"),
+               T("Off", "متوقف"),
+               T("When writing SQL, the AI also sees up to five example values from each text "
+                 "column of the tables you pick, so it knows a status is written “A”, not "
+                 "“Active”. Off: only names, types and keys.",
+                 "عند كتابة SQL، يرى الذكاء الاصطناعي أيضًا حتى خمس قيم أمثلة من كل عمود نصي في "
+                 "الجداول التي تختارها، فيعرف أن الحالة مكتوبة «A» وليس «Active». وعند الإيقاف: "
+                 "الأسماء والأنواع والمفاتيح فقط.")],
+              [T("Rules for the AI", "قواعد الذكاء الاصطناعي"), "—",
+               T("Your organisation's own rules, up to 4000 characters, added to every request "
+                 "that explains, fixes or writes SQL. For example: “Deleted or inactive employees "
+                 "have EMP_STATUS other than 'Active'; leave them out unless asked.”",
+                 "قواعد جهتك الخاصة، حتى ٤٠٠٠ حرف، تُضاف إلى كل طلب يشرح SQL أو يصلحه أو يكتبه. "
+                 "مثال: «الموظفون المحذوفون أو غير النشطين حالتهم EMP_STATUS غير 'Active'؛ "
+                 "استبعدهم ما لم يُطلب غير ذلك».")],
+          ],
+          widths=[2.0, 0.8, 3.8])
+
+    h2(doc, T("17.2 Explain a query", "١٧.٢ شرح الاستعلام"))
+    para(doc, T("In the query form, the “Explain with AI” button above the SQL box (the sparkle "
+                "icon) describes what the query does, in the language of the screen: a short "
+                "summary, the steps, and things worth checking. It is useful for a query someone "
+                "else wrote, or before you change one.",
+                "في نموذج الاستعلام، يصف زر «اشرح بالذكاء الاصطناعي» فوق خانة SQL (أيقونة "
+                "النجمة) ما يفعله الاستعلام بلغة الشاشة: ملخصًا قصيرًا، والخطوات، وأمورًا تستحق "
+                "الانتباه. وهو مفيد مع استعلام كتبه غيرك، أو قبل أن تغيّر استعلامًا."))
+    figure(doc, "57-ai-explain",
+           T("A query explained by the AI.", "استعلام شرحه الذكاء الاصطناعي."))
+    para(doc, T("Only the SQL and the type of database are sent — no tables and no data.",
+                "لا يُرسل إلا نص SQL ونوع قاعدة البيانات — بلا جداول ولا بيانات."))
+
+    h2(doc, T("17.3 Suggest a fix after a failed test", "١٧.٣ اقتراح حل بعد فشل الاختبار"))
+    para(doc, T("When Test (6.3) ends with a database error, the test window offers “Suggest a fix”. "
+                "The AI reads the SQL and the error and proposes corrected SQL, with every changed "
+                "word marked.",
+                "عندما ينتهي «اختبار» (٦.٣) بخطأ من قاعدة البيانات، تعرض نافذة الاختبار زر «اقترح "
+                "حلًا». فيقرأ الذكاء الاصطناعي نص SQL والخطأ، ويقترح نصًا مصحَّحًا مع تعليم كل "
+                "كلمة تغيّرت."))
+    figure(doc, "57a-ai-fix",
+           T("A suggested fix. The changed words are marked.",
+             "حل مقترح، والكلمات التي تغيّرت مُعلَّمة."))
+    numbered(doc, [
+        T("Read each marked word. A small model sometimes changes a name it should have copied.",
+          "اقرأ كل كلمة مُعلَّمة. فالنموذج الصغير يغيّر أحيانًا اسمًا كان يجب أن ينسخه كما هو."),
+        T("Press “Use this SQL” to put it in the SQL box.",
+          "اضغط «استخدم هذا الاستعلام» ليوضع في خانة SQL."),
+        T("Test again before saving.", "اختبره مرة أخرى قبل الحفظ."),
+    ])
+    para(doc, T("A suggestion is shown only if it is the same kind of statement as the original "
+                "(a fix to a SELECT stays a SELECT) and passes the safety rules. If the AI cannot "
+                "find a fix from the SQL alone, it says so.",
+                "لا يظهر الاقتراح إلا إذا كان من نوع الجملة الأصلية نفسه (إصلاح SELECT يبقى "
+                "SELECT) واجتاز قواعد الأمان. وإن لم يستطع الذكاء الاصطناعي إيجاد حل من نص SQL "
+                "وحده، يقول ذلك."))
+
+    h2(doc, T("17.4 Write SQL from a description", "١٧.٤ كتابة SQL من وصف"))
+    para(doc, T("The “Write with AI” button (beside “Explain with AI”) writes a new SELECT from what "
+                "you describe.",
+                "يكتب زر «اكتب بالذكاء الاصطناعي» (بجانب «اشرح بالذكاء الاصطناعي») استعلام SELECT "
+                "جديدًا مما تصفه."))
+    numbered(doc, [
+        T("Choose the connection. Only connections with “Allow AI” are listed.",
+          "اختر الاتصال. ولا تظهر إلا الاتصالات المفعَّل فيها «السماح للذكاء الاصطناعي»."),
+        T("Tick the tables and views the query needs, at most 10. Use “Search tables” to find "
+          "them, and “Read the tables again” if a table was added recently.",
+          "علّم الجداول والعروض التي يحتاجها الاستعلام، ١٠ على الأكثر. استخدم «ابحث في الجداول» "
+          "للعثور عليها، و«اقرأ الجداول من جديد» إن أُضيف جدول حديثًا."),
+        T("Under “What should the query return?”, describe it in your own words, in English or "
+          "Arabic. Then press “Write”.",
+          "في خانة «ماذا يجب أن يعرض الاستعلام؟» صِفه بكلماتك، بالعربية أو الإنجليزية. ثم اضغط «اكتب»."),
+        T("Read the answer: the SQL, what it does, the search criteria it uses, and notes on "
+          "anything that was corrected. Press “Use this SQL”.",
+          "اقرأ الإجابة: نص SQL، وما يفعله، ومعايير البحث التي يستخدمها، وملاحظات على كل ما "
+          "صُحّح. ثم اضغط «استخدم هذا الاستعلام»."),
+        T("The SQL goes into the SQL box and the new search criteria are added to the form. Test "
+          "it, then save.",
+          "يوضع نص SQL في خانته، وتُضاف معايير البحث الجديدة إلى النموذج. اختبره ثم احفظه."),
+    ])
+    figure(doc, "58-ai-write-request",
+           T("Writing SQL with AI: the connection, the tables picked, and the description.",
+             "كتابة SQL بالذكاء الاصطناعي: الاتصال، والجداول المختارة، والوصف."))
+    figure(doc, "58a-ai-write-result",
+           T("The SQL the AI wrote, with the search criteria it uses.",
+             "نص SQL الذي كتبه الذكاء الاصطناعي، مع معايير البحث التي يستخدمها."))
+    para(doc, T("The AI is told Jadwal's own rules, so the SQL fits how Jadwal runs it: values "
+                "come in as search criteria, an empty optional criterion matches everything, and "
+                "several values work only inside IN (…). The system checks each search criterion "
+                "it suggests and corrects it if needed — for example, it makes a criterion "
+                "required if the SQL cannot handle it empty — and adds a note each time. Criteria "
+                "already on your form are reused and marked “already in the form”.",
+                "يُعطى الذكاء الاصطناعي قواعد «جدول» نفسها، فيناسب نص SQL طريقة تشغيله: القيم تأتي "
+                "معاييرَ بحث، والمعيار الاختياري الفارغ يطابق كل شيء، والقيم المتعددة لا تعمل إلا "
+                "داخل IN (…). ويفحص النظام كل معيار بحث يقترحه ويصحّحه عند الحاجة — مثلًا يجعله "
+                "مطلوبًا إذا كان نص SQL لا يتعامل معه فارغًا — ويضيف ملاحظة في كل مرة. والمعايير "
+                "الموجودة في نموذجك يُعاد استخدامها وتُعلَّم بعبارة «موجود في النموذج»."))
+
+    h2(doc, T("17.5 Draft a dashboard", "١٧.٥ مسودة لوحة معلومات"))
+    para(doc, T("In the dashboard form, “Draft with AI” proposes tiles from saved queries.",
+                "في نموذج لوحة المعلومات، يقترح زر «مسودة بالذكاء الاصطناعي» عناصر من استعلامات "
+                "محفوظة."))
+    numbered(doc, [
+        T("Tick up to 6 queries, and optionally say what the dashboard is for.",
+          "علّم حتى ٦ استعلامات، واكتب إن شئت الغرض من اللوحة."),
+        T("Press “Draft”. Each query runs once so the AI can see its columns.",
+          "اضغط «أعدّ المسودة». ويعمل كل استعلام مرة واحدة ليرى الذكاء الاصطناعي أعمدته."),
+        T("Read the proposed tiles and the notes, then press “Use this draft”. The tiles are "
+          "added to the form, not saved. Adjust them, then save.",
+          "اقرأ العناصر المقترحة والملاحظات، ثم اضغط «استخدم هذه المسودة». فتُضاف العناصر إلى "
+          "النموذج دون حفظ. عدّلها ثم احفظ."),
+    ])
+    figure(doc, "59-ai-dashboard-draft",
+           T("A dashboard drafted by the AI, before it is used.",
+             "لوحة أعدّ مسودتها الذكاء الاصطناعي، قبل استخدامها."))
+    para(doc, T("Only column names, their kind and how many different values they have reach the "
+                "AI — never the values. The system checks every tile against the real columns, "
+                "sets the sizes, and builds the dashboard filters from the queries' own search "
+                "criteria.",
+                "لا يصل إلى الذكاء الاصطناعي إلا أسماء الأعمدة ونوعها وعدد قيمها المختلفة — ولا "
+                "تصل القيم أبدًا. ويفحص النظام كل عنصر مقابل الأعمدة الحقيقية، ويحدد الأحجام، "
+                "ويبني مرشحات اللوحة من معايير بحث الاستعلامات نفسها."))
+
+    h2(doc, T("17.6 Draft a report", "١٧.٦ مسودة تقرير"))
+    para(doc, T("In the report form, “Draft with AI” works the same way: tick up to 6 queries, "
+                "optionally say what the report is for, and press “Draft”. Each query becomes a "
+                "section with a title; the report's search criteria and how they feed each query "
+                "are built by the system; charts are suggested where they make sense.",
+                "في نموذج التقرير، يعمل زر «مسودة بالذكاء الاصطناعي» بالطريقة نفسها: علّم حتى ٦ "
+                "استعلامات، واكتب إن شئت الغرض من التقرير، واضغط «أعدّ المسودة». فيصبح كل استعلام "
+                "قسمًا له عنوان، ويبني النظام معايير بحث التقرير وطريقة تمريرها إلى كل استعلام، "
+                "وتُقترح المخططات حيث يكون لها معنى."))
+    figure(doc, "59a-ai-report-draft",
+           T("A report drafted by the AI: its sections and charts.",
+             "تقرير أعدّ مسودته الذكاء الاصطناعي: أقسامه ومخططاته."))
+    para(doc, T("Some things the report form cannot hold are changed and listed in the notes — "
+                "for example, a date shortcut such as “last 30 days” becomes the fixed date it "
+                "means today. Joining queries, master and detail sections, and the Word template "
+                "stay your job.",
+                "بعض ما لا يتسع له نموذج التقرير يُغيَّر ويُذكر في الملاحظات — مثلًا، اختصار "
+                "التاريخ مثل «آخر ٣٠ يومًا» يصبح التاريخ الثابت الذي يعنيه اليوم. أما ربط "
+                "الاستعلامات، والأقسام الرئيسية والتفصيلية، وقالب Word فتبقى من عملك."))
+
+    h2(doc, T("17.7 Good to know", "١٧.٧ أمور يجدر معرفتها"))
+    bullets(doc, [
+        (T("It takes time. ", "يستغرق وقتًا. "),
+         T("On a server with a suitable graphics card an answer takes seconds; without one it "
+           "can take a few minutes. Keep the window open while it works.",
+           "على خادم فيه بطاقة رسومات مناسبة تأتي الإجابة في ثوانٍ، وبدونها قد تستغرق بضع دقائق. "
+           "أبقِ النافذة مفتوحة أثناء العمل.")),
+        (T("Every request is recorded. ", "كل طلب يُسجَّل. "),
+         T("The system audit (14.2) shows who asked the AI for what, and the answer.",
+           "يبيّن سجل عمليات النظام (١٤.٢) من طلب ماذا من الذكاء الاصطناعي، والإجابة.")),
+        (T("It sees only what you pick. ", "لا يرى إلا ما تختاره. "),
+         T("The AI reads only the tables you tick, through the connection's own login, so it "
+           "can never see more than that login can.",
+           "لا يقرأ الذكاء الاصطناعي إلا الجداول التي تعلّمها، عبر حساب الاتصال نفسه، فلا يرى "
+           "أبدًا أكثر مما يراه ذلك الحساب.")),
+        (T("It cannot change data. ", "لا يستطيع تعديل البيانات. "),
+         T("SQL from the AI must be a SELECT, or the same kind as the query it fixes, and it "
+           "always goes through Test and Save like anything else.",
+           "يجب أن يكون نص SQL من الذكاء الاصطناعي SELECT، أو من نوع الاستعلام الذي يصلحه، "
+           "ويمر دائمًا بالاختبار والحفظ مثل أي شيء آخر.")),
+    ])
+
+    page_break(doc)
+
+    # ===================================================================== 18
+    h1(doc, T("18. Appendix A — Frequently asked questions",
+              "١٨. الملحق أ — أسئلة شائعة"))
     table(doc,
           [T("Question", "السؤال"), T("Answer", "الجواب")],
           [
@@ -3684,18 +3932,30 @@ def build_manual(doc):
                  "حدد أحدهم مدة الاحتفاظ بالسجلات في إعدادات النظام (١٦.١)، فتُحذف الأسطر "
                  "الأقدم منها. ويسجّل سجل عمليات النظام كل عملية تنظيف وعدد الأسطر التي "
                  "حذفتها.")],
+              [T("I do not see the AI buttons.", "لا أرى أزرار الذكاء الاصطناعي."),
+               T("Your role needs “Use the AI assistant”, “Offer the AI assistant” must be on in "
+                 "System Settings, and the AI service must be ready (17.1).",
+                 "يحتاج دورك إلى «استخدام المساعد الذكي»، ويجب أن يكون «إتاحة المساعد الذكي» "
+                 "مفعّلًا في إعدادات النظام، وأن تكون خدمة الذكاء الاصطناعي جاهزة (١٧.١).")],
+              [T("The AI takes minutes to answer, or says it took too long.",
+                 "الذكاء الاصطناعي يستغرق دقائق، أو يقول إنه تأخر."),
+               T("The server has no suitable graphics card, so the model runs on the processor. "
+                 "Try again with fewer tables or queries, or ask IT about a graphics card.",
+                 "الخادم بلا بطاقة رسومات مناسبة، فيعمل النموذج على المعالج. حاول مرة أخرى بعدد "
+                 "أقل من الجداول أو الاستعلامات، أو اسأل فريق تقنية المعلومات عن بطاقة رسومات.")],
           ],
           widths=[2.2, 4.4])
 
-    h1(doc, T("18. Appendix B — Making this manual again",
-              "١٨. الملحق ب — إعادة إنشاء هذا الدليل"))
+    h1(doc, T("19. Appendix B — Making this manual again",
+              "١٩. الملحق ب — إعادة إنشاء هذا الدليل"))
     para(doc, T("This document is made by a program, not typed by hand. After the system "
                 "changes, make it again so the pictures and text match the new version.",
                 "هذا المستند يصنعه برنامج، ولا يُكتب يدويًا. وبعد أي تغيير في النظام أعد "
                 "إنشاءه حتى تطابق الصور والنصوص النسخة الجديدة."))
     numbered(doc, [
-        T("Start the API and the Angular client (see the project README).",
-          "شغّل خادم API وواجهة Angular (انظر ملف README للمشروع)."),
+        T("Start the API and the Angular client (see docs/development.html in the system "
+          "documentation).",
+          "شغّل خادم API وواجهة Angular (انظر docs/development.html في توثيق النظام)."),
         T("From docs/user-manual, run:  npm install   (first time only)",
           "من المجلد docs/user-manual نفّذ:  npm install   (في المرة الأولى فقط)"),
         T("Run:  npm run manual", "نفّذ:  npm run manual"),

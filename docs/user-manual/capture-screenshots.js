@@ -6,6 +6,7 @@
  *   --locales ar           which languages to capture (default: both)
  *   MANUAL_LOCALES=en,ar   same, as an environment variable
  *   MANUAL_THEME=dark      which theme the screenshots use (default: dark)
+ *   MANUAL_ONLY=^AI        re-capture only the steps whose name matches this pattern
  *
  * Output lands in screenshots/<locale>/, so the English manual gets English screenshots and
  * the Arabic manual gets right-to-left Arabic ones.
@@ -42,6 +43,8 @@ const argOf = (name) => {
 // and group names are content, not translations — see seed-demo-data.js).
 const LOCALES = (argOf('locales') || process.env.MANUAL_LOCALES || 'en,ar').split(',').map(s => s.trim());
 const THEME = process.env.MANUAL_THEME || 'dark';
+// Re-capture a few pictures without redoing all of them, e.g. MANUAL_ONLY='^AI'.
+const ONLY = process.env.MANUAL_ONLY ? new RegExp(process.env.MANUAL_ONLY, 'i') : null;
 
 const I18N_DIR = path.join(__dirname, '..', '..', 'client', 'src', 'assets', 'i18n');
 const LOCALE_LABEL = { en: 'English', ar: 'العربية' };
@@ -224,7 +227,11 @@ async function captureLocale(browser, locale, sample) {
     /\/api\/user\/dashboards\/[^/]+\/tiles\/[^/]+\/(data|rows)$/,
     // A test run from the query editor. It never commits: a write runs inside a transaction
     // that is always rolled back, and the capture only ever tests the sample SELECT.
-    /\/api\/admin\/dynamicqueries\/test$/
+    /\/api\/admin\/dynamicqueries\/test$/,
+    // The AI assistant: explaining, fixing, writing and drafting only *return* a suggestion.
+    // Nothing is applied — the capture closes each dialog without using the answer — and the
+    // only row written is the request's own entry in the system audit.
+    /\/api\/admin\/ai\/(explain-sql|suggest-fix|write-sql|draft-report|draft-dashboard)$/
   ];
   await ctx.route('**/api/**', async (route) => {
     const request = route.request();
@@ -267,6 +274,7 @@ async function captureLocale(browser, locale, sample) {
   };
 
   const step = async (name, fn) => {
+    if (ONLY && !ONLY.test(name)) return;
     try { await fn(); }
     catch (e) {
       failed.push(`${name}: ${e.message.split('\n')[0]}`);
@@ -418,7 +426,8 @@ async function captureLocale(browser, locale, sample) {
   });
   await step('expanded SQL editor', async () => {
     await go('/admin/queries/edit/' + S.read, 'app-sql-editor .cm-content');
-    await page.locator('.expand-sql').click();
+    // Several icon buttons share .expand-sql (the AI ones too); pick the expand one by its label.
+    await page.click(`button[aria-label=${JSON.stringify(T('admin.queryForm.expandSql'))}]`);
     await page.waitForSelector('app-sql-expand-dialog .cm-content');
     await page.waitForTimeout(500);
     await shot('14a-query-sql-expanded');
@@ -750,6 +759,107 @@ async function captureLocale(browser, locale, sample) {
     await go('/user/history', 'table');
     await shot('70-execution-history');
   });
+
+  // ---- 56-59 AI assistant ---------------------------------------------------
+  // These ask the real AI model, so each one waits minutes, not seconds, on a machine without a
+  // graphics card. The answers differ from run to run: look at the pictures before publishing.
+  const AI_WAIT = 420000;
+  const dialog = () => page.locator('mat-dialog-container').last();
+  const pickByTitle = async (scope, names) => {
+    for (const name of names) {
+      await page.locator(`${scope} mat-list-option`)
+        .filter({ has: page.getByText(name, { exact: true }) }).first().click();
+      await page.waitForTimeout(200);
+    }
+  };
+  // The draft queries avoid one whose required drop-down is filled from another query: profiling
+  // cannot give it a value yet, so the draft would leave that query out.
+  const AI_TEXT = locale === 'ar' ? {
+    write: 'لكل عميل: عدد طلباته وإجمالي مبالغها بين تاريخين. جمّع حسب العميل، ورتّب حسب الإجمالي من الأكبر.',
+    dashboardQueries: ['ملخص المبيعات اليومي', 'أكبر العملاء من حيث الإيرادات', 'الفواتير المستحقة'],
+    dashboardGoal: 'نظرة عامة على المبيعات للمديرين.',
+    reportQueries: ['أكبر العملاء من حيث الإيرادات', 'الفواتير المستحقة', 'ملخص المبيعات اليومي'],
+    reportGoal: 'ملخص شهري للمبيعات والتحصيل للإدارة.'
+  } : {
+    write: 'For each customer: the number of orders and their total amount between two dates. Group by customer, sort by the total, biggest first.',
+    dashboardQueries: ['Daily Sales Summary', 'Top Customers by Revenue', 'Outstanding Invoices'],
+    dashboardGoal: 'A sales overview for managers.',
+    reportQueries: ['Top Customers by Revenue', 'Outstanding Invoices', 'Daily Sales Summary'],
+    reportGoal: 'A monthly sales and collections summary for management.'
+  };
+
+  await step('AI settings', async () => {
+    await go('/admin/settings', 'mat-slide-toggle');
+    const card = page.locator('mat-card').filter({ hasText: T('admin.settings.aiInstructions') }).first();
+    await page.waitForFunction(
+      (busy) => !document.body.innerText.includes(busy), T('admin.settings.aiStatusChecking'), { timeout: 30000 }).catch(() => {});
+    await shotOf('56-ai-settings', card);
+  });
+  await step('AI explain', async () => {
+    await go('/admin/queries/edit/' + S.read, 'app-sql-editor .cm-content');
+    await page.click(`button[aria-label=${JSON.stringify(T('admin.ai.explain'))}]`);
+    await page.waitForSelector('app-ai-explain-dialog .summary, app-ai-explain-dialog .ai-error', { timeout: AI_WAIT });
+    await page.waitForTimeout(500);
+    await shotOf('57-ai-explain', dialog());
+    await closeOverlay();
+  });
+  await step('AI suggest a fix', async () => {
+    // GROUP without BY: the database refuses it, and the fix is one word.
+    await go('/admin/queries/create', 'app-sql-editor .cm-content');
+    await page.locator('app-sql-editor .cm-content').click();
+    await page.keyboard.insertText('SELECT REGION, SUM(TOTAL_AMOUNT) AS TOTAL_SALES\nFROM ORDERS\nGROUP REGION\nORDER BY TOTAL_SALES DESC');
+    await page.locator('.actions button').filter({ hasText: T('admin.queryForm.test') }).click();
+    await page.waitForSelector('app-query-test-dialog');
+    await page.locator('app-query-test-dialog mat-dialog-actions button').last().click();
+    await page.waitForSelector('app-query-test-dialog .test-error', { timeout: 60000 });
+    await page.locator('app-query-test-dialog mat-dialog-actions button').filter({ hasText: T('admin.ai.suggestFix') }).click();
+    await page.locator('app-query-test-dialog pre.fixed-sql')
+      .or(page.getByText(T('admin.ai.fixUnchanged')))
+      .or(page.locator('app-query-test-dialog .ai-error'))
+      .first().waitFor({ timeout: AI_WAIT });
+    await page.waitForTimeout(500);
+    await shotOf('57a-ai-fix', dialog());
+    await closeOverlay();
+  });
+  await step('AI write SQL', async () => {
+    await go('/admin/queries/create', 'app-sql-editor .cm-content');
+    await page.click(`button[aria-label=${JSON.stringify(T('admin.ai.write'))}]`);
+    await page.waitForSelector('app-ai-write-sql-dialog mat-list-option', { timeout: 120000 });
+    for (const table of ['ORDERS', 'CUSTOMERS']) {
+      await page.locator('app-ai-write-sql-dialog mat-list-option')
+        .filter({ has: page.locator('.object-name', { hasText: new RegExp(`(^|\\.)${table}$`) }) })
+        .first().click();
+      await page.waitForTimeout(200);
+    }
+    await page.locator('app-ai-write-sql-dialog textarea').fill(AI_TEXT.write);
+    await page.waitForTimeout(300);
+    await shotOf('58-ai-write-request', dialog());
+    await page.locator('app-ai-write-sql-dialog mat-dialog-actions')
+      .getByRole('button', { name: T('admin.ai.writeRun'), exact: true }).click();
+    await page.waitForSelector('app-ai-write-sql-dialog pre.sql, app-ai-write-sql-dialog .ai-error', { timeout: AI_WAIT });
+    await page.waitForTimeout(500);
+    await shotOf('58a-ai-write-result', dialog());
+    await closeOverlay();
+  });
+  const draft = async (url, dialogTag, queries, goal, name) => {
+    await go(url, 'form');
+    await page.locator('.page-header button').filter({ hasText: T('admin.ai.draftDashboard') }).click();
+    await page.waitForSelector(`${dialogTag} mat-list-option`, { timeout: 60000 });
+    await pickByTitle(dialogTag, queries);
+    await page.locator(`${dialogTag} textarea`).fill(goal);
+    await page.locator(`${dialogTag} mat-dialog-actions`)
+      .getByRole('button', { name: T('admin.ai.draftRun'), exact: true }).click();
+    await page.locator(`${dialogTag} mat-dialog-actions`).getByRole('button', { name: T('admin.ai.draftUse') })
+      .or(page.locator(`${dialogTag} .ai-error`))
+      .first().waitFor({ timeout: AI_WAIT });
+    await page.waitForTimeout(500);
+    await shotOf(name, dialog());
+    await closeOverlay();
+  };
+  await step('AI dashboard draft', async () =>
+    draft('/admin/dashboards/create', 'app-ai-dashboard-draft-dialog', AI_TEXT.dashboardQueries, AI_TEXT.dashboardGoal, '59-ai-dashboard-draft'));
+  await step('AI report draft', async () =>
+    draft('/admin/reports/create', 'app-ai-report-draft-dialog', AI_TEXT.reportQueries, AI_TEXT.reportGoal, '59a-ai-report-draft'));
 
   // ---- 80-81 The alternatives to the defaults ------------------------------
   // The manual is illustrated in the default theme and its own language, so these two show

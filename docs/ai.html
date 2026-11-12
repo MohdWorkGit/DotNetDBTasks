@@ -247,14 +247,17 @@
     <p>Jadwal talks to the model through the OpenAI-compatible API that Ollama, llama.cpp and Foundry Local all
       offer, so the runtime and the model are a setting, not code. The offline AI bundle carries
       <strong>Gemma 4 12B</strong> and <strong>Qwen3.5 9B</strong> (about 18 GB together). The installer reads the GPU and
-      suggests one: 12 GB of video memory or more, Gemma 4 12B (best Arabic at its size); less, Qwen3.5 9B.</p>
+      suggests one: 12 GB of video memory or more, Gemma 4 12B (best Arabic at its size); less, Qwen3.5 9B. Until there is room or a
+      graphics card for those, a small bundle with <strong>Qwen3 4B</strong> (about 2.5 GB) works as a stopgap: it is the model the
+      timings below were measured with, so expect minutes per answer on a CPU and rougher SQL.</p>
   </div>
   <div lang="ar">
     <h2>النماذج والعتاد</h2>
     <p>يتصل «جدول» بالنموذج عبر واجهة متوافقة مع OpenAI يقدّمها كل من Ollama وllama.cpp وFoundry Local، فالبرنامج المشغّل والنموذج
       إعداد لا شيفرة. وحزمة الذكاء الاصطناعي تحمل <strong>Gemma 4 12B</strong> و<strong>Qwen3.5 9B</strong> (نحو 18 غيغابايت معًا).
       ويقرأ برنامج التثبيت بطاقة الرسومات ويقترح أحدهما: 12 غيغابايت من ذاكرة الرسومات أو أكثر، Gemma 4 12B (أفضل عربية في حجمه)؛
-      وأقل من ذلك، Qwen3.5 9B.</p>
+      وأقل من ذلك، Qwen3.5 9B. وإلى أن تتوفر مساحة أو بطاقة رسومات لهما، تصلح حزمة صغيرة فيها <strong>Qwen3 4B</strong> (نحو
+      2.5 غيغابايت) حلًا مؤقتًا: هو النموذج الذي قيست به الأوقات أدناه، فتوقع دقائق لكل إجابة على المعالج، وSQL أقل دقة.</p>
   </div>
   <div class="chart-grid">
     <figure class="chart">
@@ -266,6 +269,7 @@
         "rowHead": {"en": "Model", "ar": "النموذج"},
         "valueHead": {"en": "GB on disk", "ar": "غيغابايت على القرص"},
         "rows": [
+          {"label": "Qwen3 4B", "value": 2.5, "note": {"en": "CPU or a stopgap; used on the development PC", "ar": "معالج أو حل مؤقت؛ مستخدم على جهاز التطوير"}},
           {"label": "Qwen3 8B", "value": 5, "note": {"en": "CPU, 8–16 GB RAM", "ar": "معالج، ذاكرة 8–16 غيغابايت"}},
           {"label": "Qwen3.5 9B ★", "value": 6.6, "note": {"en": "8 GB GPU, or CPU with 16 GB RAM", "ar": "بطاقة 8 غيغابايت، أو معالج مع ذاكرة 16 غيغابايت"}},
           {"label": "Gemma 4 12B ★", "value": 9.5, "note": {"en": "12–16 GB GPU, default", "ar": "بطاقة 12–16 غيغابايت، الافتراضي"}},

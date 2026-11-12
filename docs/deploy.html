@@ -105,14 +105,16 @@ docker compose up -d
     <p>Build on a connected machine; the server only needs to <em>run</em> Jadwal. (For IIS, which most
       Windows servers should use, see <a href="iis.html">IIS hosting</a>; the build and the settings below are the same.)</p>
     <p><strong>The fast way:</strong> <code>./scripts/prepare-offline-bundle.ps1 -Clean -IncludeBuild -IncludeInstallers</code>
-      builds everything below into one <code>offline-bundle/</code> folder with a <code>MANIFEST.txt</code> to follow.</p>
+      builds everything below into one <code>offline-bundle/</code> folder with a <code>MANIFEST.txt</code> to follow. It also carries this
+      documentation and the Word user manuals in its <code>docs</code> folder.</p>
   </div>
   <div lang="ar">
     <h2>نشر دون إنترنت مع nginx</h2>
     <p>ابنِ على جهاز متصل؛ فالخادم لا يحتاج إلا <em>تشغيل</em> «جدول». (أما IIS، وهو ما يناسب أغلب خوادم Windows، ففي
       <a href="iis.html">الاستضافة على IIS</a>؛ والبناء والإعدادات أدناه هي نفسها.)</p>
     <p><strong>الطريقة السريعة:</strong> الأمر <code>./scripts/prepare-offline-bundle.ps1 -Clean -IncludeBuild -IncludeInstallers</code>
-      يبني كل ما يلي في مجلد واحد <code>offline-bundle/</code> مع ملف <code>MANIFEST.txt</code> تتبعه.</p>
+      يبني كل ما يلي في مجلد واحد <code>offline-bundle/</code> مع ملف <code>MANIFEST.txt</code> تتبعه. ويحمل أيضًا هذا التوثيق ودليلي
+      المستخدم بصيغة Word في مجلد <code>docs</code>.</p>
   </div>
 
   <div lang="en"><h3>1 · Build</h3></div>
@@ -353,7 +355,17 @@ npm run build:prod</pre>
       <li>Downloads a pinned Ollama release and pulls <strong>Gemma 4 12B</strong> and <strong>Qwen3.5 9B</strong>, about 18 GB.
         Point <code>-OutDir</code> at a drive with about 20 GB free; the script checks first.</li>
       <li>The models are pulled through a private copy of Ollama on its own port, so an Ollama already on that machine is left alone.</li>
-      <li>Options: <code>-Models 'gemma4:12b'</code> for one model, <code>-IncludeRocm</code> for AMD GPUs, <code>-OllamaVersion</code>.</li>
+      <li>Options:
+        <ul>
+          <li><code>-Models 'gemma4:12b'</code> for one model, or <code>-Models 'qwen3:4b'</code> for a small model (about 2.5 GB)
+            for a CPU-only server or as a stopgap;</li>
+          <li><code>-ReuseModelsFrom "$env:USERPROFILE\.ollama\models"</code> takes models already pulled on this machine instead of
+            downloading them again (each file is checked against its checksum, and linked rather than copied on the same drive);</li>
+          <li><code>-AllowUntrustedDownload</code> for a machine that does not trust the certificate of GitHub's download host: the Ollama zip
+            is then accepted only if it matches the SHA-256 that GitHub's API publishes for it;</li>
+          <li><code>-IncludeRocm</code> for AMD GPUs, <code>-OllamaVersion</code> for another release.</li>
+        </ul></li>
+      <li>Every Ollama download is checked against the SHA-256 that GitHub publishes for it.</li>
       <li>It writes <code>ollama/</code>, <code>models/</code>, <code>install-ai-service.ps1</code>, <code>MANIFEST.txt</code> and
         <code>SHA256SUMS.txt</code>. Copy the whole folder to the server.</li>
     </ul>
@@ -363,7 +375,17 @@ npm run build:prod</pre>
       <li>ينزّل إصدارًا محددًا من Ollama ويسحب <strong>Gemma 4 12B</strong> و<strong>Qwen3.5 9B</strong>، نحو 18 غيغابايت. وجّه <code>-OutDir</code>
         إلى قرص فيه نحو 20 غيغابايت فارغة؛ والسكربت يتحقق أولًا.</li>
       <li>تُسحب النماذج عبر نسخة خاصة من Ollama على منفذ مستقل، فلا يُمس أي Ollama موجود على ذلك الجهاز.</li>
-      <li>الخيارات: <code>-Models 'gemma4:12b'</code> لنموذج واحد، و<code>-IncludeRocm</code> لبطاقات AMD، و<code>-OllamaVersion</code>.</li>
+      <li>الخيارات:
+        <ul>
+          <li><code>-Models 'gemma4:12b'</code> لنموذج واحد، أو <code>-Models 'qwen3:4b'</code> لنموذج صغير (نحو 2.5 غيغابايت)
+            لخادم بلا بطاقة رسومات أو حلًا مؤقتًا؛</li>
+          <li><code>-ReuseModelsFrom "$env:USERPROFILE\.ollama\models"</code> يأخذ النماذج المسحوبة على هذا الجهاز بدل تنزيلها من جديد
+            (يُفحص كل ملف ببصمته، ويُربط بدل نسخه إن كان على القرص نفسه)؛</li>
+          <li><code>-AllowUntrustedDownload</code> لجهاز لا يثق بشهادة خادم التنزيل في GitHub: فلا يُقبل ملف Ollama إلا إذا طابق بصمة
+            SHA-256 التي تنشرها واجهة GitHub البرمجية؛</li>
+          <li><code>-IncludeRocm</code> لبطاقات AMD، و<code>-OllamaVersion</code> لإصدار آخر.</li>
+        </ul></li>
+      <li>كل ملف Ollama يُنزَّل يُفحص مقابل بصمة SHA-256 التي ينشرها GitHub.</li>
       <li>يكتب <code>ollama/</code> و<code>models/</code> و<code>install-ai-service.ps1</code> و<code>MANIFEST.txt</code> و<code>SHA256SUMS.txt</code>.
         انسخ المجلد كاملًا إلى الخادم.</li>
     </ul>
@@ -379,7 +401,8 @@ npm run build:prod</pre>
       <li><strong>Writes <code>start-ollama.cmd</code></strong>: it listens on <strong>127.0.0.1 only</strong>, since Ollama has no
         login of its own; keeps the model loaded; answers one request at a time.</li>
       <li><strong>Registers the task "Jadwal AI (Ollama)"</strong>, started at boot as SYSTEM and restarted if it stops, then checks the models answer.</li>
-      <li><strong>Reads the GPU</strong> and prints the <code>Ai</code> section to paste: <code>gemma4:12b</code> with 12 GB or more, else <code>qwen3.5:9b</code>.</li>
+      <li><strong>Reads the GPU</strong> and prints the <code>Ai</code> section to paste: <code>gemma4:12b</code> with 12 GB or more, else <code>qwen3.5:9b</code>;
+        with neither in the bundle, the model it carries.</li>
     </ol>
     <p>Run it again to upgrade: it replaces the runtime and keeps the models already there. Then follow
       <a href="ai.html#setup">Switching it on</a>.</p>
@@ -392,7 +415,8 @@ npm run build:prod</pre>
       <li><strong>يكتب <code>start-ollama.cmd</code></strong>: يعمل على <strong>127.0.0.1 فقط</strong>، لأن Ollama بلا تسجيل دخول؛ ويُبقي النموذج
         محمَّلًا؛ ويجيب طلبًا واحدًا في كل مرة.</li>
       <li><strong>يسجّل المهمة "Jadwal AI (Ollama)"</strong>، التي تبدأ مع تشغيل الجهاز بحساب SYSTEM وتُعاد إن توقفت، ثم يتحقق من أن النماذج تجيب.</li>
-      <li><strong>يقرأ بطاقة الرسومات</strong> ويطبع القسم <code>Ai</code> لتلصقه: <code>gemma4:12b</code> مع 12 غيغابايت أو أكثر، وإلا <code>qwen3.5:9b</code>.</li>
+      <li><strong>يقرأ بطاقة الرسومات</strong> ويطبع القسم <code>Ai</code> لتلصقه: <code>gemma4:12b</code> مع 12 غيغابايت أو أكثر، وإلا <code>qwen3.5:9b</code>؛
+        وإن لم يكن أي منهما في الحزمة، فالنموذج الذي تحمله.</li>
     </ol>
     <p>شغّله مرة أخرى للترقية: يستبدل البرنامج ويُبقي النماذج الموجودة. ثم اتبع <a href="ai.html#setup">التفعيل</a>.</p>
   </div>

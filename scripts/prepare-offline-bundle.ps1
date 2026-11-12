@@ -12,7 +12,8 @@
       - queryrunner-publish/ : (optional) self-contained QueryRunner console tool
       - client-dist/     : (optional) production Angular build
       - installers/      : (optional) .NET SDK + Node.js offline installers
-      - docs/            : the documentation site (open docs\index.html), readable offline
+      - docs/            : the documentation site (open docs\index.html) and the Word user
+                           manuals, readable offline
       - MANIFEST.txt     : what's inside + how to use it on the target
 
     Copy the resulting folder to the air-gapped machine. See docs/deploy.html#offline-rebuild.
@@ -69,9 +70,9 @@ if (-not [System.IO.Path]::IsPathRooted($OutDir)) {
 # Point-in-time: bump them together at each .NET / Node.js security release, since an air-gapped
 # server only ever gets the fixes carried in on this bundle. The SDK must also be the one that
 # builds the bundle - see Preflight.
-$SdkVersion           = '10.0.403'
-$AspNetRuntimeVersion = '10.0.14'
-$NodeInstallerVersion = '24.22.2'
+$SdkVersion           = '10.0.404'
+$AspNetRuntimeVersion = '10.0.15'
+$NodeInstallerVersion = '24.22.3'
 $dotnetSdkUrl = "https://builds.dotnet.microsoft.com/dotnet/Sdk/$SdkVersion/dotnet-sdk-$SdkVersion-win-x64.exe"
 $nodeMsiUrl   = "https://nodejs.org/dist/v$NodeInstallerVersion/node-v$NodeInstallerVersion-x64.msi"
 # Required on the target server for IIS hosting (Part C): it supplies the ASP.NET Core Module,
@@ -243,6 +244,11 @@ $null = New-Item -ItemType Directory -Force -Path (Join-Path $DocsOut 'assets')
 Copy-Item (Join-Path $RepoRoot 'docs\*.html') $DocsOut -Force
 Copy-Item (Join-Path $RepoRoot 'docs\assets\*') (Join-Path $DocsOut 'assets') -Force
 Write-Ok "docs\index.html"
+# The Word user manuals, for the people who use the screens.
+$ManualOut = Join-Path $DocsOut 'user-manual'
+$null = New-Item -ItemType Directory -Force -Path $ManualOut
+Copy-Item (Join-Path $RepoRoot 'docs\user-manual\*.docx') $ManualOut -Force
+Write-Ok "docs\user-manual\ (the Word user manuals)"
 
 # --- 6. Manifest ---
 Write-Step "Writing MANIFEST.txt"
@@ -270,6 +276,7 @@ nuget-packages/        NuGet dependency closure ($nupkgCount packages).
 nuget.config.template  Drop next to Jadwal.sln (replace OFFLINE_BUNDLE_PATH).
 npm-cache/             npm cache for the Angular client.
 docs/                  The documentation: open docs\index.html in a browser.
+                       The Word user manuals (English, Arabic) are in docs\user-manual.
 $buildLine
 $installerLine
 
