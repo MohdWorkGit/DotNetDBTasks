@@ -79,6 +79,8 @@ if (-not [System.IO.Path]::IsPathRooted($OutDir)) {
     $OutDir = Join-Path $RepoRoot $OutDir
 }
 
+# "powershell -File" hands "-Models a,b" over as one string, so split comma lists here.
+$Models = @($Models | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 # The private Ollama used to pull the models: its own port, so a running one is left alone.
 $PullPort = 11535
 # Rough sizes (GB) of the default models in their Q4 form, for the free-space check.
