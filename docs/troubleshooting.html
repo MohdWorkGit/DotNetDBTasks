@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting · Jadwal documentation</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body data-page="troubleshooting" data-title-en="Troubleshooting · Jadwal documentation" data-title-ar="حل المشكلات · توثيق جدول">
+<main><div class="content">
+
+<header class="page-head">
+  <div lang="en">
+    <div class="eyebrow">Install and run</div>
+    <h1>Troubleshooting</h1>
+    <p class="lead">Every known problem, what causes it, and what to check. Type a word from the error to narrow the list.
+      The API's own log is in <code>logs\log-*.txt</code> next to it; IIS start-up failures are in Event Viewer → Application.</p>
+  </div>
+  <div lang="ar">
+    <div class="eyebrow">التثبيت والتشغيل</div>
+    <h1>حل المشكلات</h1>
+    <p class="lead">كل مشكلة معروفة، وسببها، وما يجب فحصه. اكتب كلمة من رسالة الخطأ لتضييق القائمة. سجل الـAPI في <code>logs\log-*.txt</code>
+      بجانبه، وأخطاء بدء IIS في Event Viewer ← Application.</p>
+  </div>
+</header>
+
+<section id="list">
+<div lang="en">
+  <h2>Problems and checks</h2>
+  <label class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input type="search" data-filter="#trouble-en" placeholder="Search, e.g. 500.19, LDAP, twice, AI" aria-label="Search the problems"><span class="search-count"></span></label>
+  <div id="trouble-en">
+    <div data-group><h3>Start-up and sign-in</h3><div class="table-wrap"><table><thead><tr><th>Problem</th><th>Check</th></tr></thead><tbody>
+      <tr data-item><td>The API does not start</td><td>Is the database running? Is the connection string in <code>appsettings.json</code> right? After an upgrade, ORA-00955 or ORA-01430 in the log means a schema change stopped half-way: see <a href="database.html#oracle-rules">the Oracle rules</a> and restore the backup.</td></tr>
+      <tr data-item><td>Sign-in fails</td><td>Can the server reach the LDAP or AD host? Are the bind account and the attribute names right (<code>sAMAccountName</code> for AD, <code>uid</code> for OpenLDAP)?</td></tr>
+      <tr data-item><td>Sign-in fails on a Docker stack first started as Bayan</td><td>The LDAP volumes still hold <code>dc=bayan,dc=local</code>. Remove the <code>ldap_data</code> and <code>ldap_config</code> volumes only, never <code>down -v</code>.</td></tr>
+      <tr data-item><td>Stored database passwords cannot be read</td><td><code>Encryption:Key</code> changed between builds. It must never change.</td></tr>
+      <tr data-item><td>Too many sign-in attempts (HTTP 429)</td><td>Sign-in is limited per address (<code>Auth:Login:PermitLimit</code>, 10 a minute by default). Wait a minute.</td></tr>
+      <tr data-item><td>The site is blank or shows 404 (nginx)</td><td>Does nginx's <code>root</code> point at the client's <code>browser/</code> folder?</td></tr>
+      <tr data-item><td><code>/api</code> calls return 502 (nginx)</td><td>Is the API actually running on port 5000?</td></tr>
+      <tr data-item><td>CORS errors</td><td><code>Cors:AllowedOrigins</code> must match the exact address in the browser. (Not used on IIS, where everything is one address.)</td></tr>
+    </tbody></table></div></div>
+
+    <div data-group><h3>IIS</h3><div class="table-wrap"><table><thead><tr><th>Problem</th><th>Check</th></tr></thead><tbody>
+      <tr data-item><td>HTTP 500.19, configuration locked</td><td>The authentication sections are not unlocked: run the two <code>appcmd unlock</code> commands in <a href="iis.html#sso">Windows sign-in</a>, or set authentication in IIS Manager.</td></tr>
+      <tr data-item><td>HTTP 500.19 naming <code>applicationInitialization</code></td><td>The Application Initialization feature is missing, so IIS cannot read <code>web.config</code>. Install it (<a href="iis.html#prerequisites">prerequisite 2</a>). Not the same as the locked-configuration 500.19.</td></tr>
+      <tr data-item><td>HTTP 500.30 or 502.5 at start</td><td>Hosting Bundle missing, app pool not set to No Managed Code, or the app crashed while starting: see Event Viewer → Application and <code>logs\</code>.</td></tr>
+      <tr data-item><td><code>Import-Module WebAdministration</code> fails</td><td>IIS Management Scripts and Tools missing: <code>Install-WindowsFeature Web-Scripting-Tools</code>.</td></tr>
+      <tr data-item><td>Windows sign-in asks for a password</td><td>Site opened by IP instead of host name, host not in the Local Intranet zone, or no SPN for a custom pool account.</td></tr>
+      <tr data-item><td>The sign-in form appears on a domain computer</td><td><code>Auth:EnableSso</code> is still false, or the user signed out earlier in this browser session (the automatic attempt waits until the browser is closed).</td></tr>
+    </tbody></table></div></div>
+
+    <div data-group><h3>Scheduled tasks and results</h3><div class="table-wrap"><table><thead><tr><th>Problem</th><th>Check</th></tr></thead><tbody>
+      <tr data-item><td>Every scheduled export runs twice</td><td>A web garden or a second site: <code>processModel.maxProcesses</code> must be 1, and only one site may run the app. A second process runs a second scheduler.</td></tr>
+      <tr data-item><td>Overnight schedules never run</td><td><code>idleTimeout</code> is not <code>00:00:00</code>, or <code>startMode</code> is not <code>AlwaysRunning</code>; or the API service is stopped.</td></tr>
+      <tr data-item><td>Results vanish mid-page: "no longer available"</td><td>An overlapping recycle cleared the result files, or the app restarted. Set <code>disallowOverlappingRotation</code> and turn off periodic recycles (<a href="iis.html#app-pool">app pool</a>).</td></tr>
+      <tr data-item><td>Runs stuck at "Running"</td><td>Left by a process killed before it finished. The scheduler closes these at start; if they keep appearing, the app is not stopping cleanly: check the shutdown ladder.</td></tr>
+      <tr data-item><td>Writing to a network share fails</td><td><code>ApplicationPoolIdentity</code> cannot reach shares. Use a domain service account, or a local folder.</td></tr>
+      <tr data-item><td>Writing to a folder fails</td><td>The account the API runs as needs write access to the task's output folder and its archive folder.</td></tr>
+      <tr data-item><td>The Export button is missing</td><td>Both gates must agree: the query must list the format, and the role must hold the matching <code>queries.export…</code> permission. An upgrade closes both.</td></tr>
+      <tr data-item><td>PDF ignores the Word template's look</td><td>Neither LibreOffice nor Word is installed, so the built-in layout is used. Install LibreOffice, or set <code>Export:LibreOfficePath</code>.</td></tr>
+      <tr data-item><td>A dashboard tile stays empty with a message</td><td>The viewer may open the dashboard but not run that tile's query, or its connection. Grant the query too.</td></tr>
+    </tbody></table></div></div>
+
+    <div data-group><h3>AI assistant</h3><div class="table-wrap"><table><thead><tr><th>Problem</th><th>Check</th></tr></thead><tbody>
+      <tr data-item><td>No AI buttons appear</td><td><code>Ai:Enabled</code> is false, <em>Offer the AI assistant</em> is off in System Settings, or the role lacks <em>Use the AI assistant</em>.</td></tr>
+      <tr data-item><td>AI status: "not answering"</td><td>Is the task "Jadwal AI (Ollama)" running in Task Scheduler? See <code>C:\Ollama\ollama.log</code>. <code>Ai:BaseUrl</code> must use the port given to the installer.</td></tr>
+      <tr data-item><td>AI status: "model not installed"</td><td><code>Ai:Model</code> must match a name from <code>ollama list</code> exactly, e.g. <code>gemma4:12b</code>.</td></tr>
+      <tr data-item><td>AI answers take minutes</td><td>No GPU in use. Check <code>nvidia-smi</code>, and that <code>ollama ps</code> shows the model on the GPU. On CPU only, use <code>qwen3.5:9b</code>.</td></tr>
+      <tr data-item><td>A connection is missing from Write with AI</td><td>Switch on <em>Allow AI</em> for it under Database connections (only for read-only accounts). The default connection also needs <em>Allow AI on the default connection</em>.</td></tr>
+      <tr data-item><td>The AI's answer is refused as unreadable</td><td>The model put sentences into the SQL, or wrote a statement of another kind. Try again, or use a larger model.</td></tr>
+    </tbody></table></div></div>
+
+    <div data-group><h3>Building offline</h3><div class="table-wrap"><table><thead><tr><th>Problem</th><th>Check</th></tr></thead><tbody>
+      <tr data-item><td><code>dotnet restore</code> fails offline</td><td>The NuGet cache was not copied to <code>%USERPROFILE%\.nuget\packages</code>, or <code>nuget.config</code> does not point at the offline feed. The QueryRunner needs its own restore.</td></tr>
+      <tr data-item><td><code>npm</code> tries to reach the network</td><td>Missing <code>--offline</code>, wrong <code>--cache</code> path, or <code>node_modules</code> built for another OS or CPU.</td></tr>
+      <tr data-item><td><code>npm ci --offline</code> says a package is missing</td><td>The bundle is older than a feature that added packages (Arabic, the SQL editor). Build the bundle again.</td></tr>
+      <tr data-item><td>The offline machine cannot make a self-contained build</td><td>The bundle was built with a different SDK from the one it ships. Put the script's SDK first on <code>PATH</code> and build it again.</td></tr>
+    </tbody></table></div></div>
+  </div>
+  <p class="empty-note" lang="en">Nothing matches. Try a shorter word.</p>
+</div>
+
+<div lang="ar">
+  <h2>المشكلات وما يُفحص</h2>
+  <label class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input type="search" data-filter="#trouble-ar" placeholder="ابحث، مثلًا: 500.19 أو LDAP أو مرتين أو الذكاء" aria-label="ابحث في المشكلات"><span class="search-count"></span></label>
+  <div id="trouble-ar">
+    <div data-group><h3>البدء وتسجيل الدخول</h3><div class="table-wrap"><table><thead><tr><th>المشكلة</th><th>ما يُفحص</th></tr></thead><tbody>
+      <tr data-item><td>الـAPI لا يبدأ</td><td>هل قاعدة البيانات تعمل؟ هل نص الاتصال في <code>appsettings.json</code> صحيح؟ وبعد الترقية، ظهور ORA-00955 أو ORA-01430 في السجل يعني أن تعديل المخطط توقف في منتصفه: انظر <a href="database.html#oracle-rules">قواعد Oracle</a> واسترجع النسخة الاحتياطية.</td></tr>
+      <tr data-item><td>فشل تسجيل الدخول</td><td>هل يصل الخادم إلى مضيف LDAP أو AD؟ هل حساب الربط وأسماء الخصائص صحيحة (<code>sAMAccountName</code> لـAD، و<code>uid</code> لـOpenLDAP)؟</td></tr>
+      <tr data-item><td>فشل الدخول في حزمة Docker بدأت باسم Bayan</td><td>وحدات LDAP ما زالت تحمل <code>dc=bayan,dc=local</code>. احذف وحدتي <code>ldap_data</code> و<code>ldap_config</code> فقط، ولا تستخدم <code>down -v</code> أبدًا.</td></tr>
+      <tr data-item><td>كلمات مرور قواعد البيانات المحفوظة غير مقروءة</td><td>تغيّر <code>Encryption:Key</code> بين نسختين. يجب ألا يتغير أبدًا.</td></tr>
+      <tr data-item><td>محاولات دخول كثيرة (HTTP 429)</td><td>الدخول محدود لكل عنوان (<code>Auth:Login:PermitLimit</code>، 10 في الدقيقة افتراضيًا). انتظر دقيقة.</td></tr>
+      <tr data-item><td>الموقع فارغ أو يعرض 404 (nginx)</td><td>هل يشير <code>root</code> في nginx إلى مجلد <code>browser/</code> الخاص بالواجهة؟</td></tr>
+      <tr data-item><td>طلبات <code>/api</code> تعيد 502 (nginx)</td><td>هل الـAPI يعمل فعلًا على المنفذ 5000؟</td></tr>
+      <tr data-item><td>أخطاء CORS</td><td>يجب أن يطابق <code>Cors:AllowedOrigins</code> العنوان الموجود في المتصفح تمامًا. (غير مستخدم على IIS، حيث كل شيء على عنوان واحد.)</td></tr>
+    </tbody></table></div></div>
+
+    <div data-group><h3>IIS</h3><div class="table-wrap"><table><thead><tr><th>المشكلة</th><th>ما يُفحص</th></tr></thead><tbody>
+      <tr data-item><td>HTTP 500.19، الإعدادات مقفلة</td><td>أقسام المصادقة غير مفتوحة: نفّذ أمري <code>appcmd unlock</code> في <a href="iis.html#sso">الدخول بحساب Windows</a>، أو اضبط المصادقة من IIS Manager.</td></tr>
+      <tr data-item><td>HTTP 500.19 يذكر <code>applicationInitialization</code></td><td>خاصية Application Initialization غير مثبّتة، فلا يقرأ IIS ملف <code>web.config</code>. ثبّتها (<a href="iis.html#prerequisites">المتطلب ٢</a>). وهي غير مشكلة الإعدادات المقفلة.</td></tr>
+      <tr data-item><td>HTTP 500.30 أو 502.5 عند البدء</td><td>حزمة الاستضافة غير مثبتة، أو المجمّع ليس على No Managed Code، أو تعطّل التطبيق أثناء البدء: انظر Event Viewer ← Application و<code>logs\</code>.</td></tr>
+      <tr data-item><td>فشل <code>Import-Module WebAdministration</code></td><td>أدوات وسكربتات إدارة IIS غير مثبتة: <code>Install-WindowsFeature Web-Scripting-Tools</code>.</td></tr>
+      <tr data-item><td>الدخول بحساب Windows يطلب كلمة مرور</td><td>فُتح الموقع بعنوان IP بدل اسم المضيف، أو المضيف ليس في منطقة الإنترانت المحلية، أو لا يوجد SPN لحساب المجمّع المخصص.</td></tr>
+      <tr data-item><td>يظهر نموذج الدخول على جهاز في النطاق</td><td><code>Auth:EnableSso</code> ما زال false، أو سجّل المستخدم خروجه سابقًا في جلسة المتصفح نفسها (المحاولة التلقائية تنتظر إغلاق المتصفح).</td></tr>
+    </tbody></table></div></div>
+
+    <div data-group><h3>المهام المجدولة والنتائج</h3><div class="table-wrap"><table><thead><tr><th>المشكلة</th><th>ما يُفحص</th></tr></thead><tbody>
+      <tr data-item><td>كل تصدير مجدول يعمل مرتين</td><td>أكثر من عملية أو موقع ثانٍ: يجب أن يكون <code>processModel.maxProcesses</code> يساوي 1، وموقع واحد فقط يشغّل التطبيق. فالعملية الثانية تشغّل مجدولًا ثانيًا.</td></tr>
+      <tr data-item><td>المهام الليلية لا تعمل أبدًا</td><td><code>idleTimeout</code> ليس <code>00:00:00</code>، أو <code>startMode</code> ليس <code>AlwaysRunning</code>؛ أو خدمة الـAPI متوقفة.</td></tr>
+      <tr data-item><td>تختفي النتائج أثناء التصفح: «لم تعد متاحة»</td><td>إعادة تدوير متداخلة حذفت ملفات النتائج، أو أُعيد تشغيل التطبيق. فعّل <code>disallowOverlappingRotation</code> وأوقف إعادة التدوير الدورية (<a href="iis.html#app-pool">مجمّع التطبيقات</a>).</td></tr>
+      <tr data-item><td>تشغيلات عالقة على «قيد التشغيل»</td><td>تركتها عملية قُتلت قبل أن تنتهي. يغلقها المجدول عند البدء؛ وإن استمرت بالظهور فالتطبيق لا يتوقف بسلام: افحص سلّم الإيقاف.</td></tr>
+      <tr data-item><td>فشل الكتابة في مجلد شبكة</td><td>الحساب <code>ApplicationPoolIdentity</code> لا يصل إلى مجلدات الشبكة. استخدم حساب خدمة في النطاق، أو مجلدًا محليًا.</td></tr>
+      <tr data-item><td>فشل الكتابة في مجلد</td><td>الحساب الذي يعمل به الـAPI يحتاج صلاحية الكتابة في مجلد إخراج المهمة ومجلد أرشيفها.</td></tr>
+      <tr data-item><td>زر التصدير غير موجود</td><td>يجب أن تتفق البوابتان: أن يذكر الاستعلام الصيغة، وأن يحمل الدور صلاحية <code>queries.export…</code> المقابلة. والترقية تغلق الاثنتين.</td></tr>
+      <tr data-item><td>ملف PDF يتجاهل شكل قالب Word</td><td>لا LibreOffice ولا Word مثبت، فيُستخدم التصميم المدمج. ثبّت LibreOffice، أو اضبط <code>Export:LibreOfficePath</code>.</td></tr>
+      <tr data-item><td>بطاقة لوحة تبقى فارغة مع رسالة</td><td>المشاهد يستطيع فتح اللوحة لكن لا يستطيع تشغيل استعلام تلك البطاقة أو اتصالها. امنحه الاستعلام أيضًا.</td></tr>
+    </tbody></table></div></div>
+
+    <div data-group><h3>المساعد الذكي</h3><div class="table-wrap"><table><thead><tr><th>المشكلة</th><th>ما يُفحص</th></tr></thead><tbody>
+      <tr data-item><td>لا تظهر أزرار الذكاء الاصطناعي</td><td><code>Ai:Enabled</code> قيمته false، أو <em>إتاحة المساعد الذكي</em> متوقف في إعدادات النظام، أو الدور لا يحمل <em>استخدام المساعد الذكي</em>.</td></tr>
+      <tr data-item><td>حالة الذكاء الاصطناعي: «لا ترد»</td><td>هل المهمة "Jadwal AI (Ollama)" تعمل في Task Scheduler؟ انظر <code>C:\Ollama\ollama.log</code>. ويجب أن يستخدم <code>Ai:BaseUrl</code> المنفذ الذي أُعطي لبرنامج التثبيت.</td></tr>
+      <tr data-item><td>حالة الذكاء الاصطناعي: «النموذج غير مثبّت»</td><td>يجب أن يطابق <code>Ai:Model</code> اسمًا من <code>ollama list</code> تمامًا، مثل <code>gemma4:12b</code>.</td></tr>
+      <tr data-item><td>إجابات الذكاء الاصطناعي تستغرق دقائق</td><td>بطاقة الرسومات غير مستخدمة. افحص <code>nvidia-smi</code>، وأن <code>ollama ps</code> يُظهر النموذج على البطاقة. وعلى المعالج وحده استخدم <code>qwen3.5:9b</code>.</td></tr>
+      <tr data-item><td>اتصال غير موجود في «اكتب بالذكاء الاصطناعي»</td><td>فعّل له <em>السماح للذكاء الاصطناعي</em> في مستخدمي قواعد البيانات (لحسابات القراءة فقط). والاتصال الافتراضي يحتاج أيضًا <em>السماح للذكاء الاصطناعي بالاتصال الافتراضي</em>.</td></tr>
+      <tr data-item><td>تُرفض إجابة الذكاء الاصطناعي لأنها غير مقروءة</td><td>كتب النموذج جُملًا داخل SQL، أو كتب جملة من نوع آخر. حاول مرة أخرى، أو استخدم نموذجًا أكبر.</td></tr>
+    </tbody></table></div></div>
+
+    <div data-group><h3>البناء دون إنترنت</h3><div class="table-wrap"><table><thead><tr><th>المشكلة</th><th>ما يُفحص</th></tr></thead><tbody>
+      <tr data-item><td>فشل <code>dotnet restore</code> دون إنترنت</td><td>لم تُنسخ ذاكرة NuGet إلى <code>%USERPROFILE%\.nuget\packages</code>، أو <code>nuget.config</code> لا يشير إلى مجلد الحزم. وأداة QueryRunner تحتاج استعادة خاصة بها.</td></tr>
+      <tr data-item><td><code>npm</code> يحاول الاتصال بالشبكة</td><td>ينقص <code>--offline</code>، أو مسار <code>--cache</code> خاطئ، أو <code>node_modules</code> مبني لنظام أو معالج آخر.</td></tr>
+      <tr data-item><td><code>npm ci --offline</code> يقول إن حزمة مفقودة</td><td>الحزمة أقدم من خاصية أضافت حزمًا (العربية، محرر SQL). ابنِ الحزمة من جديد.</td></tr>
+      <tr data-item><td>الجهاز المعزول لا يستطيع البناء المستقل</td><td>بُنيت الحزمة بإصدار SDK غير الذي تحمله. ضع SDK السكربت أولًا في <code>PATH</code> وابنِها من جديد.</td></tr>
+    </tbody></table></div></div>
+  </div>
+  <p class="empty-note" lang="ar">لا نتائج. جرّب كلمة أقصر.</p>
+</div>
+</section>
+
+</div></main>
+</body>
+</html>

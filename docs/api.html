@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API reference · Jadwal documentation</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body data-page="api" data-title-en="API reference · Jadwal documentation" data-title-ar="مرجع API · توثيق جدول">
+<main><div class="content">
+
+<header class="page-head">
+  <div lang="en">
+    <div class="eyebrow">For developers</div>
+    <h1>API reference</h1>
+    <p class="lead">Every endpoint the API exposes, grouped by area, with the permission each one needs. The running API also
+      describes itself at <code>/swagger</code>.</p>
+  </div>
+  <div lang="ar">
+    <div class="eyebrow">للمطورين</div>
+    <h1>مرجع API</h1>
+    <p class="lead">كل نقطة وصول يتيحها الـAPI، مجمّعة حسب المجال، مع الصلاحية التي تحتاجها كل واحدة. ويصف الـAPI نفسه أيضًا أثناء التشغيل
+      على <code>/swagger</code>.</p>
+  </div>
+</header>
+
+<section id="reading">
+  <div lang="en">
+    <h2>How to read it</h2>
+    <ul>
+      <li><strong>Sign-in.</strong> Everything uses a JWT bearer token unless marked otherwise:
+        <code>Authorization: Bearer &lt;accessToken&gt;</code> from <code>POST /api/auth/login</code>.</li>
+      <li><strong>Permission.</strong> Endpoints name a permission, not a role. <span class="perm">a | b</span> means either one is
+        enough; two badges mean both are needed. <span class="perm any">signed in</span> means any valid token;
+        <span class="perm anon">anonymous</span> means no token at all.</li>
+      <li><strong>Notes</strong> are in English on both language versions of this page, since they quote code.</li>
+    </ul>
+    <p>Some rules live in the handlers and no route list can show them:</p>
+    <ul>
+      <li>A role without <code>queries.run</code> never gains query access, however a query is granted to it.</li>
+      <li>Exporting needs two grants: the query's (or report's) allowed formats, and the matching <code>*.export*</code> permission.</li>
+      <li>Reports and dashboards never widen access: each query inside is checked as if run directly. A dashboard tile the caller
+        cannot run answers 200 with its <code>error</code> set, not 403.</li>
+      <li>Tile results are shared between viewers per tile and per set of filter values for the tile's interval; only real runs are logged.</li>
+      <li>A non-Admin cannot touch an administrator account, grant Admin, change their own roles, or join a user group.</li>
+      <li>The <code>directory.enabled</code> setting switches the whole <code>/api/admin/ldap</code> area off (503).</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h2>كيف تقرأ هذه الصفحة</h2>
+    <ul>
+      <li><strong>تسجيل الدخول.</strong> كل شيء يستخدم رمز JWT ما لم يُذكر غير ذلك:
+        <code>Authorization: Bearer &lt;accessToken&gt;</code> من <code>POST /api/auth/login</code>.</li>
+      <li><strong>الصلاحية.</strong> نقاط الوصول تطلب صلاحية لا دورًا. <span class="perm">a | b</span> تعني أن إحداهما تكفي، وشارتان تعنيان
+        أن الاثنتين مطلوبتان. <span class="perm any">signed in</span> تعني أي رمز صالح، و<span class="perm anon">anonymous</span> تعني بلا رمز إطلاقًا.</li>
+      <li><strong>الملاحظات</strong> بالإنجليزية في النسختين، لأنها تقتبس من الشيفرة.</li>
+    </ul>
+    <p>بعض القواعد في معالجات الأوامر، ولا تظهر في أي قائمة مسارات:</p>
+    <ul>
+      <li>الدور الذي لا يحمل <code>queries.run</code> لا يكتسب وصولًا إلى أي استعلام، مهما مُنح له.</li>
+      <li>التصدير يحتاج منحين: الصيغ المسموحة في الاستعلام (أو التقرير)، وصلاحية <code>*.export*</code> المقابلة.</li>
+      <li>التقارير واللوحات لا توسّع الصلاحيات: كل استعلام فيها يُفحص كأنه شُغّل مباشرة. وبطاقة اللوحة التي لا يستطيع الطالب تشغيلها تجيب بـ200
+        مع حقل <code>error</code>، لا بـ403.</li>
+      <li>نتائج البطاقات مشتركة بين المشاهدين لكل بطاقة ولكل مجموعة قيم مرشحات طوال مدة تحديثها؛ ولا يُسجَّل إلا التشغيل الفعلي.</li>
+      <li>غير المسؤول لا يستطيع المساس بحساب مسؤول، ولا منح الدور Admin، ولا تغيير أدواره، ولا الانضمام إلى مجموعة مستخدمين.</li>
+      <li>الإعداد <code>directory.enabled</code> يوقف مجال <code>/api/admin/ldap</code> كله (503).</li>
+    </ul>
+  </div>
+</section>
+
+<section id="by-area">
+  <div lang="en"><h2>Endpoints by area</h2></div>
+  <div lang="ar"><h2>نقاط الوصول حسب المجال</h2></div>
+  <figure class="chart">
+<!--API-CHART-->
+<script type="application/json">{"type": "hbar", "title": {"en": "152 endpoints across 19 areas", "ar": "152 نقطة وصول في 19 مجالًا"}, "sub": {"en": "Counted from the controllers", "ar": "محسوبة من وحدات التحكم"}, "unit": "", "rowHead": {"en": "Area", "ar": "المجال"}, "valueHead": {"en": "Endpoints", "ar": "نقاط الوصول"}, "digits": 0, "barSize": 16, "rows": [{"label": {"en": "Queries (admin)", "ar": "الاستعلامات (الإدارة)"}, "value": 21}, {"label": {"en": "Running queries", "ar": "تشغيل الاستعلامات"}, "value": 13}, {"label": {"en": "Reports (admin)", "ar": "التقارير (الإدارة)"}, "value": 13}, {"label": {"en": "Scheduled tasks", "ar": "المهام المجدولة"}, "value": 13}, {"label": {"en": "Dashboards (admin)", "ar": "لوحات المعلومات (الإدارة)"}, "value": 10}, {"label": {"en": "Active Directory", "ar": "Active Directory"}, "value": 9}, {"label": {"en": "Branding", "ar": "هوية الموقع"}, "value": 8}, {"label": {"en": "Query groups", "ar": "مجموعات الاستعلامات"}, "value": 8}, {"label": {"en": "Users", "ar": "المستخدمون"}, "value": 8}, {"label": {"en": "Database connections", "ar": "اتصالات قواعد البيانات"}, "value": 8}, {"label": {"en": "AI assistant", "ar": "المساعد الذكي"}, "value": 8}, {"label": {"en": "Running reports", "ar": "تشغيل التقارير"}, "value": 6}, {"label": {"en": "User groups", "ar": "مجموعات المستخدمين"}, "value": 6}, {"label": {"en": "Roles and permissions", "ar": "الأدوار والصلاحيات"}, "value": 6}, {"label": {"en": "Viewing dashboards", "ar": "عرض لوحات المعلومات"}, "value": 5}, {"label": {"en": "Signing in", "ar": "تسجيل الدخول"}, "value": 4}, {"label": {"en": "System settings", "ar": "إعدادات النظام"}, "value": 3}, {"label": {"en": "Audit trail", "ar": "سجل عمليات النظام"}, "value": 2}, {"label": {"en": "Transfer", "ar": "النقل"}, "value": 1}]}</script>
+<!--/API-CHART-->
+  </figure>
+</section>
+
+<!--API-TABLES-->
+<section id="auth">
+  <div lang="en"><h2>Signing in</h2></div>
+  <div lang="ar"><h2>تسجيل الدخول</h2></div>
+  <p class="route-base"><span class="route">/api/auth</span> · 4 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/auth/sso</span></td><td><span class="perm anon">anonymous</span></td><td class="wrap" dir="ltr">Windows SSO (Kerberos/NTLM). <strong>404 unless <code>Auth:EnableSso=true</code></strong> in appsettings. Provisions the account from AD with the <code>User</code> role on first sign-in and re-syncs the profile on each one. The sign-in page calls this by itself on load, so a domain user never reaches the form; the 404 and 401 paths are the silent fallback to it. Requires <code>withCredentials</code> — the browser will not perform the handshake otherwise.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/auth/login</span></td><td><span class="perm anon">anonymous</span></td><td class="wrap" dir="ltr">Username and password. Handles <strong>both</strong> local accounts (BCrypt hash) and directory accounts (LDAP bind) — the account's <code>AuthSource</code> decides which. <strong>Rate limited</strong> per client IP (<code>Auth:Login:PermitLimit</code>, default 10 per 60s); 429 when exceeded.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/auth/refresh</span></td><td><span class="perm anon">anonymous</span></td><td class="wrap" dir="ltr">Exchanges a valid refresh token for a new access token. Body carries the expired access token and the refresh token.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/auth/me</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr"><code>{ username, roles, permissions }</code>: the signed-in account and the permissions its roles add up to, read fresh. The client calls it to decide which menus to show.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>No class-level <code>[Authorize]</code>; all three are anonymous.</p>
+<p>Both <code>login</code> and <code>refresh</code> return <code>{ accessToken, refreshToken, expiresAt, username, roles }</code>. <code>expiresAt</code> is the access token's own expiry — the lifetime comes from the <code>session.accessTokenMinutes</code> setting, not from a constant.</p></div>
+</section>
+
+<section id="branding">
+  <div lang="en"><h2>Branding</h2></div>
+  <div lang="ar"><h2>هوية الموقع</h2></div>
+  <p class="route-base"><span class="route">/api/branding</span> · 8 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/branding/logo</span></td><td><span class="perm anon">anonymous</span></td><td class="wrap" dir="ltr">The logo bytes, or 404 when none is set. Anonymous because an <code>&lt;img src&gt;</code> carries no token; clients cache-bust with <code>?v=&lt;updatedAt&gt;</code>. Served <code>immutable</code>.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/branding/favicon</span></td><td><span class="perm anon">anonymous</span></td><td class="wrap" dir="ltr">The browser-tab icon, or 404 when none is set — browsers then use their own default. Anonymous because the icon is fetched for the sign-in page, before any token exists. Served <code>no-cache</code> rather than <code>immutable</code>, since the first paint has no <code>updatedAt</code> to bust with.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/branding</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr"><code>{ hasLogo, fileName, updatedAt, hasFavicon, faviconFileName, faviconUpdatedAt, siteNameEn, siteNameAr }</code> — everything the shell needs, in one call. A null site name means none is set for that language.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/branding/site-name</span></td><td><span class="perm">branding.manage</span></td><td class="wrap" dir="ltr"><code>{ siteNameEn, siteNameAr }</code>, each ≤60 chars. Both are written together; a blank one clears that language back to the application name.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/branding/logo</span></td><td><span class="perm">branding.manage</span></td><td class="wrap" dir="ltr">Upload/replace. multipart <code>file</code>, ≤1 MB, <code>.png/.jpg/.jpeg/.webp</code>, magic bytes verified (SVG is refused).</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/branding/logo</span></td><td><span class="perm">branding.manage</span></td><td class="wrap" dir="ltr">Removes it; the banner falls back to the site name, then to the application name.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/branding/favicon</span></td><td><span class="perm">branding.manage</span></td><td class="wrap" dir="ltr">Upload/replace. multipart <code>file</code>, ≤256 KB, <code>.png/.ico/.webp</code>, magic bytes verified (an ICO must be type 1, not a cursor).</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/branding/favicon</span></td><td><span class="perm">branding.manage</span></td><td class="wrap" dir="ltr">Removes it; browsers fall back to their own default.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code> (any authenticated user).</p>
+<p>The banner resolves what to show in order: logo, then the site name for the active language, then the translated application name — so it is never blank. The two names are stored in <code>SystemSettings</code> under <code>branding.siteNameEn</code> / <code>branding.siteNameAr</code>, but they are edited here under <code>branding.manage</code>, not on the Settings page under <code>settings.manage</code>.</p>
+<p>The tab icon is independent of that chain: it is a square uploaded on its own rather than the logo scaled down, and its absence means the browser's default, not a fallback of ours. Both images live in <code>SystemTemplates</code> under <code>branding-logo</code> and <code>branding-favicon</code>.</p></div>
+</section>
+
+<section id="queries">
+  <div lang="en"><h2>Queries (admin)</h2></div>
+  <div lang="ar"><h2>الاستعلامات (الإدارة)</h2></div>
+  <p class="route-base"><span class="route">/api/admin/dynamicqueries</span> · 21 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dynamicqueries</span></td><td><span class="perm">queries.view</span></td><td class="wrap" dir="ltr">All queries. <strong>SQL is blanked</strong> without <code>queries.readSql</code>.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}</span></td><td><span class="perm">queries.view</span></td><td class="wrap" dir="ltr">One query with its parameters. SQL blanked as above.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dynamicqueries</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Creates a query and its parameters. <code>queryGroupIds</code> files it in any number of groups (empty = ungrouped); an unknown id is <strong>404</strong>.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Updates a query, replacing its groups with <code>queryGroupIds</code>.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dynamicqueries/test</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Runs unsaved SQL with the given parameter values and returns at most 100 rows. Writes run inside a transaction that is always rolled back. Same safety rules as a save.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Deletes a query.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}/word-template</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Uploads this query's Word export template. multipart <code>file</code>, ≤5 MB, must be a real <code>.docx</code>.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}/word-template</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Downloads it; 404 when none.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}/word-template</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Removes it; exports fall back to the default.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dynamicqueries/default-word-template</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Uploads the system-wide default template.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dynamicqueries/default-word-template</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Downloads the default, or the built-in starter <code>.docx</code> when none is stored.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dynamicqueries/default-word-template/info</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr"><code>{ fileName, isBuiltIn }</code>.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/dynamicqueries/default-word-template</span></td><td><span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Removes the custom default.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}/export</span></td><td><span class="perm">queries.transfer</span></td><td class="wrap" dir="ltr">Exports one query as JSON.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dynamicqueries/export</span></td><td><span class="perm">queries.transfer</span></td><td class="wrap" dir="ltr">Exports every query as one JSON backup. Carries no database credentials.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dynamicqueries/import</span></td><td><span class="perm">queries.transfer</span></td><td class="wrap" dir="ltr">Restores from an export file. multipart <code>file</code>, ≤50 MB. Never overwrites — a name clash is imported as a copy.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}/roles</span></td><td><span class="perm">access.manageQuery</span></td><td class="wrap" dir="ltr">Assigns to roles. No seeded role but Admin holds this, so it starts closed.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}/user-groups</span></td><td><span class="perm">access.manageQuery</span></td><td class="wrap" dir="ltr">Assigns to user groups.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dynamicqueries/{id:guid}/users</span></td><td><span class="perm">access.manageQuery</span></td><td class="wrap" dir="ltr">Assigns to named users.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dynamicqueries/logs</span></td><td><span class="perm">logs.view</span></td><td class="wrap" dir="ltr">Execution logs, paged. Query: <code>queryId</code>, <code>userId</code>, <code>isSuccess</code>, <code>queryType</code>, <code>search</code>, <code>sortBy</code>, <code>sortDescending</code> (default true), <code>pageNumber</code> (1), <code>pageSize</code> (25, max 200).</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dynamicqueries/logs/{id:guid}/old-values</span></td><td><span class="perm">logs.view</span></td><td class="wrap" dir="ltr">Before-change row snapshots for one log. Query: <code>pageNumber</code> (1), <code>pageSize</code> (100, max 500).</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>. Every action names its own permission — an action added without one is reachable by any signed-in caller, so add one.</p></div>
+</section>
+
+<section id="running-queries">
+  <div lang="en"><h2>Running queries</h2></div>
+  <div lang="ar"><h2>تشغيل الاستعلامات</h2></div>
+  <p class="route-base"><span class="route">/api/user/queries</span> · 13 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/queries</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">Queries the caller may run.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/queries/groups</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run | reports.run</span></td><td class="wrap" dir="ltr">The same set bucketed by query group, plus an "Ungrouped" bucket.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/queries/{id:guid}</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">One accessible query; 403 when it is not.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/user/queries/{id:guid}/execute</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">Runs it. Body <code>{ parameters, confirmed }</code>. A read caches its full result server-side and returns metadata plus a <code>jobId</code> — <strong>not</strong> the rows. A write returns its preview inline, or the affected count once <code>confirmed</code>.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/queries/jobs/{jobId:guid}/rows</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span></td><td class="wrap" dir="ltr">One page of a cached result. Query: <code>pageIndex</code> (0), <code>pageSize</code> (25), <code>sortColumn</code>, <code>sortDir</code>, <code>filters</code> (JSON object of column → substring). 409 while the result is not ready; <strong>410</strong> once it is gone.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/queries/jobs/{jobId:guid}/export-file</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">Downloads the cached result — no re-run. Query: <code>format</code> = <code>xlsx</code>/<code>excel</code> (default), <code>csv</code>, <code>json</code>, <code>pdf</code>, <code>docx</code>/<code>word</code>; anything else is 400. Word and PDF use the query's template, else the system default, else the built-in starter. <strong>403</strong> unless the query permits that format <strong>and</strong> the caller's role holds the matching <code>queries.export*</code> capability. <strong>410</strong> once the job is gone.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/user/queries/{id:guid}/execute-async</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">Queues a background run for a long-running query. 202 <code>{ jobId }</code>.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/queries/jobs/{jobId:guid}</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">Status, and result metadata once finished. <strong>410</strong> once the job is gone (see below).</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/user/queries/jobs/{jobId:guid}/cancel</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">Cancels the run and stops the database command.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/user/queries/jobs/{jobId:guid}</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span></td><td class="wrap" dir="ltr">Releases the cached result immediately. Idempotent.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/queries/{queryId:guid}/parameters/{parameterId:guid}/dropdown-options</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">Options for a dropdown parameter — a static list or a lookup query. Capped by <code>query.maxRows</code>.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/queries/history</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">The caller's own execution history. Query: <code>sortBy</code>, <code>sortDescending</code> (true), <code>pageNumber</code> (1), <code>pageSize</code> (25).</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/queries/history/{id:guid}/old-values</span></td><td><span class="perm">queries.run | reports.run | dashboards.run</span> <span class="perm">queries.run</span></td><td class="wrap" dir="ltr">Before-change snapshots for one of the caller's <strong>own</strong> logs. Query: <code>pageNumber</code> (1), <code>pageSize</code> (100).</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[RequirePermission]</code> with <code>queries.run</code>, <code>reports.run</code> <strong>or</strong> <code>dashboards.run</code> — any one is enough to reach the controller, because the report viewer and the dashboard rows dialog page their cached rows through <code>GET /jobs/{jobId}/rows</code>. Every action that touches a query restates <code>queries.run</code> itself, so the other two reach only their own cached rows. Ownership of a job is checked in code — the submitting user or an Admin, otherwise 403.</p>
+<p><strong>410 Gone, and why it is not 404.</strong> The job store is in-memory, so a job id stops resolving once the result expires on its retention window, is released, or the worker process restarts under it. All three are "it was here and now it isn't", not "no such thing" — the body carries <code>{ message }</code> saying the result is no longer available and to run the query again, which the client shows verbatim. Treat it as a terminal state for a poll loop: retrying the same id will never succeed.</p>
+<p>The whole controller needs <code>queries.run</code>, and the list returns only what the caller has been granted. No seeded role but User and Admin holds it, which is why the client hides My Queries and History from the others — but it is a permission like any other, and can be granted.</p></div>
+</section>
+
+<section id="query-groups">
+  <div lang="en"><h2>Query groups</h2></div>
+  <div lang="ar"><h2>مجموعات الاستعلامات</h2></div>
+  <p class="route-base"><span class="route">/api/admin/querygroups</span> · 8 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/querygroups</span></td><td><span class="perm">queries.view</span></td><td class="wrap" dir="ltr">All query groups.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/querygroups/{id:guid}</span></td><td><span class="perm">queries.view</span></td><td class="wrap" dir="ltr">One group.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/querygroups</span></td><td><span class="perm">queryGroups.manage</span></td><td class="wrap" dir="ltr">Creates a group.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/querygroups/{id:guid}</span></td><td><span class="perm">queryGroups.manage</span></td><td class="wrap" dir="ltr">Renames/updates a group.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/querygroups/{id:guid}</span></td><td><span class="perm">queryGroups.manage</span></td><td class="wrap" dir="ltr">Deletes the group; its queries survive and become ungrouped.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/querygroups/{id:guid}/roles</span></td><td><span class="perm">access.manageGroup</span></td><td class="wrap" dir="ltr">Grants the group — and so every query in it — to roles.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/querygroups/{id:guid}/user-groups</span></td><td><span class="perm">access.manageGroup</span></td><td class="wrap" dir="ltr">Same, to user groups.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/querygroups/{id:guid}/users</span></td><td><span class="perm">access.manageGroup</span></td><td class="wrap" dir="ltr">Same, to named users.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>. Creating and editing a group is a different capability from granting one, which is what lets a role decide accessibility without being able to reorganise it.</p></div>
+</section>
+
+<section id="reports">
+  <div lang="en"><h2>Reports (admin)</h2></div>
+  <div lang="ar"><h2>التقارير (الإدارة)</h2></div>
+  <p class="route-base"><span class="route">/api/admin/reports</span> · 13 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/reports</span></td><td><span class="perm">reports.view</span></td><td class="wrap" dir="ltr">Every report, as summaries.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/reports/{id:guid}</span></td><td><span class="perm">reports.view</span></td><td class="wrap" dir="ltr">One report with its datasets, parameter maps, parameters and charts.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/reports</span></td><td><span class="perm">reports.manage</span></td><td class="wrap" dir="ltr">Creates a report. Dataset keys must be unique within the report and match <code>[A-Za-z0-9_]+</code>; a chart key may not collide with a dataset key, since the template's <code>{{RESULTS:x}}</code> and <code>{{CHART:x}}</code> share one namespace. Join and detail datasets are rejected if they form a cycle. <code>maxDetailRows</code> and <code>maxTotalRows</code> accept <strong>0 for no limit</strong> and are otherwise unbounded — only a negative value is refused, with 400. A detail dataset costs one query execution per parent row, so 0 there means the run's timeout is the only thing bounding an N+1.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/reports/{id:guid}</span></td><td><span class="perm">reports.manage</span></td><td class="wrap" dir="ltr">Replaces the report and everything under it.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/reports/{id:guid}</span></td><td><span class="perm">reports.manage</span></td><td class="wrap" dir="ltr">Deletes the report. The queries it referenced are untouched.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/reports/{id:guid}/template</span></td><td><span class="perm">reports.manage</span></td><td class="wrap" dir="ltr">Uploads the Word template. <code>multipart/form-data</code>, field <code>file</code>. Rejects anything over 5 MB, or that is not a real <code>.docx</code> — the zip signature and a <code>word/document.xml</code> entry are both checked. Returns an inspection listing the markers found and any that match no dataset.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/reports/{id:guid}/template</span></td><td><span class="perm">reports.manage</span></td><td class="wrap" dir="ltr">Downloads the stored template; 404 when none.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/reports/{id:guid}/starter-template</span></td><td><span class="perm">reports.manage</span></td><td class="wrap" dir="ltr">Generates a template pre-populated with <strong>this</strong> report's dataset keys. The intended starting point — the markers are correct before any styling is applied.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/reports/{id:guid}/template</span></td><td><span class="perm">reports.manage</span></td><td class="wrap" dir="ltr">Removes the template. Exports then fall back to a generated starter.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/reports/{id:guid}/access</span></td><td><span class="perm">access.manageReport</span></td><td class="wrap" dir="ltr"><code>{ roleIds, userGroupIds, userIds }</code>.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/reports/{id:guid}/access</span></td><td><span class="perm">access.manageReport</span></td><td class="wrap" dir="ltr">Replaces all three at once — send the whole object.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/reports/{id:guid}/export</span></td><td><span class="perm">reports.transfer</span></td><td class="wrap" dir="ltr">Exports one report as JSON (transfer format 2). Query: <code>includeDependencies</code> (default <code>true</code>) also writes the queries its datasets and dropdowns read — which needs <code>queries.transfer</code> too, since the file then carries their SQL (<strong>403</strong> otherwise). References travel by name; the Word template travels as base64; no database credentials. Import at <code>POST /api/admin/transfer/import</code>.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/reports/export</span></td><td><span class="perm">reports.transfer</span></td><td class="wrap" dir="ltr">Every report in one file. Same <code>includeDependencies</code>.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>. A report composes several saved queries into one templated document.</p>
+<p>Chart types (<code>chartType</code>): 0 Column, 1 Bar, 2 Line, 3 Pie, 4 Area, 5 StackedColumn, 6 StackedBar, 7 Doughnut, 8 Combo. All are native Word charts. A Combo draws every series but the last as columns and the last as a line on its own value axis, so it needs at least two series (400 otherwise); Pie and Doughnut draw the first series only.</p></div>
+</section>
+
+<section id="running-reports">
+  <div lang="en"><h2>Running reports</h2></div>
+  <div lang="ar"><h2>تشغيل التقارير</h2></div>
+  <p class="route-base"><span class="route">/api/user/reports</span> · 6 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/reports</span></td><td><span class="perm">reports.run</span></td><td class="wrap" dir="ltr">Reports the caller may run. The same set also appears inside <code>GET /api/user/queries/groups</code>, so a reader meets reports and queries in one list.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/reports/{id:guid}</span></td><td><span class="perm">reports.run</span></td><td class="wrap" dir="ltr">One accessible report's definition — its parameters and the sections to expect; 403 when it is not accessible.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/user/reports/{id:guid}/run</span></td><td><span class="perm">reports.run</span></td><td class="wrap" dir="ltr">Runs every dataset. Body <code>{ parameters }</code>, all values as strings. Returns a <code>runId</code>, one section per dataset with its own <code>jobId</code> and columns, the charts already reduced to categories and series, and any warnings. Rows are <strong>not</strong> returned — page them through the job endpoint.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/reports/runs/{runId:guid}</span></td><td><span class="perm">reports.run</span></td><td class="wrap" dir="ltr">The run again, for polling.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/reports/runs/{runId:guid}/export-file</span></td><td><span class="perm">reports.run</span></td><td class="wrap" dir="ltr">Builds the document from the cached sections — nothing is re-run. Query: <code>format</code> = <code>xlsx</code>/<code>excel</code>, <code>csv</code>, <code>json</code>, <code>pdf</code>, <code>docx</code>/<code>word</code>; the enum name is accepted too. Word and PDF fill the report's template, or a generated starter when it has none; Excel writes one sheet per dataset; CSV and JSON keep the datasets apart rather than concatenating them. <strong>403</strong> unless the report permits the format <strong>and</strong> the caller holds the matching <code>reports.export*</code>.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/user/reports/runs/{runId:guid}</span></td><td><span class="perm">reports.run</span></td><td class="wrap" dir="ltr">Releases every section of the run together, rather than letting them age out one at a time.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[RequirePermission(Permissions.ReportsRun)]</code> on the controller, so every action needs <code>reports.run</code>. A run's sections are cached in the same job store the query runner uses, and each section is paged through <code>GET /api/user/queries/jobs/{jobId}/rows</code> — the report viewer reuses the query grid rather than duplicating it.</p></div>
+</section>
+
+<section id="dashboards">
+  <div lang="en"><h2>Dashboards (admin)</h2></div>
+  <div lang="ar"><h2>لوحات المعلومات (الإدارة)</h2></div>
+  <p class="route-base"><span class="route">/api/admin/dashboards</span> · 10 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dashboards</span></td><td><span class="perm">dashboards.view</span></td><td class="wrap" dir="ltr">Every dashboard, as summaries.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dashboards/{id:guid}</span></td><td><span class="perm">dashboards.view</span></td><td class="wrap" dir="ltr">One dashboard with its filters and tiles, each tile with its parameter maps.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dashboards</span></td><td><span class="perm">dashboards.manage</span></td><td class="wrap" dir="ltr">Creates a dashboard. Body <code>DashboardInput</code>: <code>name</code>, <code>defaultRefreshSeconds</code> (30–3600), <code>filters[]</code> and <code>tiles[]</code>. Filter names match <code>[A-Za-z][A-Za-z0-9_]*</code> and are unique; tiles and drill settings refer to filters <strong>by name</strong>, so a filter and the tile using it can be created in one save. A tile's query must exist and must not be INSERT/UPDATE/DELETE — a write on a refresh timer would repeat every interval. <code>width</code> is 3, 4, 6, 8 or 12 of the 12 grid columns; <code>height</code> 1–3 rows. KPI tiles need <code>valueColumn</code> (except <code>kpiAggregate</code> Count); chart tiles need <code>categoryColumn</code> and at least one <code>seriesColumns</code>. A Date filter's <code>defaultValue</code> must be a date or a preset (below). <code>conditionalRules</code> — at most 20 per tile, each <code>{ column, operator: gt\|gte\|lt\|lte\|eq\|neq\|contains, value, tone: good\|warn\|bad }</code> — are kept on Table and KPI tiles only; a table rule names its column. <code>targetWarnPercent</code> is 0–100. 400 on any of these.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/dashboards/{id:guid}</span></td><td><span class="perm">dashboards.manage</span></td><td class="wrap" dir="ltr">Replaces the dashboard and everything under it. Tile ids change, and the dashboard's cached tile results are dropped.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/dashboards/probe-columns</span></td><td><span class="perm">dashboards.manage</span></td><td class="wrap" dir="ltr">Body <code>{ queryId, parameters }</code>. Runs the query once — through the normal execution path, with the caller's own access check, row cap and execution log — and returns <code>{ columns }</code> for the builder's pickers, or <code>{ error }</code> (still 200) when it cannot run, e.g. a required parameter has no value yet. Date parameters accept presets.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/dashboards/{id:guid}</span></td><td><span class="perm">dashboards.manage</span></td><td class="wrap" dir="ltr">Deletes the dashboard, its tiles, filters and grants. The queries are untouched. A query that a tile uses cannot be deleted until the tile is removed. <strong>400</strong> while a scheduled task snapshots the dashboard, naming the task.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dashboards/{id:guid}/access</span></td><td><span class="perm">access.manageDashboard</span></td><td class="wrap" dir="ltr"><code>{ roleIds, userGroupIds, userIds }</code>.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/dashboards/{id:guid}/access</span></td><td><span class="perm">access.manageDashboard</span></td><td class="wrap" dir="ltr">Replaces all three at once. A role only grants when it holds <code>dashboards.run</code>.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dashboards/{id:guid}/export</span></td><td><span class="perm">dashboards.transfer</span></td><td class="wrap" dir="ltr">Exports one dashboard as JSON (transfer format 2). Query: <code>includeDependencies</code> (default <code>true</code>) also writes the queries its tiles and filter dropdowns read and the reports its tiles open on click — which needs <code>queries.transfer</code> and <code>reports.transfer</code> too (<strong>403</strong> otherwise).</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/dashboards/export</span></td><td><span class="perm">dashboards.transfer</span></td><td class="wrap" dir="ltr">Every dashboard in one file. Same <code>includeDependencies</code>.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>. A dashboard is a grid of tiles; each tile runs one saved read query on its own refresh interval and draws the result as a KPI, a chart or a small table.</p>
+<p>Tile <code>visualType</code>: 0 Kpi, 1 Column, 2 Bar, 3 Line, 4 Pie, 5 Table, 6 Area, 7 StackedColumn, 8 StackedBar, 9 Doughnut, 10 Combo, 11 Gauge, 12 Funnel, 13 Heatmap. Gauge is a KPI drawn as a dial (same <code>valueColumn</code>, <code>kpiAggregate</code>, <code>targetValue</code>). Funnel ranks its categories largest first. Heatmap needs <code>displayOptions.splitByColumn</code> for its columns. In a scheduled snapshot, a funnel is written as a bar chart and a heatmap as its pivoted table only — Word has no native chart for either.</p>
+<p><code>displayOptions</code> (all optional, defaults = how tiles drew before): <code>legend</code> (<code>auto</code>\|<code>top</code>\|<code>bottom</code>\|<code>hidden</code>), <code>dataLabels</code>, <code>sort</code> (<code>none</code>\|<code>valueDesc</code>\|<code>valueAsc</code>\|<code>category</code>), <code>groupOthers</code> (sum what falls past <code>maxCategories</code> into a last category; the tile data then has <code>chart.lastIsOther: true</code> and the viewer labels it), <code>splitByColumn</code> (pivot long rows into one series per value; first series column is the value; ≤12 series, ≤40 heatmap columns), <code>stackPercent</code>, <code>lineSeries[]</code> and <code>secondaryAxis</code> (combo), <code>axisMin</code>/<code>axisMax</code> (min &lt; max), <code>referenceLine</code>/<code>referenceLabel</code> (≤100 chars), <code>seriesColors</code> (series → palette index 0–9), <code>gaugeMax</code> (&gt; 0), <code>totalsRow</code> and <code>columnFormats</code> (column → value format) for tables. 400 on an unknown legend or sort value, or any bound above.</p></div>
+</section>
+
+<section id="viewing-dashboards">
+  <div lang="en"><h2>Viewing dashboards</h2></div>
+  <div lang="ar"><h2>عرض لوحات المعلومات</h2></div>
+  <p class="route-base"><span class="route">/api/user/dashboards</span> · 5 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/dashboards</span></td><td><span class="perm">dashboards.run</span></td><td class="wrap" dir="ltr">Enabled dashboards granted to the caller (by role, user group or name).</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/dashboards/{id:guid}</span></td><td><span class="perm">dashboards.run</span></td><td class="wrap" dir="ltr">The layout, filters and tile settings — no data. 403 when not granted.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/user/dashboards/{id:guid}/tiles/{tileId:guid}/data</span></td><td><span class="perm">dashboards.run</span></td><td class="wrap" dir="ltr">One tile's current data. Body <code>{ filters }</code>: filter name → value, multi-selects as a JSON-array string, exactly like report parameters; missing values fall back to the filter's default. Returns <code>{ tileId, generatedAt, nextRefreshAt, chart \| kpi \| table, isEmpty, error }</code>. <code>generatedAt</code> is when the query actually ran (older than now on a cache hit); the viewer schedules its next poll from <code>nextRefreshAt</code>. A tile that cannot be produced — no grant on its query, a required filter empty, a failing query — answers <strong>200</strong> with <code>error</code> set, so one broken tile never fails the page. Database error text is logged, not returned.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/user/dashboards/{id:guid}/tiles/{tileId:guid}/rows</span></td><td><span class="perm">dashboards.run</span></td><td class="wrap" dir="ltr">Runs the tile's query in full — for the rows dialog or a download, on any tile — and files it into the job store. Returns <code>{ jobId, title, columns, totalRows }</code>; page it through <code>GET /api/user/queries/jobs/{jobId}/rows</code>, or download it through <code>GET /api/user/queries/jobs/{jobId}/export-file</code>, which applies both export gates (the query's <code>allowedExportFormats</code>, shown on each tile, and the caller's <code>queries.export*</code>) and needs <code>queries.run</code>. Not cached.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/user/dashboards/{id:guid}/filters/{filterId:guid}/options</span></td><td><span class="perm">dashboards.run</span></td><td class="wrap" dir="ltr">A dropdown filter's options, from its static list or its lookup query.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[RequirePermission(Permissions.DashboardsRun)]</code>, so every action needs <code>dashboards.run</code>. The page is laid out from <code>GET /{id}</code>, then every tile fetches its own data on its own interval — a slow tile delays only itself.</p>
+<p><strong>KPI rule.</strong> With <code>kpiAggregate</code> <strong>Last</strong> (the default) a KPI tile reads its rows as a series in query order: the headline is the <strong>last</strong> row's value column, the comparison is the compare column on that row or — without one — the row before it, and every row draws the sparkline. <code>SELECT month, total ... ORDER BY month</code> therefore shows this month against last month with no further setup. <strong>Sum</strong>, <strong>Average</strong>, <strong>Min</strong> and <strong>Max</strong> summarise the value column over every row (non-numbers skipped) and the compare column the same way; <strong>Count</strong> is the number of rows. With a <code>targetValue</code>, <code>kpi.targetStatus</code> is <code>met</code>, <code>near</code> (within <code>targetWarnPercent</code> of the target on the wrong side) or <code>missed</code>, judged in the direction <code>higherIsBetter</code> gives.</p>
+<p><strong>Date presets.</strong> Wherever a date filter takes a value — its default, the tile data body, the URL, a scheduled item — it also accepts <code>today</code>, <code>today-N</code>, <code>today+N</code>, <code>week_start</code> (Sunday), <code>month_start</code>, <code>month_end</code>, <code>last_month_start</code>, <code>last_month_end</code> and <code>year_start</code>. The token is kept as-is and resolved in the server's local time when a query runs, so a bookmarked link, a wall screen or a nightly snapshot keeps meaning "this month". The shared tile cache is keyed on the resolved date, so it rolls over by itself.</p></div>
+</section>
+
+<section id="transfer">
+  <div lang="en"><h2>Transfer</h2></div>
+  <div lang="ar"><h2>النقل</h2></div>
+  <p class="route-base"><span class="route">/api/admin/transfer</span> · 1 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/transfer/import</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr">Imports a file written by any export endpoint, including a format-1 query backup. multipart <code>file</code>, ≤50 MB. Needs <code>queries.transfer</code>, <code>reports.transfer</code> and/or <code>dashboards.transfer</code> for each kind the file holds — all checked before anything is written (<strong>403</strong> naming the missing one). Order: queries, then reports, then dashboards, so each resolves names against what came in before it, then against what already exists. Never overwrites: a name clash comes in as <code>Name (imported)</code>. Unresolvable references are warnings, not failures — a tile whose query is missing is left out, a drill to a missing report is switched off, a dropdown whose lookup query is missing becomes a text field, a missing role/group/user is not granted; a report whose dataset query is missing is skipped with the reason. Each report and dashboard is saved through the normal save validation; one that fails is skipped with the reason. Returns <code>{ queries[], reports[], dashboards[], warnings[], importedCount, renamedCount }</code>, each item <code>{ originalName, importedName, wasRenamed }</code>. Messages follow <code>Accept-Language</code>.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>.</p></div>
+</section>
+
+<section id="scheduled-tasks">
+  <div lang="en"><h2>Scheduled tasks</h2></div>
+  <div lang="ar"><h2>المهام المجدولة</h2></div>
+  <p class="route-base"><span class="route">/api/scheduledtasks</span> · 13 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/scheduledtasks</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr">Tasks visible to the caller.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/scheduledtasks/{id:guid}</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr">One task with its items and viewers.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/scheduledtasks/{id:guid}/runs</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr">Run history. Query: <code>take</code> (50).</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/scheduledtasks/{id:guid}/runs/{runId:guid}/file</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr">Downloads one output file. Query: <code>fileName</code> (required). <strong>Needs <code>scheduledTasks.download</code> or a viewer grant that allows downloads</strong> — an Auditor can read the history but not the files.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/scheduledtasks</span></td><td><span class="perm">scheduledTasks.manage</span></td><td class="wrap" dir="ltr">Creates a task.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/scheduledtasks/{id:guid}</span></td><td><span class="perm">scheduledTasks.manage</span></td><td class="wrap" dir="ltr">Replaces the task and recomputes its next run.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/scheduledtasks/{id:guid}</span></td><td><span class="perm">scheduledTasks.manage</span></td><td class="wrap" dir="ltr">Deletes the task and its run history.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/scheduledtasks/{id:guid}/access</span></td><td><span class="perm">scheduledTasks.manage</span></td><td class="wrap" dir="ltr">Who may see the task: the roles, user groups and users it is shared with, and whether each may download its files.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/scheduledtasks/{id:guid}/access/roles</span></td><td><span class="perm">scheduledTasks.manage</span></td><td class="wrap" dir="ltr">Replaces the roles the task is shared with.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/scheduledtasks/{id:guid}/access/user-groups</span></td><td><span class="perm">scheduledTasks.manage</span></td><td class="wrap" dir="ltr">Replaces the user groups the task is shared with.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/scheduledtasks/{id:guid}/access/users</span></td><td><span class="perm">scheduledTasks.manage</span></td><td class="wrap" dir="ltr">Replaces the individual users the task is shared with.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/scheduledtasks/{id:guid}/run</span></td><td><span class="perm">scheduledTasks.manage</span></td><td class="wrap" dir="ltr">Queues an immediate run (202).</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/scheduledtasks/{id:guid}/runs/{runId:guid}/cancel</span></td><td><span class="perm">scheduledTasks.manage</span></td><td class="wrap" dir="ltr">Cancels an in-flight run, aborting the database command. 202, or 409 when the run is not in progress.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code> (any authenticated user). Visibility is enforced in the handlers: Holders of <code>scheduledTasks.viewAll</code> see every task; everyone else sees only tasks they were named a viewer on.</p>
+<p><strong>Dashboard items.</strong> An item runs exactly one of <code>dynamicQueryId</code>, <code>reportId</code> or <code>dashboardId</code> (400 otherwise). A dashboard item runs every tile fresh as the task's creator — through the same access checks, parameter routing, date presets and KPI rules as the live page, bypassing the shared cache — and writes one document: a chart and its figures per chart tile, a row of figures per KPI, the rows of a table tile, with the filter values in the header. <code>parameters</code> holds the dashboard's filter values by filter name; empty ones take the filter's default. Only PDF, Word and Excel (one sheet per tile) are accepted, and it cannot be incremental. A tile the creator cannot run is listed in the item's <code>error</code> while the run still succeeds; if every tile fails the item fails.</p></div>
+</section>
+
+<section id="users">
+  <div lang="en"><h2>Users</h2></div>
+  <div lang="ar"><h2>المستخدمون</h2></div>
+  <p class="route-base"><span class="route">/api/admin/users</span> · 8 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/users</span></td><td><span class="perm">users.view</span></td><td class="wrap" dir="ltr">All users with their roles.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/users/{id:guid}</span></td><td><span class="perm">users.view</span></td><td class="wrap" dir="ltr">One user.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/users</span></td><td><span class="perm">users.manage</span></td><td class="wrap" dir="ltr">Creates a local account. A non-Admin cannot grant the Admin role.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/users/{id:guid}/username</span></td><td><span class="perm">users.manage</span></td><td class="wrap" dir="ltr">Changes the username. Refused for directory accounts.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/users/{id:guid}/password</span></td><td><span class="perm">users.manage</span></td><td class="wrap" dir="ltr">Sets a new password. Refused for directory accounts.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/users/{id:guid}/reset-password</span></td><td><span class="perm">users.manage</span></td><td class="wrap" dir="ltr">Generates a temporary password and <strong>returns it in the response</strong>. Refused for directory accounts.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/users/{id:guid}/roles</span></td><td><span class="perm">users.manage</span></td><td class="wrap" dir="ltr">Replaces role assignments. A non-Admin cannot edit their own roles or grant Admin.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/users/{id:guid}/active</span></td><td><span class="perm">users.manage</span></td><td class="wrap" dir="ltr">Activates or deactivates.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>; <code>AdminAccountGuard</code> does the fencing in the handlers. There is <strong>no</strong> delete endpoint; deactivate instead.</p></div>
+</section>
+
+<section id="user-groups">
+  <div lang="en"><h2>User groups</h2></div>
+  <div lang="ar"><h2>مجموعات المستخدمين</h2></div>
+  <p class="route-base"><span class="route">/api/admin/usergroups</span> · 6 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/usergroups</span></td><td><span class="perm">userGroups.view</span></td><td class="wrap" dir="ltr">All groups with their members. Never gated — the access pages are built from this.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/usergroups/{id:guid}</span></td><td><span class="perm">userGroups.view</span></td><td class="wrap" dir="ltr">One group with its members.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/usergroups</span></td><td><span class="perm">userGroups.manage</span></td><td class="wrap" dir="ltr">Creates a group, optionally with starting members.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/usergroups/{id:guid}</span></td><td><span class="perm">userGroups.manage</span></td><td class="wrap" dir="ltr">Renames a group or edits its description.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/usergroups/{id:guid}</span></td><td><span class="perm">userGroups.manage</span></td><td class="wrap" dir="ltr">Deletes the group and every grant made to it. Member accounts are untouched.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/usergroups/{id:guid}/members</span></td><td><span class="perm">userGroups.manage</span></td><td class="wrap" dir="ltr">Replaces membership with exactly the users given.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>. The application's own groups; nothing here touches Active Directory.</p>
+<p>Whatever the matrix says, a non-Admin cannot add <strong>their own</strong> account to a group — that would let them grant a query to a group and then walk into it.</p></div>
+</section>
+
+<section id="roles">
+  <div lang="en"><h2>Roles and permissions</h2></div>
+  <div lang="ar"><h2>الأدوار والصلاحيات</h2></div>
+  <p class="route-base"><span class="route">/api/admin/roles</span> · 6 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/roles</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr"><code>{ id, name, description }</code> for each role. Source for the role pickers; names are not secret.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/roles/permissions</span></td><td><span class="perm">roles.manage</span></td><td class="wrap" dir="ltr">The whole matrix: every capability the system defines, and every role with the ones it holds. Admin reports the full set rather than its (empty) rows.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/roles/{id:guid}/permissions</span></td><td><span class="perm">roles.manage</span></td><td class="wrap" dir="ltr">Replaces one role's permissions. Unknown names are ignored; <strong>400 for Admin</strong>, which is pinned. Audited as <code>roles.setPermissions</code> with what was granted and revoked.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/roles</span></td><td><span class="perm">roles.manage</span></td><td class="wrap" dir="ltr">Creates a role. The name must be unused.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/roles/{id:guid}</span></td><td><span class="perm">roles.manage</span></td><td class="wrap" dir="ltr">Renames a role or edits its description. <strong>400 for a seeded role</strong> — its permissions are editable, its name is not.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/roles/{id:guid}</span></td><td><span class="perm">roles.manage</span></td><td class="wrap" dir="ltr">Deletes a custom role. <strong>400 while any account still holds it</strong>, and 400 for a seeded role.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>. The data behind Settings → Permissions.</p></div>
+</section>
+
+<section id="directory">
+  <div lang="en"><h2>Active Directory</h2></div>
+  <div lang="ar"><h2>Active Directory</h2></div>
+  <p class="route-base"><span class="route">/api/admin/ldap</span> · 9 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/ldap/search</span></td><td><span class="perm">directory.manage</span></td><td class="wrap" dir="ltr">Searches the directory. Query: <code>term</code> (2 chars minimum, else 400). Flags who is already imported.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/ldap/departments</span></td><td><span class="perm">directory.view</span></td><td class="wrap" dir="ltr">Distinct department values in the directory.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/ldap/departments/{department}/users</span></td><td><span class="perm">directory.manage</span></td><td class="wrap" dir="ltr">Directory users in one department, with import status.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ldap/import/users</span></td><td><span class="perm">directory.manage</span></td><td class="wrap" dir="ltr">Imports <code>{ usernames: [] }</code> as local accounts with <code>AuthSource=Ldap</code> and the <code>User</code> role. Reports imported / already present / not found / skipped-with-reason.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ldap/import/department</span></td><td><span class="perm">directory.manage</span></td><td class="wrap" dir="ltr">Imports every directory user in <code>{ department }</code>. Same result shape.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ldap/revoke/{username}</span></td><td><span class="perm">directory.manage</span></td><td class="wrap" dir="ltr">Deactivates an imported account.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ldap/restore/{username}</span></td><td><span class="perm">directory.manage</span></td><td class="wrap" dir="ltr">Reactivates it.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ldap/sync</span></td><td><span class="perm">directory.manage</span></td><td class="wrap" dir="ltr">Refreshes name, email and department for every imported account. Returns <code>{ synced, notFound }</code>. Does not change group membership or anyone's access.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/ldap/imported</span></td><td><span class="perm">directory.view</span></td><td class="wrap" dir="ltr">Imported directory accounts with their status.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>. <strong>The whole controller returns 503 when the <code>directory.enabled</code> setting is off</strong> — that check runs before every action, including any added later. Signing in is unaffected.</p></div>
+</section>
+
+<section id="connections">
+  <div lang="en"><h2>Database connections</h2></div>
+  <div lang="ar"><h2>اتصالات قواعد البيانات</h2></div>
+  <p class="route-base"><span class="route">/api/admin/databaseusers</span> · 8 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/databaseusers</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr">All stored connections.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/databaseusers/{id:guid}</span></td><td><span class="perm">databaseUsers.manage</span></td><td class="wrap" dir="ltr">One connection.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/databaseusers</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr">Creates one. Credentials are encrypted at rest.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/databaseusers/{id:guid}</span></td><td><span class="perm">databaseUsers.manage</span></td><td class="wrap" dir="ltr">Updates one.</td></tr>
+      <tr><td><span class="verb DELETE">DELETE</span></td><td><span class="route">/api/admin/databaseusers/{id:guid}</span></td><td><span class="perm">databaseUsers.manage</span></td><td class="wrap" dir="ltr">Deletes one.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/databaseusers/{id:guid}/access</span></td><td><span class="perm">databaseUsers.manage</span></td><td class="wrap" dir="ltr">Sets which roles may use this connection.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/databaseusers/{id:guid}/test-connection</span></td><td><span class="perm">databaseUsers.manage</span></td><td class="wrap" dir="ltr">Opens a test connection with the stored credentials.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/databaseusers/accessible</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr">Connections the caller may use, for the query form's dropdown. Note the path sits under <code>/api/admin/</code> but is <strong>not</strong> Admin-only.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>.</p></div>
+</section>
+
+<section id="settings">
+  <div lang="en"><h2>System settings</h2></div>
+  <div lang="ar"><h2>إعدادات النظام</h2></div>
+  <p class="route-base"><span class="route">/api/admin/systemsettings</span> · 3 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/systemsettings</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr">All settings. Readable by anyone signed in: the client reads <code>directoryEnabled</code> to decide whether to offer a menu entry.</td></tr>
+      <tr><td><span class="verb PUT">PUT</span></td><td><span class="route">/api/admin/systemsettings</span></td><td><span class="perm">settings.manage</span></td><td class="wrap" dir="ltr">Replaces <strong>all</strong> settings — send the whole object. Out-of-range numbers are refused with 400 and a message naming the bounds. Audited as <code>settings.updated</code> with the full set. <code>executionLogRetentionDays</code> and <code>systemLogRetentionDays</code> accept 0 (keep forever) or 7–3650.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/systemsettings/rotate-logs</span></td><td><span class="perm">settings.manage</span></td><td class="wrap" dir="ltr">Deletes execution logs and system audit entries older than their saved retention now, instead of at the next six-hourly sweep. Returns <code>{ executionLogRetentionDays, systemLogRetentionDays, executionLogsDeleted, systemLogsDeleted }</code>. A rotation that deletes anything is audited as <code>settings.logsRotated</code>.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>.</p>
+<p>See Runtime Settings in the README for what each one does.</p></div>
+</section>
+
+<section id="audit">
+  <div lang="en"><h2>Audit trail</h2></div>
+  <div lang="ar"><h2>سجل عمليات النظام</h2></div>
+  <p class="route-base"><span class="route">/api/admin/systemauditlogs</span> · 2 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/systemauditlogs</span></td><td><span class="perm">audit.view</span></td><td class="wrap" dir="ltr">The trail, newest first. Query: <code>category</code>, <code>action</code>, <code>userId</code>, <code>isSuccess</code>, <code>fromUtc</code>, <code>toUtc</code>, <code>search</code>, <code>pageNumber</code> (1), <code>pageSize</code> (25, max 200).</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/systemauditlogs/actions</span></td><td><span class="perm">audit.view</span></td><td class="wrap" dir="ltr"><code>{ categories, actions }</code> — every code the server can emit, so the filter dropdowns cannot drift from reality.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="api-notes" dir="ltr"><p>Class: <code>[Authorize]</code>. Read-only by design — nothing writes here through the API.</p></div>
+</section>
+
+<section id="ai">
+  <div lang="en"><h2>AI assistant</h2></div>
+  <div lang="ar"><h2>المساعد الذكي</h2></div>
+  <p class="route-base"><span class="route">/api/admin/ai</span> · 8 <span lang="en">endpoints</span><span lang="ar">نقطة وصول</span></p>
+  <div class="table-wrap"><table class="api-table">
+    <thead><tr><th><span lang="en">Verb</span><span lang="ar">الطريقة</span></th><th><span lang="en">Path</span><span lang="ar">المسار</span></th><th><span lang="en">Permission</span><span lang="ar">الصلاحية</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/ai/status</span></td><td><span class="perm any">signed in</span></td><td class="wrap" dir="ltr"><code>{ enabled, configuredOnServer, state, model }</code>: whether the AI is offered and whether the model service answers. Any signed-in user, so the client knows whether to show AI buttons.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ai/explain-sql</span></td><td><span class="perm">ai.use</span> <span class="perm">queries.manage</span></td><td class="wrap" dir="ltr"><code>{ sqlQuery, databaseUserId? }</code> → a summary, steps and cautions in the request's language. Sends no schema and no data.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ai/suggest-fix</span></td><td><span class="perm">ai.use</span> <span class="perm">queries.manage</span></td><td class="wrap" dir="ltr"><code>{ sqlQuery, errorMessage, databaseUserId? }</code> → corrected SQL and an explanation. The SQL must pass <code>AiSqlGuard</code> (same statement kind, no forbidden keywords, no prose) or the answer is refused.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/ai/connections</span></td><td><span class="perm">ai.use</span> <span class="perm">queries.manage</span></td><td class="wrap" dir="ltr">Connections the caller may use that have <em>Allow AI</em> on, plus the default connection when <code>ai.defaultConnection</code> is on.</td></tr>
+      <tr><td><span class="verb GET">GET</span></td><td><span class="route">/api/admin/ai/schema</span></td><td><span class="perm">ai.use</span> <span class="perm">queries.manage</span></td><td class="wrap" dir="ltr"><code>?databaseUserId=&amp;refresh=</code> Tables and views the connection's account can read, cached 30 minutes. Jadwal's own tables are hidden on the default connection.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ai/write-sql</span></td><td><span class="perm">ai.use</span> <span class="perm">queries.manage</span></td><td class="wrap" dir="ltr"><code>{ databaseUserId?, objects[≤10], description, existingParameters }</code> → a SELECT, suggested parameters held to Jadwal's rules, and notes on anything corrected.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ai/draft-report</span></td><td><span class="perm">ai.use</span> <span class="perm">reports.manage</span></td><td class="wrap" dir="ltr"><code>{ queryIds[≤6], goal? }</code> → sections, parameters, mappings and charts, built and checked by code from the model's suggestion. Each query runs once to read its columns.</td></tr>
+      <tr><td><span class="verb POST">POST</span></td><td><span class="route">/api/admin/ai/draft-dashboard</span></td><td><span class="perm">ai.use</span> <span class="perm">dashboards.manage</span></td><td class="wrap" dir="ltr"><code>{ queryIds[≤6], goal? }</code> → tiles, filters and parameter maps. Only column names, kinds and value counts reach the model, never values.</td></tr>
+    </tbody>
+  </table></div>
+  
+</section>
+<!--/API-TABLES-->
+
+</div></main>
+</body>
+</html>

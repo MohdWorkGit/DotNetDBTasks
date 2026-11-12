@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Jadwal.API.Controllers;
 
 /// <summary>
-/// The local AI model (docs/LOCAL-AI-OPTIONS.md). Every action that sends something to the
+/// The local AI model (docs/ai.html). Every action that sends something to the
 /// model needs <c>ai.use</c> <em>and</em> the permission of the page it serves — two attributes,
 /// because one attribute naming several permissions means any of them.
 /// </summary>

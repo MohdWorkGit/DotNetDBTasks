@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security and permissions · Jadwal documentation</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body data-page="security" data-title-en="Security and permissions · Jadwal documentation" data-title-ar="الأمان والصلاحيات · توثيق جدول">
+<main><div class="content">
+
+<header class="page-head">
+  <div lang="en">
+    <div class="eyebrow">Overview</div>
+    <h1>Security and permissions</h1>
+    <p class="lead">How people sign in, what decides what they can reach, the rules no setting can switch off,
+      and the records kept of what everyone did.</p>
+  </div>
+  <div lang="ar">
+    <div class="eyebrow">نظرة عامة</div>
+    <h1>الأمان والصلاحيات</h1>
+    <p class="lead">كيف يسجّل الناس دخولهم، وما الذي يحدد ما يصلون إليه، والقواعد التي لا يلغيها أي إعداد، والسجلات
+      المحفوظة لما فعله كل شخص.</p>
+  </div>
+</header>
+
+<section id="overview">
+  <div lang="en"><h2>In short</h2></div>
+  <div lang="ar"><h2>باختصار</h2></div>
+  <div class="cards">
+    <div class="card c-blue">
+      <h4><span lang="en">Sign-in</span><span lang="ar">تسجيل الدخول</span></h4>
+      <p lang="en">Active Directory or LDAP password, or local accounts. Windows sign-in with no form on IIS (off by default). JWT access and refresh tokens. Login is rate-limited per address.</p>
+      <p lang="ar">كلمة مرور Active Directory أو LDAP، أو حسابات محلية. ودخول تلقائي بحساب Windows دون نموذج على IIS (متوقف افتراضيًا). رموز JWT للوصول والتجديد. ومحاولات الدخول محدودة لكل عنوان.</p>
+    </div>
+    <div class="card c-violet">
+      <h4><span lang="en">Permissions</span><span lang="ar">الصلاحيات</span></h4>
+      <p lang="en">44 permissions, held by roles you can edit and add to. Checked on every request, not read from the token.</p>
+      <p lang="ar">44 صلاحية، تحملها أدوار يمكنك تعديلها وإضافة غيرها. تُفحص مع كل طلب، ولا تُقرأ من الرمز.</p>
+    </div>
+    <div class="card c-green">
+      <h4><span lang="en">Data</span><span lang="ar">البيانات</span></h4>
+      <p lang="en">Values always bound, never pasted into SQL. Database passwords encrypted with AES-256. Changes previewed before they commit.</p>
+      <p lang="ar">القيم تُمرَّر دائمًا ولا تُلصق في نص SQL. كلمات مرور قواعد البيانات مشفّرة بـAES-256. والتعديلات تُعاين قبل اعتمادها.</p>
+    </div>
+    <div class="card c-amber">
+      <h4><span lang="en">Records</span><span lang="ar">السجلات</span></h4>
+      <p lang="en">Every run in the execution log, every change in the system audit trail, refusals included.</p>
+      <p lang="ar">كل تشغيل في سجل التنفيذ، وكل تغيير في سجل عمليات النظام، بما فيها المحاولات المرفوضة.</p>
+    </div>
+  </div>
+</section>
+
+<section id="roles">
+  <div lang="en">
+    <h2>Roles and the permission matrix</h2>
+    <p>Each endpoint names a <strong>permission</strong>, not a role. A role is a named set of permissions,
+      edited at <strong>Settings → Roles and permissions</strong>. Four roles come built in and you can add
+      more. A person may hold several roles; their permissions add up.</p>
+    <p>The matrix below is what each built-in role holds on a fresh install. Admin holds everything, always.</p>
+  </div>
+  <div lang="ar">
+    <h2>الأدوار وجدول الصلاحيات</h2>
+    <p>كل نقطة وصول تطلب <strong>صلاحية</strong> لا دورًا. والدور مجموعة صلاحيات لها اسم، تُعدَّل في
+      <strong>الإعدادات ← الأدوار والصلاحيات</strong>. أربعة أدوار مدمجة، ويمكنك إضافة غيرها. وقد يحمل الشخص عدة أدوار،
+      فتجتمع صلاحياتها.</p>
+    <p>الجدول أدناه هو ما يحمله كل دور مدمج في التثبيت الجديد. والدور Admin يحمل كل شيء دائمًا.</p>
+  </div>
+  <figure class="chart">
+<!--PERM-MATRIX-->
+<script type="application/json">{"type": "matrix", "title": {"en": "What each built-in role holds (44 permissions)", "ar": "ما يحمله كل دور مدمج (44 صلاحية)"}, "sub": {"en": "On a fresh install. Admin always holds everything; the others can be edited.", "ar": "في التثبيت الجديد. الدور Admin يحمل كل شيء دائمًا، وبقية الأدوار قابلة للتعديل."}, "rowHead": {"en": "Permission", "ar": "الصلاحية"}, "cols": ["Admin", "Access Manager", "Auditor", "User"], "yes": {"en": "Held", "ar": "يحملها"}, "no": {"en": "Not held", "ar": "لا يحملها"}, "rows": [{"group": {"en": "Queries", "ar": "الاستعلامات"}, "label": {"en": "See the query list", "ar": "عرض قائمة الاستعلامات"}, "key": "queries.view", "cells": [true, true, false, false]}, {"group": {"en": "Queries", "ar": "الاستعلامات"}, "label": {"en": "Read a query's SQL", "ar": "قراءة نص SQL للاستعلام"}, "key": "queries.readSql", "cells": [true, false, false, false]}, {"group": {"en": "Queries", "ar": "الاستعلامات"}, "label": {"en": "Create and edit queries", "ar": "إنشاء الاستعلامات وتعديلها"}, "key": "queries.manage", "cells": [true, false, false, false]}, {"group": {"en": "Queries", "ar": "الاستعلامات"}, "label": {"en": "Export and import query definitions", "ar": "تصدير تعريفات الاستعلامات واستيرادها"}, "key": "queries.transfer", "cells": [true, false, false, false]}, {"group": {"en": "Queries", "ar": "الاستعلامات"}, "label": {"en": "Run queries", "ar": "تنفيذ الاستعلامات"}, "key": "queries.run", "cells": [true, false, false, true]}, {"group": {"en": "Exporting results", "ar": "تصدير النتائج"}, "label": {"en": "Export as Excel", "ar": "التصدير بصيغة Excel"}, "key": "queries.exportExcel", "cells": [true, false, false, false]}, {"group": {"en": "Exporting results", "ar": "تصدير النتائج"}, "label": {"en": "Export as CSV", "ar": "التصدير بصيغة CSV"}, "key": "queries.exportCsv", "cells": [true, false, false, false]}, {"group": {"en": "Exporting results", "ar": "تصدير النتائج"}, "label": {"en": "Export as JSON", "ar": "التصدير بصيغة JSON"}, "key": "queries.exportJson", "cells": [true, false, false, false]}, {"group": {"en": "Exporting results", "ar": "تصدير النتائج"}, "label": {"en": "Export as PDF", "ar": "التصدير بصيغة PDF"}, "key": "queries.exportPdf", "cells": [true, false, false, false]}, {"group": {"en": "Exporting results", "ar": "تصدير النتائج"}, "label": {"en": "Export as Word", "ar": "التصدير بصيغة Word"}, "key": "queries.exportWord", "cells": [true, false, false, false]}, {"group": {"en": "Granting access", "ar": "منح الوصول"}, "label": {"en": "Grant an individual query", "ar": "منح استعلام مفرد"}, "key": "access.manageQuery", "cells": [true, false, false, false]}, {"group": {"en": "Granting access", "ar": "منح الوصول"}, "label": {"en": "Grant a query group", "ar": "منح مجموعة استعلامات"}, "key": "access.manageGroup", "cells": [true, true, false, false]}, {"group": {"en": "Granting access", "ar": "منح الوصول"}, "label": {"en": "Grant a report", "ar": "منح صلاحية تقرير"}, "key": "access.manageReport", "cells": [true, false, false, false]}, {"group": {"en": "Granting access", "ar": "منح الوصول"}, "label": {"en": "Grant a dashboard", "ar": "منح صلاحية لوحة معلومات"}, "key": "access.manageDashboard", "cells": [true, false, false, false]}, {"group": {"en": "Granting access", "ar": "منح الوصول"}, "label": {"en": "Create and edit query groups", "ar": "إنشاء مجموعات الاستعلامات وتعديلها"}, "key": "queryGroups.manage", "cells": [true, false, false, false]}, {"group": {"en": "Reports", "ar": "التقارير"}, "label": {"en": "See the report list", "ar": "عرض قائمة التقارير"}, "key": "reports.view", "cells": [true, false, false, false]}, {"group": {"en": "Reports", "ar": "التقارير"}, "label": {"en": "Create and edit reports", "ar": "إنشاء التقارير وتعديلها"}, "key": "reports.manage", "cells": [true, false, false, false]}, {"group": {"en": "Reports", "ar": "التقارير"}, "label": {"en": "Run reports", "ar": "تشغيل التقارير"}, "key": "reports.run", "cells": [true, false, false, false]}, {"group": {"en": "Reports", "ar": "التقارير"}, "label": {"en": "Export and import report definitions", "ar": "تصدير تعريفات التقارير واستيرادها"}, "key": "reports.transfer", "cells": [true, false, false, false]}, {"group": {"en": "Downloading reports", "ar": "تنزيل التقارير"}, "label": {"en": "Download a report as Excel", "ar": "تنزيل التقرير بصيغة Excel"}, "key": "reports.exportExcel", "cells": [true, false, false, false]}, {"group": {"en": "Downloading reports", "ar": "تنزيل التقارير"}, "label": {"en": "Download a report as CSV", "ar": "تنزيل التقرير بصيغة CSV"}, "key": "reports.exportCsv", "cells": [true, false, false, false]}, {"group": {"en": "Downloading reports", "ar": "تنزيل التقارير"}, "label": {"en": "Download a report as JSON", "ar": "تنزيل التقرير بصيغة JSON"}, "key": "reports.exportJson", "cells": [true, false, false, false]}, {"group": {"en": "Downloading reports", "ar": "تنزيل التقارير"}, "label": {"en": "Download a report as PDF", "ar": "تنزيل التقرير بصيغة PDF"}, "key": "reports.exportPdf", "cells": [true, false, false, false]}, {"group": {"en": "Downloading reports", "ar": "تنزيل التقارير"}, "label": {"en": "Download a report as Word", "ar": "تنزيل التقرير بصيغة Word"}, "key": "reports.exportWord", "cells": [true, false, false, false]}, {"group": {"en": "Dashboards", "ar": "لوحات المعلومات"}, "label": {"en": "See the dashboard list", "ar": "عرض قائمة لوحات المعلومات"}, "key": "dashboards.view", "cells": [true, false, false, false]}, {"group": {"en": "Dashboards", "ar": "لوحات المعلومات"}, "label": {"en": "Create and edit dashboards", "ar": "إنشاء لوحات المعلومات وتعديلها"}, "key": "dashboards.manage", "cells": [true, false, false, false]}, {"group": {"en": "Dashboards", "ar": "لوحات المعلومات"}, "label": {"en": "View dashboards", "ar": "عرض لوحات المعلومات"}, "key": "dashboards.run", "cells": [true, false, false, false]}, {"group": {"en": "Dashboards", "ar": "لوحات المعلومات"}, "label": {"en": "Export and import dashboard definitions", "ar": "تصدير تعريفات لوحات المعلومات واستيرادها"}, "key": "dashboards.transfer", "cells": [true, false, false, false]}, {"group": {"en": "People and directory", "ar": "المستخدمون والدليل"}, "label": {"en": "See user groups", "ar": "عرض مجموعات المستخدمين"}, "key": "userGroups.view", "cells": [true, true, false, false]}, {"group": {"en": "People and directory", "ar": "المستخدمون والدليل"}, "label": {"en": "Create user groups and set membership", "ar": "إنشاء مجموعات المستخدمين وتحديد أعضائها"}, "key": "userGroups.manage", "cells": [true, true, false, false]}, {"group": {"en": "People and directory", "ar": "المستخدمون والدليل"}, "label": {"en": "See the user list", "ar": "عرض قائمة المستخدمين"}, "key": "users.view", "cells": [true, true, false, false]}, {"group": {"en": "People and directory", "ar": "المستخدمون والدليل"}, "label": {"en": "Create and edit users", "ar": "إنشاء المستخدمين وتعديلهم"}, "key": "users.manage", "cells": [true, true, false, false]}, {"group": {"en": "People and directory", "ar": "المستخدمون والدليل"}, "label": {"en": "See directory data", "ar": "عرض بيانات الدليل"}, "key": "directory.view", "cells": [true, true, false, false]}, {"group": {"en": "People and directory", "ar": "المستخدمون والدليل"}, "label": {"en": "Search and import from Active Directory", "ar": "البحث والاستيراد من Active Directory"}, "key": "directory.manage", "cells": [true, false, false, false]}, {"group": {"en": "Connections and scheduled tasks", "ar": "الاتصالات والمهام المجدولة"}, "label": {"en": "Manage database connections", "ar": "إدارة اتصالات قواعد البيانات"}, "key": "databaseUsers.manage", "cells": [true, false, false, false]}, {"group": {"en": "Connections and scheduled tasks", "ar": "الاتصالات والمهام المجدولة"}, "label": {"en": "See every scheduled task", "ar": "عرض جميع المهام المجدولة"}, "key": "scheduledTasks.viewAll", "cells": [true, false, true, false]}, {"group": {"en": "Connections and scheduled tasks", "ar": "الاتصالات والمهام المجدولة"}, "label": {"en": "Create and run scheduled tasks", "ar": "إنشاء المهام المجدولة وتشغيلها"}, "key": "scheduledTasks.manage", "cells": [true, false, false, false]}, {"group": {"en": "Connections and scheduled tasks", "ar": "الاتصالات والمهام المجدولة"}, "label": {"en": "Download scheduled task files", "ar": "تنزيل ملفات المهام المجدولة"}, "key": "scheduledTasks.download", "cells": [true, false, false, false]}, {"group": {"en": "Oversight", "ar": "الرقابة"}, "label": {"en": "Read execution logs", "ar": "قراءة سجلات التنفيذ"}, "key": "logs.view", "cells": [true, false, true, false]}, {"group": {"en": "Oversight", "ar": "الرقابة"}, "label": {"en": "Read the system audit trail", "ar": "قراءة سجل عمليات النظام"}, "key": "audit.view", "cells": [true, false, true, false]}, {"group": {"en": "System", "ar": "النظام"}, "label": {"en": "Change the site logo", "ar": "تغيير شعار الموقع"}, "key": "branding.manage", "cells": [true, false, false, false]}, {"group": {"en": "System", "ar": "النظام"}, "label": {"en": "Change system settings", "ar": "تغيير إعدادات النظام"}, "key": "settings.manage", "cells": [true, false, false, false]}, {"group": {"en": "System", "ar": "النظام"}, "label": {"en": "Manage roles and permissions", "ar": "إدارة الأدوار والصلاحيات"}, "key": "roles.manage", "cells": [true, false, false, false]}, {"group": {"en": "AI assistant", "ar": "المساعد الذكي"}, "label": {"en": "Use the AI assistant", "ar": "استخدام المساعد الذكي"}, "key": "ai.use", "cells": [true, false, false, false]}]}</script>
+<!--/PERM-MATRIX-->
+  </figure>
+  <div lang="en">
+    <p>The permission names are stored in the database, so renaming one silently takes it away from everyone.
+      Adding one is safe: nobody holds it until someone ticks the box, so a new permission starts closed.</p>
+    <p>Accounts seeded for development, to change or remove before going live: <code>admin</code> /
+      <code>Admin@123</code>, <code>user</code> / <code>User@123</code>, <code>auditor</code> /
+      <code>Auditor@123</code>, <code>accessmanager</code> / <code>Access@123</code>.</p>
+  </div>
+  <div lang="ar">
+    <p>أسماء الصلاحيات محفوظة في قاعدة البيانات، فتغيير اسم صلاحية يسحبها من الجميع دون تنبيه. أما إضافة صلاحية جديدة فآمنة:
+      لا يحملها أحد حتى يعلّمها أحد، فتبدأ مغلقة.</p>
+    <p>حسابات مُنشأة للتطوير، يجب تغييرها أو حذفها قبل التشغيل الفعلي: <code>admin</code> / <code>Admin@123</code>،
+      و<code>user</code> / <code>User@123</code>، و<code>auditor</code> / <code>Auditor@123</code>،
+      و<code>accessmanager</code> / <code>Access@123</code>.</p>
+  </div>
+</section>
+
+<section id="rules">
+  <div lang="en">
+    <h2>Rules that hold whatever the matrix says</h2>
+    <ul>
+      <li><strong>Admin is pinned.</strong> It holds every permission, its column cannot be edited, and it
+        cannot be deleted. Otherwise the last account able to open the permissions page could be edited out of it.</li>
+      <li><strong>Built-in roles keep their names.</strong> Their permissions can be edited, but they cannot be
+        renamed or deleted.</li>
+      <li><strong>A role in use cannot be deleted.</strong> Move its people first.</li>
+      <li><strong>Nobody grants themselves.</strong> A non-Admin cannot change their own roles, grant Admin,
+        touch an administrator's account, or add themselves to a user group.</li>
+      <li><strong>Changes apply on the next click.</strong> Permissions and group membership are checked on
+        every request, so nobody has to sign out for a removal to work.</li>
+      <li><strong>A query granted to a role that cannot run queries does nothing.</strong> A role without
+        <code>queries.run</code> never gains access through a query grant.</li>
+      <li><strong>Reports and dashboards never widen access.</strong> Each query inside them is checked as if
+        the person ran it directly.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h2>قواعد ثابتة مهما كان جدول الصلاحيات</h2>
+    <ul>
+      <li><strong>الدور Admin مثبَّت.</strong> يحمل كل صلاحية، ولا يمكن تعديل عموده ولا حذفه. وإلا لأمكن إخراج آخر حساب
+        يستطيع فتح صفحة الصلاحيات منها.</li>
+      <li><strong>الأدوار المدمجة تحتفظ بأسمائها.</strong> يمكن تعديل صلاحياتها، لكن لا يمكن تغيير أسمائها أو حذفها.</li>
+      <li><strong>الدور المستخدَم لا يُحذف.</strong> انقل أصحابه إلى دور آخر أولًا.</li>
+      <li><strong>لا أحد يمنح نفسه.</strong> غير المسؤول لا يستطيع تغيير أدواره، ولا منح الدور Admin، ولا المساس بحساب مسؤول،
+        ولا إضافة نفسه إلى مجموعة مستخدمين.</li>
+      <li><strong>التغييرات تسري من النقرة التالية.</strong> الصلاحيات وعضوية المجموعات تُفحص مع كل طلب، فلا حاجة لتسجيل
+        الخروج حتى تسري الإزالة.</li>
+      <li><strong>منح استعلام لدور لا يستطيع تشغيل الاستعلامات لا أثر له.</strong> الدور الذي لا يحمل <code>queries.run</code>
+        لا يكتسب وصولًا من منح استعلام.</li>
+      <li><strong>التقارير واللوحات لا توسّع الصلاحيات أبدًا.</strong> كل استعلام فيها يُفحص كأن الشخص شغّله بنفسه.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="sql-safety">
+  <div lang="en">
+    <h2>What a saved query may contain</h2>
+    <p>Every query is checked when it is saved:</p>
+    <ul>
+      <li><code>--</code> and <code>;</code> are refused anywhere: one statement per query, no comments that could hide the rest of a line.</li>
+      <li>Names starting with <code>XP_</code>, <code>SP_</code>, <code>DBMS_</code> or <code>UTL_</code> are refused
+        (only at the start of a name, so <code>REGEXP_REPLACE</code> is fine).</li>
+      <li>The text is limited to <code>query.sqlMaxLength</code> characters (4,000 by default).</li>
+      <li>Validation runs on every input, and every query has a timeout (or none, if set to unlimited).</li>
+    </ul>
+    <p>SQL written by the AI assistant passes a stricter check first, described on the <a href="ai.html#safety">AI page</a>.
+      The strongest protection of all does not depend on Jadwal: give connections database accounts that can only read,
+      wherever writing is not needed.</p>
+  </div>
+  <div lang="ar">
+    <h2>ما يجوز أن يحتويه الاستعلام المحفوظ</h2>
+    <p>يُفحص كل استعلام عند حفظه:</p>
+    <ul>
+      <li><code>--</code> و<code>;</code> مرفوضتان في أي مكان: جملة واحدة لكل استعلام، ولا تعليقات قد تخفي بقية السطر.</li>
+      <li>الأسماء التي تبدأ بـ<code>XP_</code> أو <code>SP_</code> أو <code>DBMS_</code> أو <code>UTL_</code> مرفوضة
+        (في بداية الاسم فقط، فالدالة <code>REGEXP_REPLACE</code> مقبولة).</li>
+      <li>طول النص محدود بالإعداد <code>query.sqlMaxLength</code> (4,000 حرف افتراضيًا).</li>
+      <li>كل المدخلات يُتحقق منها، ولكل استعلام مهلة تنفيذ (أو بلا حد إن ضُبط كذلك).</li>
+    </ul>
+    <p>ما يكتبه المساعد الذكي من SQL يمر أولًا بفحص أشد، مشروح في <a href="ai.html#safety">صفحة المساعد الذكي</a>. وأقوى
+      حماية لا تعتمد على «جدول» أصلًا: أعطِ الاتصالات حسابات قواعد بيانات للقراءة فقط، حيث لا حاجة للتعديل.</p>
+  </div>
+</section>
+
+<section id="settings">
+  <div lang="en">
+    <h2>Settings you can change while it runs</h2>
+    <p>Stored in the database and edited at <strong>Settings</strong> (<code>settings.manage</code>), so they
+      change without a restart. A missing value means the default. Each value is range-checked, and every change
+      is recorded in the audit trail.</p>
+  </div>
+  <div lang="ar">
+    <h2>إعدادات تتغير أثناء التشغيل</h2>
+    <p>محفوظة في قاعدة البيانات وتُعدَّل من <strong>الإعدادات</strong> (صلاحية <code>settings.manage</code>)، فتتغير دون
+      إعادة تشغيل. والقيمة غير الموجودة تعني القيمة الافتراضية. وكل قيمة يُتحقق من حدودها، وكل تغيير يُسجَّل في سجل العمليات.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Key</span><span lang="ar">المفتاح</span></th><th><span lang="en">Default</span><span lang="ar">الافتراضي</span></th><th><span lang="en">What it does</span><span lang="ar">ماذا يفعل</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>session.accessTokenMinutes</code></td><td>60</td><td><span lang="en">How long a sign-in token lasts, 5–1440 minutes. Shorter means a removed account stops working sooner.</span><span lang="ar">مدة صلاحية رمز الدخول، من 5 إلى 1440 دقيقة. كلما قصرت توقف الحساب المحذوف أسرع.</span></td></tr>
+      <tr><td><code>session.refreshTokenDays</code></td><td>7</td><td><span lang="en">How long someone may stay away and come back without signing in, 1–90 days.</span><span lang="ar">المدة التي يمكن أن يغيب فيها الشخص ويعود دون تسجيل دخول، من 1 إلى 90 يومًا.</span></td></tr>
+      <tr><td><code>query.maxRows</code></td><td>10,000</td><td><span lang="en">Rows read at once where a whole result is held: write previews, before-change copies, drop-down lists. Not a display limit.</span><span lang="ar">الصفوف المقروءة دفعة واحدة حيث تُحفظ النتيجة كاملة: معاينة التعديل، ونسخ ما قبل التغيير، والقوائم المنسدلة. ليس حدًا للعرض.</span></td></tr>
+      <tr><td><code>query.sqlMaxLength</code></td><td>4,000</td><td><span lang="en">Longest SQL a query may hold, 1,000–1,000,000 characters.</span><span lang="ar">أطول نص SQL يحمله الاستعلام، من 1,000 إلى 1,000,000 حرف.</span></td></tr>
+      <tr><td><code>directory.enabled</code></td><td>true</td><td><span lang="en">Off hides the Active Directory users page. Sign-in is not affected.</span><span lang="ar">إيقافه يخفي صفحة مستخدمي Active Directory، ولا يتأثر تسجيل الدخول.</span></td></tr>
+      <tr><td><code>ai.enabled</code></td><td>true</td><td><span lang="en">Offer the AI assistant (it also needs <code>Ai:Enabled</code> in appsettings.json).</span><span lang="ar">إتاحة المساعد الذكي (ويحتاج أيضًا <code>Ai:Enabled</code> في appsettings.json).</span></td></tr>
+      <tr><td><code>ai.defaultConnection</code></td><td>false</td><td><span lang="en">Let the AI read tables on Jadwal's own database. Jadwal's own tables stay hidden.</span><span lang="ar">السماح للذكاء الاصطناعي بقراءة جداول قاعدة بيانات «جدول» نفسها. جداول النظام تبقى مخفية.</span></td></tr>
+      <tr><td><code>ai.sampleValues</code></td><td>false</td><td><span lang="en">Show the AI up to five example values per text column.</span><span lang="ar">عرض حتى خمس قيم أمثلة من كل عمود نصي على الذكاء الاصطناعي.</span></td></tr>
+      <tr><td><code>ai.instructions</code></td><td>—</td><td><span lang="en">Your own rules for the AI, up to 4,000 characters.</span><span lang="ar">قواعدكم الخاصة للذكاء الاصطناعي، حتى 4,000 حرف.</span></td></tr>
+      <tr><td><code>audit.executionLogRetentionDays</code></td><td>0</td><td><span lang="en">Days of execution logs to keep; 0 keeps them forever, else 7–3650. Cleared two minutes after start, then every six hours, or at once with <strong>Rotate now</strong>.</span><span lang="ar">أيام حفظ سجلات التنفيذ؛ 0 يعني إلى الأبد، وإلا فمن 7 إلى 3650. يُنظَّف بعد دقيقتين من التشغيل ثم كل ست ساعات، أو فورًا بزر <strong>التدوير الآن</strong>.</span></td></tr>
+      <tr><td><code>audit.systemLogRetentionDays</code></td><td>0</td><td><span lang="en">The same for the system audit trail. Each clean-up records itself there.</span><span lang="ar">الشيء نفسه لسجل عمليات النظام، وكل تنظيف يسجّل نفسه فيه.</span></td></tr>
+    </tbody>
+  </table></div>
+  <div lang="en"><p>Settings are read fresh on every check, never cached: a stale value could keep access an administrator
+    believes they just removed. The site names (<code>branding.siteNameEn</code>, <code>branding.siteNameAr</code>) live in the same
+    table but are edited under Website branding.</p></div>
+  <div lang="ar"><p>تُقرأ الإعدادات من جديد مع كل فحص ولا تُخزَّن مؤقتًا: فالقيمة القديمة قد تُبقي وصولًا يظن المسؤول أنه أزاله للتو.
+    واسما الموقع (<code>branding.siteNameEn</code> و<code>branding.siteNameAr</code>) في الجدول نفسه، لكنهما يُعدَّلان من هوية الموقع.</p></div>
+</section>
+
+<section id="audit">
+  <div lang="en">
+    <h2>The audit trail</h2>
+    <p>Two records answer two questions:</p>
+    <div class="two-col">
+      <div class="panel"><h4>Execution logs: what did people run?</h4>
+        <p>Every run, preview and failure: who, the values, how long, how many rows, the error if any, and for
+          UPDATE and DELETE the rows as they were before. Read with <code>logs.view</code>.</p></div>
+      <div class="panel"><h4>System audit: what did people change?</h4>
+        <p>Every administrative change: a user created, a permission granted, a query edited, an AI request.
+          Read with <code>audit.view</code>.</p></div>
+    </div>
+    <ul>
+      <li><strong>Nothing is left out by accident.</strong> Entries are written by one step every command
+        passes through, so a new command is recorded without anyone remembering to.</li>
+      <li><strong>Refusals are recorded too.</strong> "The access manager tried to reset the admin's password and
+        was refused" is often the entry that matters.</li>
+      <li><strong>Secrets never reach it.</strong> Any field named like a password, secret, token, connection
+        string, key or credential is replaced with <code>***</code>; file contents become <code>[omitted]</code>.</li>
+      <li><strong>Read only.</strong> The API has no way to change or delete an entry, except the retention clean-up.</li>
+      <li>Actions are stored as codes (<code>users.create</code>) and translated on screen, so the trail reads in Arabic too.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h2>سجل العمليات</h2>
+    <p>سجلّان يجيبان عن سؤالين:</p>
+    <div class="two-col">
+      <div class="panel"><h4>سجلات التنفيذ: ماذا شغّل الناس؟</h4>
+        <p>كل تشغيل ومعاينة وفشل: مَن، والقيم، والمدة، وعدد الصفوف، والخطأ إن وجد، وفي UPDATE وDELETE الصفوف كما كانت قبل التغيير.
+          تُقرأ بصلاحية <code>logs.view</code>.</p></div>
+      <div class="panel"><h4>سجل عمليات النظام: ماذا غيّر الناس؟</h4>
+        <p>كل تغيير إداري: إنشاء مستخدم، أو منح صلاحية، أو تعديل استعلام، أو طلب من الذكاء الاصطناعي. يُقرأ بصلاحية <code>audit.view</code>.</p></div>
+    </div>
+    <ul>
+      <li><strong>لا شيء يُنسى سهوًا.</strong> القيود تكتبها خطوة واحدة يمر بها كل أمر، فيُسجَّل أي أمر جديد دون أن يتذكره أحد.</li>
+      <li><strong>المحاولات المرفوضة تُسجَّل أيضًا.</strong> «حاول مدير الوصول إعادة تعيين كلمة مرور المسؤول فرُفض» هو غالبًا القيد الأهم.</li>
+      <li><strong>الأسرار لا تصل إليه أبدًا.</strong> أي حقل يشبه اسمه كلمة مرور أو سرًا أو رمزًا أو نص اتصال أو مفتاحًا يُستبدل بـ<code>***</code>،
+        ومحتوى الملفات يصبح <code>[omitted]</code>.</li>
+      <li><strong>للقراءة فقط.</strong> لا يتيح الـAPI تعديل قيد أو حذفه، إلا التنظيف حسب مدة الحفظ.</li>
+      <li>العمليات تُحفظ رموزًا (<code>users.create</code>) وتُترجم على الشاشة، فيُقرأ السجل بالعربية أيضًا.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="checklist">
+  <div lang="en">
+    <h2>Before going live</h2>
+    <ul class="checklist">
+      <li>A strong, unique <code>Jwt:Secret</code> (at least 32 random characters).</li>
+      <li>A unique <code>Encryption:Key</code> (32 bytes, base64), kept safe. Lose it and stored database passwords cannot be read.</li>
+      <li>The seeded development accounts changed or removed.</li>
+      <li><code>Ldap:Host</code> pointing at the right server, tested with a real sign-in.</li>
+      <li>HTTPS: a certificate on the IIS site, or at the reverse proxy.</li>
+      <li>Read-only database accounts for connections that only need to read.</li>
+      <li>Retention set for the two logs, or a plan for their growth; backups of the database.</li>
+      <li>Only the ports you need open in the firewall.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h2>قبل التشغيل الفعلي</h2>
+    <ul class="checklist">
+      <li>قيمة قوية وفريدة لـ<code>Jwt:Secret</code> (32 حرفًا عشوائيًا على الأقل).</li>
+      <li>قيمة فريدة لـ<code>Encryption:Key</code> (32 بايت بترميز base64)، محفوظة بأمان. ضياعها يعني عدم القدرة على قراءة كلمات مرور قواعد البيانات المحفوظة.</li>
+      <li>تغيير حسابات التطوير المُنشأة مسبقًا أو حذفها.</li>
+      <li><code>Ldap:Host</code> يشير إلى الخادم الصحيح، مع تجربة دخول حقيقية.</li>
+      <li>HTTPS: شهادة على موقع IIS، أو عند الوسيط العكسي.</li>
+      <li>حسابات قواعد بيانات للقراءة فقط للاتصالات التي لا تحتاج إلا القراءة.</li>
+      <li>مدة حفظ للسجلين، أو خطة لنموهما؛ ونسخ احتياطي لقاعدة البيانات.</li>
+      <li>فتح المنافذ اللازمة فقط في الجدار الناري.</li>
+    </ul>
+  </div>
+</section>
+
+</div></main>
+</body>
+</html>

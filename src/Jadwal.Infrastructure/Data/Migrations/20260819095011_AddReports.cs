@@ -14,7 +14,7 @@ namespace Jadwal.Infrastructure.Data.Migrations
     /// Raw SQL rather than the scaffolded CreateTable calls: Oracle auto-commits DDL, so a
     /// migration that fails part-way leaves its tables behind and the retry must not die on
     /// ORA-00955 (name is already used by an existing object). Every statement below is
-    /// therefore independently idempotent. See DATABASE_MIGRATION_NOTES.txt section 1B.
+    /// therefore independently idempotent. See docs/database.html#oracle-rules, rule 1.
     /// </para>
     ///
     /// <para>

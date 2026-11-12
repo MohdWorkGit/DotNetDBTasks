@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jadwal documentation</title>
+<meta name="description" content="Jadwal: run saved database queries, reports and dashboards, with permissions and an audit trail.">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body data-page="index" data-title-en="Jadwal documentation" data-title-ar="توثيق جدول">
+<main><div class="content">
+
+<div class="hero">
+  <div lang="en">
+    <span class="pill">Queries · Reports · Dashboards · Schedules</span>
+    <h1>Jadwal</h1>
+    <p>Turns the database from a locked box that only specialists can open into a self-service tool
+      for every employee. An administrator sets up a query once; everyone it is granted to fills in a
+      simple form, presses Run, and gets a table they can search, sort and export.</p>
+    <div class="hero-actions">
+      <a class="btn btn-light" href="features.html">See what it does</a>
+      <a class="btn btn-ghost" href="deploy.html">Install it</a>
+      <a class="btn btn-ghost" href="ai.html">AI assistant</a>
+    </div>
+  </div>
+  <div lang="ar">
+    <span class="pill">استعلامات · تقارير · لوحات معلومات · مهام مجدولة</span>
+    <h1>جدول</h1>
+    <p>يحوّل «جدول» قاعدة البيانات من صندوق مغلق لا يفتحه إلا المختصون إلى خدمة ذاتية بين يدي كل موظف.
+      يُعدّ المسؤول الاستعلام مرة واحدة، فيملأ كل من مُنح له نموذجًا بسيطًا ويضغط «تشغيل»، لتظهر النتيجة
+      جدولًا يمكنه البحث فيه وترتيبه وتصديره.</p>
+    <div class="hero-actions">
+      <a class="btn btn-light" href="features.html">ماذا يقدّم النظام</a>
+      <a class="btn btn-ghost" href="deploy.html">التثبيت</a>
+      <a class="btn btn-ghost" href="ai.html">المساعد الذكي</a>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="bar"></div><div class="num">152</div><div class="lbl"><span lang="en">API endpoints</span><span lang="ar">نقطة وصول برمجية (API)</span></div></div>
+  <div class="stat"><div class="bar"></div><div class="num">44</div><div class="lbl"><span lang="en">permissions to grant</span><span lang="ar">صلاحية قابلة للمنح</span></div></div>
+  <div class="stat"><div class="bar"></div><div class="num">45</div><div class="lbl"><span lang="en">database tables</span><span lang="ar">جدولًا في قاعدة البيانات</span></div></div>
+  <div class="stat"><div class="bar"></div><div class="num">4</div><div class="lbl"><span lang="en">database engines</span><span lang="ar">أنواع قواعد بيانات</span></div></div>
+  <div class="stat"><div class="bar"></div><div class="num">2</div><div class="lbl"><span lang="en">languages, English and Arabic</span><span lang="ar">لغتان: العربية والإنجليزية</span></div></div>
+</div>
+
+<section id="about">
+  <div lang="en">
+    <h2>About the system</h2>
+    <p>Jadwal brings running database queries into one place. A query is defined and saved once, and
+      tied to an approved database connection whose credentials are managed centrally, instead of
+      queries living in tools and files on people's own computers.</p>
+    <p>Automation is built on that. Any query can be scheduled to run on its own, daily, weekly or
+      monthly, and write its output to an approved folder in the format needed. Regular extracts are
+      ready on time without anyone having to be there. Every run is recorded with who ran it, when, and
+      how it ended, which gives a trail to come back to at a review or an audit.</p>
+    <p>Once a query is defined centrally, it can be offered to the people allowed to use it: they reach
+      a simple screen, fill in what is needed (a date, a branch, a status), see the result, and export
+      it to Excel, PDF or Word, with no request to IT each time. Several queries can be combined into one
+      report with an official template, and the key figures shown on dashboards that refresh by
+      themselves, under the same permissions.</p>
+  </div>
+  <div lang="ar">
+    <h2>نبذة عن النظام</h2>
+    <p>يجمع النظام تشغيل الاستعلامات على قواعد البيانات في مكان واحد: يُعرَّف الاستعلام ويُحفظ مرة واحدة،
+      ويُربط باتصال قاعدة بيانات معتمد تُدار بياناته مركزيًا، بدل أن تبقى الاستعلامات موزّعة في أدوات وملفات
+      على أجهزة الأفراد.</p>
+    <p>وعلى هذا الأساس تقوم الأتمتة: يمكن جدولة أي استعلام ليعمل من تلقاء نفسه، يوميًا أو أسبوعيًا أو شهريًا،
+      وتُحفظ مخرجاته في مجلد معتمد وبالصيغة المطلوبة، فتكون عمليات الاستخراج الدورية جاهزة في موعدها دون تدخّل
+      أحد. ويُسجَّل كل تشغيل باسم صاحبه ووقته ونتيجته، فيبقى سجل موثّق يُرجع إليه عند المراجعة أو التدقيق.</p>
+    <p>ومتى صار الاستعلام معرَّفًا مركزيًا، أمكن إتاحته للمستخدمين المخوَّلين: يصل الموظف إلى شاشة بسيطة يملأ فيها
+      ما يلزم (تاريخ، أو فرع، أو حالة معاملة)، فتظهر النتيجة أمامه ويصدّرها إلى Excel أو PDF أو Word، دون
+      الرجوع في كل مرة إلى قسم تقنية المعلومات. ويمكن جمع عدة استعلامات في تقرير واحد بقالب رسمي، وعرض المؤشرات
+      الرئيسية في لوحات معلومات تحدّث نفسها تلقائيًا، بالصلاحيات نفسها.</p>
+  </div>
+</section>
+
+<section id="what-it-does">
+  <div lang="en"><h2>What it does</h2></div>
+  <div lang="ar"><h2>ماذا يقدّم</h2></div>
+  <div class="cards">
+    <a class="card c-blue" href="features.html#queries">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/></svg></span>
+      <h3><span lang="en">Saved queries</span><span lang="ar">الاستعلامات المحفوظة</span></h3>
+      <p lang="en">SQL with input fields, run by anyone it is granted to. Reads and writes, with a preview before any change.</p>
+      <p lang="ar">نص SQL بحقول إدخال، يشغّله كل من مُنح له. قراءة وتعديل، مع معاينة قبل أي تغيير.</p>
+    </a>
+    <a class="card c-violet" href="features.html#reports">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span>
+      <h3><span lang="en">Reports</span><span lang="ar">التقارير</span></h3>
+      <p lang="en">Several queries in one document, with charts and a Word template in the organisation's style.</p>
+      <p lang="ar">عدة استعلامات في مستند واحد، مع مخططات وقالب Word يحمل هوية الجهة.</p>
+    </a>
+    <a class="card c-teal" href="features.html#dashboards">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
+      <h3><span lang="en">Dashboards</span><span lang="ar">لوحات المعلومات</span></h3>
+      <p lang="en">Key figures and charts that refresh by themselves, for a wall screen or a manager's open tab.</p>
+      <p lang="ar">أرقام بارزة ومخططات تحدّث نفسها، لشاشة معلّقة أو تبويب مفتوح على مكتب المدير.</p>
+    </a>
+    <a class="card c-amber" href="features.html#schedules">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      <h3><span lang="en">Scheduled tasks</span><span lang="ar">المهام المجدولة</span></h3>
+      <p lang="en">Queries and reports that run on a timetable and drop finished files into a folder.</p>
+      <p lang="ar">استعلامات وتقارير تعمل في مواعيد محددة وتضع ملفاتها الجاهزة في مجلد.</p>
+    </a>
+    <a class="card c-rose" href="security.html">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg></span>
+      <h3><span lang="en">Permissions and audit</span><span lang="ar">الصلاحيات والتدقيق</span></h3>
+      <p lang="en">Roles you can edit, user groups, and a record of every change and every run.</p>
+      <p lang="ar">أدوار قابلة للتعديل، ومجموعات مستخدمين، وسجل لكل تغيير وكل تشغيل.</p>
+    </a>
+    <a class="card c-indigo" href="ai.html">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg></span>
+      <h3><span lang="en">AI assistant</span><span lang="ar">المساعد الذكي</span></h3>
+      <p lang="en">A model on the server itself explains SQL, fixes it, writes it, and drafts reports and dashboards.</p>
+      <p lang="ar">نموذج يعمل على الخادم نفسه يشرح SQL ويصلحه ويكتبه، ويُعدّ مسودات التقارير واللوحات.</p>
+    </a>
+  </div>
+</section>
+
+<section id="readers">
+  <div lang="en">
+    <h2>Where to start</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>You are</th><th>Read</th></tr></thead>
+      <tbody>
+        <tr><td>A manager deciding whether to use it</td><td><a href="#about">About the system</a>, <a href="features.html">Features</a></td></tr>
+        <tr><td>An administrator setting it up</td><td><a href="security.html">Security and permissions</a>, <a href="features.html">Features</a>, <a href="ai.html">AI assistant</a></td></tr>
+        <tr><td>IT staff installing it</td><td><a href="deploy.html">Deployment</a>, <a href="iis.html">IIS hosting</a>, <a href="troubleshooting.html">Troubleshooting</a></td></tr>
+        <tr><td>A developer changing it</td><td><a href="development.html">Development</a>, <a href="api.html">API reference</a>, <a href="database.html">Database</a></td></tr>
+      </tbody>
+    </table></div>
+    <p>Step-by-step guides for people using the screens are in the Word manuals,
+      <code>docs/user-manual/Jadwal-User-Manual-EN.docx</code> and <code>-AR.docx</code>.</p>
+  </div>
+  <div lang="ar">
+    <h2>من أين تبدأ</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>إذا كنت</th><th>فاقرأ</th></tr></thead>
+      <tbody>
+        <tr><td>مديرًا يقرّر استخدام النظام</td><td><a href="#about">نبذة عن النظام</a>، <a href="features.html">الخصائص</a></td></tr>
+        <tr><td>مسؤولًا يُعدّ النظام</td><td><a href="security.html">الأمان والصلاحيات</a>، <a href="features.html">الخصائص</a>، <a href="ai.html">المساعد الذكي</a></td></tr>
+        <tr><td>من فريق تقنية المعلومات ويثبّته</td><td><a href="deploy.html">النشر والتثبيت</a>، <a href="iis.html">الاستضافة على IIS</a>، <a href="troubleshooting.html">حل المشكلات</a></td></tr>
+        <tr><td>مطوّرًا يعدّل عليه</td><td><a href="development.html">التطوير</a>، <a href="api.html">مرجع API</a>، <a href="database.html">قاعدة البيانات</a></td></tr>
+      </tbody>
+    </table></div>
+    <p>أما الشرح خطوة بخطوة لمن يستخدم الشاشات، فهو في دليلي المستخدم بصيغة Word:
+      <code>docs/user-manual/Jadwal-User-Manual-AR.docx</code> و<code>-EN.docx</code>.</p>
+  </div>
+</section>
+
+<section id="architecture">
+  <div lang="en">
+    <h2>How it is built</h2>
+    <p>Clean Architecture with CQRS. Each layer depends only on the ones below it; the domain depends on
+      nothing. One API process serves the screens, runs the background work, and talks to the databases,
+      the directory and, optionally, the local AI model.</p>
+  </div>
+  <div lang="ar">
+    <h2>كيف بُني</h2>
+    <p>بنية نظيفة (Clean Architecture) مع فصل الأوامر عن الاستعلامات (CQRS). كل طبقة تعتمد على ما تحتها فقط،
+      وطبقة النطاق لا تعتمد على شيء. عملية API واحدة تخدم الشاشات، وتشغّل الأعمال في الخلفية، وتتصل بقواعد البيانات
+      والدليل، وبنموذج الذكاء الاصطناعي المحلي إن وُجد.</p>
+  </div>
+  <figure class="diagram">
+    <div class="layers">
+      <div class="layer l1">
+        <div class="ln"><span class="dot"></span>Angular 21</div>
+        <div class="ld"><span lang="en">The screens, in English and Arabic, light and dark.</span><span lang="ar">الشاشات، بالعربية والإنجليزية، بالوضعين الفاتح والداكن.</span>
+          <div class="chips"><span class="chip">Angular Material</span><span class="chip">Transloco</span><span class="chip">CodeMirror</span><span class="chip">client/</span></div></div>
+      </div>
+      <div class="layer-arrow">▼ HTTPS · JWT</div>
+      <div class="layer l2">
+        <div class="ln"><span class="dot"></span>Jadwal.API</div>
+        <div class="ld"><span lang="en">19 controllers, permission checks, error handling, the web host.</span><span lang="ar">19 وحدة تحكم، والتحقق من الصلاحيات، ومعالجة الأخطاء، واستضافة الموقع.</span>
+          <div class="chips"><span class="chip">ASP.NET Core 10</span><span class="chip">Serilog</span><span class="chip">Swagger</span></div></div>
+      </div>
+      <div class="layer-arrow">▼</div>
+      <div class="layer l3">
+        <div class="ln"><span class="dot"></span>Jadwal.Application</div>
+        <div class="ld"><span lang="en">Commands and queries, validation, access rules, the audit pipeline, AI prompts.</span><span lang="ar">الأوامر والاستعلامات، والتحقق من المدخلات، وقواعد الوصول، وتسجيل العمليات، وتعليمات الذكاء الاصطناعي.</span>
+          <div class="chips"><span class="chip">MediatR</span><span class="chip">FluentValidation</span><span class="chip">AutoMapper</span></div></div>
+      </div>
+      <div class="layer-arrow">▼</div>
+      <div class="layer l4">
+        <div class="ln"><span class="dot"></span>Jadwal.Domain</div>
+        <div class="ld"><span lang="en">Entities, enums, permission names. No dependencies.</span><span lang="ar">الكيانات والتعدادات وأسماء الصلاحيات. بلا أي اعتماديات.</span></div>
+      </div>
+      <div class="layer-arrow">▲ <span lang="en">implements the interfaces</span><span lang="ar">تنفّذ الواجهات</span></div>
+      <div class="layer l5">
+        <div class="ln"><span class="dot"></span>Jadwal.Infrastructure</div>
+        <div class="ld"><span lang="en">EF Core, the query runner, LDAP, encryption, exports, background workers, the AI client.</span><span lang="ar">EF Core، ومشغّل الاستعلامات، وLDAP، والتشفير، والتصدير، وعمليات الخلفية، وعميل الذكاء الاصطناعي.</span>
+          <div class="chips"><span class="chip">Oracle</span><span class="chip">SQL Server</span><span class="chip">PostgreSQL</span><span class="chip">MySQL</span><span class="chip">LDAP / AD</span><span class="chip">Ollama</span></div></div>
+      </div>
+    </div>
+    <figcaption><span lang="en">The four .NET projects under <code>src/</code> and the Angular client under <code>client/</code>.</span><span lang="ar">مشاريع .NET الأربعة في <code>src/</code> وواجهة Angular في <code>client/</code>.</span></figcaption>
+  </figure>
+</section>
+
+<section id="at-a-glance">
+  <div lang="en"><h2>At a glance</h2></div>
+  <div lang="ar"><h2>بالأرقام</h2></div>
+  <div class="chart-grid">
+    <figure class="chart">
+      <script type="application/json">{
+        "type": "hbar",
+        "title": {"en": "Code size by part", "ar": "حجم الشيفرة حسب الجزء"},
+        "sub": {"en": "Non-blank lines; migrations and generated files left out", "ar": "الأسطر غير الفارغة، دون ملفات الترحيل والملفات المولّدة"},
+        "unit": {"en": "lines", "ar": "سطر"},
+        "rowHead": {"en": "Part", "ar": "الجزء"},
+        "valueHead": {"en": "Lines", "ar": "الأسطر"},
+        "digits": 0,
+        "rows": [
+          {"label": {"en": "Angular client", "ar": "واجهة Angular"}, "value": 21709},
+          {"label": "Application", "value": 15698},
+          {"label": "Infrastructure", "value": 7584},
+          {"label": "API", "value": 4636},
+          {"label": "Domain", "value": 2414},
+          {"label": "QueryRunner", "value": 904}
+        ]
+      }</script>
+    </figure>
+    <figure class="chart">
+      <script type="application/json">{
+        "type": "bar",
+        "title": {"en": "Database changes by month", "ar": "تغييرات قاعدة البيانات حسب الشهر"},
+        "sub": {"en": "Schema migrations added in 2026, 40 in all", "ar": "ترحيلات المخطط المضافة في 2026، وعددها 40"},
+        "unit": {"en": "migrations", "ar": "ترحيل"},
+        "rowHead": {"en": "Month", "ar": "الشهر"},
+        "valueHead": {"en": "Migrations", "ar": "الترحيلات"},
+        "digits": 0,
+        "rows": [
+          {"label": {"en": "Feb", "ar": "فبراير"}, "full": {"en": "February 2026", "ar": "فبراير 2026"}, "value": 2},
+          {"label": {"en": "Mar", "ar": "مارس"}, "full": {"en": "March 2026", "ar": "مارس 2026"}, "value": 5},
+          {"label": {"en": "Apr", "ar": "أبريل"}, "full": {"en": "April 2026", "ar": "أبريل 2026"}, "value": 0},
+          {"label": {"en": "May", "ar": "مايو"}, "full": {"en": "May 2026", "ar": "مايو 2026"}, "value": 4},
+          {"label": {"en": "Jun", "ar": "يونيو"}, "full": {"en": "June 2026", "ar": "يونيو 2026"}, "value": 1},
+          {"label": {"en": "Jul", "ar": "يوليو"}, "full": {"en": "July 2026", "ar": "يوليو 2026"}, "value": 10},
+          {"label": {"en": "Aug", "ar": "أغسطس"}, "full": {"en": "August 2026", "ar": "أغسطس 2026"}, "value": 13},
+          {"label": {"en": "Sep", "ar": "سبتمبر"}, "full": {"en": "September 2026", "ar": "سبتمبر 2026"}, "value": 2},
+          {"label": {"en": "Oct", "ar": "أكتوبر"}, "full": {"en": "October 2026", "ar": "أكتوبر 2026"}, "value": 1},
+          {"label": {"en": "Nov", "ar": "نوفمبر"}, "full": {"en": "November 2026", "ar": "نوفمبر 2026"}, "value": 2}
+        ]
+      }</script>
+    </figure>
+  </div>
+</section>
+
+<section id="pages">
+  <div lang="en"><h2>All pages</h2></div>
+  <div lang="ar"><h2>كل الصفحات</h2></div>
+  <div class="cards">
+    <a class="card c-blue" href="features.html"><h4><span lang="en">Features</span><span lang="ar">الخصائص</span></h4><p lang="en">Queries, parameters, exports, writes, long runs, schedules, reports, dashboards, groups, backups, branding, languages.</p><p lang="ar">الاستعلامات ومعايير البحث والتصدير والتعديل والتشغيل الطويل والجدولة والتقارير واللوحات والمجموعات والنسخ الاحتياطي والهوية واللغات.</p></a>
+    <a class="card c-rose" href="security.html"><h4><span lang="en">Security and permissions</span><span lang="ar">الأمان والصلاحيات</span></h4><p lang="en">Roles and the permission matrix, the rules that always hold, settings, the audit trail.</p><p lang="ar">الأدوار وجدول الصلاحيات، والقواعد الثابتة، والإعدادات، وسجل العمليات.</p></a>
+    <a class="card c-indigo" href="ai.html"><h4><span lang="en">AI assistant</span><span lang="ar">المساعد الذكي</span></h4><p lang="en">The four AI features, what the model sees, safety, models by GPU, measured speeds.</p><p lang="ar">خصائص الذكاء الاصطناعي الأربع، وما يراه النموذج، والأمان، والنماذج حسب بطاقة الرسومات، والسرعات المقيسة.</p></a>
+    <a class="card c-amber" href="deploy.html"><h4><span lang="en">Deployment</span><span lang="ar">النشر والتثبيت</span></h4><p lang="en">Docker, an offline release, rebuilding offline, upgrading, the AI bundle.</p><p lang="ar">Docker، والنشر دون إنترنت، وإعادة البناء دون إنترنت، والترقية، وحزمة الذكاء الاصطناعي.</p></a>
+    <a class="card c-slate" href="iis.html"><h4><span lang="en">IIS hosting and sign-in</span><span lang="ar">الاستضافة على IIS</span></h4><p lang="en">One IIS site, the app pool settings the workers need, Windows sign-in.</p><p lang="ar">موقع IIS واحد، وإعدادات مجمّع التطبيقات التي تحتاجها عمليات الخلفية، والدخول بحساب Windows.</p></a>
+    <a class="card c-green" href="troubleshooting.html"><h4><span lang="en">Troubleshooting</span><span lang="ar">حل المشكلات</span></h4><p lang="en">Every known problem and what to check, searchable.</p><p lang="ar">كل مشكلة معروفة وما يجب فحصه، مع البحث.</p></a>
+    <a class="card c-violet" href="api.html"><h4><span lang="en">API reference</span><span lang="ar">مرجع API</span></h4><p lang="en">All 152 endpoints with the permission each one needs.</p><p lang="ar">نقاط الوصول الـ152 كلها مع الصلاحية التي تحتاجها كل واحدة.</p></a>
+    <a class="card c-teal" href="database.html"><h4><span lang="en">Database</span><span lang="ar">قاعدة البيانات</span></h4><p lang="en">The tables and how they relate, migrations, the Oracle rules.</p><p lang="ar">الجداول والعلاقات بينها، والترحيلات، وقواعد Oracle.</p></a>
+    <a class="card c-blue" href="development.html"><h4><span lang="en">Development</span><span lang="ar">التطوير</span></h4><p lang="en">Running it locally, settings, the tech stack, the QueryRunner tool, the Word manuals.</p><p lang="ar">التشغيل محليًا، والإعدادات، والتقنيات المستخدمة، وأداة QueryRunner، ودليلا Word.</p></a>
+  </div>
+</section>
+
+</div></main>
+</body>
+</html>

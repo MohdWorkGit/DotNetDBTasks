@@ -8,7 +8,7 @@ namespace Jadwal.Infrastructure.Data.Migrations
     /// Adds the per-connection "Allow AI" switch: whether the AI assistant may read the
     /// connection's tables and columns to write SQL. Every existing connection starts with it off,
     /// so nothing is opened up by the upgrade — an administrator switches it on per connection,
-    /// for accounts that can read data but not change it (docs/LOCAL-AI-OPTIONS.md §7).
+    /// for accounts that can read data but not change it (docs/ai.html#safety).
     /// </summary>
     public partial class AddDatabaseUserAllowAi : Migration
     {
@@ -20,7 +20,7 @@ namespace Jadwal.Infrastructure.Data.Migrations
 
         /// <summary>
         /// Raw SQL rather than AddColumn: Oracle auto-commits DDL, so a migration that fails
-        /// part-way must be safe to run again (DATABASE_MIGRATION_NOTES.txt, rule 2). The default
+        /// part-way must be safe to run again (docs/database.html#oracle-rules, rule 2). The default
         /// is plain SQL too — a typed bool default on a NUMBER(1) column throws an Int16→Bool cast
         /// in the Oracle provider (see AddAllowMultipleToQueryParameter).
         /// </summary>

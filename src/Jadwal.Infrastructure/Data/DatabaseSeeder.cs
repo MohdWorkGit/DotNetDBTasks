@@ -55,7 +55,7 @@ public static class DatabaseSeeder
 
             // Repair broken schema: Oracle's non-transactional DDL can leave tables
             // without columns that EF Core expects (migration recorded as applied but
-            // ALTER TABLE failed mid-way). See DATABASE_MIGRATION_NOTES.txt for details.
+            // ALTER TABLE failed mid-way). See docs/database.html#oracle-rules.
             await RepairDatabaseUsersSchemaAsync(context, logger);
             await ReclassifyQueryTypesAsync(context, logger);
 

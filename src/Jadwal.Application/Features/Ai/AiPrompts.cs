@@ -8,7 +8,7 @@ namespace Jadwal.Application.Features.Ai;
 
 /// <summary>
 /// What Jadwal asks the AI model, and the shape it must answer in. Kept in one place so the
-/// wording can be tuned against the test set (docs/LOCAL-AI-OPTIONS.md §10) without touching
+/// wording can be tuned against the test set (docs/ai.html#choosing-a-model) without touching
 /// the handlers.
 /// </summary>
 internal static class AiPrompts

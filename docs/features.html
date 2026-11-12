@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Features · Jadwal documentation</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body data-page="features" data-title-en="Features · Jadwal documentation" data-title-ar="الخصائص · توثيق جدول">
+<main><div class="content">
+
+<header class="page-head">
+  <div lang="en">
+    <div class="eyebrow">Overview</div>
+    <h1>Features</h1>
+    <p class="lead">Everything Jadwal does, and the reasoning behind the parts that behave in ways you might
+      not expect. Screen-by-screen steps are in the Word user manuals.</p>
+  </div>
+  <div lang="ar">
+    <div class="eyebrow">نظرة عامة</div>
+    <h1>الخصائص</h1>
+    <p class="lead">كل ما يقدّمه «جدول»، مع سبب كل سلوك قد لا تتوقعه. أما الشرح شاشةً شاشة، فهو في دليلي
+      المستخدم بصيغة Word.</p>
+  </div>
+</header>
+
+<section id="queries">
+  <div lang="en">
+    <h2>Saved queries</h2>
+    <p>An administrator writes the SQL once, gives it input fields, and grants it to roles, user groups or
+      named people. Everyone it is granted to finds it under <strong>My Queries</strong>, fills in the
+      form, and runs it.</p>
+    <div class="two-col">
+      <div class="panel">
+        <h4>The administrator</h4>
+        <ul>
+          <li>Writes parameterised SQL in a colour-coded editor, and tests it (at most 100 rows) before saving.</li>
+          <li>Defines input fields: text, number, date, yes/no, and drop-downs filled from a fixed list or from another query.</li>
+          <li>Lets a text field take several values, used as <code>IN (@p)</code>.</li>
+          <li>Puts queries in query groups (folders), switches them on and off, sets a timeout.</li>
+          <li>Picks the database connection and the formats a result may be exported as.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h4>The user</h4>
+        <ul>
+          <li>Sees only the queries granted to them.</li>
+          <li>Fills in a form built from the fields, and runs it.</li>
+          <li>Searches, sorts and filters the result, page by page.</li>
+          <li>Exports it as Excel, CSV, JSON, PDF or Word, where allowed.</li>
+          <li>Sees their own run history.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>No value is ever pasted into SQL</h3>
+    <p>Queries are written with <code>@name</code> placeholders and <code>[bracket]</code> names, and
+      adapted to each database when they run. Every value is bound through the driver.</p>
+  </div>
+  <div lang="ar">
+    <h2>الاستعلامات المحفوظة</h2>
+    <p>يكتب المسؤول نص SQL مرة واحدة، ويضع له حقول إدخال، ويمنحه لأدوار أو مجموعات مستخدمين أو أشخاص بأسمائهم.
+      فيجده كل من مُنح له في صفحة <strong>الاستعلامات</strong>، فيملأ النموذج ويشغّله.</p>
+    <div class="two-col">
+      <div class="panel">
+        <h4>المسؤول</h4>
+        <ul>
+          <li>يكتب SQL بمعايير بحث في محرر ملوَّن، ويختبره (100 صف على الأكثر) قبل الحفظ.</li>
+          <li>يحدد حقول الإدخال: نص، ورقم، وتاريخ، ونعم/لا، وقوائم منسدلة من قائمة ثابتة أو من استعلام آخر.</li>
+          <li>يسمح لحقل نصي بأخذ عدة قيم، تُستخدم بالشكل <code>IN (@p)</code>.</li>
+          <li>يضع الاستعلامات في مجموعات (مجلدات)، ويفعّلها أو يوقفها، ويحدد مهلة التنفيذ.</li>
+          <li>يختار اتصال قاعدة البيانات، والصيغ التي يجوز تصدير النتيجة بها.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h4>المستخدم</h4>
+        <ul>
+          <li>لا يرى إلا الاستعلامات الممنوحة له.</li>
+          <li>يملأ نموذجًا مبنيًا من الحقول، ثم يشغّله.</li>
+          <li>يبحث في النتيجة ويرتّبها ويصفّيها، صفحةً صفحة.</li>
+          <li>يصدّرها إلى Excel أو CSV أو JSON أو PDF أو Word، حيث يُسمح بذلك.</li>
+          <li>يرى سجل تشغيله الخاص.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>لا تُلصق أي قيمة داخل نص SQL</h3>
+    <p>تُكتب الاستعلامات بعلامات <code>@name</code> وأسماء بين أقواس <code>[bracket]</code>، وتُكيَّف لكل نوع
+      قاعدة بيانات عند التشغيل. وكل قيمة تُمرَّر عبر برنامج التشغيل (driver) لا عبر النص.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Database</span><span lang="ar">قاعدة البيانات</span></th><th><span lang="en">Names written as</span><span lang="ar">تُكتب الأسماء</span></th><th><span lang="en">Values bound as</span><span lang="ar">تُمرَّر القيم</span></th></tr></thead>
+    <tbody>
+      <tr><td>SQL Server</td><td><code>[bracket]</code></td><td><code>@param</code></td></tr>
+      <tr><td>Oracle</td><td><code>"double-quote"</code></td><td><code>:param</code></td></tr>
+      <tr><td>PostgreSQL</td><td><code>"double-quote"</code></td><td><code>@param</code></td></tr>
+      <tr><td>MySQL</td><td><code>`backtick`</code></td><td><code>@param</code></td></tr>
+    </tbody>
+  </table></div>
+  <div lang="en"><p>A multi-value field expands <code>IN (@names)</code> to <code>IN (@names_0, @names_1, …)</code>,
+    each bound on its own; an empty list becomes <code>IN (NULL)</code> and matches nothing. An empty optional
+    field arrives as NULL, so an optional filter is written <code>(@p IS NULL OR col = @p)</code>.</p></div>
+  <div lang="ar"><p>الحقل متعدد القيم يحوّل <code>IN (@names)</code> إلى <code>IN (@names_0, @names_1, …)</code>،
+    وتُمرَّر كل قيمة وحدها؛ والقائمة الفارغة تصبح <code>IN (NULL)</code> فلا تطابق شيئًا. والحقل الاختياري
+    الفارغ يصل بقيمة NULL، لذا يُكتب الشرط الاختياري هكذا: <code>(@p IS NULL OR col = @p)</code>.</p></div>
+</section>
+
+<section id="results">
+  <div lang="en">
+    <h2>Results: run once, page and export from memory</h2>
+    <p>A read query runs <strong>once</strong>. The whole result, with no row limit, is kept on the server,
+      and the browser gets only the page it is showing. Sorting, filtering and moving between pages read
+      that kept copy; exporting builds the file from it too. Looking at a slow query and then exporting it
+      costs one run, not two.</p>
+  </div>
+  <div lang="ar">
+    <h2>النتائج: تشغيل واحد، ثم التصفح والتصدير من الذاكرة</h2>
+    <p>يعمل استعلام القراءة <strong>مرة واحدة</strong>. تُحفظ النتيجة كاملة على الخادم دون حد للصفوف، ولا
+      يصل إلى المتصفح إلا الصفحة المعروضة. فالترتيب والتصفية والتنقل بين الصفحات تقرأ من النسخة المحفوظة،
+      والتصدير يبني الملف منها كذلك. فعرض استعلام بطيء ثم تصديره يكلّف تشغيلًا واحدًا لا اثنين.</p>
+  </div>
+  <figure class="diagram">
+    <div class="flow">
+      <div class="node"><b><span lang="en">Run</span><span lang="ar">التشغيل</span></b><span lang="en">The query runs once, uncapped.</span><span lang="ar">يعمل الاستعلام مرة واحدة دون حد.</span></div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="node model"><b><span lang="en">Kept on the server</span><span lang="ar">يُحفظ على الخادم</span></b><span lang="en">Memory, spilling to disk when large.</span><span lang="ar">في الذاكرة، وعلى القرص إذا كبر.</span></div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="node"><b><span lang="en">Pages</span><span lang="ar">الصفحات</span></b><span lang="en">Sort, filter, slice: one page on the wire.</span><span lang="ar">ترتيب وتصفية وتقطيع: صفحة واحدة فقط تُرسل.</span></div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="node human"><b><span lang="en">Export</span><span lang="ar">التصدير</span></b><span lang="en">Built from the same copy, never re-run.</span><span lang="ar">من النسخة نفسها، دون تشغيل جديد.</span></div>
+    </div>
+  </figure>
+  <div lang="en">
+    <p><strong>How long it is kept.</strong> Until the user leaves the results page, which releases it at
+      once. As a fallback (a closed tab, a crash) each result is kept for a sliding window that restarts on
+      every page or export, one day by default (<code>ResultCache:RetentionMinutes</code>).</p>
+    <p><code>query.maxRows</code> (default 10,000) is <em>not</em> a display limit: it caps only the
+      internal reads that must hold a whole result at once, such as write previews and drop-down lists.</p>
+  </div>
+  <div lang="ar">
+    <p><strong>مدة الحفظ.</strong> حتى يغادر المستخدم صفحة النتائج، فتُحرَّر فورًا. واحتياطًا (تبويب أُغلق أو
+      تعطّل مفاجئ) تُحفظ كل نتيجة مدةً تتجدد مع كل صفحة أو تصدير، يومًا واحدًا افتراضيًا
+      (<code>ResultCache:RetentionMinutes</code>).</p>
+    <p>الإعداد <code>query.maxRows</code> (افتراضيًا 10,000) <em>ليس</em> حدًا للعرض: إنما يحدّ القراءات الداخلية
+      التي تحتاج النتيجة كاملة دفعة واحدة، مثل معاينة التعديل والقوائم المنسدلة.</p>
+  </div>
+</section>
+
+<section id="exports">
+  <div lang="en">
+    <h2>Export: two gates that must agree</h2>
+    <p>Downloading a result needs both of these:</p>
+    <ol>
+      <li><strong>The query</strong> lists the formats it may be exported as at all (Excel, CSV, PDF, Word,
+        JSON), under <em>Result export</em> on its form. Tick none and nobody can download it.</li>
+      <li><strong>The role</strong> holds the formats this person may use:
+        <code>queries.exportExcel</code>, <code>…Csv</code>, <code>…Json</code>, <code>…Pdf</code>, <code>…Word</code>.</li>
+    </ol>
+    <p>The export menu shows only the formats both allow, and the download endpoint checks both again,
+      since hiding a menu item is not a control. Reports work the same way with their own list and
+      <code>reports.export*</code> permissions.</p>
+    <div class="callout warn"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg></span><div>
+      <strong class="t">An upgrade closes export everywhere</strong>
+      <p>The migration that added this gave every existing query an empty format list and no role any
+        export permission. Downloads stop until an administrator opens them. That is on purpose: the
+        alternative would quietly keep exporting data you may have wanted to restrict.</p></div></div>
+    <p><strong>Scheduled tasks are not gated this way.</strong> They write files on the server from a task
+      that already needs <code>scheduledTasks.manage</code>. So anyone who can create a scheduled task can
+      still produce a file from a query whose export is off. Grant that permission accordingly.</p>
+    <p><strong>PDF from a Word template</strong> is rendered to <code>.docx</code> first, then converted by
+      LibreOffice (preferred) or Microsoft Word if installed. With neither, a built-in PDF layout is used,
+      without the template's styling. Choose with <code>Export:PdfEngine</code>
+      (<code>auto</code> | <code>libreoffice</code> | <code>word</code> | <code>builtin</code>).</p>
+  </div>
+  <div lang="ar">
+    <h2>التصدير: بوّابتان يجب أن تتفقا</h2>
+    <p>تنزيل النتيجة يحتاج الأمرين معًا:</p>
+    <ol>
+      <li><strong>الاستعلام</strong> يحدد الصيغ التي يجوز تصديره بها أصلًا (Excel وCSV وPDF وWord وJSON)، في قسم
+        <em>تصدير النتائج</em> من نموذجه. وإن لم تُختر أي صيغة فلن يستطيع أحد تنزيله.</li>
+      <li><strong>الدور</strong> يحمل الصيغ التي يجوز لهذا الشخص استخدامها:
+        <code>queries.exportExcel</code> و<code>…Csv</code> و<code>…Json</code> و<code>…Pdf</code> و<code>…Word</code>.</li>
+    </ol>
+    <p>قائمة التصدير لا تعرض إلا ما يسمح به الطرفان، ونقطة التنزيل تتحقق من الاثنين مرة أخرى، لأن إخفاء
+      خيار من القائمة ليس حماية. والتقارير تعمل بالطريقة نفسها، بقائمتها الخاصة وصلاحيات <code>reports.export*</code>.</p>
+    <div class="callout warn"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg></span><div>
+      <strong class="t">الترقية تغلق التصدير في كل مكان</strong>
+      <p>الترحيل الذي أضاف هذه الميزة أعطى كل استعلام موجود قائمة صيغ فارغة، ولم يمنح أي دور صلاحية تصدير.
+        فيتوقف التنزيل حتى يفتحه المسؤول. وهذا مقصود: البديل أن يستمر تصدير بيانات ربما أردت تقييدها دون أن تنتبه.</p></div></div>
+    <p><strong>المهام المجدولة لا تخضع لهاتين البوابتين.</strong> فهي تكتب الملفات على الخادم من مهمة تحتاج أصلًا
+      صلاحية <code>scheduledTasks.manage</code>. أي أن من يستطيع إنشاء مهمة مجدولة يستطيع إخراج ملف من استعلام
+      تصديره مغلق، فامنح هذه الصلاحية بحذر.</p>
+    <p><strong>ملف PDF من قالب Word</strong> يُبنى أولًا ملف <code>.docx</code>، ثم يحوّله LibreOffice (المفضّل) أو
+      Microsoft Word إن كان مثبتًا. وإن لم يوجد أي منهما، يُستخدم تصميم PDF مدمج دون تنسيق القالب. ويُختار ذلك من
+      <code>Export:PdfEngine</code> (<code>auto</code> | <code>libreoffice</code> | <code>word</code> | <code>builtin</code>).</p>
+  </div>
+</section>
+
+<section id="writes">
+  <div lang="en">
+    <h2>Queries that change data</h2>
+    <p>A saved query can be an <code>INSERT</code>, <code>UPDATE</code> or <code>DELETE</code>. These run in two
+      steps, so the user sees what will change before it does.</p>
+  </div>
+  <div lang="ar">
+    <h2>الاستعلامات التي تعدّل البيانات</h2>
+    <p>يمكن أن يكون الاستعلام المحفوظ <code>INSERT</code> أو <code>UPDATE</code> أو <code>DELETE</code>. وهذه تعمل على
+      خطوتين، ليرى المستخدم ما سيتغيّر قبل أن يتغيّر.</p>
+  </div>
+  <figure class="diagram">
+    <div class="flow">
+      <div class="node"><b><span lang="en">1 · Preview</span><span lang="ar">١ · المعاينة</span></b><span lang="en">Runs inside a transaction to count the rows, then rolls back.</span><span lang="ar">يعمل داخل معاملة ليعدّ الصفوف، ثم يُتراجع عنه.</span></div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="node guard"><b><span lang="en">Rows shown</span><span lang="ar">عرض الصفوف</span></b><span lang="en">For UPDATE and DELETE, the rows about to change.</span><span lang="ar">في UPDATE وDELETE تظهر الصفوف التي ستتغير.</span></div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="node human"><b><span lang="en">2 · Confirm</span><span lang="ar">٢ · التأكيد</span></b><span lang="en">The same request again, now committed.</span><span lang="ar">الطلب نفسه مرة أخرى، ويُعتمد هذه المرة.</span></div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="node"><b><span lang="en">Logged</span><span lang="ar">التسجيل</span></b><span lang="en">Who, the values, the row count, and the rows before the change.</span><span lang="ar">مَن، والقيم، وعدد الصفوف، والصفوف قبل التغيير.</span></div>
+    </div>
+  </figure>
+  <div lang="en">
+    <ul>
+      <li><strong>The kind is decided when the query is saved.</strong> The server reads the main statement,
+        skipping string literals, comments and any <code>WITH</code> list, and stores
+        <code>Select</code>/<code>Insert</code>/<code>Update</code>/<code>Delete</code>/<code>Other</code>. It is never
+        taken from the browser. <code>WITH … DELETE</code> is a delete, and goes through preview and confirm.</li>
+      <li><strong>Run directly without preview.</strong> Offered only when the query's
+        <em>Allow running without confirmation</em> is on (the default). It saves two round trips on big
+        tables. It is a convenience in the screens, not a server-side control.</li>
+      <li><strong>Before-change values.</strong> For UPDATE and DELETE the matching rows are read and stored in
+        the execution log before the change. Turn <em>Save before-change values</em> off for statements that
+        touch very many rows.</li>
+      <li><strong>Scheduled tasks</strong> always run writes confirmed: there is nobody to confirm.</li>
+      <li><code>Other</code> (MERGE, DDL, a PL/SQL block) is not treated as a write.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <ul>
+      <li><strong>نوع الاستعلام يُحدَّد عند حفظه.</strong> يقرأ الخادم الجملة الرئيسية، متجاوزًا النصوص بين علامات
+        التنصيص والتعليقات وقائمة <code>WITH</code>، ويحفظ النوع <code>Select</code>/<code>Insert</code>/<code>Update</code>/<code>Delete</code>/<code>Other</code>.
+        ولا يُؤخذ من المتصفح أبدًا. والجملة <code>WITH … DELETE</code> تُعدّ حذفًا، فتمرّ بالمعاينة والتأكيد.</li>
+      <li><strong>التشغيل المباشر دون معاينة.</strong> لا يظهر إلا إذا كان خيار <em>السماح بالتشغيل دون تأكيد</em> مفعّلًا
+        في الاستعلام (وهو الافتراضي). يوفّر خطوتين على الجداول الكبيرة. وهو تسهيل في الشاشات، لا حماية على الخادم.</li>
+      <li><strong>القيم قبل التغيير.</strong> في UPDATE وDELETE تُقرأ الصفوف المطابقة وتُحفظ في سجل التنفيذ قبل التغيير.
+        أوقف خيار <em>حفظ القيم قبل التغيير</em> في الجمل التي تمسّ عددًا كبيرًا جدًا من الصفوف.</li>
+      <li><strong>المهام المجدولة</strong> تشغّل التعديل مؤكَّدًا دائمًا، إذ لا يوجد من يؤكّد.</li>
+      <li>النوع <code>Other</code> (مثل MERGE أو تعريف الجداول أو كتلة PL/SQL) لا يُعامل معاملة التعديل.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="long-running">
+  <div lang="en">
+    <h2>Long-running queries</h2>
+    <p>A request that waits for a slow query is cut off by whatever sits in front of the app (IIS and
+      nginx at about 2 minutes, some proxies sooner), whatever the query's own timeout says. A query flagged
+      <strong>long-running</strong> avoids that: the browser submits it, gets a job number at once, and asks
+      every 2 seconds until it finishes. Every request stays short.</p>
+    <ul>
+      <li>Up to <strong>4 jobs</strong> run at the same time in the background, through exactly the same
+        checks and logging as a normal run.</li>
+      <li>The user sees a live timer and a <strong>Cancel</strong> button. Cancelling really stops the
+        database command and frees the connection.</li>
+      <li>Only the job's owner, or an Admin, can see or cancel it.</li>
+      <li>Jobs live in the API's memory. A restart loses them (the user is told to run again), which is why
+        IIS must not recycle on its own (<a href="iis.html#app-pool">IIS hosting</a>), and why only one copy
+        of the API may run.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h2>الاستعلامات طويلة التشغيل</h2>
+    <p>الطلب الذي ينتظر استعلامًا بطيئًا يقطعه ما يقف أمام التطبيق (IIS وnginx بعد نحو دقيقتين، وبعض الوسطاء أسرع)،
+      مهما كانت مهلة الاستعلام نفسه. والاستعلام المعلَّم بأنه <strong>طويل التشغيل</strong> يتجنب ذلك: يرسله المتصفح،
+      فيأخذ رقم مهمة فورًا، ثم يسأل عنه كل ثانيتين حتى ينتهي. فتبقى كل الطلبات قصيرة.</p>
+    <ul>
+      <li>تعمل حتى <strong>4 مهام</strong> في الخلفية في الوقت نفسه، بالتحقق والتسجيل نفسيهما في التشغيل العادي.</li>
+      <li>يرى المستخدم عدّادًا حيًا وزر <strong>إلغاء</strong>. والإلغاء يوقف الأمر في قاعدة البيانات فعلًا ويحرّر الاتصال.</li>
+      <li>لا يرى المهمة أو يلغيها إلا صاحبها أو مسؤول (Admin).</li>
+      <li>المهام في ذاكرة الـAPI، فإعادة التشغيل تفقدها (ويُطلب من المستخدم التشغيل مجددًا). لهذا يجب ألا يعيد IIS
+        تدوير التطبيق من تلقاء نفسه (<a href="iis.html#app-pool">الاستضافة على IIS</a>)، ولهذا لا تعمل إلا نسخة واحدة من الـAPI.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="schedules">
+  <div lang="en">
+    <h2>Scheduled tasks</h2>
+    <p>A scheduled task runs one or more queries or reports on a timetable and writes the files to a folder,
+      with nobody at the screen.</p>
+    <div class="two-col">
+      <div class="panel"><h4>When</h4><ul>
+        <li>Every N minutes, daily, weekly or monthly, with several triggers per task.</li>
+        <li>On demand, with <strong>Run now</strong>; a running task can be cancelled.</li>
+      </ul></div>
+      <div class="panel"><h4>What it writes</h4><ul>
+        <li>Excel, CSV or JSON (and a report's own formats), one file per item or all in one.</li>
+        <li>An output folder and an optional archive copy; a timestamp in the name, in a format you choose.</li>
+        <li>CSV with any separator, with or without headers, appended to one growing file if wanted.</li>
+      </ul></div>
+    </div>
+    <p><strong>Incremental items.</strong> Give an item a key column and it exports only rows added since the
+      last run: the last key is remembered and bound into the next run. A failed run does not move the
+      checkpoint, so nothing is skipped.</p>
+    <p><strong>Who sees it.</strong> Managers (<code>scheduledTasks.manage</code>) see everything. Other people
+      see a task when it is shared with their role, user group or name, and can download its files only with
+      <code>scheduledTasks.download</code> and the task's own "can download" setting.</p>
+    <div class="callout"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg></span><div>
+      <p>The scheduler runs <strong>inside the API</strong>. If the API is stopped, or IIS lets it idle, tasks do
+        not run and nothing tells you. The account the API runs as needs write access to every output and
+        archive folder.</p></div></div>
+  </div>
+  <div lang="ar">
+    <h2>المهام المجدولة</h2>
+    <p>المهمة المجدولة تشغّل استعلامًا أو تقريرًا أو أكثر في مواعيد محددة، وتكتب الملفات في مجلد، دون أن يجلس أحد أمام الشاشة.</p>
+    <div class="two-col">
+      <div class="panel"><h4>متى</h4><ul>
+        <li>كل عدد من الدقائق، أو يوميًا أو أسبوعيًا أو شهريًا، ولكل مهمة عدة مواعيد.</li>
+        <li>عند الطلب بزر <strong>تشغيل الآن</strong>، ويمكن إلغاء مهمة قيد التشغيل.</li>
+      </ul></div>
+      <div class="panel"><h4>ماذا تكتب</h4><ul>
+        <li>Excel أو CSV أو JSON (وصيغ التقرير الخاصة)، ملفًا لكل عنصر أو الكل في ملف واحد.</li>
+        <li>مجلد إخراج ونسخة أرشيف اختيارية، مع ختم وقت في الاسم بالتنسيق الذي تختاره.</li>
+        <li>CSV بأي فاصل، مع العناوين أو بدونها، وإضافة إلى ملف واحد ينمو إن أردت.</li>
+      </ul></div>
+    </div>
+    <p><strong>العناصر التزايدية.</strong> حدّد لعنصر عمود مفتاح، فلا يصدّر إلا الصفوف التي أُضيفت منذ آخر تشغيل:
+      تُحفظ آخر قيمة للمفتاح وتُمرَّر في التشغيل التالي. والتشغيل الفاشل لا يحرّك نقطة التوقف، فلا يضيع شيء.</p>
+    <p><strong>من يراها.</strong> من يملك صلاحية <code>scheduledTasks.manage</code> يرى كل شيء. وغيرهم يرى المهمة إذا
+      شوركت مع دوره أو مجموعته أو اسمه، ولا ينزّل ملفاتها إلا بصلاحية <code>scheduledTasks.download</code> مع خيار
+      «يمكنه التنزيل» في المهمة نفسها.</p>
+    <div class="callout"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg></span><div>
+      <p>المجدول يعمل <strong>داخل الـAPI</strong>. فإذا توقف الـAPI، أو تركه IIS خاملًا، لا تعمل المهام ولا يُخبرك شيء بذلك.
+        والحساب الذي يعمل به الـAPI يحتاج صلاحية الكتابة في كل مجلد إخراج وأرشيف.</p></div></div>
+  </div>
+</section>
+
+<section id="reports">
+  <div lang="en">
+    <h2>Reports</h2>
+    <p>A report puts several saved queries into one document. Each section reads a query, joins two of them,
+      or shows detail rows under a master row. Report parameters are filled once and passed to each query.
+      Charts (column, bar, line, pie, area, stacked, doughnut, combo) are drawn from a section's rows.</p>
+    <p>A Word template gives the report the organisation's look: place <code>{{RESULTS:key}}</code> and
+      <code>{{CHART:key}}</code> markers where each section goes. Without a template, a clean built-in layout
+      is used. The exported document can carry who produced it and when.</p>
+    <div class="callout ok"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg></span><div>
+      <strong class="t">A report never widens access</strong>
+      <p>Running a report needs the report grant <em>and</em> the right to run every query inside it. A section
+        the person could not run on their own is refused and shown as a warning; the rest of the report
+        still runs.</p></div></div>
+  </div>
+  <div lang="ar">
+    <h2>التقارير</h2>
+    <p>يجمع التقرير عدة استعلامات محفوظة في مستند واحد. كل قسم يقرأ استعلامًا، أو يربط استعلامين، أو يعرض صفوفًا
+      تفصيلية تحت صف رئيسي. وتُملأ معايير بحث التقرير مرة واحدة وتُمرَّر لكل استعلام. وتُرسم المخططات (أعمدة، أشرطة،
+      خطوط، دائرية، مساحية، مكدّسة، حلقية، مركّبة) من صفوف القسم.</p>
+    <p>قالب Word يعطي التقرير شكل الجهة: ضع العلامتين <code>{{RESULTS:key}}</code> و<code>{{CHART:key}}</code> حيث يأتي كل قسم.
+      وبدون قالب يُستخدم تصميم مدمج مرتب. ويمكن أن يحمل المستند المصدَّر اسم من أصدره ووقت إصداره.</p>
+    <div class="callout ok"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg></span><div>
+      <strong class="t">التقرير لا يوسّع الصلاحيات أبدًا</strong>
+      <p>تشغيل التقرير يحتاج منح التقرير <em>و</em>حق تشغيل كل استعلام فيه. والقسم الذي لا يستطيع الشخص تشغيله وحده
+        يُرفض ويظهر تنبيهًا، ويعمل باقي التقرير.</p></div></div>
+  </div>
+</section>
+
+<section id="dashboards">
+  <div lang="en">
+    <h2>Dashboards</h2>
+    <p>A dashboard is a page of tiles, each fed by a saved query and refreshed on its own interval
+      (30 seconds to an hour). Tiles come in 14 kinds: KPI, column, bar, line, area, pie, doughnut, stacked
+      column, stacked bar, combo, gauge, funnel, heatmap and table. Dashboard filters feed the tiles' query
+      parameters, and clicking a chart can filter the dashboard, open a report, or show the rows behind it.</p>
+    <ul>
+      <li><strong>Shared results.</strong> A tile's result is kept for its interval for each set of filter values,
+        so ten people watching the same dashboard cost one query per tile per interval, not ten.</li>
+      <li><strong>Checked before the shared copy is read.</strong> Each tile checks the dashboard grant, the tile
+        query's grant and its connection, so a warm copy is never handed to someone who could not have
+        produced it. A tile the viewer cannot run stays empty with a message.</li>
+      <li><strong>Read only.</strong> A dashboard refuses a query that changes data.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h2>لوحات المعلومات</h2>
+    <p>لوحة المعلومات صفحة من البطاقات، كل بطاقة يغذّيها استعلام محفوظ وتتحدث في موعدها الخاص (من 30 ثانية إلى ساعة).
+      وللبطاقات 14 نوعًا: مؤشر رئيسي، وأعمدة، وأشرطة، وخطوط، ومساحي، ودائري، وحلقي، وأعمدة مكدّسة، وأشرطة مكدّسة،
+      ومركّب، وعدّاد، وقمعي، وخريطة حرارية، وجدول. ومرشّحات اللوحة تغذّي معايير بحث استعلامات البطاقات، والنقر على مخطط
+      يمكن أن يصفّي اللوحة أو يفتح تقريرًا أو يعرض الصفوف التي خلفه.</p>
+    <ul>
+      <li><strong>نتائج مشتركة.</strong> تُحفظ نتيجة البطاقة طوال مدة تحديثها لكل مجموعة قيم مرشحات، فعشرة أشخاص يشاهدون
+        اللوحة نفسها يكلّفون استعلامًا واحدًا لكل بطاقة في كل مدة، لا عشرة.</li>
+      <li><strong>التحقق قبل قراءة النسخة المشتركة.</strong> كل بطاقة تتحقق من منح اللوحة، ومنح استعلام البطاقة واتصاله،
+        فلا تُعطى النسخة المحفوظة لمن لم يكن يستطيع إنتاجها. والبطاقة التي لا يستطيع المشاهد تشغيلها تبقى فارغة مع رسالة.</li>
+      <li><strong>للقراءة فقط.</strong> ترفض اللوحة أي استعلام يعدّل البيانات.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="groups">
+  <div lang="en">
+    <h2>User groups and query groups</h2>
+    <p>Access is granted to <strong>roles</strong>, to <strong>user groups</strong>, or to <strong>named
+      users</strong>. User groups are kept inside Jadwal (<em>Users and permissions → User groups</em>), and
+      are not a copy of Active Directory. One group can hold directory accounts and local accounts side by side.</p>
+    <ul>
+      <li>Membership is checked on every request: removing someone takes effect on their next click.</li>
+      <li>Nobody can add themselves to a group. An account an administrator already placed there stays, and may leave.</li>
+      <li>Deleting a group removes its grants; the accounts are untouched.</li>
+      <li><strong>Query groups</strong> are folders of queries. Granting a query group grants everything in it.</li>
+    </ul>
+    <p>The directory's department is still stored on imported accounts and drives the <em>Active Directory
+      users</em> page, where you browse and import people. It no longer decides what anyone can reach.</p>
+  </div>
+  <div lang="ar">
+    <h2>مجموعات المستخدمين ومجموعات الاستعلامات</h2>
+    <p>يُمنح الوصول إلى <strong>أدوار</strong>، أو <strong>مجموعات مستخدمين</strong>، أو <strong>مستخدمين بأسمائهم</strong>.
+      ومجموعات المستخدمين تُدار داخل «جدول» (<em>المستخدمون والصلاحيات ← مجموعات المستخدمين</em>)، وليست نسخة من
+      Active Directory. والمجموعة الواحدة تضم حسابات الدليل والحسابات المحلية معًا.</p>
+    <ul>
+      <li>تُفحص العضوية مع كل طلب: إزالة شخص تسري من نقرته التالية.</li>
+      <li>لا يستطيع أحد إضافة نفسه إلى مجموعة. والحساب الذي وضعه المسؤول فيها يبقى، ويمكنه الخروج.</li>
+      <li>حذف المجموعة يزيل ما مُنح لها، ولا يمسّ الحسابات.</li>
+      <li><strong>مجموعات الاستعلامات</strong> مجلدات للاستعلامات. ومنح مجموعة استعلامات يمنح كل ما فيها.</li>
+    </ul>
+    <p>ما زال القسم في الدليل يُحفظ مع الحسابات المستوردة، ويُستخدم في صفحة <em>مستخدمو Active Directory</em> لتصفح الأشخاص
+      واستيرادهم. لكنه لم يعد يحدد ما يصل إليه أحد.</p>
+  </div>
+</section>
+
+<section id="transfer">
+  <div lang="en">
+    <h2>Backup and moving between systems</h2>
+    <p>Queries, reports and dashboards can be exported to a file and imported on the same or another system.</p>
+    <ul>
+      <li><strong>Everything travels by name, not by id.</strong> Query groups are created if missing;
+        connections, roles, users and user groups are matched by name, and anything unmatched is reported.
+        A drop-down that reads another query is linked in a second pass, after everything in the file exists.</li>
+      <li><strong>Passwords never travel.</strong> Only the connection's name is written. Set up the
+        connection on the new system and the name links it back.</li>
+      <li><strong>Import never overwrites.</strong> A name already taken is imported as
+        <code>Name (imported)</code>. A mistaken import is undone by deleting what it added.</li>
+      <li>The statement kind is worked out again from the SQL, not trusted from the file. Word templates travel inside it.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h2>النسخ الاحتياطي والنقل بين الأنظمة</h2>
+    <p>يمكن تصدير الاستعلامات والتقارير ولوحات المعلومات إلى ملف، واستيرادها في النظام نفسه أو في نظام آخر.</p>
+    <ul>
+      <li><strong>كل شيء ينتقل بالاسم لا بالمعرّف.</strong> تُنشأ مجموعات الاستعلامات إن لم توجد، ويُطابَق كل من الاتصالات
+        والأدوار والمستخدمين ومجموعات المستخدمين بالاسم، وما لم يُطابَق يُذكر في النتيجة. والقائمة المنسدلة التي تقرأ استعلامًا
+        آخر تُربط في جولة ثانية، بعد أن يوجد كل ما في الملف.</li>
+      <li><strong>كلمات المرور لا تنتقل أبدًا.</strong> لا يُكتب إلا اسم الاتصال. أنشئ الاتصال في النظام الجديد فيرتبط بالاسم.</li>
+      <li><strong>الاستيراد لا يكتب فوق شيء.</strong> الاسم المستخدم من قبل يُستورد باسم <code>Name (imported)</code>. والاستيراد
+        الخاطئ يُلغى بحذف ما أضافه.</li>
+      <li>نوع الجملة يُستخرج من SQL من جديد، ولا يُؤخذ من الملف. وقوالب Word تنتقل داخله.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="branding">
+  <div lang="en">
+    <h2>Logo, site name and tab icon</h2>
+    <p>From the account menu, <strong>Website branding</strong> sets the banner logo, a site name for each
+      language, and the browser tab icon (<code>branding.manage</code>).</p>
+    <ul>
+      <li>The banner shows the logo, else the site name in the current language, else the app's name, so it is never blank.</li>
+      <li>Logo: PNG, JPG or WebP up to 1 MB, shown 40 px tall (upload 80 px for sharp screens). Tab icon:
+        PNG, ICO or WebP up to 256 KB, uploaded separately because a wide logo shrunk to 16 px is a smudge.</li>
+      <li>SVG is refused: it can carry script, and these images are served without sign-in. Files are checked
+        by their content, not only their extension.</li>
+      <li>The logo and tab icon are served without sign-in because the browser fetches them for the sign-in page itself.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h2>الشعار واسم الموقع وأيقونة التبويب</h2>
+    <p>من قائمة الحساب، تضبط <strong>هوية الموقع</strong> شعار الشريط العلوي، واسم الموقع لكل لغة، وأيقونة تبويب المتصفح
+      (صلاحية <code>branding.manage</code>).</p>
+    <ul>
+      <li>يعرض الشريط الشعار، وإلا فاسم الموقع باللغة الحالية، وإلا فاسم التطبيق، فلا يكون فارغًا أبدًا.</li>
+      <li>الشعار: PNG أو JPG أو WebP حتى 1 ميغابايت، ويُعرض بارتفاع 40 بكسل (ارفعه بارتفاع 80 ليكون واضحًا على الشاشات الدقيقة).
+        أيقونة التبويب: PNG أو ICO أو WebP حتى 256 كيلوبايت، تُرفع وحدها لأن الشعار العريض إذا صُغّر إلى 16 بكسل صار بقعة.</li>
+      <li>صيغة SVG مرفوضة: قد تحمل شيفرة برمجية، وهذه الصور تُقدَّم دون تسجيل دخول. وتُفحص الملفات بمحتواها لا بامتدادها فقط.</li>
+      <li>الشعار والأيقونة يُقدَّمان دون تسجيل دخول لأن المتصفح يطلبهما لصفحة تسجيل الدخول نفسها.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="languages">
+  <div lang="en">
+    <h2>English and Arabic</h2>
+    <p>The whole interface is in English and Arabic, switched from the top bar (and on the sign-in page). One
+      build serves both. Arabic lays the screens out right to left.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Part</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td>Screen text</td><td>Transloco, <code>client/src/assets/i18n/en.json</code> and <code>ar.json</code></td></tr>
+        <tr><td>Direction</td><td><code>language.service.ts</code> sets <code>lang</code> and <code>dir</code> on the page; Angular Material mirrors itself</td></tr>
+        <tr><td>Server messages</td><td><code>Messages.resx</code> / <code>Messages.ar.resx</code>, chosen by <code>Accept-Language</code></td></tr>
+        <tr><td>Arabic font</td><td>Cairo, shipped inside the app (no web fonts)</td></tr>
+      </tbody>
+    </table></div>
+    <p>Rules for anyone adding text: put each key in <strong>both</strong> files; never join a translated piece
+      to a value (use placeholders, since word order differs); wrap user names and paths in Arabic text in
+      direction isolates; give content people typed (query names, result cells) <code>dir="auto"</code>, and
+      SQL <code>.force-ltr</code>; use logical CSS (<code>margin-inline-start</code>, never <code>margin-left</code>).</p>
+    <p>Not covered: Arabic-Indic digits, Hijri dates, and right-to-left layout inside exported PDF, Word and Excel files.</p>
+  </div>
+  <div lang="ar">
+    <h2>العربية والإنجليزية</h2>
+    <p>الواجهة كلها بالعربية والإنجليزية، ويُبدَّل بينهما من الشريط العلوي (ومن صفحة تسجيل الدخول). نسخة بناء واحدة تخدم
+      اللغتين، والعربية تعرض الشاشات من اليمين إلى اليسار.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>الجزء</th><th>كيف</th></tr></thead>
+      <tbody>
+        <tr><td>نصوص الشاشات</td><td>Transloco، في <code>client/src/assets/i18n/en.json</code> و<code>ar.json</code></td></tr>
+        <tr><td>الاتجاه</td><td><code>language.service.ts</code> يضبط <code>lang</code> و<code>dir</code> للصفحة، وAngular Material يعكس نفسه</td></tr>
+        <tr><td>رسائل الخادم</td><td><code>Messages.resx</code> و<code>Messages.ar.resx</code>، تُختار حسب <code>Accept-Language</code></td></tr>
+        <tr><td>الخط العربي</td><td>Cairo، مضمَّن في التطبيق (بلا خطوط من الإنترنت)</td></tr>
+      </tbody>
+    </table></div>
+    <p>قواعد لمن يضيف نصًا: ضع كل مفتاح في الملفين <strong>كليهما</strong>؛ لا تلصق جزءًا مترجمًا بقيمة (استخدم المتغيرات، فترتيب
+      الكلمات يختلف)؛ اعزل أسماء المستخدمين والمسارات داخل النص العربي بعلامات العزل؛ أعطِ ما يكتبه الناس (أسماء الاستعلامات
+      وخلايا النتائج) <code>dir="auto"</code>، وأعطِ SQL الصنف <code>.force-ltr</code>؛ واستخدم خصائص CSS المنطقية
+      (<code>margin-inline-start</code> لا <code>margin-left</code>).</p>
+    <p>غير مدعوم: الأرقام الهندية، والتاريخ الهجري، والاتجاه من اليمين إلى اليسار داخل ملفات PDF وWord وExcel المصدَّرة.</p>
+  </div>
+</section>
+
+</div></main>
+</body>
+</html>

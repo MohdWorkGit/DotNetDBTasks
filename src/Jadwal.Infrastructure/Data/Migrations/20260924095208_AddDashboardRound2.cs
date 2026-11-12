@@ -12,7 +12,7 @@ namespace Jadwal.Infrastructure.Data.Migrations
     /// Every statement alters a table that already holds rows, so each has to tolerate having
     /// been applied before: Oracle auto-commits DDL, and a retry after a part-applied run must not
     /// die on the half that already succeeded. Same pattern as AddReportToScheduledTaskItem; see
-    /// DATABASE_MIGRATION_NOTES.txt section 1B and RULE 2.
+    /// docs/database.html#oracle-rules, rules 1 and 2.
     /// </para>
     ///
     /// <para>

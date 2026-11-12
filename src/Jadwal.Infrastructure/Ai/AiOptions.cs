@@ -5,7 +5,7 @@ namespace Jadwal.Infrastructure.Ai;
 /// <summary>
 /// Where the local AI model is and how to talk to it, bound from the "Ai" configuration section.
 /// Off unless <c>Ai:Enabled</c> is true: an installation without a model server should not show
-/// buttons that can only fail. See docs/LOCAL-AI-OPTIONS.md.
+/// buttons that can only fail. See docs/ai.html.
 /// </summary>
 public sealed class AiOptions
 {

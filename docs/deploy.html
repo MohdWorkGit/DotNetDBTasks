@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deployment · Jadwal documentation</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body data-page="deploy" data-title-en="Deployment · Jadwal documentation" data-title-ar="النشر والتثبيت · توثيق جدول">
+<main><div class="content">
+
+<header class="page-head">
+  <div lang="en">
+    <div class="eyebrow">Install and run</div>
+    <h1>Deployment</h1>
+    <p class="lead">Jadwal can run in Docker on a connected network, or on a server with no internet at all. For the
+      offline case everything is built on a connected machine and carried across.</p>
+  </div>
+  <div lang="ar">
+    <div class="eyebrow">التثبيت والتشغيل</div>
+    <h1>النشر والتثبيت</h1>
+    <p class="lead">يمكن تشغيل «جدول» في Docker على شبكة متصلة، أو على خادم بلا إنترنت إطلاقًا. وفي الحالة الثانية يُبنى كل شيء على
+      جهاز متصل ثم يُنقل.</p>
+  </div>
+</header>
+
+<section id="choose">
+  <div lang="en"><h2>Pick a path</h2></div>
+  <div lang="ar"><h2>اختر الطريقة</h2></div>
+  <div class="cards">
+    <a class="card c-blue" href="#docker"><h4><span lang="en">Docker</span><span lang="ar">Docker</span></h4>
+      <p lang="en">Internet-connected. Four containers, one command.</p><p lang="ar">مع إنترنت. أربع حاويات وأمر واحد.</p></a>
+    <a class="card c-indigo" href="iis.html"><h4><span lang="en">IIS, one site</span><span lang="ar">IIS، موقع واحد</span></h4>
+      <p lang="en">The recommended Windows setup, with Windows sign-in. One script.</p><p lang="ar">الطريقة المفضّلة على Windows، مع الدخول بحساب Windows. سكربت واحد.</p></a>
+    <a class="card c-amber" href="#release"><h4><span lang="en">Offline release, nginx</span><span lang="ar">نشر دون إنترنت مع nginx</span></h4>
+      <p lang="en">Build outside, copy in, run as a service behind nginx.</p><p lang="ar">ابنِ في الخارج، وانسخ إلى الداخل، وشغّل كخدمة خلف nginx.</p></a>
+    <a class="card c-green" href="#offline-rebuild"><h4><span lang="en">Rebuild offline</span><span lang="ar">إعادة البناء دون إنترنت</span></h4>
+      <p lang="en">Bring the toolchains so the code can be changed inside.</p><p lang="ar">انقل أدوات البناء ليمكن تعديل الشيفرة في الداخل.</p></a>
+  </div>
+  <figure class="diagram">
+    <div class="flow">
+      <div class="node"><b><span lang="en">Connected machine</span><span lang="ar">جهاز متصل</span></b><span lang="en"><code>prepare-offline-bundle.ps1</code>, and optionally <code>prepare-ai-bundle.ps1</code></span><span lang="ar"><code>prepare-offline-bundle.ps1</code>، واختياريًا <code>prepare-ai-bundle.ps1</code></span></div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="node guard"><b><span lang="en">The bundle</span><span lang="ar">الحزمة</span></b><span lang="en">API, client, packages, installers, MANIFEST.txt</span><span lang="ar">الـAPI والواجهة والحزم وبرامج التثبيت وMANIFEST.txt</span></div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="node model"><b><span lang="en">Carried across</span><span lang="ar">النقل</span></b><span lang="en">By approved media, checked against checksums</span><span lang="ar">بوسيط معتمد، مع التحقق من البصمات</span></div>
+      <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="node human"><b><span lang="en">Air-gapped server</span><span lang="ar">الخادم المعزول</span></b><span lang="en"><code>deploy-iis.ps1</code>, or the nginx steps</span><span lang="ar"><code>deploy-iis.ps1</code>، أو خطوات nginx</span></div>
+    </div>
+  </figure>
+</section>
+
+<section id="docker">
+  <div lang="en">
+    <h2>Docker (internet-connected)</h2>
+    <p>Needs Docker with Compose and about 4 GB of free memory. The stack starts Oracle XE 21c, OpenLDAP, the API
+      and the Angular client behind nginx.</p>
+  </div>
+  <div lang="ar">
+    <h2>Docker (مع إنترنت)</h2>
+    <p>يحتاج Docker مع Compose ونحو 4 غيغابايت من الذاكرة. ويشغّل Oracle XE 21c وOpenLDAP والـAPI وواجهة Angular خلف nginx.</p>
+  </div>
+<pre><span class="c"># 1. Settings: set a strong JWT_SECRET, DB_PASSWORD and ENCRYPTION_KEY</span>
+cp .env.example .env
+
+<span class="c"># 2. Build and start</span>
+docker compose build
+docker compose up -d
+
+<span class="c"># 3. Open  http://localhost   (API docs: http://localhost:5000/swagger)</span></pre>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Variable</span><span lang="ar">المتغير</span></th><th><span lang="en">Meaning</span><span lang="ar">المعنى</span></th><th><span lang="en">Default</span><span lang="ar">الافتراضي</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>DB_PASSWORD</code></td><td><span lang="en">Oracle password</span><span lang="ar">كلمة مرور Oracle</span></td><td><code>YourStrong@Passw0rd</code></td></tr>
+      <tr><td><code>JWT_SECRET</code></td><td><span lang="en">Token signing key, at least 32 characters</span><span lang="ar">مفتاح توقيع الرموز، 32 حرفًا على الأقل</span></td><td><span lang="en">must be changed</span><span lang="ar">يجب تغييره</span></td></tr>
+      <tr><td><code>JWT_ISSUER</code> / <code>JWT_AUDIENCE</code></td><td><span lang="en">Token issuer and audience</span><span lang="ar">مُصدر الرمز وجمهوره</span></td><td><code>Jadwal</code></td></tr>
+      <tr><td><code>ENCRYPTION_KEY</code></td><td><span lang="en">32-byte key, base64, that encrypts stored database passwords</span><span lang="ar">مفتاح 32 بايت بترميز base64 يشفّر كلمات مرور قواعد البيانات المحفوظة</span></td><td><span lang="en">must be changed</span><span lang="ar">يجب تغييره</span></td></tr>
+      <tr><td><code>LDAP_ADMIN_PASSWORD</code></td><td><span lang="en">LDAP admin bind password</span><span lang="ar">كلمة مرور مسؤول LDAP</span></td><td><code>LdapAdmin@123</code></td></tr>
+      <tr><td><code>APP_DOMAIN</code></td><td><span lang="en">Public address, allowed for CORS</span><span lang="ar">العنوان العام، المسموح في CORS</span></td><td><code>https://tasks.example.com</code></td></tr>
+      <tr><td><code>CLIENT_PORT</code></td><td><span lang="en">Port the site is served on</span><span lang="ar">المنفذ الذي يُقدَّم عليه الموقع</span></td><td><code>80</code></td></tr>
+    </tbody>
+  </table></div>
+  <div lang="en">
+    <p>Make a key with <code>openssl rand -base64 32</code>.</p>
+    <div class="callout warn"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg></span><div>
+      <strong class="t">A stack first started under the old name, Bayan</strong>
+      <p>OpenLDAP reads its starting data only into empty volumes, so the LDAP volumes still hold
+        <code>dc=bayan,dc=local</code> and sign-in fails. Remove just the <code>ldap_data</code> and <code>ldap_config</code>
+        volumes and start again. Never use <code>docker compose down -v</code>: it deletes the Oracle volume too.</p></div></div>
+  </div>
+  <div lang="ar">
+    <p>أنشئ مفتاحًا بالأمر <code>openssl rand -base64 32</code>.</p>
+    <div class="callout warn"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg></span><div>
+      <strong class="t">حزمة بدأت أول مرة بالاسم القديم Bayan</strong>
+      <p>لا يقرأ OpenLDAP بياناته الأولى إلا في وحدات تخزين فارغة، فتبقى وحدات LDAP تحمل <code>dc=bayan,dc=local</code> ويفشل الدخول.
+        احذف وحدتي <code>ldap_data</code> و<code>ldap_config</code> فقط وشغّل من جديد. ولا تستخدم <code>docker compose down -v</code> أبدًا:
+        فهو يحذف وحدة Oracle أيضًا.</p></div></div>
+  </div>
+</section>
+
+<section id="release">
+  <div lang="en">
+    <h2>An offline release with nginx</h2>
+    <p>Build on a connected machine; the server only needs to <em>run</em> Jadwal. (For IIS, which most
+      Windows servers should use, see <a href="iis.html">IIS hosting</a>; the build and the settings below are the same.)</p>
+    <p><strong>The fast way:</strong> <code>./scripts/prepare-offline-bundle.ps1 -Clean -IncludeBuild -IncludeInstallers</code>
+      builds everything below into one <code>offline-bundle/</code> folder with a <code>MANIFEST.txt</code> to follow.</p>
+  </div>
+  <div lang="ar">
+    <h2>نشر دون إنترنت مع nginx</h2>
+    <p>ابنِ على جهاز متصل؛ فالخادم لا يحتاج إلا <em>تشغيل</em> «جدول». (أما IIS، وهو ما يناسب أغلب خوادم Windows، ففي
+      <a href="iis.html">الاستضافة على IIS</a>؛ والبناء والإعدادات أدناه هي نفسها.)</p>
+    <p><strong>الطريقة السريعة:</strong> الأمر <code>./scripts/prepare-offline-bundle.ps1 -Clean -IncludeBuild -IncludeInstallers</code>
+      يبني كل ما يلي في مجلد واحد <code>offline-bundle/</code> مع ملف <code>MANIFEST.txt</code> تتبعه.</p>
+  </div>
+
+  <div lang="en"><h3>1 · Build</h3></div>
+  <div lang="ar"><h3>١ · البناء</h3></div>
+<pre><span class="c"># API, self-contained: the .NET runtime comes with it (use -r linux-x64 for Linux)</span>
+dotnet publish src/Jadwal.API/Jadwal.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
+
+<span class="c"># Optional: the standalone QueryRunner tool</span>
+dotnet publish tools/Jadwal.QueryRunner -c Release -r win-x64 --self-contained -o ./queryrunner-publish
+
+<span class="c"># Angular client, from client/  ->  client/dist/jadwal-client/browser/</span>
+npm ci
+npm run build:prod</pre>
+  <div lang="en"><p>The database drivers (Oracle, SQL Server, MySQL, PostgreSQL) are inside the publish output; no database client is installed on the server.</p></div>
+  <div lang="ar"><p>برامج تشغيل قواعد البيانات (Oracle وSQL Server وMySQL وPostgreSQL) داخل مخرجات النشر؛ فلا يُثبَّت أي عميل قاعدة بيانات على الخادم.</p></div>
+
+  <div lang="en"><h3>2 · What to take</h3></div>
+  <div lang="ar"><h3>٢ · ما يُنقل</h3></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Item</span><span lang="ar">العنصر</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>api-publish/</code></td><td><span lang="en">The whole folder</span><span lang="ar">المجلد كاملًا</span></td></tr>
+      <tr><td><code>dist/jadwal-client/browser/</code></td><td><span lang="en">The whole folder</span><span lang="ar">المجلد كاملًا</span></td></tr>
+      <tr><td><span lang="en">Oracle XE 21c installer</span><span lang="ar">برنامج تثبيت Oracle XE 21c</span></td><td><span lang="en">About 1.5 GB; download before you go</span><span lang="ar">نحو 1.5 غيغابايت؛ نزّله قبل الانتقال</span></td></tr>
+      <tr><td><span lang="en">nginx for Windows (zip)</span><span lang="ar">nginx لـWindows (ملف مضغوط)</span></td><td><span lang="en">No install needed</span><span lang="ar">لا يحتاج تثبيتًا</span></td></tr>
+      <tr><td><span lang="en">LibreOffice installer (optional)</span><span lang="ar">برنامج تثبيت LibreOffice (اختياري)</span></td><td><span lang="en">About 350 MB. Only for PDFs that keep a Word template's look. You cannot download it later.</span><span lang="ar">نحو 350 ميغابايت. فقط لملفات PDF التي تحافظ على شكل قالب Word. ولن تستطيع تنزيله لاحقًا.</span></td></tr>
+      <tr><td><code>queryrunner-publish/</code></td><td><span lang="en">Optional, for the standalone tool</span><span lang="ar">اختياري، للأداة المستقلة</span></td></tr>
+      <tr><td><code>docker/ldap/bootstrap.ldif</code></td><td><span lang="en">Only for a new OpenLDAP server</span><span lang="ar">فقط لخادم OpenLDAP جديد</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <div lang="en"><h3>3 · Edit appsettings.json before leaving</h3></div>
+  <div lang="ar"><h3>٣ · عدّل appsettings.json قبل الانتقال</h3></div>
+<pre>{
+  <span class="s">"ConnectionStrings"</span>: { <span class="s">"DefaultConnection"</span>: <span class="s">"User Id=system;Password=YOUR_ORACLE_PASS;Data Source=localhost:1521/XEPDB1"</span> },
+  <span class="s">"Jwt"</span>: { <span class="s">"Secret"</span>: <span class="s">"A_LONG_RANDOM_SECRET_OF_AT_LEAST_32_CHARACTERS"</span> },
+  <span class="s">"Encryption"</span>: { <span class="s">"Key"</span>: <span class="s">"YOUR_BASE64_32_BYTE_KEY"</span> },
+  <span class="s">"Ldap"</span>: {
+    <span class="s">"Host"</span>: <span class="s">"YOUR_AD_OR_LDAP_SERVER"</span>, <span class="s">"Port"</span>: <span class="n">389</span>,
+    <span class="s">"BaseDn"</span>: <span class="s">"dc=yourdomain,dc=local"</span>, <span class="s">"UsersDn"</span>: <span class="s">"ou=users,dc=yourdomain,dc=local"</span>,
+    <span class="s">"AdminDn"</span>: <span class="s">"cn=admin,dc=yourdomain,dc=local"</span>, <span class="s">"AdminPassword"</span>: <span class="s">"..."</span>
+  },
+  <span class="s">"Cors"</span>: { <span class="s">"AllowedOrigins"</span>: [<span class="s">"http://YOUR_SERVER"</span>] }
+}</pre>
+  <div lang="en">
+    <div class="callout danger"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16h.01"/></svg></span><div>
+      <strong class="t">Keep <code>Encryption:Key</code> the same forever</strong>
+      <p>It encrypts the stored database passwords. Change it between builds and every stored password becomes unreadable.</p></div></div>
+    <p>For Active Directory the default attributes (<code>sAMAccountName</code>, <code>department</code>) are right; just point
+      <code>Ldap:Host</code> at the server. For OpenLDAP use <code>uid</code> / <code>departmentNumber</code>. The department only feeds
+      the Active Directory users page; it does not decide anyone's access.</p>
+  </div>
+  <div lang="ar">
+    <div class="callout danger"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16h.01"/></svg></span><div>
+      <strong class="t">أبقِ <code>Encryption:Key</code> ثابتًا دائمًا</strong>
+      <p>هو ما يشفّر كلمات مرور قواعد البيانات المحفوظة. غيّره بين نسختين، فتصبح كل كلمة مرور محفوظة غير مقروءة.</p></div></div>
+    <p>مع Active Directory تكون الخصائص الافتراضية (<code>sAMAccountName</code> و<code>department</code>) صحيحة؛ يكفي توجيه
+      <code>Ldap:Host</code> إلى الخادم. ومع OpenLDAP استخدم <code>uid</code> و<code>departmentNumber</code>. والقسم لا يغذّي إلا صفحة مستخدمي
+      Active Directory، ولا يحدد صلاحيات أحد.</p>
+  </div>
+
+  <div lang="en"><h3>4 · nginx</h3><p>The client calls <code>/api</code> on the same address, so nginx serves the files and passes <code>/api</code> to the API. Save as <code>conf/nginx.conf</code>:</p></div>
+  <div lang="ar"><h3>٤ · nginx</h3><p>الواجهة تطلب <code>/api</code> على العنوان نفسه، فيقدّم nginx الملفات ويمرّر <code>/api</code> إلى الـAPI. احفظ الملف باسم <code>conf/nginx.conf</code>:</p></div>
+<pre>worker_processes 1;
+events { worker_connections 1024; }
+http {
+    include mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+    keepalive_timeout 65;
+    server {
+        listen 80;
+        root C:/deploy/client;           <span class="c"># where the browser/ folder was copied</span>
+        index index.html;
+        location / { try_files $uri $uri/ /index.html; }
+        location /api {
+            proxy_pass http://localhost:5000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+}</pre>
+
+  <div lang="en"><h3>5 · On the server</h3></div>
+  <div lang="ar"><h3>٥ · على الخادم</h3></div>
+  <div lang="en">
+    <ol class="steps">
+      <li><strong>Install Oracle XE 21c.</strong> It listens on <code>localhost:1521/XEPDB1</code>.</li>
+      <li><strong>Copy the files</strong> to <code>C:\deploy\api</code>, <code>C:\deploy\client</code> and <code>C:\deploy\nginx</code>.</li>
+      <li><strong>Run the API as a Windows service</strong>, so scheduled tasks keep running:
+        <code>sc.exe create Jadwal binPath="C:\deploy\api\Jadwal.API.exe"</code> then <code>sc.exe start Jadwal</code>.
+        Its account needs write access to every task's output and archive folder. It listens on port 5000
+        (change with <code>"Urls"</code> in appsettings.json).</li>
+      <li><strong>Start nginx:</strong> <code>.\nginx.exe</code> in <code>C:\deploy\nginx</code> (<code>-s stop</code> to stop).</li>
+      <li><strong>Check:</strong> the site opens at <code>http://YOUR_SERVER</code>; sign in as an administrator and open
+        <strong>Dashboards</strong>: the page loading proves the tables exist, a tile with data proves its query runs.</li>
+    </ol>
+    <p>Start order: Oracle first, then the API (it waits for the database), then nginx.</p>
+  </div>
+  <div lang="ar">
+    <ol class="steps">
+      <li><strong>ثبّت Oracle XE 21c.</strong> يعمل على <code>localhost:1521/XEPDB1</code>.</li>
+      <li><strong>انسخ الملفات</strong> إلى <code>C:\deploy\api</code> و<code>C:\deploy\client</code> و<code>C:\deploy\nginx</code>.</li>
+      <li><strong>شغّل الـAPI كخدمة Windows</strong> لتستمر المهام المجدولة:
+        <code>sc.exe create Jadwal binPath="C:\deploy\api\Jadwal.API.exe"</code> ثم <code>sc.exe start Jadwal</code>.
+        ويحتاج حسابها صلاحية الكتابة في مجلدات الإخراج والأرشيف لكل مهمة. وتعمل على المنفذ 5000 (يُغيَّر بـ<code>"Urls"</code> في appsettings.json).</li>
+      <li><strong>شغّل nginx:</strong> <code>.\nginx.exe</code> داخل <code>C:\deploy\nginx</code> (و<code>-s stop</code> للإيقاف).</li>
+      <li><strong>تحقق:</strong> يفتح الموقع على <code>http://YOUR_SERVER</code>؛ سجّل الدخول كمسؤول وافتح <strong>لوحات المعلومات</strong>: تحميل الصفحة
+        يثبت وجود الجداول، وبطاقة فيها بيانات تثبت أن استعلامها يعمل.</li>
+    </ol>
+    <p>ترتيب التشغيل: Oracle أولًا، ثم الـAPI (ينتظر قاعدة البيانات)، ثم nginx.</p>
+  </div>
+</section>
+
+<section id="upgrade">
+  <div lang="en">
+    <h2>Upgrading</h2>
+    <p>A new release is carried across the same way. The difference is that the database already exists, and
+      <strong>the API changes it itself, on start-up</strong>, before serving any request.</p>
+    <div class="callout warn"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg></span><div>
+      <strong class="t">Back up the schema first</strong>
+      <p>Oracle cannot undo half a schema change. If an upgrade fails part-way, the API refuses to start (ORA-00955 or
+        ORA-01430 in the log) and the backup is your way back. Never set <code>Database:AllowDestructiveRepair</code> on a
+        database whose data matters: its "repair" drops every table. The schema account must still be able to create
+        tables and indexes. See <a href="database.html#oracle-rules">the Oracle rules</a>.</p></div></div>
+  </div>
+  <div lang="ar">
+    <h2>الترقية</h2>
+    <p>تُنقل النسخة الجديدة بالطريقة نفسها. الفرق أن قاعدة البيانات موجودة أصلًا، و<strong>الـAPI يعدّلها بنفسه عند التشغيل</strong>، قبل أن يخدم أي طلب.</p>
+    <div class="callout warn"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg></span><div>
+      <strong class="t">خذ نسخة احتياطية من المخطط أولًا</strong>
+      <p>لا يستطيع Oracle التراجع عن نصف تعديل على المخطط. فإن فشلت الترقية في منتصفها، يرفض الـAPI البدء (ORA-00955 أو ORA-01430 في السجل)،
+        والنسخة الاحتياطية هي طريق العودة. ولا تضبط <code>Database:AllowDestructiveRepair</code> أبدًا على قاعدة بيانات تهمّك بياناتها: «إصلاحه» يحذف كل
+        الجداول. ويجب أن يبقى حساب المخطط قادرًا على إنشاء الجداول والفهارس. انظر <a href="database.html#oracle-rules">قواعد Oracle</a>.</p></div></div>
+  </div>
+<pre><span class="c"># 1. Back up the schema (Data Pump, RMAN, or your DBA's way)</span>
+<span class="c"># 2. Stop the API (the service, or the IIS app pool)</span>
+sc.exe stop Jadwal
+<span class="c"># 3. Replace the API files, keeping your settings and history</span>
+robocopy &lt;bundle&gt;\api-publish C:\deploy\api /E /XF appsettings.json /XD logs cache
+<span class="c"># 4. Replace the client files</span>
+robocopy &lt;bundle&gt;\client-dist C:\deploy\client /MIR
+<span class="c"># 5. Start, and watch the log while the changes apply</span>
+sc.exe start Jadwal
+Get-Content C:\deploy\api\logs\log-*.txt -Tail 50 -Wait</pre>
+  <div lang="en">
+    <ul>
+      <li><strong>New features arrive switched off for everyone but Admin.</strong> A release that adds permissions grants them
+        only to Admin. To let others use, say, dashboards, add the permission to their role and grant the dashboards.</li>
+      <li><strong>A server installed under the old name, Bayan,</strong> keeps it. Point the service at the new file once:
+        <code>sc.exe config Bayan binPath="C:\deploy\api\Jadwal.API.exe"</code>. Under IIS, upgrade in place with
+        <code>deploy-iis.ps1 -SiteName Bayan -PhysicalPath &lt;the site's folder&gt;</code>; the script refuses to create a second
+        site, which would run every scheduled export twice.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <ul>
+      <li><strong>الخصائص الجديدة تصل متوقفة للجميع ما عدا Admin.</strong> النسخة التي تضيف صلاحيات لا تمنحها إلا للدور Admin. ولتتيح لغيره
+        لوحات المعلومات مثلًا، أضف الصلاحية إلى دوره وامنحه اللوحات.</li>
+      <li><strong>الخادم المثبَّت بالاسم القديم Bayan</strong> يحتفظ به. وجّه الخدمة إلى الملف الجديد مرة واحدة:
+        <code>sc.exe config Bayan binPath="C:\deploy\api\Jadwal.API.exe"</code>. وعلى IIS رقِّ في المكان نفسه بالأمر
+        <code>deploy-iis.ps1 -SiteName Bayan -PhysicalPath &lt;مجلد الموقع&gt;</code>؛ فالسكربت يرفض إنشاء موقع ثانٍ، لأنه سيشغّل كل تصدير مجدول مرتين.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="offline-rebuild">
+  <div lang="en">
+    <h2>Changing and rebuilding offline</h2>
+    <p>A run-only release cannot be changed. To edit and rebuild on a machine that never touches the internet, carry the
+      toolchains and the package caches the build restores from. <code>prepare-offline-bundle.ps1</code> does all of it;
+      the pieces are:</p>
+  </div>
+  <div lang="ar">
+    <h2>التعديل وإعادة البناء دون إنترنت</h2>
+    <p>نسخة التشغيل وحدها لا يمكن تعديلها. وللتعديل وإعادة البناء على جهاز لا يتصل بالإنترنت أبدًا، انقل أدوات البناء وذاكرة الحزم التي يقرأ
+      منها البناء. والسكربت <code>prepare-offline-bundle.ps1</code> يفعل ذلك كله؛ وهذه مكوّناته:</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Piece</span><span lang="ar">المكوّن</span></th><th><span lang="en">Why</span><span lang="ar">لماذا</span></th></tr></thead>
+    <tbody>
+      <tr><td><span lang="en">.NET 10 SDK, offline installer</span><span lang="ar">.NET 10 SDK، برنامج تثبيت دون إنترنت</span></td><td><span lang="en">To build the API; the runtime alone is not enough</span><span lang="ar">لبناء الـAPI؛ بيئة التشغيل وحدها لا تكفي</span></td></tr>
+      <tr><td><span lang="en">Node.js 24.x installer</span><span lang="ar">برنامج تثبيت Node.js 24.x</span></td><td><span lang="en">To build the client (npm 10.x)</span><span lang="ar">لبناء الواجهة (npm 10.x)</span></td></tr>
+      <tr><td><code>%USERPROFILE%\.nuget\packages</code></td><td><span lang="en">The NuGet cache, copied to the same path, after <code>dotnet restore Jadwal.sln</code> and <code>dotnet restore tools/Jadwal.QueryRunner</code> (it is not in the solution). Or a folder feed in <code>nuget.config</code>.</span><span lang="ar">ذاكرة NuGet، تُنسخ إلى المسار نفسه، بعد <code>dotnet restore Jadwal.sln</code> و<code>dotnet restore tools/Jadwal.QueryRunner</code> (ليست ضمن الحل). أو مجلد حزم في <code>nuget.config</code>.</span></td></tr>
+      <tr><td><code>client/node_modules</code> <span lang="en">or</span><span lang="ar">أو</span> <code>npm-cache</code></td><td><span lang="en">Same OS and CPU: copy <code>node_modules</code>. Otherwise <code>npm ci --cache ./npm-cache</code> outside and <code>npm ci --offline --cache ./npm-cache</code> inside.</span><span lang="ar">نظام ومعالج متطابقان: انسخ <code>node_modules</code>. وإلا فـ<code>npm ci --cache ./npm-cache</code> في الخارج و<code>npm ci --offline --cache ./npm-cache</code> في الداخل.</span></td></tr>
+      <tr><td><span lang="en">An editor (optional)</span><span lang="ar">محرر (اختياري)</span></td><td><span lang="en">VS Code with offline extensions, or Visual Studio. The command line is enough.</span><span lang="ar">VS Code مع إضافاته دون إنترنت، أو Visual Studio. وسطر الأوامر يكفي.</span></td></tr>
+    </tbody>
+  </table></div>
+  <div lang="en">
+    <div class="callout"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg></span><div>
+      <strong class="t">Build the bundle with the SDK it ships</strong>
+      <p>The SDK version at the top of the script decides the .NET runtime inside the API, which is what the server runs until the
+        next bundle. An isolated server gets security fixes only this way: at each .NET or Node.js security release, raise the
+        versions at the top of the script and build the bundle again. A bundle made before Arabic support or before the SQL editor
+        lacks packages added since; build it again.</p></div></div>
+    <p><strong>Prove it before you disconnect:</strong> switch the network off on the preparing machine and run the rebuild loop below.
+      If it works, the server has everything it needs.</p>
+  </div>
+  <div lang="ar">
+    <div class="callout"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg></span><div>
+      <strong class="t">ابنِ الحزمة بإصدار SDK الذي تحمله</strong>
+      <p>إصدار SDK في أعلى السكربت يحدد بيئة .NET داخل الـAPI، وهي ما يعمل به الخادم حتى الحزمة التالية. والخادم المعزول لا يحصل على إصلاحات
+        الأمان إلا بهذه الطريقة: مع كل إصدار أمني لـ.NET أو Node.js، ارفع الإصدارات في أعلى السكربت وابنِ الحزمة من جديد. والحزمة المبنية قبل
+        دعم العربية أو قبل محرر SQL تنقصها حزم أُضيفت بعدها؛ فابنِها من جديد.</p></div></div>
+    <p><strong>تأكد قبل الانفصال:</strong> افصل الشبكة على جهاز التحضير، وشغّل حلقة إعادة البناء أدناه. فإن نجحت، فلدى الخادم كل ما يحتاجه.</p>
+  </div>
+<pre><span class="c"># API</span>
+dotnet build Jadwal.sln -c Release
+dotnet publish src/Jadwal.API/Jadwal.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
+
+<span class="c"># QueryRunner (not in the solution)</span>
+dotnet publish tools/Jadwal.QueryRunner -c Release -r win-x64 --self-contained -o ./queryrunner-publish
+
+<span class="c"># Client</span>
+cd client
+npm ci --offline --cache ./npm-cache     <span class="c"># or use the copied node_modules</span>
+npm run build:prod</pre>
+</section>
+
+<section id="ai-bundle">
+  <div lang="en">
+    <h2>The AI bundle (optional)</h2>
+    <p>The <a href="ai.html">AI assistant</a> runs on a model on the server itself. It comes in its own bundle, apart from
+      <code>offline-bundle/</code>: the models are many gigabytes and rarely change, so they are not carried again with every update.
+      Without it, Jadwal works as before and shows no AI buttons.</p>
+  </div>
+  <div lang="ar">
+    <h2>حزمة الذكاء الاصطناعي (اختيارية)</h2>
+    <p>يعمل <a href="ai.html">المساعد الذكي</a> بنموذج على الخادم نفسه، ويأتي في حزمة مستقلة عن <code>offline-bundle/</code>: فالنماذج بحجم
+      غيغابايتات كثيرة ونادرًا ما تتغير، فلا تُنقل مع كل تحديث. وبدونها يعمل «جدول» كما كان ولا يعرض أي زر للذكاء الاصطناعي.</p>
+  </div>
+  <div lang="en"><h3>1 · Build it (connected machine)</h3></div>
+  <div lang="ar"><h3>١ · بناؤها (جهاز متصل)</h3></div>
+<pre>powershell -ExecutionPolicy Bypass -File scripts\prepare-ai-bundle.ps1 -OutDir 'E:\Jadwal-AI-Bundle'</pre>
+  <div lang="en">
+    <ul>
+      <li>Downloads a pinned Ollama release and pulls <strong>Gemma 4 12B</strong> and <strong>Qwen3.5 9B</strong>, about 18 GB.
+        Point <code>-OutDir</code> at a drive with about 20 GB free; the script checks first.</li>
+      <li>The models are pulled through a private copy of Ollama on its own port, so an Ollama already on that machine is left alone.</li>
+      <li>Options: <code>-Models 'gemma4:12b'</code> for one model, <code>-IncludeRocm</code> for AMD GPUs, <code>-OllamaVersion</code>.</li>
+      <li>It writes <code>ollama/</code>, <code>models/</code>, <code>install-ai-service.ps1</code>, <code>MANIFEST.txt</code> and
+        <code>SHA256SUMS.txt</code>. Copy the whole folder to the server.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <ul>
+      <li>ينزّل إصدارًا محددًا من Ollama ويسحب <strong>Gemma 4 12B</strong> و<strong>Qwen3.5 9B</strong>، نحو 18 غيغابايت. وجّه <code>-OutDir</code>
+        إلى قرص فيه نحو 20 غيغابايت فارغة؛ والسكربت يتحقق أولًا.</li>
+      <li>تُسحب النماذج عبر نسخة خاصة من Ollama على منفذ مستقل، فلا يُمس أي Ollama موجود على ذلك الجهاز.</li>
+      <li>الخيارات: <code>-Models 'gemma4:12b'</code> لنموذج واحد، و<code>-IncludeRocm</code> لبطاقات AMD، و<code>-OllamaVersion</code>.</li>
+      <li>يكتب <code>ollama/</code> و<code>models/</code> و<code>install-ai-service.ps1</code> و<code>MANIFEST.txt</code> و<code>SHA256SUMS.txt</code>.
+        انسخ المجلد كاملًا إلى الخادم.</li>
+    </ul>
+  </div>
+  <div lang="en"><h3>2 · Install it (on the server, as administrator)</h3></div>
+  <div lang="ar"><h3>٢ · تثبيتها (على الخادم، بصلاحيات المسؤول)</h3></div>
+<pre>powershell -ExecutionPolicy Bypass -File .\install-ai-service.ps1</pre>
+  <div lang="en">
+    <ol class="steps">
+      <li><strong>Checks every file</strong> against <code>SHA256SUMS.txt</code> and stops on a damaged copy.</li>
+      <li><strong>Installs</strong> Ollama to <code>C:\Ollama</code> and the models to <code>C:\OllamaModels</code>
+        (<code>-InstallDir</code>, <code>-ModelsDir</code>; a local disk, not a share).</li>
+      <li><strong>Writes <code>start-ollama.cmd</code></strong>: it listens on <strong>127.0.0.1 only</strong>, since Ollama has no
+        login of its own; keeps the model loaded; answers one request at a time.</li>
+      <li><strong>Registers the task "Jadwal AI (Ollama)"</strong>, started at boot as SYSTEM and restarted if it stops, then checks the models answer.</li>
+      <li><strong>Reads the GPU</strong> and prints the <code>Ai</code> section to paste: <code>gemma4:12b</code> with 12 GB or more, else <code>qwen3.5:9b</code>.</li>
+    </ol>
+    <p>Run it again to upgrade: it replaces the runtime and keeps the models already there. Then follow
+      <a href="ai.html#setup">Switching it on</a>.</p>
+  </div>
+  <div lang="ar">
+    <ol class="steps">
+      <li><strong>يتحقق من كل ملف</strong> مقابل <code>SHA256SUMS.txt</code> ويتوقف عند أي نسخة تالفة.</li>
+      <li><strong>يثبّت</strong> Ollama في <code>C:\Ollama</code> والنماذج في <code>C:\OllamaModels</code>
+        (<code>-InstallDir</code> و<code>-ModelsDir</code>؛ على قرص محلي لا مجلد مشترك).</li>
+      <li><strong>يكتب <code>start-ollama.cmd</code></strong>: يعمل على <strong>127.0.0.1 فقط</strong>، لأن Ollama بلا تسجيل دخول؛ ويُبقي النموذج
+        محمَّلًا؛ ويجيب طلبًا واحدًا في كل مرة.</li>
+      <li><strong>يسجّل المهمة "Jadwal AI (Ollama)"</strong>، التي تبدأ مع تشغيل الجهاز بحساب SYSTEM وتُعاد إن توقفت، ثم يتحقق من أن النماذج تجيب.</li>
+      <li><strong>يقرأ بطاقة الرسومات</strong> ويطبع القسم <code>Ai</code> لتلصقه: <code>gemma4:12b</code> مع 12 غيغابايت أو أكثر، وإلا <code>qwen3.5:9b</code>.</li>
+    </ol>
+    <p>شغّله مرة أخرى للترقية: يستبدل البرنامج ويُبقي النماذج الموجودة. ثم اتبع <a href="ai.html#setup">التفعيل</a>.</p>
+  </div>
+</section>
+
+</div></main>
+</body>
+</html>

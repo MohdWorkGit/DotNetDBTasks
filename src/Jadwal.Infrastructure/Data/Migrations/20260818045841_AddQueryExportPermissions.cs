@@ -21,7 +21,7 @@ namespace Jadwal.Infrastructure.Data.Migrations
     /// <para>
     /// Scheduled tasks are unaffected: they write files server-side from a definition an
     /// administrator already controls, and gating them here would stop every existing export
-    /// job overnight. See README (Query export permissions).
+    /// job overnight. See docs/features.html#exports.
     /// </para>
     /// </summary>
     public partial class AddQueryExportPermissions : Migration
@@ -31,7 +31,7 @@ namespace Jadwal.Infrastructure.Data.Migrations
         {
             // Raw SQL rather than AddColumn: Oracle auto-commits DDL, so a migration that fails
             // part-way leaves the column behind and the retry must not die on ORA-01430
-            // ("column already exists"). See DATABASE_MIGRATION_NOTES.txt section 1B.
+            // ("column already exists"). See docs/database.html#oracle-rules, rule 1.
             migrationBuilder.Sql(@"
                 BEGIN
                     EXECUTE IMMEDIATE 'ALTER TABLE ""DynamicQueries""

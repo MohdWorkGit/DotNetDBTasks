@@ -10,8 +10,8 @@ namespace Jadwal.Domain.Entities;
 ///
 /// <para>Every column for all three source types lives on this one table on purpose:
 /// Oracle auto-commits DDL, so a migration that adds columns to a table an earlier
-/// migration created is the exact failure mode <c>DATABASE_MIGRATION_NOTES.txt</c>
-/// Rule 1 exists to prevent. The Join and Detail columns are therefore created up front
+/// migration created is the exact failure mode <c>docs/database.html#oracle-rules</c>
+/// rule 4 exists to prevent. The Join and Detail columns are therefore created up front
 /// and simply left null until those source types ship.</para>
 /// </summary>
 public class ReportDataset : BaseEntity

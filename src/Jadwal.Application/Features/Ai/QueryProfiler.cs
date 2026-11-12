@@ -44,7 +44,7 @@ internal sealed record QueryProfile(
 ///
 /// <para>Only the shape leaves this class. The rows are read to tell a number column from a text
 /// one and to count distinct values, then dropped: sending values to the model is a separate
-/// decision (docs/LOCAL-AI-OPTIONS.md §11, sample rows off by default).</para>
+/// decision (docs/ai.html#decisions, sample rows off by default).</para>
 /// </summary>
 internal static class QueryProfiler
 {

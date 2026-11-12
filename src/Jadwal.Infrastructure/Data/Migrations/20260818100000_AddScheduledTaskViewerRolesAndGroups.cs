@@ -19,7 +19,7 @@ namespace Jadwal.Infrastructure.Data.Migrations
     /// <para>
     /// Raw SQL rather than CreateTable: Oracle auto-commits DDL, so a migration that fails
     /// part-way leaves its tables behind and the retry must not die on ORA-00955 ("name is
-    /// already used by an existing object"). See DATABASE_MIGRATION_NOTES.txt section 1B.
+    /// already used by an existing object"). See docs/database.html#oracle-rules, rule 1.
     /// </para>
     /// </summary>
     public partial class AddScheduledTaskViewerRolesAndGroups : Migration

@@ -3730,7 +3730,7 @@ def build(lang):
     if is_rtl():
         apply_rtl(doc)
 
-    # MANUAL_OUT_DIR exists because the README tells you to open the finished document in Word
+    # MANUAL_OUT_DIR exists because docs/development.html tells you to open the finished document in Word
     # to refresh its table of contents — and Word holds the file open, so the next build cannot
     # overwrite it. Building elsewhere lets the run finish and the file be moved into place after.
     out_dir = os.environ.get("MANUAL_OUT_DIR") or HERE

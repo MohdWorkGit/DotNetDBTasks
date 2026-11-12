@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IIS hosting and sign-in · Jadwal documentation</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body data-page="iis" data-title-en="IIS hosting and sign-in · Jadwal documentation" data-title-ar="الاستضافة على IIS · توثيق جدول">
+<main><div class="content">
+
+<header class="page-head">
+  <div lang="en">
+    <div class="eyebrow">Install and run</div>
+    <h1>IIS hosting and Windows sign-in</h1>
+    <p class="lead">One IIS site serves everything: the API answers <code>/api/*</code> and every other address returns the
+      Angular app from the API's own <code>wwwroot</code>. No reverse proxy, no CORS, and domain users are signed in
+      without a form.</p>
+  </div>
+  <div lang="ar">
+    <div class="eyebrow">التثبيت والتشغيل</div>
+    <h1>الاستضافة على IIS والدخول بحساب Windows</h1>
+    <p class="lead">موقع IIS واحد يخدم كل شيء: الـAPI يجيب على <code>/api/*</code>، وأي عنوان آخر يعيد تطبيق Angular من مجلد
+      <code>wwwroot</code> الخاص بالـAPI. بلا وسيط عكسي، وبلا CORS، ويدخل مستخدمو النطاق دون نموذج.</p>
+  </div>
+</header>
+
+<section id="fast-path">
+  <div lang="en">
+    <h2>One command</h2>
+    <p>Run elevated, on the server. It builds the client, publishes the API, puts the app into <code>wwwroot</code>, and
+      creates or updates the app pool and site with every setting on this page. Running it again is an upgrade: bindings,
+      <code>appsettings.json</code>, <code>logs\</code> and <code>cache\</code> are kept.</p>
+  </div>
+  <div lang="ar">
+    <h2>أمر واحد</h2>
+    <p>شغّله بصلاحيات المسؤول على الخادم. يبني الواجهة، وينشر الـAPI، ويضع التطبيق في <code>wwwroot</code>، وينشئ مجمّع التطبيقات
+      والموقع أو يحدّثهما بكل إعدادات هذه الصفحة. وتشغيله مرة أخرى ترقية: تبقى الارتباطات و<code>appsettings.json</code> و<code>logs\</code> و<code>cache\</code>.</p>
+  </div>
+<pre>./scripts/deploy-iis.ps1 -Hostname jadwal.corp.local -EnableSso</pre>
+</section>
+
+<section id="why">
+  <div lang="en">
+    <h2>Why the default app pool is not enough</h2>
+    <p>Three background workers run <strong>inside the IIS worker process</strong>: the scheduler, the long-query worker and
+      the result-cache upkeep. Their state lives in that process's memory. Three things follow, and none is optional:</p>
+  </div>
+  <div lang="ar">
+    <h2>لماذا لا يكفي مجمّع التطبيقات الافتراضي</h2>
+    <p>ثلاث عمليات خلفية تعمل <strong>داخل عملية IIS نفسها</strong>: المجدول، ومنفّذ الاستعلامات الطويلة، وصيانة النتائج المحفوظة. وحالتها في
+      ذاكرة تلك العملية. ويترتب على ذلك ثلاثة أمور، لا يُستغنى عن أي منها:</p>
+  </div>
+  <div class="cards">
+    <div class="card c-rose">
+      <h4><span lang="en">Exactly one process</span><span lang="ar">عملية واحدة بالضبط</span></h4>
+      <p lang="en">A second one runs a second scheduler: every export twice. It also splits the job store, so a browser can ask the wrong process for its result.</p>
+      <p lang="ar">العملية الثانية تشغّل مجدولًا ثانيًا: كل تصدير مرتين. وتقسم مخزن المهام، فقد يسأل المتصفح العملية الخطأ عن نتيجته.</p>
+    </div>
+    <div class="card c-amber">
+      <h4><span lang="en">No overlapping restarts</span><span lang="ar">لا تداخل عند إعادة التشغيل</span></h4>
+      <p lang="en">A starting process clears the result files left behind; with overlap it deletes them while the old one is still sending them.</p>
+      <p lang="ar">العملية التي تبدأ تحذف ملفات النتائج المتبقية؛ ومع التداخل تحذفها بينما القديمة ما زالت ترسلها.</p>
+    </div>
+    <div class="card c-blue">
+      <h4><span lang="en">Never idle</span><span lang="ar">لا خمول أبدًا</span></h4>
+      <p lang="en">An idle pool means the 02:00 export simply does not happen, and nothing reports it.</p>
+      <p lang="ar">المجمّع الخامل يعني أن تصدير الساعة 02:00 لا يحدث، ولا يُبلغ عنه شيء.</p>
+    </div>
+  </div>
+</section>
+
+<section id="prerequisites">
+  <div lang="en"><h2>Server prerequisites</h2><p>All four are required; the site will not start without them.</p></div>
+  <div lang="ar"><h2>متطلبات الخادم</h2><p>الأربعة كلها مطلوبة، ولن يبدأ الموقع بدونها.</p></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th><span lang="en">What</span><span lang="ar">ماذا</span></th><th><span lang="en">Why</span><span lang="ar">لماذا</span></th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><span lang="en">IIS with <strong>Windows Authentication</strong></span><span lang="ar">IIS مع <strong>Windows Authentication</strong></span></td><td><span lang="en">Windows sign-in. <code>Web-Windows-Auth</code></span><span lang="ar">الدخول بحساب Windows. <code>Web-Windows-Auth</code></span></td></tr>
+      <tr><td>2</td><td><strong>Application Initialization</strong></td><td><span lang="en">The shipped <code>web.config</code> uses it; without it IIS answers HTTP 500.19 and the site never starts. It also starts the workers without waiting for a visitor.</span><span lang="ar">ملف <code>web.config</code> المرفق يستخدمها؛ وبدونها يجيب IIS بالخطأ HTTP 500.19 ولا يبدأ الموقع. وهي أيضًا ما يبدأ عمليات الخلفية دون انتظار زائر.</span></td></tr>
+      <tr><td>3</td><td><span lang="en">IIS Management Scripts and Tools</span><span lang="ar">أدوات وسكربتات إدارة IIS</span></td><td><span lang="en">The <code>WebAdministration</code> module the script uses. <code>Web-Scripting-Tools</code></span><span lang="ar">الوحدة <code>WebAdministration</code> التي يستخدمها السكربت. <code>Web-Scripting-Tools</code></span></td></tr>
+      <tr><td>4</td><td><span lang="en">.NET 10 ASP.NET Core Hosting Bundle</span><span lang="ar">حزمة استضافة ASP.NET Core لـ.NET 10</span></td><td><span lang="en">The module IIS runs the app with; needed even for a self-contained build.</span><span lang="ar">الوحدة التي يشغّل بها IIS التطبيق؛ مطلوبة حتى للبناء المستقل.</span></td></tr>
+    </tbody>
+  </table></div>
+<pre>Install-WindowsFeature Web-Server, Web-Windows-Auth, Web-AppInit, Web-Scripting-Tools
+<span class="c"># then run dotnet-hosting-10.0.x-win.exe, then:</span>
+net stop was /y &amp; net start w3svc</pre>
+  <div lang="en"><div class="callout"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg></span><div>
+    <p>The offline bundle carries the Hosting Bundle (<code>-IncludeInstallers</code>), but the IIS features come from the Windows
+      installation media. With no internet, <code>Install-WindowsFeature</code> needs <code>-Source</code> pointing at
+      <code>\sources\sxs</code> on the matching Windows Server ISO.</p></div></div></div>
+  <div lang="ar"><div class="callout"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg></span><div>
+    <p>الحزمة دون إنترنت تحمل حزمة الاستضافة (<code>-IncludeInstallers</code>)، لكن خصائص IIS تأتي من وسائط تثبيت Windows. وبلا إنترنت يحتاج
+      <code>Install-WindowsFeature</code> الخيار <code>-Source</code> موجّهًا إلى <code>\sources\sxs</code> في ملف ISO المطابق لإصدار Windows Server.</p></div></div></div>
+</section>
+
+<section id="by-hand">
+  <div lang="en"><h2>Building and creating the site by hand</h2></div>
+  <div lang="ar"><h2>البناء وإنشاء الموقع يدويًا</h2></div>
+<pre><span class="c"># Build: client, API, then put the client into the API's wwwroot</span>
+cd client; npm run build:prod; cd ..
+dotnet publish src/Jadwal.API/Jadwal.API.csproj -c Release -r win-x64 --self-contained -o ./api-publish
+New-Item -ItemType Directory -Force .\api-publish\wwwroot | Out-Null
+Copy-Item .\client\dist\jadwal-client\browser\* .\api-publish\wwwroot\ -Recurse -Force
+
+<span class="c"># Copy api-publish\ to C:\inetpub\Jadwal, then:</span>
+Import-Module WebAdministration
+New-WebAppPool -Name "Jadwal"
+Set-ItemProperty IIS:\AppPools\Jadwal -Name managedRuntimeVersion -Value ""   <span class="c"># No Managed Code</span>
+New-Website -Name "Jadwal" -Port 80 -HostHeader "jadwal.corp.local" `
+            -PhysicalPath "C:\inetpub\Jadwal" -ApplicationPool "Jadwal"
+icacls "C:\inetpub\Jadwal" /grant "IIS AppPool\Jadwal:(OI)(CI)M" /T              <span class="c"># logs\ and cache\</span></pre>
+  <div lang="en"><p>Edit <code>api-publish\appsettings.json</code> as for any release (<a href="deploy.html#release">step 3</a>);
+    <code>Cors:AllowedOrigins</code> is unused here, since everything is one origin.</p></div>
+  <div lang="ar"><p>عدّل <code>api-publish\appsettings.json</code> كما في أي نشر (<a href="deploy.html#release">الخطوة ٣</a>)؛ والإعداد
+    <code>Cors:AllowedOrigins</code> غير مستخدم هنا، لأن كل شيء على عنوان واحد.</p></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th><code>ApplicationPoolIdentity</code> <span lang="en">(default)</span><span lang="ar">(الافتراضي)</span></th><th><span lang="en">Domain service account</span><span lang="ar">حساب خدمة في النطاق</span></th></tr></thead>
+    <tbody>
+      <tr><td><span lang="en">Windows sign-in setup</span><span lang="ar">إعداد الدخول بحساب Windows</span></td><td><span lang="en">Nothing to do</span><span lang="ar">لا شيء</span></td><td><code>setspn -S HTTP/&lt;host&gt; DOMAIN\svc-jadwal</code></td></tr>
+      <tr><td><span lang="en">Exports to a network share</span><span lang="ar">التصدير إلى مجلد شبكة</span></td><td><span class="tag danger"><span lang="en">Not possible</span><span lang="ar">غير ممكن</span></span></td><td><span class="tag ok"><span lang="en">Works</span><span lang="ar">يعمل</span></span></td></tr>
+      <tr><td><span lang="en">Windows login to Oracle</span><span lang="ar">الدخول إلى Oracle بحساب Windows</span></td><td><span lang="en">No</span><span lang="ar">لا</span></td><td><span lang="en">Yes</span><span lang="ar">نعم</span></td></tr>
+      <tr><td><span lang="en">Password upkeep</span><span lang="ar">متابعة كلمة المرور</span></td><td><span lang="en">None</span><span lang="ar">لا شيء</span></td><td><span lang="en">Update IIS when it changes in AD</span><span lang="ar">تحديث IIS عند تغييرها في AD</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="app-pool">
+  <div lang="en">
+    <h2>Keeping the background workers alive</h2>
+    <p>Apply all of these; the script does. Each answers one of the three needs above.</p>
+  </div>
+  <div lang="ar">
+    <h2>إبقاء عمليات الخلفية حيّة</h2>
+    <p>طبّق هذه كلها؛ والسكربت يطبّقها. كل منها يلبي واحدًا من الأمور الثلاثة أعلاه.</p>
+  </div>
+<pre>Import-Module WebAdministration
+$p = 'IIS:\AppPools\Jadwal'
+<span class="c"># Never idle; start with Windows</span>
+Set-ItemProperty $p -Name processModel.idleTimeout -Value "00:00:00"
+Set-ItemProperty $p -Name startMode -Value AlwaysRunning
+<span class="c"># Exactly one worker process</span>
+Set-ItemProperty $p -Name processModel.maxProcesses -Value 1
+<span class="c"># No overlapping recycle</span>
+Set-ItemProperty $p -Name recycling.disallowOverlappingRotation -Value $true
+<span class="c"># No automatic recycles: each drops running jobs and kept results</span>
+Set-ItemProperty $p -Name recycling.periodicRestart.time -Value "00:00:00"
+Set-ItemProperty $p -Name recycling.periodicRestart.requests -Value 0
+Set-ItemProperty $p -Name recycling.periodicRestart.memory -Value 0
+Set-ItemProperty $p -Name recycling.periodicRestart.privateMemory -Value 0
+Clear-ItemProperty $p -Name recycling.periodicRestart.schedule
+<span class="c"># Outer step of the shutdown ladder</span>
+Set-ItemProperty $p -Name processModel.shutdownTimeLimit -Value "00:02:00"
+<span class="c"># Warm up right after any restart</span>
+Set-ItemProperty "IIS:\Sites\Jadwal" -Name applicationDefaults.preloadEnabled -Value $true</pre>
+  <div lang="en">
+    <h3>The shutdown ladder</h3>
+    <p>A restart is sometimes unavoidable; a deploy is one. Given time, a running export takes the cancel path, records its
+      final status and saves the checkpoints of the items that finished. Killed, it does neither and exports them again next
+      time. Three time limits decide this, and the inner one must be the smallest:</p>
+  </div>
+  <div lang="ar">
+    <h3>سلّم الإيقاف</h3>
+    <p>إعادة التشغيل لا مفر منها أحيانًا، والنشر مثال عليها. فإن أُعطي التصدير الجاري وقتًا كافيًا، سلك طريق الإلغاء، وسجّل حالته النهائية،
+      وحفظ نقاط توقف العناصر التي اكتملت. وإن قُتل، لم يفعل شيئًا من ذلك وأعاد تصديرها في المرة التالية. ثلاثة حدود زمنية تقرر ذلك، والداخلي يجب أن يكون الأصغر:</p>
+  </div>
+  <figure class="chart">
+    <script type="application/json">{
+      "type": "hbar",
+      "title": {"en": "Shutdown time limits, inner to outer", "ar": "حدود وقت الإيقاف، من الداخل إلى الخارج"},
+      "sub": {"en": "IIS's own default for the middle one is 10 s, far too short: every restart becomes a hard kill.", "ar": "الافتراضي في IIS للحد الأوسط 10 ثوانٍ، وهو أقصر بكثير: فتصبح كل إعادة تشغيل قتلًا مفاجئًا."},
+      "unit": {"en": "s", "ar": "ث"},
+      "rowHead": {"en": "Limit", "ar": "الحد"},
+      "valueHead": {"en": "Seconds", "ar": "ثانية"},
+      "digits": 0,
+      "rows": [
+        {"label": {"en": "App: Host:ShutdownTimeoutSeconds", "ar": "التطبيق: Host:ShutdownTimeoutSeconds"}, "value": 90, "note": {"en": "appsettings.json", "ar": "appsettings.json"}},
+        {"label": {"en": "ASP.NET Core module", "ar": "وحدة ASP.NET Core"}, "value": 100, "note": {"en": "web.config, shutdownTimeLimit", "ar": "web.config، shutdownTimeLimit"}},
+        {"label": {"en": "App pool", "ar": "مجمّع التطبيقات"}, "value": 120, "note": {"en": "IIS, processModel.shutdownTimeLimit", "ar": "IIS، processModel.shutdownTimeLimit"}}
+      ]
+    }</script>
+  </figure>
+  <div lang="en">
+    <ul>
+      <li>Give the pool's account <strong>write access to every task's output and archive folder</strong>.
+        <code>ApplicationPoolIdentity</code> cannot write to network shares; use a domain account for those.</li>
+      <li>A run cut off anyway is closed by the scheduler at the next start: it is marked failed instead of showing "Running" forever.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <ul>
+      <li>امنح حساب المجمّع <strong>صلاحية الكتابة في مجلد الإخراج والأرشيف لكل مهمة</strong>. والحساب <code>ApplicationPoolIdentity</code> لا يكتب في
+        مجلدات الشبكة؛ فاستخدم حساب نطاق لها.</li>
+      <li>التشغيل الذي انقطع رغم ذلك يغلقه المجدول عند البدء التالي: يُعلَّم فاشلًا بدل أن يظهر «قيد التشغيل» إلى الأبد.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="sso">
+  <div lang="en">
+    <h2>Windows sign-in</h2>
+    <p><strong>Off by default.</strong> Set <code>"Auth": { "EnableSso": true }</code> in appsettings.json. While off, the
+      endpoint answers 404 and people sign in with their directory user name and password, checked against LDAP; no IIS
+      Windows-authentication setup is needed for that.</p>
+    <p>When on, the sign-in page tries <code>GET /api/auth/sso</code> by itself as it loads. A domain-joined browser sends its
+      Kerberos or NTLM ticket, the account is created or refreshed from the directory, and Jadwal issues its own token. People arrive
+      signed in and never see the form. If the attempt fails, the form simply appears.</p>
+    <ul>
+      <li>Signing out does not bounce you straight back in: the automatic attempt is skipped for the rest of the browser session.</li>
+      <li><code>ng serve</code> cannot test this; it only works in this IIS setup.</li>
+    </ul>
+    <ol class="steps">
+      <li><strong>Unlock the authentication sections</strong> once per server, or IIS answers 500.19:
+        <code>appcmd unlock config /section:windowsAuthentication</code> and the same for <code>anonymousAuthentication</code>
+        (in <code>%windir%\system32\inetsrv</code>). The shipped <code>web.config</code> then turns both on.</li>
+      <li><strong>Reach the site by host name</strong>, not IP, and put that host in the browser's Local Intranet zone; otherwise the browser asks for a password.</li>
+      <li><strong>A custom domain account</strong> for the pool needs an SPN: <code>setspn -S HTTP/jadwal.corp.local DOMAIN\svc-account</code>.</li>
+      <li><strong>Keep <code>Ldap:*</code> valid</strong>: the ticket gives the user name, the profile still comes from the directory. Prefer HTTPS.</li>
+    </ol>
+  </div>
+  <div lang="ar">
+    <h2>الدخول بحساب Windows</h2>
+    <p><strong>متوقف افتراضيًا.</strong> اضبط <code>"Auth": { "EnableSso": true }</code> في appsettings.json. وما دام متوقفًا، تجيب نقطة الوصول بـ404،
+      ويدخل الناس باسم المستخدم وكلمة المرور في الدليل، ويُتحقق منهما عبر LDAP؛ ولا يحتاج ذلك أي إعداد لمصادقة Windows في IIS.</p>
+    <p>وعند تفعيله، تحاول صفحة الدخول <code>GET /api/auth/sso</code> بنفسها عند تحميلها. فيرسل المتصفح المنضم إلى النطاق تذكرة Kerberos أو NTLM،
+      ويُنشأ الحساب أو يُحدَّث من الدليل، ويصدر «جدول» رمزه الخاص. فيصل الناس وقد سجّلوا الدخول دون أن يروا النموذج. وإن فشلت المحاولة يظهر النموذج ببساطة.</p>
+    <ul>
+      <li>تسجيل الخروج لا يعيدك إلى الداخل فورًا: تُتجاوز المحاولة التلقائية حتى إغلاق المتصفح.</li>
+      <li>لا يمكن اختبار ذلك بـ<code>ng serve</code>؛ فهو لا يعمل إلا في هذا الإعداد على IIS.</li>
+    </ul>
+    <ol class="steps">
+      <li><strong>افتح أقسام المصادقة</strong> مرة واحدة لكل خادم، وإلا أجاب IIS بـ500.19:
+        <code>appcmd unlock config /section:windowsAuthentication</code> والأمر نفسه لـ<code>anonymousAuthentication</code>
+        (في <code>%windir%\system32\inetsrv</code>). ثم يفعّل ملف <code>web.config</code> المرفق الاثنين.</li>
+      <li><strong>ادخل إلى الموقع باسم المضيف</strong> لا بعنوان IP، وضع ذلك المضيف في منطقة الإنترانت المحلية في المتصفح؛ وإلا طلب المتصفح كلمة مرور.</li>
+      <li><strong>حساب نطاق مخصص</strong> للمجمّع يحتاج SPN: <code>setspn -S HTTP/jadwal.corp.local DOMAIN\svc-account</code>.</li>
+      <li><strong>أبقِ <code>Ldap:*</code> صحيحًا</strong>: التذكرة تعطي اسم المستخدم، والملف الشخصي ما زال يأتي من الدليل. ويُفضَّل HTTPS.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="verify">
+  <div lang="en">
+    <h2>Checking it worked</h2>
+    <p>The basics: the site opens and a deep link like <code>/admin/queries</code> survives a refresh; <code>/swagger</code> shows the API;
+      start-up failures appear in <em>Event Viewer → Windows Logs → Application</em> and the app's own log in <code>logs\</code>.
+      A dashboard's tiles fill in and then refresh by themselves.</p>
+    <p>Three checks actually prove the setup, and are worth doing before calling it finished:</p>
+    <ol class="steps">
+      <li><strong>The workers survive idleness.</strong> Leave the site untouched for 30 minutes or more, then confirm a scheduled task still ran.</li>
+      <li><strong>A long query completes.</strong> Run one that takes over two minutes; it should finish and page normally.</li>
+      <li><strong>A recycle behaves.</strong> With a task every 5 minutes, run <code>Restart-WebAppPool Jadwal</code> mid-run. The interrupted
+        run should show Canceled or Failed, the next one should fire within about 30 seconds, with no duplicate and no cut-off file.</li>
+    </ol>
+  </div>
+  <div lang="ar">
+    <h2>التحقق من النجاح</h2>
+    <p>الأساسيات: يفتح الموقع، ويبقى رابط داخلي مثل <code>/admin/queries</code> يعمل بعد التحديث؛ وتعرض <code>/swagger</code> الـAPI؛ وتظهر أخطاء البدء في
+      <em>Event Viewer ← Windows Logs ← Application</em> وسجل التطبيق في <code>logs\</code>. وتمتلئ بطاقات لوحة المعلومات ثم تتحدث وحدها.</p>
+    <p>ثلاثة فحوص تثبت الإعداد فعلًا، وتستحق التنفيذ قبل اعتباره منتهيًا:</p>
+    <ol class="steps">
+      <li><strong>عمليات الخلفية تصمد أمام الخمول.</strong> اترك الموقع دون استخدام 30 دقيقة أو أكثر، ثم تأكد أن مهمة مجدولة قد عملت.</li>
+      <li><strong>استعلام طويل يكتمل.</strong> شغّل استعلامًا يستغرق أكثر من دقيقتين؛ يجب أن ينتهي ويُتصفح طبيعيًا.</li>
+      <li><strong>إعادة التدوير تمر بسلام.</strong> مع مهمة كل 5 دقائق، نفّذ <code>Restart-WebAppPool Jadwal</code> أثناء التشغيل. يجب أن يظهر التشغيل المقطوع
+        ملغى أو فاشلًا، وأن يبدأ التالي خلال نحو 30 ثانية، دون ملف مكرر أو مبتور.</li>
+    </ol>
+  </div>
+</section>
+
+</div></main>
+</body>
+</html>

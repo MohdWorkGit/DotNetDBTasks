@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Database · Jadwal documentation</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body data-page="database" data-title-en="Database · Jadwal documentation" data-title-ar="قاعدة البيانات · توثيق جدول">
+<main><div class="content">
+
+<header class="page-head">
+  <div lang="en">
+    <div class="eyebrow">For developers</div>
+    <h1>Database</h1>
+    <p class="lead">Jadwal keeps its own data in one database (Oracle in production; SQL Server, PostgreSQL and MySQL also work), through
+      Entity Framework Core. The queries it runs can reach any number of other databases, through the connections an administrator sets up.</p>
+  </div>
+  <div lang="ar">
+    <div class="eyebrow">للمطورين</div>
+    <h1>قاعدة البيانات</h1>
+    <p class="lead">يحفظ «جدول» بياناته في قاعدة بيانات واحدة (Oracle في بيئة التشغيل، وتعمل أيضًا SQL Server وPostgreSQL وMySQL) عبر Entity
+      Framework Core. أما الاستعلامات التي يشغّلها فيمكن أن تصل إلى أي عدد من قواعد البيانات الأخرى، عبر الاتصالات التي يُعدّها المسؤول.</p>
+  </div>
+</header>
+
+<section id="schema">
+  <div lang="en">
+    <h2>The tables and how they relate</h2>
+    <p>45 tables in eight areas. Saved queries sit in the middle: reports, dashboards and scheduled tasks all read through them, and every
+      one of those is granted to people the same three ways: to a role, a user group, or a named user (for dashboards, the
+      <code>DashboardRoles</code>, <code>DashboardUserGroups</code> and <code>DashboardUsers</code> tables, and likewise for the others).</p>
+  </div>
+  <div lang="ar">
+    <h2>الجداول والعلاقات بينها</h2>
+    <p>45 جدولًا في ثمانية مجالات. الاستعلامات المحفوظة في المنتصف: التقارير واللوحات والمهام المجدولة كلها تقرأ من خلالها، وكل منها يُمنح للناس
+      بالطرق الثلاث نفسها: لدور، أو لمجموعة مستخدمين، أو لمستخدم باسمه (في اللوحات مثلًا الجداول <code>DashboardRoles</code> و<code>DashboardUserGroups</code> و<code>DashboardUsers</code>، وهكذا في غيرها).</p>
+  </div>
+  <figure class="diagram svg-diagram">
+    <svg viewBox="0 0 900 520" direction="ltr" role="img" aria-label="Entity areas and their relations">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+        </marker>
+      </defs>
+      <!-- edges first, under the boxes -->
+      <path class="edge strong" d="M450,160 L450,88" marker-end="url(#arr)"/>
+      <text class="t2" x="458" y="128">DatabaseUserId</text>
+      <path class="edge" d="M252,224 L338,224" marker-end="url(#arr)"/>
+      <text class="t2" x="295" y="216" text-anchor="middle"><tspan lang="en">grants</tspan><tspan lang="ar">المنح</tspan></text>
+      <path class="edge strong" d="M648,92 C600,92 600,190 562,190" marker-end="url(#arr)"/>
+      <text class="t2" x="606" y="132" text-anchor="middle"><tspan lang="en">datasets</tspan><tspan lang="ar">الأقسام</tspan></text>
+      <path class="edge strong" d="M648,256 L562,256" marker-end="url(#arr)"/>
+      <text class="t2" x="605" y="248" text-anchor="middle"><tspan lang="en">tiles</tspan><tspan lang="ar">البطاقات</tspan></text>
+      <path class="edge strong" d="M450,368 L450,292" marker-end="url(#arr)"/>
+      <text class="t2" x="458" y="336"><tspan lang="en">items</tspan><tspan lang="ar">العناصر</tspan></text>
+      <path class="edge" d="M765,200 L765,160" marker-end="url(#arr)"/>
+      <text class="t2" x="773" y="184"><tspan lang="en">drill-through</tspan><tspan lang="ar">التفصيل</tspan></text>
+      <path class="edge" d="M562,440 C760,440 890,400 890,160" marker-end="url(#arr)" stroke-dasharray="4 4"/>
+      <text class="t2" x="700" y="452" text-anchor="middle"><tspan lang="en">items run reports too</tspan><tspan lang="ar">العناصر تشغّل التقارير أيضًا</tspan></text>
+
+      <!-- Connections -->
+      <rect class="box a1" x="340" y="10" width="220" height="78" rx="10"/>
+      <text class="t" x="450" y="32" text-anchor="middle"><tspan lang="en">Connections</tspan><tspan lang="ar">الاتصالات</tspan></text>
+      <text class="t2" x="450" y="56" text-anchor="middle">DatabaseUsers</text>
+      <text class="t2" x="450" y="74" text-anchor="middle">DatabaseUserRoleAccess</text>
+
+      <!-- People -->
+      <rect class="box a2" x="20" y="150" width="232" height="150" rx="10"/>
+      <text class="t" x="136" y="172" text-anchor="middle"><tspan lang="en">People and access</tspan><tspan lang="ar">الأشخاص والصلاحيات</tspan></text>
+      <text class="t2" x="136" y="196" text-anchor="middle">Users · UserRoles</text>
+      <text class="t2" x="136" y="214" text-anchor="middle">Roles · RolePermissions</text>
+      <text class="t2" x="136" y="232" text-anchor="middle">UserGroups</text>
+      <text class="t2" x="136" y="250" text-anchor="middle">UserGroupMembers</text>
+      <text class="t2" x="136" y="280" text-anchor="middle"><tspan lang="en">6 tables</tspan><tspan lang="ar">6 جداول</tspan></text>
+
+      <!-- Queries (hub) -->
+      <rect class="box hub" x="340" y="160" width="220" height="132" rx="10"/>
+      <text class="t" x="450" y="182" text-anchor="middle"><tspan lang="en">Saved queries</tspan><tspan lang="ar">الاستعلامات المحفوظة</tspan></text>
+      <text class="t2" x="450" y="206" text-anchor="middle">DynamicQueries</text>
+      <text class="t2" x="450" y="224" text-anchor="middle">QueryParameters</text>
+      <text class="t2" x="450" y="242" text-anchor="middle">QueryExecutionLogs</text>
+      <text class="t2" x="450" y="260" text-anchor="middle">QueryGroups · QueryGroupQueries</text>
+      <text class="t2" x="450" y="280" text-anchor="middle"><tspan lang="en">+ grant tables</tspan><tspan lang="ar">ومعها جداول المنح</tspan></text>
+
+      <!-- Reports -->
+      <rect class="box a5" x="650" y="10" width="230" height="150" rx="10"/>
+      <text class="t" x="765" y="32" text-anchor="middle"><tspan lang="en">Reports</tspan><tspan lang="ar">التقارير</tspan></text>
+      <text class="t2" x="765" y="56" text-anchor="middle">Reports · ReportRuns</text>
+      <text class="t2" x="765" y="74" text-anchor="middle">ReportDatasets</text>
+      <text class="t2" x="765" y="92" text-anchor="middle">ReportParameters</text>
+      <text class="t2" x="765" y="110" text-anchor="middle">ReportParameterMaps</text>
+      <text class="t2" x="765" y="128" text-anchor="middle">ReportCharts</text>
+      <text class="t2" x="765" y="148" text-anchor="middle"><tspan lang="en">+ grant tables</tspan><tspan lang="ar">ومعها جداول المنح</tspan></text>
+
+      <!-- Dashboards -->
+      <rect class="box a4" x="650" y="200" width="230" height="114" rx="10"/>
+      <text class="t" x="765" y="222" text-anchor="middle"><tspan lang="en">Dashboards</tspan><tspan lang="ar">لوحات المعلومات</tspan></text>
+      <text class="t2" x="765" y="246" text-anchor="middle">Dashboards · DashboardFilters</text>
+      <text class="t2" x="765" y="264" text-anchor="middle">DashboardTiles</text>
+      <text class="t2" x="765" y="282" text-anchor="middle">DashboardTileParameterMaps</text>
+      <text class="t2" x="765" y="302" text-anchor="middle"><tspan lang="en">+ grant tables</tspan><tspan lang="ar">ومعها جداول المنح</tspan></text>
+
+      <!-- Scheduled tasks -->
+      <rect class="box a3" x="340" y="368" width="220" height="132" rx="10"/>
+      <text class="t" x="450" y="390" text-anchor="middle"><tspan lang="en">Scheduled tasks</tspan><tspan lang="ar">المهام المجدولة</tspan></text>
+      <text class="t2" x="450" y="414" text-anchor="middle">ScheduledTasks</text>
+      <text class="t2" x="450" y="432" text-anchor="middle">ScheduledTaskItems</text>
+      <text class="t2" x="450" y="450" text-anchor="middle">ScheduledTaskTriggers · Runs</text>
+      <text class="t2" x="450" y="468" text-anchor="middle">ScheduledTaskViewers…</text>
+      <text class="t2" x="450" y="488" text-anchor="middle"><tspan lang="en">7 tables</tspan><tspan lang="ar">7 جداول</tspan></text>
+
+      <!-- System -->
+      <rect class="box" x="20" y="380" width="232" height="96" rx="10"/>
+      <text class="t" x="136" y="402" text-anchor="middle"><tspan lang="en">System</tspan><tspan lang="ar">النظام</tspan></text>
+      <text class="t2" x="136" y="426" text-anchor="middle">SystemSettings</text>
+      <text class="t2" x="136" y="444" text-anchor="middle">SystemAuditLogs</text>
+      <text class="t2" x="136" y="462" text-anchor="middle">SystemTemplates</text>
+    </svg>
+    <figcaption><span lang="en">Arrows point to what is read. Solid blue: the reads every feature is built on.</span><span lang="ar">الأسهم تشير إلى ما يُقرأ. الأزرق المتصل: القراءات التي تقوم عليها كل الخصائص.</span></figcaption>
+  </figure>
+  <figure class="chart">
+    <script type="application/json">{
+      "type": "hbar",
+      "title": {"en": "Tables by area", "ar": "الجداول حسب المجال"},
+      "sub": {"en": "45 tables; grant tables counted with their area", "ar": "45 جدولًا؛ جداول المنح محسوبة مع مجالها"},
+      "unit": "",
+      "rowHead": {"en": "Area", "ar": "المجال"},
+      "valueHead": {"en": "Tables", "ar": "الجداول"},
+      "digits": 0,
+      "barSize": 18,
+      "rows": [
+        {"label": {"en": "Reports", "ar": "التقارير"}, "value": 9},
+        {"label": {"en": "Dashboards", "ar": "لوحات المعلومات"}, "value": 7},
+        {"label": {"en": "Scheduled tasks", "ar": "المهام المجدولة"}, "value": 7},
+        {"label": {"en": "Saved queries", "ar": "الاستعلامات المحفوظة"}, "value": 6},
+        {"label": {"en": "People and access", "ar": "الأشخاص والصلاحيات"}, "value": 6},
+        {"label": {"en": "Query groups", "ar": "مجموعات الاستعلامات"}, "value": 5},
+        {"label": {"en": "System", "ar": "النظام"}, "value": 3},
+        {"label": {"en": "Connections", "ar": "الاتصالات"}, "value": 2}
+      ]
+    }</script>
+  </figure>
+</section>
+
+<section id="migrations">
+  <div lang="en">
+    <h2>Migrations</h2>
+    <p>The schema is changed by EF Core migrations in <code>src/Jadwal.Infrastructure/Data/Migrations</code>. <strong>The API applies any new
+      ones itself at start-up</strong>, before serving a request; there is no separate database step. The folder is the authority; the list below
+      is grouped by month.</p>
+  </div>
+  <div lang="ar">
+    <h2>الترحيلات</h2>
+    <p>يتغير المخطط عبر ترحيلات EF Core في <code>src/Jadwal.Infrastructure/Data/Migrations</code>. <strong>ويطبّق الـAPI أي ترحيل جديد بنفسه عند البدء</strong>،
+      قبل أن يخدم أي طلب؛ فلا توجد خطوة منفصلة لقاعدة البيانات. والمجلد هو المرجع، والقائمة أدناه مجمّعة حسب الشهر.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>2026</th><th><span lang="en">Migrations</span><span lang="ar">الترحيلات</span></th></tr></thead>
+    <tbody>
+      <tr><td><span lang="en">February</span><span lang="ar">فبراير</span></td><td class="wrap"><code>InitialCreate</code> <code>AddQueryAccessControl</code></td></tr>
+      <tr><td><span lang="en">March</span><span lang="ar">مارس</span></td><td class="wrap"><code>AddDropdownParameters</code> <code>AddOldValuesJsonToExecutionLog</code> <code>AddAuditorRole</code> <code>AddDatabaseUsers</code> <code>AddMultiDatabaseSupport</code></td></tr>
+      <tr><td><span lang="en">May</span><span lang="ar">مايو</span></td><td class="wrap"><code>SyncEFCore10</code> <code>SwitchDatabaseUserAccessToRoles</code> <code>AddQueryGroups</code> <code>AddAllowMultipleToQueryParameter</code></td></tr>
+      <tr><td><span lang="en">June</span><span lang="ar">يونيو</span></td><td class="wrap"><code>AddIsLongRunningToDynamicQuery</code></td></tr>
+      <tr><td><span lang="en">July</span><span lang="ar">يوليو</span></td><td class="wrap"><code>AddScheduledTasks</code> <code>AddScheduledTaskItemCheckpoint</code> <code>AddScheduledTaskItemCsvSeparator</code> <code>AddScheduledTaskArchiveFolder</code> <code>AddScheduledTaskCombinedOutput</code> <code>AddScheduledTaskTriggers</code> <code>AddScheduledTaskTimestampFormat</code> <code>AddQueryWordTemplate</code> <code>AddSystemTemplates</code> <code>AddScheduledTaskViewerCanDownload</code></td></tr>
+      <tr><td><span lang="en">August</span><span lang="ar">أغسطس</span></td><td class="wrap"><code>AddAllowRunWithoutConfirmationToDynamicQuery</code> <code>AddSaveOldValuesToDynamicQuery</code> <code>AddQueryTypeToDynamicQuery</code> <code>MakeUserEmailOptional</code> <code>AddSystemAuditLog</code> <code>AddSystemSettings</code> <code>SwitchAccessFromAdDepartmentsToUserGroups</code> <code>AddRolePermissions</code> <code>AddQueryExportPermissions</code> <code>AddScheduledTaskViewerRolesAndGroups</code> <code>AddReports</code> <code>AddReportToScheduledTaskItem</code> <code>AddReportCharts</code></td></tr>
+      <tr><td><span lang="en">September</span><span lang="ar">سبتمبر</span></td><td class="wrap"><code>AddDashboards</code> <code>AddDashboardRound2</code></td></tr>
+      <tr><td><span lang="en">October</span><span lang="ar">أكتوبر</span></td><td class="wrap"><code>AddDashboardTileDisplayOptions</code></td></tr>
+      <tr><td><span lang="en">November</span><span lang="ar">نوفمبر</span></td><td class="wrap"><code>AddQueryGroupMemberships</code> <code>AddDatabaseUserAllowAi</code></td></tr>
+    </tbody>
+  </table></div>
+  <div lang="en">
+    <div class="callout warn"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg></span><div>
+      <strong class="t">Migrations that move data</strong>
+      <p><code>SwitchAccessFromAdDepartmentsToUserGroups</code> turns each department that granted something into a user group of the same
+        name, fills it with the users whose department matched, re-points the grants, and only then drops the old tables. The inserts must run
+        while the old tables still exist: reordering the create and drop calls would migrate nothing, succeed anyway, and lose every department
+        grant. Its <code>Down()</code> is lossy by nature: a group made in the app has no department to become.</p></div></div>
+  </div>
+  <div lang="ar">
+    <div class="callout warn"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg></span><div>
+      <strong class="t">ترحيلات تنقل البيانات</strong>
+      <p>الترحيل <code>SwitchAccessFromAdDepartmentsToUserGroups</code> يحوّل كل قسم كان يمنح شيئًا إلى مجموعة مستخدمين بالاسم نفسه، ويملؤها بالمستخدمين
+        الذين يطابق قسمهم، ويعيد توجيه المنح إليها، ثم يحذف الجداول القديمة بعد ذلك فقط. يجب أن تعمل الإضافات والجداول القديمة ما زالت موجودة: فتغيير ترتيب
+        الإنشاء والحذف لن ينقل شيئًا، وسينجح مع ذلك، وتضيع كل منح الأقسام. ودالة <code>Down()</code> فيه تفقد بعض المعلومات بطبيعتها: فالمجموعة المنشأة في
+        التطبيق ليس لها قسم تعود إليه.</p></div></div>
+  </div>
+</section>
+
+<section id="oracle-rules">
+  <div lang="en">
+    <h2>The Oracle rules</h2>
+    <p>Oracle differs from SQL Server and PostgreSQL in ways that broke migrations here before (ORA-00904 "invalid identifier" on a column a
+      half-applied migration never added). Follow these for every migration:</p>
+  </div>
+  <div lang="ar">
+    <h2>قواعد Oracle</h2>
+    <p>يختلف Oracle عن SQL Server وPostgreSQL في أمور أفسدت ترحيلات هنا من قبل (الخطأ ORA-00904 «معرّف غير صالح» على عمود لم يُضفه ترحيل طُبّق نصفه).
+      اتبع هذه القواعد في كل ترحيل:</p>
+  </div>
+  <div class="cards">
+    <div class="card c-rose">
+      <h4>1 · <span lang="en">Schema changes cannot be undone</span><span lang="ar">تعديلات المخطط لا يُتراجع عنها</span></h4>
+      <p lang="en">Oracle commits every DDL statement at once. A migration that fails half-way stays half-applied and is not recorded, so the next run fails with ORA-01430 ("column already exists") for ever.</p>
+      <p lang="ar">يعتمد Oracle كل جملة تعريف فورًا. فالترحيل الذي يفشل في منتصفه يبقى نصف مطبّق ولا يُسجَّل، فيفشل التشغيل التالي بالخطأ ORA-01430 («العمود موجود») إلى الأبد.</p>
+    </div>
+    <div class="card c-amber">
+      <h4>2 · <span lang="en">Make every step safe to repeat</span><span lang="ar">اجعل كل خطوة آمنة للتكرار</span></h4>
+      <p lang="en">Wrap each <code>ADD</code> in PL/SQL that ignores ORA-01430 (and ORA-00955 for objects), so a re-run skips what already exists.</p>
+      <p lang="ar">ضع كل <code>ADD</code> داخل PL/SQL يتجاهل ORA-01430 (وORA-00955 للكائنات)، فيتجاوز التشغيل المكرر ما هو موجود.</p>
+    </div>
+    <div class="card c-blue">
+      <h4>3 · <span lang="en">An empty string is NULL</span><span lang="ar">النص الفارغ هو NULL</span></h4>
+      <p lang="en">Oracle stores <code>''</code> as NULL. A column that may be empty must be nullable (<code>string?</code>), never <code>NOT NULL DEFAULT ''</code>.</p>
+      <p lang="ar">يحفظ Oracle النص <code>''</code> على أنه NULL. فالعمود الذي قد يكون فارغًا يجب أن يقبل NULL (<code>string?</code>)، لا <code>NOT NULL DEFAULT ''</code>.</p>
+    </div>
+    <div class="card c-violet">
+      <h4>4 · <span lang="en">All columns in CreateTable</span><span lang="ar">كل الأعمدة في CreateTable</span></h4>
+      <p lang="en">Never add columns in a second migration to a table created in the same release; combine them.</p>
+      <p lang="ar">لا تُضف أعمدة في ترحيل ثانٍ إلى جدول أُنشئ في الإصدار نفسه؛ اجمعهما.</p>
+    </div>
+    <div class="card c-teal">
+      <h4>5 · <span lang="en">Fill the Designer.cs files</span><span lang="ar">املأ ملفات Designer.cs</span></h4>
+      <p lang="en">A hand-written migration needs the model snapshot in its <code>Designer.cs</code>, or later migrations are generated wrong.</p>
+      <p lang="ar">الترحيل المكتوب يدويًا يحتاج لقطة النموذج في ملف <code>Designer.cs</code>، وإلا وُلّدت الترحيلات اللاحقة خطأً.</p>
+    </div>
+    <div class="card c-green">
+      <h4>6 · <span lang="en">Test on a clean database</span><span lang="ar">اختبر على قاعدة بيانات نظيفة</span></h4>
+      <p lang="en">After changing any migration, drop everything (including <code>__EFMigrationsHistory</code>) and let the whole chain apply.</p>
+      <p lang="ar">بعد تعديل أي ترحيل، احذف كل شيء (ومعه <code>__EFMigrationsHistory</code>) ودع السلسلة كلها تُطبَّق.</p>
+    </div>
+  </div>
+<pre><span class="c">-- Rule 2: a column add that is safe to run again</span>
+<span class="k">BEGIN</span>
+    <span class="k">EXECUTE IMMEDIATE</span> <span class="s">'ALTER TABLE "MyTable" ADD "MyCol" NUMBER(10)'</span>;
+<span class="k">EXCEPTION</span>
+    <span class="k">WHEN OTHERS THEN</span>
+        <span class="k">IF</span> SQLCODE != <span class="n">-1430</span> <span class="k">THEN RAISE</span>; <span class="k">END IF</span>;
+<span class="k">END</span>;</pre>
+  <div lang="en">
+    <h3>Names and booleans</h3>
+    <ul>
+      <li><strong>Quote names.</strong> Oracle turns unquoted names into capitals, and Jadwal's tables use quoted PascalCase:
+        <code>SELECT "Username" FROM "Users"</code> works, <code>SELECT Username FROM Users</code> fails with ORA-00904. Saved queries are best written with
+        <code>[brackets]</code>, which Jadwal converts to each database's quoting.</li>
+      <li><strong>Booleans are <code>NUMBER(1)</code>.</strong> Filtering one inside a LINQ <code>Where</code> on Oracle can throw a cast error; read the rows
+        and filter in memory where that happens.</li>
+      <li><strong>Long numbers.</strong> An Oracle <code>NUMBER</code> wider than .NET's decimal (an unrounded <code>AVG</code>, say) is read safely; round it
+        in SQL if the full precision is not wanted.</li>
+      <li><strong>Never set <code>Database:AllowDestructiveRepair</code></strong> on a database whose data matters: its repair drops every table and starts again.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h3>الأسماء والقيم المنطقية</h3>
+    <ul>
+      <li><strong>ضع الأسماء بين علامات تنصيص.</strong> يحوّل Oracle الأسماء غير المنصّصة إلى أحرف كبيرة، وجداول «جدول» بأسماء منصّصة:
+        <code>SELECT "Username" FROM "Users"</code> يعمل، و<code>SELECT Username FROM Users</code> يفشل بالخطأ ORA-00904. والأفضل كتابة الاستعلامات المحفوظة
+        بالأقواس <code>[brackets]</code>، التي يحوّلها «جدول» إلى طريقة كل قاعدة بيانات.</li>
+      <li><strong>القيم المنطقية <code>NUMBER(1)</code>.</strong> تصفيتها داخل <code>Where</code> في LINQ على Oracle قد ترمي خطأ تحويل؛ فاقرأ الصفوف وصفِّها في الذاكرة حيث يحدث ذلك.</li>
+      <li><strong>الأرقام الطويلة.</strong> رقم Oracle الأطول من decimal في .NET (مثل <code>AVG</code> غير مقرّب) يُقرأ بأمان؛ وقرّبه في SQL إن لم تكن الدقة الكاملة مطلوبة.</li>
+      <li><strong>لا تضبط <code>Database:AllowDestructiveRepair</code> أبدًا</strong> على قاعدة بيانات تهمّك بياناتها: «إصلاحه» يحذف كل الجداول ويبدأ من جديد.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="connections-table">
+  <div lang="en"><h2>Example: the connections table</h2><p>How one entity maps to Oracle columns, for reference.</p></div>
+  <div lang="ar"><h2>مثال: جدول الاتصالات</h2><p>كيف يقابل كيان واحد أعمدة Oracle، للرجوع إليه.</p></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Property</span><span lang="ar">الخاصية</span></th><th><span lang="en">Column type</span><span lang="ar">نوع العمود</span></th><th><span lang="en">Null</span><span lang="ar">يقبل NULL</span></th><th><span lang="en">Notes</span><span lang="ar">ملاحظات</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>Id</code></td><td><code>RAW(16)</code></td><td>—</td><td><span lang="en">Primary key</span><span lang="ar">المفتاح الأساسي</span></td></tr>
+      <tr><td><code>Name</code></td><td><code>NVARCHAR2(200)</code></td><td>—</td><td><span lang="en">Unique</span><span lang="ar">فريد</span></td></tr>
+      <tr><td><code>ServerType</code></td><td><code>NUMBER(10)</code></td><td>—</td><td><span lang="en">0 Oracle, 1 SQL Server, 2 PostgreSQL, 3 MySQL</span><span lang="ar">0 Oracle، و1 SQL Server، و2 PostgreSQL، و3 MySQL</span></td></tr>
+      <tr><td><code>Host</code> / <code>Port</code></td><td><code>NVARCHAR2(500)</code> / <code>NUMBER(10)</code></td><td>—</td><td><span lang="en">Port defaults to 1521</span><span lang="ar">المنفذ الافتراضي 1521</span></td></tr>
+      <tr><td><code>ServiceName</code></td><td><code>NVARCHAR2(200)</code></td><td>✓</td><td><span lang="en">Oracle only</span><span lang="ar">لـOracle فقط</span></td></tr>
+      <tr><td><code>DatabaseName</code></td><td><code>NVARCHAR2(200)</code></td><td>✓</td><td><span lang="en">The other engines</span><span lang="ar">لبقية الأنواع</span></td></tr>
+      <tr><td><code>DbUsername</code></td><td><code>NVARCHAR2(200)</code></td><td>—</td><td></td></tr>
+      <tr><td><code>EncryptedPassword</code></td><td><code>NVARCHAR2(1000)</code></td><td>—</td><td><span lang="en">AES-256 with <code>Encryption:Key</code></span><span lang="ar">AES-256 بالمفتاح <code>Encryption:Key</code></span></td></tr>
+      <tr><td><code>IsActive</code> / <code>AllowAi</code></td><td><code>NUMBER(1)</code></td><td>—</td><td><span lang="en">0 or 1; AllowAi starts at 0</span><span lang="ar">0 أو 1؛ AllowAi يبدأ بـ0</span></td></tr>
+      <tr><td><code>CreatedAt</code> / <code>UpdatedAt</code></td><td><code>TIMESTAMP(7)</code></td><td>— / ✓</td><td></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+</div></main>
+</body>
+</html>

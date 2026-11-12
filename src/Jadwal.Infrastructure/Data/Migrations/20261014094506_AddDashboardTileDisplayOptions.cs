@@ -12,7 +12,7 @@ namespace Jadwal.Infrastructure.Data.Migrations
     /// Alters a table that already holds rows, so the statement tolerates having been applied
     /// before: Oracle auto-commits DDL, and a retry after a part-applied run must not die on the
     /// half that already succeeded. Same pattern as AddDashboardRound2; see
-    /// DATABASE_MIGRATION_NOTES.txt RULE 2.
+    /// docs/database.html#oracle-rules, rule 2.
     /// </para>
     ///
     /// <para>Existing tiles need nothing: null means every option at its default, which is how

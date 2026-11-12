@@ -121,7 +121,7 @@ public static class MessageKeys
     public const string TransferTileQueryMissing = nameof(TransferTileQueryMissing);
     public const string TransferDrillReportMissing = nameof(TransferDrillReportMissing);
 
-    // Local AI model (docs/LOCAL-AI-OPTIONS.md)
+    // Local AI model (docs/ai.html)
     public const string AiDisabled = nameof(AiDisabled);
     public const string AiUnreachable = nameof(AiUnreachable);
     public const string AiTimedOut = nameof(AiTimedOut);

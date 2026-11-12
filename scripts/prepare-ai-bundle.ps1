@@ -15,7 +15,7 @@
 
     The AI bundle is kept apart from offline-bundle/ on purpose: the models are many gigabytes
     and rarely change, while the application bundle is rebuilt for every security patch.
-    See docs/LOCAL-AI-OPTIONS.md (section 9) and DEPLOY-AIRGAPPED.md (Part D).
+    See docs/ai.html and docs/deploy.html#ai-bundle.
 
     The models are pulled through a private Ollama started from the downloaded zip, on its own
     port and models folder, so an Ollama already running on this machine is not touched.
@@ -163,7 +163,8 @@ Which model to use (set Ai:Model in the API's appsettings.json):
 
 On the air-gapped server, as administrator:
   powershell -ExecutionPolicy Bypass -File .\install-ai-service.ps1
-Then follow DEPLOY-AIRGAPPED.md, Part D.
+Then follow docs\deploy.html, "The AI bundle" (in the application
+bundle's docs folder, or the Jadwal source).
 
 Models installed in this bundle (ollama list):
 $($installed -join "`r`n")

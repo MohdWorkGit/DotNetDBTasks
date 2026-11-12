@@ -11,7 +11,7 @@ namespace Jadwal.Infrastructure.Data.Migrations
     /// Unlike AddReports, this one alters a table an <b>earlier release</b> created and that
     /// already holds rows, so each statement has to tolerate having been applied before: Oracle
     /// auto-commits DDL, and a retry after a part-applied run must not die on the half that
-    /// already succeeded. See DATABASE_MIGRATION_NOTES.txt section 1B and RULE 2.
+    /// already succeeded. See docs/database.html#oracle-rules, rules 1 and 2.
     /// </para>
     ///
     /// <para>

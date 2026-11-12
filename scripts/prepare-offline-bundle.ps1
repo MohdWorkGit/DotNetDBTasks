@@ -12,9 +12,10 @@
       - queryrunner-publish/ : (optional) self-contained QueryRunner console tool
       - client-dist/     : (optional) production Angular build
       - installers/      : (optional) .NET SDK + Node.js offline installers
+      - docs/            : the documentation site (open docs\index.html), readable offline
       - MANIFEST.txt     : what's inside + how to use it on the target
 
-    Copy the resulting folder to the air-gapped machine. See DEPLOY-AIRGAPPED.md (Part B).
+    Copy the resulting folder to the air-gapped machine. See docs/deploy.html#offline-rebuild.
 
 .PARAMETER OutDir
     Output folder. Default: ./offline-bundle (gitignored).
@@ -235,7 +236,15 @@ if ($IncludeInstallers) {
     }
 }
 
-# --- 5. Manifest ---
+# --- 5. Documentation, so it can be read on the air-gapped machine ---
+Write-Step "Copying the documentation -> docs/"
+$DocsOut = Join-Path $OutDir 'docs'
+$null = New-Item -ItemType Directory -Force -Path (Join-Path $DocsOut 'assets')
+Copy-Item (Join-Path $RepoRoot 'docs\*.html') $DocsOut -Force
+Copy-Item (Join-Path $RepoRoot 'docs\assets\*') (Join-Path $DocsOut 'assets') -Force
+Write-Ok "docs\index.html"
+
+# --- 6. Manifest ---
 Write-Step "Writing MANIFEST.txt"
 $now = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 if ($IncludeBuild) {
@@ -260,6 +269,7 @@ CONTENTS
 nuget-packages/        NuGet dependency closure ($nupkgCount packages).
 nuget.config.template  Drop next to Jadwal.sln (replace OFFLINE_BUNDLE_PATH).
 npm-cache/             npm cache for the Angular client.
+docs/                  The documentation: open docs\index.html in a browser.
 $buildLine
 $installerLine
 
@@ -271,7 +281,7 @@ ASP.NET Core Hosting Bundle:     $hostingBundleUrl
 
 NOT IN THIS BUNDLE - IIS FEATURES COME FROM WINDOWS MEDIA
 ---------------------------------------------------------
-Hosting on IIS (DEPLOY-AIRGAPPED.md Part C) also needs four Windows features,
+Hosting on IIS (docs\iis.html) also needs four Windows features,
 which ship with Windows and cannot be downloaded into this bundle:
 
   Install-WindowsFeature Web-Server, Web-Windows-Auth, Web-AppInit, Web-Scripting-Tools
@@ -301,11 +311,11 @@ USAGE ON THE AIR-GAPPED MACHINE
       dotnet build Jadwal.sln -c Release
       cd client; npm run build:prod
 
-See DEPLOY-AIRGAPPED.md (Part B) for the full walkthrough.
+See docs\deploy.html in this bundle for the full walkthrough.
 "@
 Set-Content -Path (Join-Path $OutDir 'MANIFEST.txt') -Value $manifest -Encoding UTF8
 Write-Ok "MANIFEST.txt written"
 
 Write-Step "Done"
 Write-Host "Bundle ready at: $OutDir" -ForegroundColor Green
-Write-Host "Verify it offline (disable networking) before carrying it across - see DEPLOY-AIRGAPPED.md B5." -ForegroundColor Green
+Write-Host "Verify it offline (disable networking) before carrying it across - see docs/deploy.html#offline-rebuild." -ForegroundColor Green

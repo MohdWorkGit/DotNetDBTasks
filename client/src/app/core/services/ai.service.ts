@@ -9,7 +9,7 @@ import {
 } from '@core/models/ai.model';
 
 /**
- * The local AI model (docs/LOCAL-AI-OPTIONS.md). A request can take a minute or more on a
+ * The local AI model (docs/ai.html). A request can take a minute or more on a
  * server without a GPU, so calls wait as long as the server itself will (its timeout, learned
  * from the status), plus a margin — not the 30 seconds other calls get.
  */

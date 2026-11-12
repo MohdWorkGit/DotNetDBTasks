@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Development · Jadwal documentation</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body data-page="development" data-title-en="Development · Jadwal documentation" data-title-ar="التطوير · توثيق جدول">
+<main><div class="content">
+
+<header class="page-head">
+  <div lang="en">
+    <div class="eyebrow">For developers</div>
+    <h1>Development</h1>
+    <p class="lead">Running Jadwal on your own machine, the settings it reads, what it is built with, the standalone QueryRunner tool, and how the
+      Word user manuals are made.</p>
+  </div>
+  <div lang="ar">
+    <div class="eyebrow">للمطورين</div>
+    <h1>التطوير</h1>
+    <p class="lead">تشغيل «جدول» على جهازك، والإعدادات التي يقرؤها، والتقنيات المبني بها، وأداة QueryRunner المستقلة، وطريقة إعداد دليلي المستخدم بصيغة Word.</p>
+  </div>
+</header>
+
+<section id="local">
+  <div lang="en">
+    <h2>Running it locally</h2>
+    <p>You need the .NET 10 SDK, Node.js 24 with npm 10, a database you can reach (Oracle, SQL Server, MySQL or PostgreSQL), and an LDAP or
+      Active Directory server for directory sign-in (local accounts work without one).</p>
+  </div>
+  <div lang="ar">
+    <h2>التشغيل محليًا</h2>
+    <p>تحتاج .NET 10 SDK، وNode.js 24 مع npm 10، وقاعدة بيانات تصل إليها (Oracle أو SQL Server أو MySQL أو PostgreSQL)، وخادم LDAP أو Active Directory
+      لدخول حسابات الدليل (والحسابات المحلية تعمل بدونه).</p>
+  </div>
+<pre><span class="c"># API: http://localhost:5000, API docs at /swagger</span>
+dotnet restore Jadwal.sln
+dotnet run --project src/Jadwal.API
+
+<span class="c"># Client: http://localhost:4200, passes /api to the API</span>
+cd client
+npm install
+npm start</pre>
+  <div lang="en">
+    <p>On first start the API creates the schema, seeds the four roles and the development accounts (see
+      <a href="security.html#roles">Security</a>), and applies any pending migrations. Windows sign-in cannot be tested under
+      <code>ng serve</code>; it only works when IIS hosts both halves.</p>
+  </div>
+  <div lang="ar">
+    <p>عند أول تشغيل ينشئ الـAPI المخطط، ويضيف الأدوار الأربعة وحسابات التطوير (انظر <a href="security.html#roles">الأمان</a>)، ويطبّق أي ترحيلات معلّقة.
+      ولا يمكن اختبار الدخول بحساب Windows مع <code>ng serve</code>؛ فهو لا يعمل إلا حين يستضيف IIS الجزأين معًا.</p>
+  </div>
+</section>
+
+<section id="layout">
+  <div lang="en"><h2>Where things are</h2></div>
+  <div lang="ar"><h2>أين توجد الأشياء</h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Folder</span><span lang="ar">المجلد</span></th><th><span lang="en">Holds</span><span lang="ar">يحتوي</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>src/Jadwal.Domain</code></td><td><span lang="en">Entities, enums, permission names. No dependencies.</span><span lang="ar">الكيانات والتعدادات وأسماء الصلاحيات. بلا اعتماديات.</span></td></tr>
+      <tr><td><code>src/Jadwal.Application</code></td><td><span lang="en">Commands and queries (MediatR), validators, DTOs, access rules, AI prompts and draft builders.</span><span lang="ar">الأوامر والاستعلامات (MediatR)، والتحقق، وكائنات النقل، وقواعد الوصول، وتعليمات الذكاء الاصطناعي ومنشئ المسودات.</span></td></tr>
+      <tr><td><code>src/Jadwal.Infrastructure</code></td><td><span lang="en">EF Core and migrations, the query runner, LDAP, encryption, exports, background workers, the AI client.</span><span lang="ar">EF Core والترحيلات، ومشغّل الاستعلامات، وLDAP، والتشفير، والتصدير، وعمليات الخلفية، وعميل الذكاء الاصطناعي.</span></td></tr>
+      <tr><td><code>src/Jadwal.API</code></td><td><span lang="en">Controllers, permission checks, middleware, <code>web.config</code>.</span><span lang="ar">وحدات التحكم، والتحقق من الصلاحيات، والوسائط، و<code>web.config</code>.</span></td></tr>
+      <tr><td><code>client/</code></td><td><span lang="en">The Angular app; translations in <code>src/assets/i18n</code>.</span><span lang="ar">تطبيق Angular؛ والترجمات في <code>src/assets/i18n</code>.</span></td></tr>
+      <tr><td><code>tools/Jadwal.QueryRunner</code></td><td><span lang="en">A standalone export tool, <a href="#queryrunner">below</a>.</span><span lang="ar">أداة تصدير مستقلة، <a href="#queryrunner">أدناه</a>.</span></td></tr>
+      <tr><td><code>scripts/</code></td><td><span lang="en">Offline bundle, AI bundle and IIS deployment scripts.</span><span lang="ar">سكربتات الحزمة دون إنترنت، وحزمة الذكاء الاصطناعي، والنشر على IIS.</span></td></tr>
+      <tr><td><code>docker/</code>, <code>docker-compose.yml</code></td><td><span lang="en">Containers and the nginx and LDAP setup.</span><span lang="ar">الحاويات وإعداد nginx وLDAP.</span></td></tr>
+      <tr><td><code>docs/</code></td><td><span lang="en">This site, and the Word user manuals under <code>docs/user-manual</code>.</span><span lang="ar">هذا الموقع، ودليلا المستخدم بصيغة Word في <code>docs/user-manual</code>.</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="stack">
+  <div lang="en"><h2>What it is built with</h2></div>
+  <div lang="ar"><h2>التقنيات المستخدمة</h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Part</span><span lang="ar">الجزء</span></th><th><span lang="en">Technology</span><span lang="ar">التقنية</span></th></tr></thead>
+    <tbody>
+      <tr><td><span lang="en">Server</span><span lang="ar">الخادم</span></td><td>.NET 10, ASP.NET Core Web API</td></tr>
+      <tr><td><span lang="en">Screens</span><span lang="ar">الشاشات</span></td><td>Angular 21, Angular Material, Transloco, CodeMirror</td></tr>
+      <tr><td><span lang="en">Data access</span><span lang="ar">الوصول إلى البيانات</span></td><td>Entity Framework Core 10; Oracle.EntityFrameworkCore, SqlServer, MySqlConnector, Npgsql</td></tr>
+      <tr><td><span lang="en">Patterns</span><span lang="ar">الأنماط</span></td><td>Clean Architecture, CQRS with MediatR, FluentValidation, AutoMapper, Repository and Unit of Work</td></tr>
+      <tr><td><span lang="en">Logging</span><span lang="ar">السجلات</span></td><td>Serilog</td></tr>
+      <tr><td><span lang="en">Sign-in</span><span lang="ar">الدخول</span></td><td>LDAP / Active Directory, Windows (Negotiate) on IIS, JWT; BCrypt for local accounts; AES-256 for stored credentials</td></tr>
+      <tr><td><span lang="en">AI</span><span lang="ar">الذكاء الاصطناعي</span></td><td>Ollama (or any OpenAI-compatible server) over plain <code>HttpClient</code></td></tr>
+      <tr><td><span lang="en">Hosting</span><span lang="ar">الاستضافة</span></td><td>IIS (in-process, one site), or Kestrel behind nginx, or Docker Compose</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="settings">
+  <div lang="en">
+    <h2>appsettings.json</h2>
+    <p>Settings read at start-up. Settings that change while running are in the database instead (<a href="security.html#settings">Security → settings</a>).</p>
+  </div>
+  <div lang="ar">
+    <h2>ملف appsettings.json</h2>
+    <p>إعدادات تُقرأ عند البدء. أما الإعدادات التي تتغير أثناء التشغيل ففي قاعدة البيانات (<a href="security.html#settings">الأمان ← الإعدادات</a>).</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Key</span><span lang="ar">المفتاح</span></th><th><span lang="en">What it does</span><span lang="ar">ماذا يفعل</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>ConnectionStrings:DefaultConnection</code></td><td><span lang="en">Jadwal's own database.</span><span lang="ar">قاعدة بيانات «جدول» نفسها.</span></td></tr>
+      <tr><td><code>Jwt:Secret</code>, <code>Issuer</code>, <code>Audience</code></td><td><span lang="en">Token signing. The secret needs at least 32 characters.</span><span lang="ar">توقيع الرموز. السر يحتاج 32 حرفًا على الأقل.</span></td></tr>
+      <tr><td><code>Encryption:Key</code></td><td><span lang="en">32 bytes, base64. Encrypts stored database passwords; never change it.</span><span lang="ar">32 بايت بترميز base64. يشفّر كلمات مرور قواعد البيانات المحفوظة؛ لا تغيّره أبدًا.</span></td></tr>
+      <tr><td><code>Ldap:*</code></td><td><span lang="en">Directory host, port, base DN, users DN, bind account, attribute names.</span><span lang="ar">مضيف الدليل ومنفذه والمسارات وحساب الربط وأسماء الخصائص.</span></td></tr>
+      <tr><td><code>Auth:EnableSso</code></td><td><span lang="en">Windows sign-in on IIS. Off by default.</span><span lang="ar">الدخول بحساب Windows على IIS. متوقف افتراضيًا.</span></td></tr>
+      <tr><td><code>Auth:Login:PermitLimit</code></td><td><span lang="en">Sign-in attempts per address per minute (10).</span><span lang="ar">محاولات الدخول لكل عنوان في الدقيقة (10).</span></td></tr>
+      <tr><td><code>Cors:AllowedOrigins</code></td><td><span lang="en">Allowed browser origins when the client is served separately.</span><span lang="ar">مصادر المتصفح المسموحة حين تُقدَّم الواجهة منفصلة.</span></td></tr>
+      <tr><td><code>MaxQueryRows</code></td><td><span lang="en">Fallback for the <code>query.maxRows</code> setting (10,000).</span><span lang="ar">القيمة الاحتياطية لإعداد <code>query.maxRows</code> (10,000).</span></td></tr>
+      <tr><td><code>ResultCache:RetentionMinutes</code></td><td><span lang="en">How long an untouched result is kept (one day).</span><span lang="ar">مدة حفظ النتيجة غير المستخدمة (يوم واحد).</span></td></tr>
+      <tr><td><code>Export:PdfEngine</code>, <code>Export:LibreOfficePath</code></td><td><span lang="en"><code>auto</code>, <code>libreoffice</code>, <code>word</code> or <code>builtin</code>; and where LibreOffice is.</span><span lang="ar"><code>auto</code> أو <code>libreoffice</code> أو <code>word</code> أو <code>builtin</code>؛ ومكان LibreOffice.</span></td></tr>
+      <tr><td><code>Host:ShutdownTimeoutSeconds</code></td><td><span lang="en">Time the app gets to stop cleanly (90). See the <a href="iis.html#app-pool">shutdown ladder</a>.</span><span lang="ar">الوقت المتاح للتطبيق ليتوقف بسلام (90). انظر <a href="iis.html#app-pool">سلّم الإيقاف</a>.</span></td></tr>
+      <tr><td><code>Database:AllowDestructiveRepair</code></td><td><span lang="en">Development only: drops every table to repair a broken schema.</span><span lang="ar">للتطوير فقط: يحذف كل الجداول لإصلاح مخطط معطوب.</span></td></tr>
+      <tr><td><code>Ai:Enabled</code>, <code>BaseUrl</code>, <code>Model</code>, <code>TimeoutSeconds</code>, <code>ApiKey</code>, <code>DisableThinking</code></td><td><span lang="en">The AI model service. Off by default; see <a href="ai.html#setup">AI assistant</a>.</span><span lang="ar">خدمة نموذج الذكاء الاصطناعي. متوقفة افتراضيًا؛ انظر <a href="ai.html#setup">المساعد الذكي</a>.</span></td></tr>
+      <tr><td><code>Urls</code></td><td><span lang="en">Where Kestrel listens when not under IIS (<code>http://localhost:5000</code>).</span><span lang="ar">العنوان الذي يستمع عليه Kestrel خارج IIS (<code>http://localhost:5000</code>).</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="conventions">
+  <div lang="en">
+    <h2>Conventions worth knowing</h2>
+    <ul>
+      <li><strong>Every command is audited automatically.</strong> Give a new command a readable label in <code>AuditActions.Map</code> and a translation under
+        <code>admin.audit.actions</code> in both catalogs; without one it is still recorded, under <code>other</code>.</li>
+      <li><strong>Endpoints name permissions.</strong> Use <code>[RequirePermission(...)]</code>; several in one attribute mean any of them, several
+        attributes mean all of them. A new permission starts closed for every role but Admin.</li>
+      <li><strong>Server messages</strong> go through <code>IAppLocalizer</code> and both <code>.resx</code> files; screen text through both i18n catalogs.</li>
+      <li><strong>The client runs without zone.js change detection.</strong> After work outside Angular's own events, mark the view for checking.</li>
+      <li><strong>Messages and confirmations</strong> use the shared toast and confirm services, which take translation keys directly.</li>
+      <li><strong>Oracle:</strong> follow <a href="database.html#oracle-rules">the migration rules</a>.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <h2>أعراف يجدر معرفتها</h2>
+    <ul>
+      <li><strong>كل أمر يُسجَّل تلقائيًا.</strong> أعطِ الأمر الجديد اسمًا مقروءًا في <code>AuditActions.Map</code> وترجمة تحت <code>admin.audit.actions</code> في
+        الملفين؛ وبدونهما يُسجَّل أيضًا تحت <code>other</code>.</li>
+      <li><strong>نقاط الوصول تطلب صلاحيات.</strong> استخدم <code>[RequirePermission(...)]</code>؛ عدة صلاحيات في سمة واحدة تعني إحداها، وعدة سمات تعني كلها.
+        والصلاحية الجديدة تبدأ مغلقة لكل الأدوار ما عدا Admin.</li>
+      <li><strong>رسائل الخادم</strong> تمر عبر <code>IAppLocalizer</code> وملفي <code>.resx</code>، ونصوص الشاشات عبر ملفي الترجمة.</li>
+      <li><strong>الواجهة تعمل دون كشف التغييرات التلقائي من zone.js.</strong> بعد أي عمل خارج أحداث Angular نفسها، علّم العرض للتحديث.</li>
+      <li><strong>الرسائل والتأكيدات</strong> تستخدم خدمتي الإشعار والتأكيد المشتركتين، اللتين تأخذان مفاتيح الترجمة مباشرة.</li>
+      <li><strong>Oracle:</strong> اتبع <a href="database.html#oracle-rules">قواعد الترحيل</a>.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="queryrunner">
+  <div lang="en">
+    <h2>The QueryRunner tool</h2>
+    <p>A small console program in <code>tools/Jadwal.QueryRunner</code> that runs one or more SELECT queries from a JSON file and writes the results as
+      Excel, CSV or JSON, made for Windows Task Scheduler. It is fully independent: no API, no Jadwal database, no sign-in, and no reference to the
+      other projects. Its files use the same layout as the web app's exports.</p>
+  </div>
+  <div lang="ar">
+    <h2>أداة QueryRunner</h2>
+    <p>برنامج صغير لسطر الأوامر في <code>tools/Jadwal.QueryRunner</code> يشغّل استعلام SELECT أو أكثر من ملف JSON ويكتب النتائج بصيغة Excel أو CSV أو JSON،
+      مصمَّم لـTask Scheduler في Windows. وهو مستقل تمامًا: لا API، ولا قاعدة بيانات «جدول»، ولا تسجيل دخول، ولا ارتباط بالمشاريع الأخرى. وملفاته بالتصميم نفسه
+      لتصدير التطبيق.</p>
+  </div>
+<pre>dotnet publish tools\Jadwal.QueryRunner -c Release -o C:\Tools\QueryRunner
+
+Jadwal.QueryRunner.exe                       <span class="c"># reads appsettings.json next to the exe</span>
+Jadwal.QueryRunner.exe C:\Jobs\sales.json    <span class="c"># or any config: one file per scheduled job</span></pre>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">Setting</span><span lang="ar">الإعداد</span></th><th><span lang="en">Meaning</span><span lang="ar">المعنى</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>Database.Provider</code></td><td><code>Oracle</code> <span lang="en">(default),</span><span lang="ar">(الافتراضي)،</span> <code>SqlServer</code>, <code>PostgreSql</code>, <code>MySql</code></td></tr>
+      <tr><td><code>Database.ConnectionString</code></td><td><span lang="en">A full ADO.NET connection string</span><span lang="ar">نص اتصال ADO.NET كامل</span></td></tr>
+      <tr><td><code>Queries[]</code></td><td><span lang="en">Run in order; <code>Name</code>, <code>Sql</code> or <code>SqlFile</code>, <code>Parameters</code> (<code>:name</code> on Oracle, <code>@name</code> elsewhere), <code>TimeoutSeconds</code> (60)</span><span lang="ar">تعمل بالترتيب؛ <code>Name</code>، و<code>Sql</code> أو <code>SqlFile</code>، و<code>Parameters</code> (<code>:name</code> في Oracle و<code>@name</code> في غيره)، و<code>TimeoutSeconds</code> (60)</span></td></tr>
+      <tr><td><code>Output.Folder</code>, <code>FileName</code>, <code>Format</code></td><td><span lang="en">Where, under what name, and <code>Excel</code>, <code>Csv</code> or <code>Json</code></span><span lang="ar">أين، وبأي اسم، و<code>Excel</code> أو <code>Csv</code> أو <code>Json</code></span></td></tr>
+      <tr><td><code>Output.SeparateFiles</code>, <code>QueryNameSeparator</code></td><td><span lang="en">One file per query, named <code>&lt;FileName&gt;&lt;separator&gt;&lt;QueryName&gt;</code>; otherwise one combined file</span><span lang="ar">ملف لكل استعلام باسم <code>&lt;FileName&gt;&lt;separator&gt;&lt;QueryName&gt;</code>؛ وإلا فملف واحد مجمّع</span></td></tr>
+      <tr><td><code>Output.IncludeHeaders</code>, <code>Separator</code></td><td><span lang="en">Header row on or off; any CSV separator, or <code>comma</code>, <code>semicolon</code>, <code>pipe</code>, <code>tab</code></span><span lang="ar">صف العناوين أو بدونه؛ وأي فاصل CSV، أو <code>comma</code> و<code>semicolon</code> و<code>pipe</code> و<code>tab</code></span></td></tr>
+      <tr><td><code>Output.ArchiveFolder</code></td><td><span lang="en">A second folder that gets a copy</span><span lang="ar">مجلد ثانٍ يأخذ نسخة</span></td></tr>
+      <tr><td><code>Output.AppendTimestamp</code>, <code>TimestampFormat</code></td><td><span lang="en">A new file per run, e.g. <code>_yyyyMMdd-HHmmss</code></span><span lang="ar">ملف جديد لكل تشغيل، مثل <code>_yyyyMMdd-HHmmss</code></span></td></tr>
+      <tr><td><code>Output.AppendToExisting</code></td><td><span lang="en">CSV only: add rows to one growing file (needs <code>AppendTimestamp: false</code>)</span><span lang="ar">لـCSV فقط: إضافة الصفوف إلى ملف واحد ينمو (يحتاج <code>AppendTimestamp: false</code>)</span></td></tr>
+      <tr><td><code>Output.LogFile</code>, <code>LogMaxSizeKB</code>, <code>LogMaxFiles</code></td><td><span lang="en">One line per run, rotated at 1,024 KB, 3 kept</span><span lang="ar">سطر لكل تشغيل، يُدوَّر عند 1,024 كيلوبايت، ويُحفظ 3</span></td></tr>
+      <tr><td><code>Output.StateFile</code></td><td><span lang="en">Where checkpoints are kept (default: next to the config)</span><span lang="ar">مكان حفظ نقاط التوقف (افتراضيًا: بجانب ملف الإعداد)</span></td></tr>
+    </tbody>
+  </table></div>
+  <div lang="en">
+    <h3>Only new rows each time</h3>
+    <p>Give a query a <code>KeyColumn</code>: the last key exported is saved and bound into the next run, so only newer rows come out. Always
+      <code>ORDER BY</code> the key ascending and select it. A failed run does not move the checkpoint, so nothing is skipped; delete the state file to start over.</p>
+  </div>
+  <div lang="ar">
+    <h3>الصفوف الجديدة فقط في كل مرة</h3>
+    <p>حدّد للاستعلام <code>KeyColumn</code>: تُحفظ آخر قيمة مفتاح صُدّرت وتُمرَّر في التشغيل التالي، فلا يخرج إلا الأحدث. رتّب دائمًا بالمفتاح تصاعديًا
+      (<code>ORDER BY</code>) واختره ضمن الأعمدة. والتشغيل الفاشل لا يحرّك نقطة التوقف، فلا يضيع شيء؛ واحذف ملف الحالة لتبدأ من جديد.</p>
+  </div>
+<pre>{
+  <span class="s">"Name"</span>: <span class="s">"new-orders"</span>,
+  <span class="s">"Sql"</span>: <span class="s">"SELECT \"Id\", \"CustomerName\" FROM \"Orders\" WHERE \"Id\" &gt; :lastKey ORDER BY \"Id\""</span>,
+  <span class="s">"KeyColumn"</span>: <span class="s">"Id"</span>, <span class="s">"KeyParameter"</span>: <span class="s">"lastKey"</span>, <span class="s">"KeyType"</span>: <span class="s">"Number"</span>, <span class="s">"InitialKey"</span>: <span class="s">"0"</span>
+}</pre>
+  <div lang="en">
+    <h3>Scheduling it</h3>
+    <p>Task Scheduler → Create Task: an account that can reach the database and write the folder, <em>Run whether user is logged on or not</em>,
+      your trigger, and the action <code>C:\Tools\QueryRunner\Jadwal.QueryRunner.exe</code> with the config path as its argument. Exit code 0 means
+      success and 1 failure, shown as the task's Last Run Result.</p>
+  </div>
+  <div lang="ar">
+    <h3>جدولتها</h3>
+    <p>Task Scheduler ← Create Task: حساب يصل إلى قاعدة البيانات ويكتب في المجلد، و<em>Run whether user is logged on or not</em>، والموعد الذي تريده،
+      والإجراء <code>C:\Tools\QueryRunner\Jadwal.QueryRunner.exe</code> مع مسار ملف الإعداد وسيطًا. رمز الخروج 0 يعني النجاح و1 الفشل، ويظهر في Last Run Result.</p>
+  </div>
+</section>
+
+<section id="user-manual">
+  <div lang="en">
+    <h2>The Word user manuals</h2>
+    <p><code>docs/user-manual/Jadwal-User-Manual-EN.docx</code> and <code>-AR.docx</code> are generated, not edited by hand. After a change to the screens,
+      generate them again so the pictures and text match.</p>
+  </div>
+  <div lang="ar">
+    <h2>دليلا المستخدم بصيغة Word</h2>
+    <p>الملفان <code>docs/user-manual/Jadwal-User-Manual-AR.docx</code> و<code>-EN.docx</code> يُولَّدان ولا يُعدَّلان يدويًا. وبعد أي تغيير في الشاشات، ولّدهما من جديد
+      لتتطابق الصور والنصوص.</p>
+  </div>
+<pre><span class="c"># 1. The business tables the examples read (reload when older than a few weeks: the order dates follow the load date)</span>
+sqlplus test/test@host/service @database/demo-data.sql        <span class="c"># with NLS_LANG=.AL32UTF8</span>
+
+<span class="c"># 2. Start the app</span>
+dotnet run --no-launch-profile --urls http://localhost:60187  <span class="c"># in src/Jadwal.API</span>
+npx ng serve --port 4200                                       <span class="c"># in client/</span>
+
+<span class="c"># 3. Build both manuals (from docs/user-manual)</span>
+npm install; python -m pip install python-docx                <span class="c"># first time only</span>
+npm run manual                                                 <span class="c"># seed + capture per language, then build</span></pre>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span lang="en">File</span><span lang="ar">الملف</span></th><th><span lang="en">Holds</span><span lang="ar">يحتوي</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>build-docx.py</code></td><td><span lang="en">The manuals' text in both languages, each string written once as <code>T("English", "العربية")</code>, and the Word layout.</span><span lang="ar">نص الدليلين باللغتين، كل عبارة مكتوبة مرة واحدة بالشكل <code>T("English", "العربية")</code>، وتصميم Word.</span></td></tr>
+      <tr><td><code>capture-screenshots.js</code></td><td><span lang="en">Which screens are photographed (Playwright).</span><span lang="ar">الشاشات التي تُصوَّر (Playwright).</span></td></tr>
+      <tr><td><code>seed-demo-data.js</code></td><td><span lang="en">The demo queries, reports, dashboards, groups and accounts, in both languages.</span><span lang="ar">الاستعلامات والتقارير واللوحات والمجموعات والحسابات التجريبية، باللغتين.</span></td></tr>
+      <tr><td><code>database/demo-data.sql</code></td><td><span lang="en">The business tables: customers, orders, products, employees, invoices.</span><span lang="ar">جداول العمل: العملاء والطلبات والمنتجات والموظفون والفواتير.</span></td></tr>
+    </tbody>
+  </table></div>
+  <div lang="en">
+    <ul>
+      <li><strong>Seeding deletes Jadwal's own content</strong> (dashboards, tasks, reports, queries, groups) before creating the demo set. Never run it
+        against a real installation. It never deletes user accounts.</li>
+      <li><strong>The capture cannot change data.</strong> Every request other than GET is blocked except signing in and running a query, and password-like
+        columns are masked before a picture is taken.</li>
+      <li>The demo content is seeded once per language, because the app does not translate what an administrator typed; the Arabic pass runs last.</li>
+      <li>Settings by environment variable: <code>MANUAL_APP_URL</code>, <code>MANUAL_API_URL</code>, <code>MANUAL_LOCALES</code>, <code>MANUAL_THEME</code>,
+        <code>MANUAL_OUT_DIR</code> (use it when Word has the file open), and the account variables.</li>
+      <li>In Word, right-click the contents table and choose <strong>Update Field</strong> to fill in page numbers.</li>
+    </ul>
+  </div>
+  <div lang="ar">
+    <ul>
+      <li><strong>التهيئة تحذف محتوى «جدول»</strong> (اللوحات والمهام والتقارير والاستعلامات والمجموعات) قبل إنشاء المحتوى التجريبي. لا تشغّلها أبدًا على تثبيت حقيقي.
+        ولا تحذف حسابات المستخدمين.</li>
+      <li><strong>التصوير لا يستطيع تعديل البيانات.</strong> كل طلب غير GET ممنوع ما عدا تسجيل الدخول وتشغيل الاستعلام، وتُخفى الأعمدة الشبيهة بكلمات المرور قبل التصوير.</li>
+      <li>يُهيأ المحتوى التجريبي مرة لكل لغة، لأن التطبيق لا يترجم ما يكتبه المسؤول؛ والجولة العربية تعمل أخيرًا.</li>
+      <li>الإعدادات بمتغيرات البيئة: <code>MANUAL_APP_URL</code> و<code>MANUAL_API_URL</code> و<code>MANUAL_LOCALES</code> و<code>MANUAL_THEME</code>
+        و<code>MANUAL_OUT_DIR</code> (استخدمه حين يكون الملف مفتوحًا في Word)، ومتغيرات الحسابات.</li>
+      <li>في Word، انقر بالزر الأيمن على جدول المحتويات واختر <strong>Update Field</strong> لتظهر أرقام الصفحات.</li>
+    </ul>
+  </div>
+</section>
+
+</div></main>
+</body>
+</html>

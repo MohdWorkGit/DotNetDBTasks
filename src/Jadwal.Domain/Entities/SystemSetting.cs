@@ -137,7 +137,7 @@ public static class SystemSettingKeys
     /// Whether the AI assistant is shown a few example values from each text column of the
     /// tables it writes SQL for — it then knows a status is <c>'A'</c>, not <c>'Active'</c>.
     ///
-    /// <para>Off by default (docs/LOCAL-AI-OPTIONS.md §11, decision 3): without it the model sees
+    /// <para>Off by default (docs/ai.html#decisions, decision 3): without it the model sees
     /// table and column names, types and keys, never the data. The model runs on this server
     /// either way.</para>
     /// </summary>

@@ -112,7 +112,7 @@ $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccou
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 `
     -RestartInterval (New-TimeSpan -Minutes 1) -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal `
-    -Settings $settings -Description 'Local AI model for Jadwal (docs/LOCAL-AI-OPTIONS.md).' -Force | Out-Null
+    -Settings $settings -Description 'Local AI model for Jadwal (docs/ai.html).' -Force | Out-Null
 Start-ScheduledTask -TaskName $TaskName
 Write-Ok "Registered and started"
 

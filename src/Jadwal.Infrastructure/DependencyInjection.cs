@@ -49,7 +49,7 @@ public static class DependencyInjection
         services.AddSingleton<IDocxToPdfConverter, DocxToPdfConverter>();
         services.AddSingleton<IResultFileExporter, ResultFileExporter>();
 
-        // The local AI model (docs/LOCAL-AI-OPTIONS.md). Registered even when Ai:Enabled is
+        // The local AI model (docs/ai.html). Registered even when Ai:Enabled is
         // false, so the status endpoint can say "not set up" rather than fail to resolve.
         services.AddSingleton(AiOptions.FromConfiguration(configuration));
         services.AddHttpClient<IAiChatClient, OpenAiCompatibleChatClient>();
